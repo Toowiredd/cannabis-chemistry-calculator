@@ -1,38 +1,63 @@
-import { Terminal } from 'lucide-react'
-import { useEffect } from 'react'
+import { cn } from 'renderer/lib/utils'
+import { TitleBar } from 'renderer/src/components/TitleBar'
+import { GlassCard } from 'renderer/src/components/GlassCard'
+import { DecarbTab } from 'renderer/src/tabs/DecarbTab'
+import { InfusionTab } from 'renderer/src/tabs/InfusionTab'
+import { DoseTab } from 'renderer/src/tabs/DoseTab'
+import { MethodsTab } from 'renderer/src/tabs/MethodsTab'
+import { FatsTab } from 'renderer/src/tabs/FatsTab'
+import { KnowledgeTab } from 'renderer/src/tabs/KnowledgeTab'
+import { useAppStore, type TabId } from 'renderer/src/stores/appStore'
 
-import {
-  Alert,
-  AlertTitle,
-  AlertDescription,
-} from 'renderer/components/ui/alert'
-
-// The "App" comes from the context bridge in preload/index.ts
-const { App } = window
+const TAB_ITEMS: { id: TabId; label: string }[] = [
+  { id: 'decarb', label: 'Decarb' },
+  { id: 'infusion', label: 'Infusion' },
+  { id: 'dose', label: 'Dose' },
+  { id: 'methods', label: 'Methods' },
+  { id: 'fats', label: 'Fats' },
+  { id: 'knowledge', label: 'Knowledge' },
+]
 
 export function MainScreen() {
-  useEffect(() => {
-    // check the console on dev tools
-    App.sayHelloFromBridge()
-  }, [])
-
-  const userName = App.username || 'there'
+  const activeTab = useAppStore(s => s.activeTab)
+  const setActiveTab = useAppStore(s => s.setActiveTab)
 
   return (
-    <main className="flex flex-col items-center justify-center h-screen bg-background">
-      <Alert className="mt-5 bg-transparent border-transparent text-accent w-fit">
-        <AlertTitle className="text-5xl text-teal-400">
-          Hi, {userName}!
-        </AlertTitle>
+    <div className="flex h-screen w-screen flex-col bg-[#0a0a0a] text-white overflow-hidden">
+      <TitleBar />
 
-        <AlertDescription className="flex items-center gap-2 text-lg">
-          <Terminal className="size-6 text-fuchsia-300" />
+      <nav className="glass flex shrink-0 items-center gap-1 overflow-x-auto px-4 py-2">
+        {TAB_ITEMS.map(tab => (
+          <button
+            className={cn(
+              'app-region-no-drag whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+              activeTab === tab.id
+                ? 'bg-white/15 text-white border border-white/20'
+                : 'text-white/60 hover:bg-white/5 hover:text-white/80'
+            )}
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            type="button"
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
 
-          <span className="text-gray-400">
-            It's time to build something awesome!
-          </span>
-        </AlertDescription>
-      </Alert>
-    </main>
+      <main className="flex-1 overflow-auto p-4">
+        <GlassCard className="h-full overflow-auto">
+          {activeTab === 'decarb' && <DecarbTab />}
+          {activeTab === 'infusion' && <InfusionTab />}
+          {activeTab === 'dose' && <DoseTab />}
+          {activeTab === 'methods' && <MethodsTab />}
+          {activeTab === 'fats' && <FatsTab />}
+          {activeTab === 'knowledge' && <KnowledgeTab />}
+        </GlassCard>
+      </main>
+
+      <footer className="shrink-0 px-4 py-2 text-center text-xs text-white/40">
+        All calculations are heuristic estimates, not laboratory results.
+      </footer>
+    </div>
   )
 }

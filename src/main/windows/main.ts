@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, ipcMain } from 'electron'
 import { join } from 'node:path'
 
 import { createWindow } from 'lib/electron-app/factories/windows/create'
@@ -9,18 +9,44 @@ export async function MainWindow() {
   const window = createWindow({
     id: 'main',
     title: displayName,
-    width: 700,
-    height: 473,
+    width: 1280,
+    height: 800,
+    minWidth: 1024,
+    minHeight: 640,
     show: false,
     center: true,
     movable: true,
-    resizable: false,
-    alwaysOnTop: true,
+    resizable: true,
+    frame: false,
+    titleBarStyle: 'hidden',
+    backgroundColor: '#0a0a0a',
     autoHideMenuBar: true,
 
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
     },
+  })
+
+  ipcMain.on('window:minimize', () => {
+    if (!window.isDestroyed()) {
+      window.minimize()
+    }
+  })
+
+  ipcMain.on('window:maximize', () => {
+    if (!window.isDestroyed()) {
+      if (window.isMaximized()) {
+        window.unmaximize()
+      } else {
+        window.maximize()
+      }
+    }
+  })
+
+  ipcMain.on('window:close', () => {
+    if (!window.isDestroyed()) {
+      window.close()
+    }
   })
 
   window.webContents.on('did-finish-load', () => {
