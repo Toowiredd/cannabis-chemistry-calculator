@@ -3,6 +3,7 @@ import { useAppStore } from 'renderer/src/stores/appStore'
 import { calculateMgPerServing, classifyDose } from 'renderer/src/engine/dosing'
 import { cn } from 'renderer/lib/utils'
 import { Info, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
+import { TabActions } from 'renderer/src/components/TabActions'
 
 /* ------------------------------------------------------------------ */
 /* Small helpers (mirroring DecarbTab / InfusionTab patterns)         */
@@ -324,14 +325,17 @@ export function DoseTab() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-white">Dose Estimation</h2>
-        <button
-          className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
-          onClick={handleReset}
-          type="button"
-        >
-          <RotateCcw className="size-3.5" />
-          Reset to Defaults
-        </button>
+        <div className="flex items-center gap-2">
+          <TabActions tabId="dose" />
+          <button
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            onClick={handleReset}
+            type="button"
+          >
+            <RotateCcw className="size-3.5" />
+            Reset to Defaults
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">

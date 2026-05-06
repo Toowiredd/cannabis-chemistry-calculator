@@ -12,6 +12,13 @@ const API = {
     maximize: () => ipcRenderer.send('window:maximize'),
     close: () => ipcRenderer.send('window:close'),
   },
+  exportReport: (data: {
+    defaultFileName: string
+    textContent: string
+    jsonContent: string
+  }) => ipcRenderer.invoke('export-report', data),
+  copyToClipboard: (text: string) =>
+    ipcRenderer.invoke('copy-to-clipboard', text),
   platform: process.platform,
 } as const
 
