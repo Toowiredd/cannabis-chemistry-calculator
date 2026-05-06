@@ -101,6 +101,15 @@ export async function MainWindow() {
   /* Save Preset                                                       */
   /* ---------------------------------------------------------------- */
 
+  function simpleHash(str: string): string {
+    let hash = 5381
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash * 33) ^ str.charCodeAt(i)
+    }
+    // Return a 6-char hex string, always positive
+    return (hash >>> 0).toString(16).padStart(6, '0').slice(0, 6)
+  }
+
   ipcMain.handle(
     'save-preset',
     async (
@@ -122,7 +131,9 @@ export async function MainWindow() {
         }
 
         const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '_')
-        const filePath = join(dir, `${safeName}.json`)
+        const hashSuffix = simpleHash(name)
+        const fileName = `${safeName}_${hashSuffix}.json`
+        const filePath = join(dir, fileName)
 
         if (existsSync(filePath)) {
           return {

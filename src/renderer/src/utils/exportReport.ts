@@ -6,6 +6,7 @@ import type {
 } from 'renderer/src/stores/appStore'
 import { DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
 import { cToF, ozToG } from 'renderer/src/engine/units'
+import { version as appVersion } from '~/package.json'
 
 function fmt1(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return ''
@@ -405,7 +406,7 @@ export function buildExportReport(store: {
 
   const jsonObj = {
     app: 'Cannabis Chemistry Calculator',
-    version: '0.0.0',
+    version: appVersion,
     exportedAt: timestamp,
     units: store.units,
     tabs: {

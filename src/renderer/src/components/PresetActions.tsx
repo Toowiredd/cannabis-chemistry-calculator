@@ -4,7 +4,12 @@ import { Save, FolderOpen } from 'lucide-react'
 import { Toast } from './Toast'
 
 export function PresetActions() {
-  const store = useAppStore()
+  /* Fine-grained Zustand selectors to avoid unnecessary re-renders */
+  const units = useAppStore(s => s.units)
+  const decarb = useAppStore(s => s.decarb)
+  const infusion = useAppStore(s => s.infusion)
+  const dose = useAppStore(s => s.dose)
+  const loadFromPreset = useAppStore(s => s.loadFromPreset)
 
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [saveName, setSaveName] = useState('')
@@ -28,38 +33,38 @@ export function PresetActions() {
 
   const buildPresetPayload = useCallback((): Record<string, unknown> => {
     return {
-      units: { ...store.units },
+      units: { ...units },
       tabs: {
         decarb: {
           inputs: {
-            weight: store.decarb.weight,
-            thcaPct: store.decarb.thcaPct,
-            thcPct: store.decarb.thcPct,
-            presetId: store.decarb.presetId,
-            tempOverride: store.decarb.tempOverride,
-            timeOverride: store.decarb.timeOverride,
-            effLowOverride: store.decarb.effLowOverride,
-            effExpectedOverride: store.decarb.effExpectedOverride,
-            effHighOverride: store.decarb.effHighOverride,
+            weight: decarb.weight,
+            thcaPct: decarb.thcaPct,
+            thcPct: decarb.thcPct,
+            presetId: decarb.presetId,
+            tempOverride: decarb.tempOverride,
+            timeOverride: decarb.timeOverride,
+            effLowOverride: decarb.effLowOverride,
+            effExpectedOverride: decarb.effExpectedOverride,
+            effHighOverride: decarb.effHighOverride,
           },
         },
         infusion: {
           inputs: {
-            decarbedThc: store.infusion.decarbedThc,
-            volume: store.infusion.volume,
-            fatId: store.infusion.fatId,
-            customEfficiency: store.infusion.customEfficiency,
+            decarbedThc: infusion.decarbedThc,
+            volume: infusion.volume,
+            fatId: infusion.fatId,
+            customEfficiency: infusion.customEfficiency,
           },
         },
         dose: {
           inputs: {
-            totalThc: store.dose.totalThc,
-            servings: store.dose.servings,
+            totalThc: dose.totalThc,
+            servings: dose.servings,
           },
         },
       },
     }
-  }, [store])
+  }, [units, decarb, infusion, dose])
 
   const handleSaveClick = () => {
     setSaveName('')
@@ -108,7 +113,7 @@ export function PresetActions() {
       }
 
       if (result.data) {
-        store.loadFromPreset(result.data)
+        loadFromPreset(result.data)
         const name =
           typeof result.data.name === 'string'
             ? result.data.name
