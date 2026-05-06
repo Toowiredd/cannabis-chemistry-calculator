@@ -55,27 +55,11 @@ function ConceptualCurveChart() {
   // THCA: starts high (1.0) drops to near zero by end
   // THC: starts low, rises to peak mid, then falls
   // CBN: starts near 0, slowly rises then accelerates
-  const thcaPath = `M ${padLeft} ${padTop + 0 * gh}
-    C ${padLeft + gw * 0.15} ${padTop + 0.15 * gh},
-      ${padLeft + gw * 0.3} ${padTop + 0.4 * gh},
-      ${padLeft + gw * 0.55} ${padTop + 0.85 * gh}
-      ${padLeft + gw * 0.75} ${padTop + 0.95 * gh},
-      ${padLeft + gw} ${padTop + 0.98 * gh}`
+  const thcaPath = `M ${padLeft} ${padTop + 0 * gh} C ${padLeft + gw * 0.15} ${padTop + 0.15 * gh}, ${padLeft + gw * 0.3} ${padTop + 0.4 * gh}, ${padLeft + gw * 0.55} ${padTop + 0.85 * gh} ${padLeft + gw * 0.75} ${padTop + 0.95 * gh}, ${padLeft + gw} ${padTop + 0.98 * gh}`
 
-  const thcPath = `M ${padLeft} ${padTop + 0.95 * gh}
-    C ${padLeft + gw * 0.2} ${padTop + 0.75 * gh},
-      ${padLeft + gw * 0.35} ${padTop + 0.35 * gh},
-      ${padLeft + gw * 0.55} ${padTop + 0.18 * gh}
-      ${padLeft + gw * 0.75} ${padTop + 0.35 * gh},
-      ${padLeft + gw * 0.85} ${padTop + 0.6 * gh}
-      ${padLeft + gw} ${padTop + 0.9 * gh}`
+  const thcPath = `M ${padLeft} ${padTop + 0.95 * gh} C ${padLeft + gw * 0.2} ${padTop + 0.75 * gh}, ${padLeft + gw * 0.35} ${padTop + 0.35 * gh}, ${padLeft + gw * 0.55} ${padTop + 0.18 * gh} ${padLeft + gw * 0.75} ${padTop + 0.35 * gh}, ${padLeft + gw * 0.85} ${padTop + 0.6 * gh}, ${padLeft + gw} ${padTop + 0.9 * gh}`
 
-  const cbnPath = `M ${padLeft} ${padTop + 0.98 * gh}
-    C ${padLeft + gw * 0.25} ${padTop + 0.92 * gh},
-      ${padLeft + gw * 0.45} ${padTop + 0.78 * gh},
-      ${padLeft + gw * 0.65} ${padTop + 0.55 * gh}
-      ${padLeft + gw * 0.82} ${padTop + 0.35 * gh},
-      ${padLeft + gw} ${padTop + 0.15 * gh}`
+  const cbnPath = `M ${padLeft} ${padTop + 0.98 * gh} C ${padLeft + gw * 0.25} ${padTop + 0.92 * gh}, ${padLeft + gw * 0.45} ${padTop + 0.78 * gh}, ${padLeft + gw * 0.65} ${padTop + 0.55 * gh} ${padLeft + gw * 0.82} ${padTop + 0.35 * gh}, ${padLeft + gw} ${padTop + 0.15 * gh}`
 
   const axisColor = 'rgba(255,255,255,0.35)'
   const gridColor = 'rgba(255,255,255,0.08)'
