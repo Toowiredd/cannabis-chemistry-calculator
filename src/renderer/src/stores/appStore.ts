@@ -81,6 +81,14 @@ interface AppStore {
   setDose: (partial: Partial<DoseState>) => void
   resetDose: () => void
 
+  /** Last computed decarb expected mg for downstream carry-forward */
+  lastDecarbExpected: string
+  setLastDecarbExpected: (val: string) => void
+
+  /** Last computed infused THC mg for downstream carry-forward */
+  lastInfusedThc: string
+  setLastInfusedThc: (val: string) => void
+
   loadFromPreset: (preset: unknown) => void
 }
 
@@ -126,6 +134,12 @@ export const useAppStore = create<AppStore>(set => ({
   dose: { ...DEFAULT_DOSE },
   setDose: partial => set(state => ({ dose: { ...state.dose, ...partial } })),
   resetDose: () => set({ dose: { ...DEFAULT_DOSE } }),
+
+  lastDecarbExpected: '',
+  setLastDecarbExpected: val => set({ lastDecarbExpected: val }),
+
+  lastInfusedThc: '',
+  setLastInfusedThc: val => set({ lastInfusedThc: val }),
 
   loadFromPreset: (preset: unknown) => {
     if (!isRecord(preset)) return

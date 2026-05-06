@@ -317,6 +317,7 @@ export function DecarbTab() {
         }
 
         setResults({ theoreticalMax, decarbed, warnings })
+        useAppStore.getState().setLastDecarbExpected(fmt1(decarbed.expected))
       } catch {
         setResults(null)
       }
@@ -499,7 +500,7 @@ export function DecarbTab() {
           {inputRow(
             <>
               THCA %
-              <TooltipIcon text="Tetrahydrocannabinolic acid — the non-psychoactive precursor to THC found in raw cannabis." />
+              <TooltipIcon text="Tetrahydrocannabinolic acid -- the non-psychoactive precursor to THC found in raw cannabis." />
             </>,
             <input
               className={cn(
@@ -717,7 +718,7 @@ export function DecarbTab() {
               Theoretical Maximum THC
             </span>
             <span className="mt-1 text-2xl font-bold text-white">
-              {results ? `${fmt1(results.theoreticalMax)} mg` : '—'}
+              {results ? `${fmt1(results.theoreticalMax)} mg` : 'N/A'}
             </span>
           </div>
 
@@ -732,7 +733,7 @@ export function DecarbTab() {
                   Low
                 </span>
                 <span className="text-lg font-semibold text-white">
-                  {results ? `${fmt1(results.decarbed.low)} mg` : '—'}
+                  {results ? `${fmt1(results.decarbed.low)} mg` : 'N/A'}
                 </span>
               </div>
               <div className="flex flex-col">
@@ -740,7 +741,7 @@ export function DecarbTab() {
                   Expected
                 </span>
                 <span className="text-lg font-semibold text-emerald-300">
-                  {results ? `${fmt1(results.decarbed.expected)} mg` : '—'}
+                  {results ? `${fmt1(results.decarbed.expected)} mg` : 'N/A'}
                 </span>
               </div>
               <div className="flex flex-col">
@@ -748,7 +749,7 @@ export function DecarbTab() {
                   High
                 </span>
                 <span className="text-lg font-semibold text-white">
-                  {results ? `${fmt1(results.decarbed.high)} mg` : '—'}
+                  {results ? `${fmt1(results.decarbed.high)} mg` : 'N/A'}
                 </span>
               </div>
             </div>
@@ -802,14 +803,14 @@ export function DecarbTab() {
                   <strong className="text-white/90">
                     Theoretical max THC (mg)
                   </strong>{' '}
-                  = material weight (g) × ((THCA% / 100) × 0.877 + (THC% / 100))
-                  × 1000
+                  = material weight (g) x ((THCA% / 100) x 0.877 + (THC% / 100))
+                  x 1000
                 </p>
                 <p className="mb-2">
                   <strong className="text-white/90">
                     Decarb-adjusted THC (mg)
                   </strong>{' '}
-                  = theoretical max THC (mg) × decarb efficiency
+                  = theoretical max THC (mg) x decarb efficiency
                 </p>
                 <p className="text-white/50">
                   THCA loses its carboxyl group (COOH) during decarboxylation.

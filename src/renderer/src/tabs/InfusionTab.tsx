@@ -232,6 +232,15 @@ export function InfusionTab() {
   const setUnits = useAppStore(s => s.setUnits)
   const decarb = useAppStore(s => s.decarb)
 
+  /* One-shot auto-fill from upstream decarb result */
+  useEffect(() => {
+    const store = useAppStore.getState()
+    if (!infusion.decarbedThc && store.lastDecarbExpected) {
+      setInfusion({ decarbedThc: store.lastDecarbExpected })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   /* Preset lookup */
   const preset = useMemo(
     () => INFUSION_FATS.find(f => f.id === infusion.fatId) ?? INFUSION_FATS[0],
@@ -332,6 +341,7 @@ export function InfusionTab() {
           simplifiedEstimate,
           fatName: preset.name,
         })
+        useAppStore.getState().setLastInfusedThc(fmt1(infusedThc))
       } catch {
         setResults(null)
       }
@@ -584,7 +594,7 @@ export function InfusionTab() {
               Total Infused THC
             </span>
             <span className="mt-1 text-2xl font-bold text-white">
-              {results ? `${fmt1(results.infusedThc)} mg` : '—'}
+              {results ? `${fmt1(results.infusedThc)} mg` : 'N/A'}
             </span>
           </div>
 
@@ -596,7 +606,7 @@ export function InfusionTab() {
             <span className="mt-1 text-2xl font-bold text-emerald-300">
               {results
                 ? `${fmt1(results.mgPerUnit)} ${results.unitLabel}`
-                : '—'}
+                : 'N/A'}
             </span>
           </div>
 
@@ -609,7 +619,7 @@ export function InfusionTab() {
               <span className="text-lg font-semibold text-white">
                 {results?.simplifiedEstimate != null
                   ? `${fmt1(results.simplifiedEstimate)} mg`
-                  : '—'}
+                  : 'N/A'}
               </span>
               <span className="text-xs text-white/40">
                 Approximate total using {preset.simplifiedMultiplier}x
@@ -636,7 +646,7 @@ export function InfusionTab() {
               <div className="mt-2 rounded-lg border border-white/10 bg-black/30 px-4 py-3 font-mono text-xs leading-relaxed text-white/70">
                 <p className="mb-2">
                   <strong className="text-white/90">Infused THC (mg)</strong> =
-                  decarbed THC (mg) × extraction efficiency
+                  decarbed THC (mg) x extraction efficiency
                 </p>
                 <p className="mb-2">
                   <strong className="text-white/90">mg per unit</strong> =
@@ -644,7 +654,7 @@ export function InfusionTab() {
                 </p>
                 <p className="mb-2">
                   <strong className="text-white/90">Simplified estimate</strong>{' '}
-                  = material weight (g) × THCA% × multiplier
+                  = material weight (g) x THCA% x multiplier
                 </p>
                 <p className="text-white/50">
                   Extraction efficiency represents the fraction of available THC

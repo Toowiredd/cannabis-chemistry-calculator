@@ -256,6 +256,15 @@ export function DoseTab() {
   const setDose = useAppStore(s => s.setDose)
   const resetDose = useAppStore(s => s.resetDose)
 
+  /* One-shot auto-fill from upstream infusion result */
+  useEffect(() => {
+    const store = useAppStore.getState()
+    if (!dose.totalThc && store.lastInfusedThc) {
+      setDose({ totalThc: store.lastInfusedThc })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   /* Local UI state */
   const [showFormula, setShowFormula] = useState(false)
   const [results, setResults] = useState<{

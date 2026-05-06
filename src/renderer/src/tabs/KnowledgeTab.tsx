@@ -269,14 +269,14 @@ export function KnowledgeTab() {
           <p>
             You will notice the calculator multiplies your THCA percentage by
             0.877 before turning it into milligrams. That number is not
-            arbitrary — it is the molecular weight ratio between THC and THCA.
+            arbitrary -- it is the molecular weight ratio between THC and THCA.
           </p>
           <p className="mt-3">
             THCA weighs about 358.5 g per mole. THC weighs about 314.5 g per
             mole. The difference (44.0 g) is the exact weight of the CO₂ group
             that gets removed during decarboxylation. Divide THC by THCA and you
             get 314.5 ÷ 358.5 ≈ 0.877. That is why 1 gram of pure THCA never
-            yields 1 gram of THC — you always lose that CO₂ fragment in the
+            yields 1 gram of THC -- you always lose that CO₂ fragment in the
             process.
           </p>
         </SectionCard>
@@ -330,9 +330,9 @@ export function KnowledgeTab() {
         >
           <p>
             Coarse, chunky material retains terpenes better than fine powder.
-            This sounds counterintuitive — more surface area should mean faster
-            heat transfer — but the key is what happens before and during
-            heating.
+            This sounds counterintuitive N/A more surface area should mean
+            faster heat transfer N/A but the key is what happens before and
+            during heating.
           </p>
           <p className="mt-3">
             Fine powder has more total surface area exposed to air. Volatile
@@ -401,9 +401,9 @@ export function KnowledgeTab() {
             The chart below shows the conceptual relationship between heat
             exposure and the three main compounds. THCA drops as it converts,
             THC rises to a peak then falls as it degrades into CBN, and CBN
-            slowly accumulates over time. This is an illustrative model — not
-            data from a specific lab run — but it captures the general behavior
-            you should expect during decarboxylation.
+            slowly accumulates over time. This is an illustrative model N/A not
+            data from a specific lab run N/A but it captures the general
+            behavior you should expect during decarboxylation.
           </p>
 
           <div className="mt-6">
@@ -413,7 +413,7 @@ export function KnowledgeTab() {
           <div className="mt-4 rounded-lg border border-amber-400/20 bg-amber-400/10 px-4 py-3">
             <p className="text-sm text-amber-300/90">
               <strong>Illustrative only:</strong> This curve represents a
-              conceptual model of the THCA → THC → CBN relationship over time
+              conceptual model of the THCA -- THC -- CBN relationship over time
               and heat exposure. It is not derived from actual laboratory
               measurements and should be treated as educational guidance rather
               than precise scientific data.

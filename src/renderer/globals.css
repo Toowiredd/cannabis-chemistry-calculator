@@ -134,6 +134,17 @@
   }
 }
 
+/* Accessible focus styles - replaced outline-none per-tab with global ring */
+@layer base {
+  input:focus-visible,
+  select:focus-visible,
+  button:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+  }
+}
+
 @layer utilities {
   .glass {
     background: rgba(255, 255, 255, 0.06);

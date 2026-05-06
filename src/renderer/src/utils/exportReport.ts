@@ -98,8 +98,8 @@ function decarbSummary(
       `Decarb-Adjusted THC: Low ${fmt1(decarbedLow)} mg, Expected ${fmt1(decarbedExpected)} mg, High ${fmt1(decarbedHigh)} mg`
     )
   } else {
-    lines.push('Theoretical Maximum: —')
-    lines.push('Decarb-Adjusted THC: —')
+    lines.push('Theoretical Maximum: --')
+    lines.push('Decarb-Adjusted THC: --')
   }
   if (preset) {
     lines.push(`Terpene Retention: ${preset.terpeneLabel}`)
@@ -200,11 +200,11 @@ function infusionSummary(
   if (infusedThc != null) {
     lines.push(`Total Infused THC: ${fmt1(infusedThc)} mg`)
     lines.push(
-      `Concentration: ${mgPerUnit != null ? fmt1(mgPerUnit) : '—'} mg/${volumeUnit}`
+      `Concentration: ${mgPerUnit != null ? fmt1(mgPerUnit) : '--'} mg/${volumeUnit}`
     )
   } else {
-    lines.push('Total Infused THC: —')
-    lines.push('Concentration: —')
+    lines.push('Total Infused THC: --')
+    lines.push('Concentration: --')
   }
   lines.push('')
 
@@ -267,8 +267,8 @@ function doseSummary(state: DoseState): {
     lines.push(`mg per Serving: ${fmt1(mgPerServing)} mg`)
     lines.push(`Classification: ${classification}`)
   } else {
-    lines.push('mg per Serving: —')
-    lines.push('Classification: —')
+    lines.push('mg per Serving: --')
+    lines.push('Classification: --')
   }
   lines.push('')
 
@@ -386,7 +386,7 @@ export function buildExportReport(store: {
   const textParts: string[] = []
   textParts.push('============================================================')
   textParts.push(
-    ' Cannabis Chemistry Calculator — Export Report               '
+    ' Cannabis Chemistry Calculator -- Export Report               '
   )
   textParts.push('============================================================')
   textParts.push(`Exported: ${timestamp}`)

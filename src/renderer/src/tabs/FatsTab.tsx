@@ -376,7 +376,7 @@ export function FatsTab() {
                     {fmt1(fatResults.infusedThc)} mg
                   </span>
                 ) : (
-                  <span className="text-xl font-bold text-white/30">—</span>
+                  <span className="text-xl font-bold text-white/30">N/A</span>
                 )}
               </div>
 
@@ -390,7 +390,7 @@ export function FatsTab() {
                     {fmt1(fatResults.mgPerMl)} mg/mL
                   </span>
                 ) : (
-                  <span className="text-xl font-bold text-white/30">—</span>
+                  <span className="text-xl font-bold text-white/30">N/A</span>
                 )}
               </div>
 
@@ -405,9 +405,9 @@ export function FatsTab() {
                         if (!fatResults) return 'N/A'
                         const eff = fatResults.extractionEff
                         if (eff === 0) return 'N/A'
-                        return `×${eff.toFixed(2)}`
+                        return `x${eff.toFixed(2)}`
                       })()
-                    : `×${fat.extractionEff.toFixed(2)}`}
+                    : `x${fat.extractionEff.toFixed(2)}`}
                 </span>
               </div>
 

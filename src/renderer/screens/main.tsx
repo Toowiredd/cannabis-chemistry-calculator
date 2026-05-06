@@ -44,19 +44,33 @@ export function MainScreen() {
         ))}
       </nav>
 
-      <main className="flex-1 overflow-auto p-4">
-        <GlassCard className="h-full overflow-auto">
-          {activeTab === 'decarb' && <DecarbTab />}
-          {activeTab === 'infusion' && <InfusionTab />}
-          {activeTab === 'dose' && <DoseTab />}
-          {activeTab === 'methods' && <MethodsTab />}
-          {activeTab === 'fats' && <FatsTab />}
-          {activeTab === 'knowledge' && <KnowledgeTab />}
+      <main className="relative mx-auto flex w-full max-w-[1400px] flex-1 overflow-auto p-4">
+        <GlassCard className="mx-auto h-full w-full max-w-[1400px] overflow-auto">
+          <div className={cn(activeTab === 'decarb' ? 'block' : 'hidden')}>
+            <DecarbTab />
+          </div>
+          <div className={cn(activeTab === 'infusion' ? 'block' : 'hidden')}>
+            <InfusionTab />
+          </div>
+          <div className={cn(activeTab === 'dose' ? 'block' : 'hidden')}>
+            <DoseTab />
+          </div>
+          <div className={cn(activeTab === 'methods' ? 'block' : 'hidden')}>
+            <MethodsTab />
+          </div>
+          <div className={cn(activeTab === 'fats' ? 'block' : 'hidden')}>
+            <FatsTab />
+          </div>
+          <div className={cn(activeTab === 'knowledge' ? 'block' : 'hidden')}>
+            <KnowledgeTab />
+          </div>
         </GlassCard>
       </main>
 
-      <footer className="shrink-0 px-4 py-2 text-center text-xs text-white/40">
-        All calculations are heuristic estimates, not laboratory results.
+      <footer className="relative shrink-0 px-4 py-2 text-center">
+        <p className="text-xs text-white/50">
+          All calculations are heuristic estimates, not laboratory results.
+        </p>
       </footer>
     </div>
   )
