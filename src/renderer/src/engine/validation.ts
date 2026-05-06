@@ -1,0 +1,158 @@
+import { z } from 'zod'
+
+export interface ValidationResult<T> {
+  success: boolean
+  data?: T
+  errors?: string[]
+  warnings?: string[]
+}
+
+/* ------------------------------------------------------------------ */
+/* Base schemas (shared primitives)                                    */
+/* ------------------------------------------------------------------ */
+
+export const positiveNumberSchema = z
+  .number()
+  .gt(0, 'Value must be greater than 0')
+
+export const nonNegativeNumberSchema = z
+  .number()
+  .gte(0, 'Value cannot be negative')
+
+export const percentageSchema = z
+  .number()
+  .gte(0, 'Percentage cannot be negative')
+  .lte(100, 'Percentage cannot exceed 100%')
+
+export const efficiencySchema = z
+  .number()
+  .gte(0, 'Efficiency must be at least 0')
+  .lte(1, 'Efficiency must be at most 1')
+
+/* ------------------------------------------------------------------ */
+/* Decarb input                                                        */
+/* ------------------------------------------------------------------ */
+
+export const decarbInputSchema = z
+  .object({
+    weight: positiveNumberSchema,
+    thcaPct: percentageSchema,
+    thcPct: percentageSchema,
+  })
+  .refine(data => data.thcaPct + data.thcPct <= 100, {
+    message: 'THCA + THC cannot exceed 100%',
+    path: ['thcaPct'],
+  })
+
+export type DecarbInput = z.infer<typeof decarbInputSchema>
+
+/* ------------------------------------------------------------------ */
+/* Infusion input                                                      */
+/* ------------------------------------------------------------------ */
+
+export const infusionInputSchema = z.object({
+  decarbedThcMg: nonNegativeNumberSchema,
+  volumeMl: positiveNumberSchema,
+  extractionEff: efficiencySchema,
+})
+
+export type InfusionInput = z.infer<typeof infusionInputSchema>
+
+/* ------------------------------------------------------------------ */
+/* Dose input                                                          */
+/* ------------------------------------------------------------------ */
+
+export const doseInputSchema = z.object({
+  finalThcMg: nonNegativeNumberSchema,
+  servings: positiveNumberSchema,
+})
+
+export type DoseInput = z.infer<typeof doseInputSchema>
+
+/* ------------------------------------------------------------------ */
+/* Warnings                                                            */
+/* ------------------------------------------------------------------ */
+
+function getDecarbWarnings(input: DecarbInput): string[] {
+  const warnings: string[] = []
+  if (input.thcaPct + input.thcPct > 40) {
+    warnings.push(
+      'Note: High total cannabinoid percentage (>40%). Verify lab results.'
+    )
+  }
+  return warnings
+}
+
+function getInfusionWarnings(input: InfusionInput): string[] {
+  const warnings: string[] = []
+  // Threshold: volume less than 25 mL per 500 mg decarbed THC is considered low
+  if (
+    input.decarbedThcMg > 0 &&
+    input.volumeMl > 0 &&
+    input.volumeMl < input.decarbedThcMg / 20
+  ) {
+    warnings.push('Warning: Low fat volume may not fully absorb cannabinoids.')
+  }
+  return warnings
+}
+
+/* ------------------------------------------------------------------ */
+/* Public API                                                          */
+/* ------------------------------------------------------------------ */
+
+export function validateDecarbInput(
+  input: DecarbInput
+): ValidationResult<DecarbInput> {
+  const parsed = decarbInputSchema.safeParse(input)
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      errors: parsed.error.issues.map(e => e.message),
+    }
+  }
+
+  const data = parsed.data
+  const warnings = getDecarbWarnings(data)
+  return {
+    success: true,
+    data,
+    warnings: warnings.length > 0 ? warnings : undefined,
+  }
+}
+
+export function validateInfusionInput(
+  input: InfusionInput
+): ValidationResult<InfusionInput> {
+  const parsed = infusionInputSchema.safeParse(input)
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      errors: parsed.error.issues.map(e => e.message),
+    }
+  }
+
+  const data = parsed.data
+  const warnings = getInfusionWarnings(data)
+  return {
+    success: true,
+    data,
+    warnings: warnings.length > 0 ? warnings : undefined,
+  }
+}
+
+export function validateDoseInput(
+  input: DoseInput
+): ValidationResult<DoseInput> {
+  const parsed = doseInputSchema.safeParse(input)
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      errors: parsed.error.issues.map(e => e.message),
+    }
+  }
+
+  return { success: true, data: parsed.data }
+}
