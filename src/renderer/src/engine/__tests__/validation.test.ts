@@ -17,7 +17,7 @@ function expectValid<T>(result: ValidationResult<T>) {
 function expectInvalid<T>(result: ValidationResult<T>) {
   expect(result.success).toBe(false)
   expect(result.errors).toBeDefined()
-  expect(result.errors!.length).toBeGreaterThan(0)
+  expect(result.errors?.length).toBeGreaterThan(0)
 }
 
 describe('validation', () => {
@@ -75,8 +75,8 @@ describe('validation', () => {
       const result = validateDecarbInput(input)
       expectValid(result)
       expect(result.warnings).toBeDefined()
-      expect(result.warnings!.length).toBeGreaterThan(0)
-      expect(result.warnings!.some(w => w.includes('40'))).toBe(true)
+      expect(result.warnings?.length).toBeGreaterThan(0)
+      expect(result.warnings?.some(w => w.includes('40'))).toBe(true)
     })
 
     it('does not warn when THCA + THC <= 40%', () => {
@@ -184,9 +184,9 @@ describe('validation', () => {
       const result = validateInfusionInput(input)
       expectValid(result)
       expect(result.warnings).toBeDefined()
-      expect(result.warnings!.length).toBeGreaterThan(0)
+      expect(result.warnings?.length).toBeGreaterThan(0)
       expect(
-        result.warnings!.some(w => w.toLowerCase().includes('volume'))
+        result.warnings?.some(w => w.toLowerCase().includes('volume'))
       ).toBe(true)
     })
 

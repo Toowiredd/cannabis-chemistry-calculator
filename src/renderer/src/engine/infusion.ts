@@ -46,10 +46,7 @@ export function calculateInfusedThc(
  * @param volumeMl   Fat volume in mL (must be > 0)
  * @returns mg per mL, rounded to 1 decimal
  */
-export function calculateMgPerMl(
-  infusedThc: number,
-  volumeMl: number
-): number {
+export function calculateMgPerMl(infusedThc: number, volumeMl: number): number {
   if (infusedThc < 0) {
     throw new ValidationError('infusedThc cannot be negative')
   }

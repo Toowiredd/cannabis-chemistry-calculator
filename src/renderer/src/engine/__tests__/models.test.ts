@@ -8,8 +8,7 @@ import {
   INFUSION_FATS,
   type PresetMethod,
   type PresetFat,
-  type EfficiencyRange,
-} from './models'
+} from '../models'
 
 describe('DECARB_METHODS preset array', () => {
   it('contains exactly 6 entries', () => {
@@ -129,7 +128,9 @@ describe('INFUSION_FATS preset array', () => {
 
 describe('Preset cross-checks (contract-mandated values)', () => {
   it('sv_dry has 95C, 90-120min, 0.95-0.98 efficiency', () => {
-    const m = DECARB_METHODS.find(x => x.id === 'sv_dry')!
+    const m = DECARB_METHODS.find(x => x.id === 'sv_dry') as NonNullable<
+      (typeof DECARB_METHODS)[number]
+    >
     expect(m.tempC).toBe(95)
     expect(m.timeMin).toBe(90)
     expect(m.timeMax).toBe(120)
@@ -139,7 +140,9 @@ describe('Preset cross-checks (contract-mandated values)', () => {
   })
 
   it('sv_combined has 85C, 240-360min, 0.85-0.92 efficiency', () => {
-    const m = DECARB_METHODS.find(x => x.id === 'sv_combined')!
+    const m = DECARB_METHODS.find(x => x.id === 'sv_combined') as NonNullable<
+      (typeof DECARB_METHODS)[number]
+    >
     expect(m.tempC).toBe(85)
     expect(m.timeMin).toBe(240)
     expect(m.timeMax).toBe(360)
@@ -149,7 +152,9 @@ describe('Preset cross-checks (contract-mandated values)', () => {
   })
 
   it('sv_fast has 95C, 120-180min, 0.95-0.98 efficiency', () => {
-    const m = DECARB_METHODS.find(x => x.id === 'sv_fast')!
+    const m = DECARB_METHODS.find(x => x.id === 'sv_fast') as NonNullable<
+      (typeof DECARB_METHODS)[number]
+    >
     expect(m.tempC).toBe(95)
     expect(m.timeMin).toBe(120)
     expect(m.timeMax).toBe(180)
@@ -159,7 +164,9 @@ describe('Preset cross-checks (contract-mandated values)', () => {
   })
 
   it('sv_lowtemp has 73C, 480-720min, 0.60-0.75 efficiency', () => {
-    const m = DECARB_METHODS.find(x => x.id === 'sv_lowtemp')!
+    const m = DECARB_METHODS.find(x => x.id === 'sv_lowtemp') as NonNullable<
+      (typeof DECARB_METHODS)[number]
+    >
     expect(m.tempC).toBe(73)
     expect(m.timeMin).toBe(480)
     expect(m.timeMax).toBe(720)
@@ -169,7 +176,9 @@ describe('Preset cross-checks (contract-mandated values)', () => {
   })
 
   it('oven_sealed has 113C, 60-90min, 0.90-0.95 efficiency', () => {
-    const m = DECARB_METHODS.find(x => x.id === 'oven_sealed')!
+    const m = DECARB_METHODS.find(x => x.id === 'oven_sealed') as NonNullable<
+      (typeof DECARB_METHODS)[number]
+    >
     expect(m.tempC).toBe(113)
     expect(m.timeMin).toBe(60)
     expect(m.timeMax).toBe(90)
@@ -179,7 +188,9 @@ describe('Preset cross-checks (contract-mandated values)', () => {
   })
 
   it('oven_open has 116C, 40min, 0.88-0.95 efficiency', () => {
-    const m = DECARB_METHODS.find(x => x.id === 'oven_open')!
+    const m = DECARB_METHODS.find(x => x.id === 'oven_open') as NonNullable<
+      (typeof DECARB_METHODS)[number]
+    >
     expect(m.tempC).toBe(116)
     expect(m.timeMin).toBe(40)
     expect(m.timeMax).toBe(40)
@@ -189,25 +200,33 @@ describe('Preset cross-checks (contract-mandated values)', () => {
   })
 
   it('ghee has extractionEff 0.85, multiplier 8.5', () => {
-    const f = INFUSION_FATS.find(x => x.id === 'ghee')!
+    const f = INFUSION_FATS.find(x => x.id === 'ghee') as NonNullable<
+      (typeof INFUSION_FATS)[number]
+    >
     expect(f.extractionEff).toBe(0.85)
     expect(f.simplifiedMultiplier).toBe(8.5)
   })
 
   it('coconut has extractionEff 0.82, multiplier 8.2', () => {
-    const f = INFUSION_FATS.find(x => x.id === 'coconut')!
+    const f = INFUSION_FATS.find(x => x.id === 'coconut') as NonNullable<
+      (typeof INFUSION_FATS)[number]
+    >
     expect(f.extractionEff).toBe(0.82)
     expect(f.simplifiedMultiplier).toBe(8.2)
   })
 
   it('mct has extractionEff 0.92, multiplier 9.2', () => {
-    const f = INFUSION_FATS.find(x => x.id === 'mct')!
+    const f = INFUSION_FATS.find(x => x.id === 'mct') as NonNullable<
+      (typeof INFUSION_FATS)[number]
+    >
     expect(f.extractionEff).toBe(0.92)
     expect(f.simplifiedMultiplier).toBe(9.2)
   })
 
   it('custom has extractionEff 0.0, multiplier 0.0', () => {
-    const f = INFUSION_FATS.find(x => x.id === 'custom')!
+    const f = INFUSION_FATS.find(x => x.id === 'custom') as NonNullable<
+      (typeof INFUSION_FATS)[number]
+    >
     expect(f.extractionEff).toBe(0.0)
     expect(f.simplifiedMultiplier).toBe(0.0)
   })

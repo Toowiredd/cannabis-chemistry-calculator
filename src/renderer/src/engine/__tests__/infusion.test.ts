@@ -136,22 +136,30 @@ describe('calculateSimplifiedEstimate', () => {
   })
 
   it('rejects negative grams', () => {
-    expect(() => calculateSimplifiedEstimate(-5, 18, 8.5)).toThrow(ValidationError)
+    expect(() => calculateSimplifiedEstimate(-5, 18, 8.5)).toThrow(
+      ValidationError
+    )
     expect(() => calculateSimplifiedEstimate(-5, 18, 8.5)).toThrow(
       'grams cannot be negative'
     )
   })
 
   it('rejects negative thcaPct', () => {
-    expect(() => calculateSimplifiedEstimate(10, -10, 8.5)).toThrow(ValidationError)
+    expect(() => calculateSimplifiedEstimate(10, -10, 8.5)).toThrow(
+      ValidationError
+    )
   })
 
   it('rejects negative multiplier', () => {
-    expect(() => calculateSimplifiedEstimate(10, 18, -1)).toThrow(ValidationError)
+    expect(() => calculateSimplifiedEstimate(10, 18, -1)).toThrow(
+      ValidationError
+    )
   })
 
   it('rejects thcaPct > 100', () => {
-    expect(() => calculateSimplifiedEstimate(10, 110, 8.5)).toThrow(ValidationError)
+    expect(() => calculateSimplifiedEstimate(10, 110, 8.5)).toThrow(
+      ValidationError
+    )
   })
 
   it('rounds to max 1 decimal', () => {
