@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import {
   calculateTheoreticalMax,
-  calculateRange,
+  calculateDecarbedThc,
 } from 'renderer/src/engine/decarb'
 import { DECARB_METHODS } from 'renderer/src/engine/models'
 import { cToF, fToC, gToOz, ozToG } from 'renderer/src/engine/units'
@@ -309,12 +309,11 @@ export function DecarbTab() {
             ? parseFloat(decarb.effHighOverride)
             : preset.efficiency.high
 
-        const decarbed = calculateRange(
-          theoreticalMax,
-          effLow,
-          effExpected,
-          effHigh
-        )
+        const decarbed = {
+          low: calculateDecarbedThc(theoreticalMax, effLow),
+          expected: calculateDecarbedThc(theoreticalMax, effExpected),
+          high: calculateDecarbedThc(theoreticalMax, effHigh),
+        }
 
         setResults({ theoreticalMax, decarbed, warnings })
       } catch {
