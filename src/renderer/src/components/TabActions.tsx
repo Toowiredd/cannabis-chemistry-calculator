@@ -8,13 +8,11 @@ import { FileDown, ClipboardCopy, Check } from 'lucide-react'
 import { Toast } from './Toast'
 
 export function TabActions({ tabId }: { tabId: string }) {
-  const store = useAppStore(s => ({
-    decarb: s.decarb,
-    infusion: s.infusion,
-    dose: s.dose,
-    units: s.units,
-    activeTab: s.activeTab,
-  }))
+  const decarb = useAppStore(s => s.decarb)
+  const infusion = useAppStore(s => s.infusion)
+  const dose = useAppStore(s => s.dose)
+  const units = useAppStore(s => s.units)
+  const activeTab = useAppStore(s => s.activeTab)
 
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [toastVisible, setToastVisible] = useState(false)
@@ -27,7 +25,13 @@ export function TabActions({ tabId }: { tabId: string }) {
   }
 
   const handleExport = async () => {
-    const exportData = buildExportReport(store)
+    const exportData = buildExportReport({
+      decarb,
+      infusion,
+      dose,
+      units,
+      activeTab,
+    })
     try {
       const result = await window.App.exportReport({
         defaultFileName: exportData.defaultFileName,
@@ -43,7 +47,7 @@ export function TabActions({ tabId }: { tabId: string }) {
   }
 
   const handleCopy = async () => {
-    const text = buildTabCopyText(tabId, store)
+    const text = buildTabCopyText(tabId, { decarb, infusion, dose, units })
     try {
       await window.App.copyToClipboard(text)
       setCopied(true)

@@ -1,10 +1,19 @@
-import { BrowserWindow, ipcMain, dialog, clipboard } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, clipboard } from 'electron'
 import { join } from 'node:path'
+import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs'
 
 import { createWindow } from 'lib/electron-app/factories/windows/create'
 import { ENVIRONMENT } from 'shared/constants'
 import { displayName } from '~/package.json'
-import { writeFileSync } from 'node:fs'
+
+let presetsDir: string
+
+function getPresetsDir(): string {
+  if (!presetsDir) {
+    presetsDir = join(app.getPath('userData'), 'presets')
+  }
+  return presetsDir
+}
 
 export async function MainWindow() {
   const window = createWindow({
@@ -86,6 +95,118 @@ export async function MainWindow() {
   ipcMain.handle('copy-to-clipboard', (_event, text: string) => {
     clipboard.writeText(text)
     return true
+  })
+
+  /* ---------------------------------------------------------------- */
+  /* Save Preset                                                       */
+  /* ---------------------------------------------------------------- */
+
+  ipcMain.handle(
+    'save-preset',
+    async (
+      _event,
+      data: {
+        name: string
+        presetData: Record<string, unknown>
+      }
+    ) => {
+      try {
+        const name = data.name.trim()
+        if (!name) {
+          return { success: false, error: 'Preset name cannot be empty' }
+        }
+
+        const dir = getPresetsDir()
+        if (!existsSync(dir)) {
+          mkdirSync(dir, { recursive: true })
+        }
+
+        const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '_')
+        const filePath = join(dir, `${safeName}.json`)
+
+        if (existsSync(filePath)) {
+          return {
+            success: false,
+            error:
+              'A preset with this name already exists. Choose a different name.',
+          }
+        }
+
+        const payload = {
+          name,
+          createdAt: new Date().toISOString(),
+          version: '1.0.0',
+          ...data.presetData,
+        }
+
+        writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf-8')
+        return { success: true, filePath }
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Failed to save preset'
+        return { success: false, error: message }
+      }
+    }
+  )
+
+  /* ---------------------------------------------------------------- */
+  /* Load Preset — open file dialog                                    */
+  /* ---------------------------------------------------------------- */
+
+  ipcMain.handle('load-preset-dialog', async () => {
+    try {
+      const dir = getPresetsDir()
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true })
+      }
+
+      const { filePaths, canceled } = await dialog.showOpenDialog(window, {
+        defaultPath: dir,
+        properties: ['openFile'],
+        filters: [
+          { name: 'Preset Files', extensions: ['json'] },
+          { name: 'All Files', extensions: ['*'] },
+        ],
+      })
+
+      if (canceled || filePaths.length === 0) {
+        return { success: false, canceled: true }
+      }
+
+      const content = readFileSync(filePaths[0], 'utf-8')
+
+      let parsed: unknown
+      try {
+        parsed = JSON.parse(content)
+      } catch {
+        return {
+          success: false,
+          error: 'Cannot load preset: invalid JSON format',
+        }
+      }
+
+      if (typeof parsed !== 'object' || parsed === null) {
+        return {
+          success: false,
+          error: 'Cannot load preset: file is not a valid preset',
+        }
+      }
+
+      const preset = parsed as Record<string, unknown>
+
+      if (!preset.tabs || typeof preset.tabs !== 'object') {
+        return {
+          success: false,
+          error: 'Cannot load preset: missing tab data',
+        }
+      }
+
+      return { success: true, data: preset }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to load preset'
+      return { success: false, error: message }
+    }
   })
 
   window.webContents.on('did-finish-load', () => {

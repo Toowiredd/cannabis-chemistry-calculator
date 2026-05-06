@@ -1,0 +1,209 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useAppStore } from 'renderer/src/stores/appStore'
+import { Save, FolderOpen } from 'lucide-react'
+import { Toast } from './Toast'
+
+export function PresetActions() {
+  const store = useAppStore()
+
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [saveName, setSaveName] = useState('')
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [toastMsg, setToastMsg] = useState<string | null>(null)
+  const [toastVisible, setToastVisible] = useState(false)
+  const saveInputRef = useRef<HTMLInputElement>(null)
+
+  const showToast = useCallback((msg: string) => {
+    setToastMsg(msg)
+    setToastVisible(true)
+    setTimeout(() => setToastVisible(false), 2000)
+  }, [])
+
+  /* Auto-focus input when save modal opens */
+  useEffect(() => {
+    if (showSaveModal && saveInputRef.current) {
+      saveInputRef.current.focus()
+    }
+  }, [showSaveModal])
+
+  const buildPresetPayload = useCallback((): Record<string, unknown> => {
+    return {
+      units: { ...store.units },
+      tabs: {
+        decarb: {
+          inputs: {
+            weight: store.decarb.weight,
+            thcaPct: store.decarb.thcaPct,
+            thcPct: store.decarb.thcPct,
+            presetId: store.decarb.presetId,
+            tempOverride: store.decarb.tempOverride,
+            timeOverride: store.decarb.timeOverride,
+            effLowOverride: store.decarb.effLowOverride,
+            effExpectedOverride: store.decarb.effExpectedOverride,
+            effHighOverride: store.decarb.effHighOverride,
+          },
+        },
+        infusion: {
+          inputs: {
+            decarbedThc: store.infusion.decarbedThc,
+            volume: store.infusion.volume,
+            fatId: store.infusion.fatId,
+            customEfficiency: store.infusion.customEfficiency,
+          },
+        },
+        dose: {
+          inputs: {
+            totalThc: store.dose.totalThc,
+            servings: store.dose.servings,
+          },
+        },
+      },
+    }
+  }, [store])
+
+  const handleSaveClick = () => {
+    setSaveName('')
+    setSaveError(null)
+    setShowSaveModal(true)
+  }
+
+  const handleSaveConfirm = async () => {
+    const name = saveName.trim()
+    if (!name) return
+
+    setSaveError(null)
+
+    try {
+      const result = await window.App.savePreset({
+        name,
+        presetData: buildPresetPayload(),
+      })
+
+      if (result.success) {
+        setShowSaveModal(false)
+        showToast(`Preset saved: ${name}`)
+      } else {
+        setSaveError(result.error || 'Failed to save preset')
+      }
+    } catch {
+      setSaveError('Failed to save preset')
+    }
+  }
+
+  const handleSaveCancel = () => {
+    setShowSaveModal(false)
+    setSaveName('')
+    setSaveError(null)
+  }
+
+  const handleLoadClick = async () => {
+    try {
+      const result = await window.App.loadPresetDialog()
+
+      if (result.canceled) return
+
+      if (!result.success) {
+        showToast(result.error || 'Failed to load preset')
+        return
+      }
+
+      if (result.data) {
+        store.loadFromPreset(result.data)
+        const name =
+          typeof result.data.name === 'string'
+            ? result.data.name
+            : 'Unnamed preset'
+        showToast(`Preset loaded: ${name}`)
+      }
+    } catch {
+      showToast('Failed to load preset')
+    }
+  }
+
+  const isSaveDisabled = saveName.trim().length === 0
+
+  return (
+    <>
+      <div className="flex items-center gap-2">
+        <button
+          className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+          onClick={handleSaveClick}
+          type="button"
+        >
+          <Save className="size-3.5" />
+          Save Preset
+        </button>
+        <button
+          className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+          onClick={handleLoadClick}
+          type="button"
+        >
+          <FolderOpen className="size-3.5" />
+          Load Preset
+        </button>
+      </div>
+
+      {/* Save Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="glass-strong w-full max-w-sm rounded-2xl border border-white/20 p-6 shadow-2xl">
+            <h3 className="mb-4 text-base font-semibold text-white">
+              Save Preset
+            </h3>
+
+            <label
+              className="mb-1 block text-sm font-medium text-white/80"
+              htmlFor="preset-name"
+            >
+              Preset Name
+            </label>
+            <input
+              className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30 focus:border-white/40"
+              id="preset-name"
+              onChange={e => {
+                setSaveName(e.target.value)
+                setSaveError(null)
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !isSaveDisabled) {
+                  handleSaveConfirm()
+                }
+                if (e.key === 'Escape') {
+                  handleSaveCancel()
+                }
+              }}
+              placeholder="My Preset"
+              ref={saveInputRef}
+              type="text"
+              value={saveName}
+            />
+
+            {saveError && (
+              <p className="mt-2 text-xs text-red-400">{saveError}</p>
+            )}
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                onClick={handleSaveCancel}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className="rounded-lg bg-white/15 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={isSaveDisabled}
+                onClick={handleSaveConfirm}
+                type="button"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Toast message={toastMsg} visible={toastVisible} />
+    </>
+  )
+}

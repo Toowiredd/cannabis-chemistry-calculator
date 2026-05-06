@@ -19,6 +19,9 @@ const API = {
   }) => ipcRenderer.invoke('export-report', data),
   copyToClipboard: (text: string) =>
     ipcRenderer.invoke('copy-to-clipboard', text),
+  savePreset: (data: { name: string; presetData: Record<string, unknown> }) =>
+    ipcRenderer.invoke('save-preset', data),
+  loadPresetDialog: () => ipcRenderer.invoke('load-preset-dialog'),
   platform: process.platform,
 } as const
 
