@@ -402,13 +402,10 @@ export function FatsTab() {
                 <span className="text-sm font-semibold text-white">
                   {isCustom
                     ? (() => {
-                        const customEffNum = parseFloat(
-                          infusion.customEfficiency
-                        )
-                        const effVal = Number.isNaN(customEffNum)
-                          ? 0
-                          : customEffNum
-                        return `×${(fatResults?.extractionEff ?? effVal).toFixed(2)}`
+                        if (!fatResults) return 'N/A'
+                        const eff = fatResults.extractionEff
+                        if (eff === 0) return 'N/A'
+                        return `×${eff.toFixed(2)}`
                       })()
                     : `×${fat.extractionEff.toFixed(2)}`}
                 </span>

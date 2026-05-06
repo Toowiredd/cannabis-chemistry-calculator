@@ -168,7 +168,7 @@ function ConceptualCurveChart() {
           x={18}
           y={padTop + gh / 2}
         >
-          Relative Amount
+          Relative Concentration
         </text>
 
         {/* Y tick labels */}
