@@ -131,7 +131,7 @@ export function PresetActions() {
     <>
       <div className="flex items-center gap-2">
         <button
-          className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
           onClick={handleSaveClick}
           type="button"
         >
@@ -139,7 +139,7 @@ export function PresetActions() {
           Save Preset
         </button>
         <button
-          className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
           onClick={handleLoadClick}
           type="button"
         >
@@ -150,20 +150,20 @@ export function PresetActions() {
 
       {/* Save Modal */}
       {showSaveModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="glass-strong w-full max-w-sm rounded-2xl border border-white/20 p-6 shadow-2xl">
-            <h3 className="mb-4 text-base font-semibold text-white">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-foreground/60 backdrop-blur-sm">
+          <div className="glass-strong w-full max-w-sm rounded-2xl border border-foreground/20 p-6 shadow-2xl">
+            <h3 className="mb-4 text-base font-semibold text-foreground">
               Save Preset
             </h3>
 
             <label
-              className="mb-1 block text-sm font-medium text-white/80"
+              className="mb-1 block text-sm font-medium text-foreground/80"
               htmlFor="preset-name"
             >
               Preset Name
             </label>
             <input
-              className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30 focus:border-white/40"
+              className="w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
               id="preset-name"
               onChange={e => {
                 setSaveName(e.target.value)
@@ -184,19 +184,19 @@ export function PresetActions() {
             />
 
             {saveError && (
-              <p className="mt-2 text-xs text-red-400">{saveError}</p>
+              <p className="mt-2 text-xs text-red-500">{saveError}</p>
             )}
 
             <div className="mt-5 flex items-center justify-end gap-2">
               <button
-                className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-4 py-2 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
                 onClick={handleSaveCancel}
                 type="button"
               >
                 Cancel
               </button>
               <button
-                className="rounded-lg bg-white/15 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-lg bg-foreground/15 px-4 py-2 text-xs font-medium text-foreground transition-colors hover:bg-foreground/25 disabled:cursor-not-allowed disabled:opacity-40"
                 disabled={isSaveDisabled}
                 onClick={handleSaveConfirm}
                 type="button"

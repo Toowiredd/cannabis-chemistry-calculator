@@ -35,9 +35,9 @@ function TooltipIcon({ text }: { text: string }) {
       onMouseLeave={() => setShow(false)}
       type="button"
     >
-      <Info className="size-4 shrink-0 cursor-help text-white/70 transition-colors hover:text-white/80" />
+      <Info className="size-4 shrink-0 cursor-help text-foreground/70 transition-colors hover:text-foreground/80" />
       {show && (
-        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-white/20 bg-black/90 px-3 py-2 text-xs leading-relaxed text-white/90 shadow-xl">
+        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-foreground/20 bg-card px-3 py-2 text-xs leading-relaxed text-foreground/90 shadow-xl">
           {text}
         </div>
       )}
@@ -55,14 +55,14 @@ function UnitToggle<T extends string>({
   onChange: (v: T) => void
 }) {
   return (
-    <div className="inline-flex shrink-0 rounded-lg border border-white/20 bg-white/5 p-0.5">
+    <div className="inline-flex shrink-0 rounded-lg border border-foreground/20 bg-foreground/5 p-0.5">
       {options.map(opt => (
         <button
           className={cn(
             'rounded-md px-3 py-1 text-xs font-medium transition-colors',
             value === opt
-              ? 'bg-white/15 text-white'
-              : 'text-white/70 hover:text-white/80'
+              ? 'bg-foreground/15 text-foreground'
+              : 'text-foreground/70 hover:text-foreground/80'
           )}
           key={opt}
           onClick={() => onChange(opt)}
@@ -77,7 +77,7 @@ function UnitToggle<T extends string>({
 
 function OverrideBadge() {
   return (
-    <span className="ml-2 inline-flex items-center rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-300">
+    <span className="ml-2 inline-flex items-center rounded-full border border-amber-500/40 dark:border-amber-400/40 bg-amber-100 dark:bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
       Override
     </span>
   )
@@ -434,11 +434,11 @@ export function DecarbTab() {
     extraClass?: string
   ) => (
     <div className={cn('flex flex-col gap-1', extraClass)}>
-      <span className="flex items-center gap-1.5 text-sm font-medium text-white/80">
+      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
         {label}
       </span>
       {children}
-      {error && <span className="text-xs text-red-400">{error}</span>}
+      {error && <span className="text-xs text-red-500">{error}</span>}
     </div>
   )
 
@@ -446,11 +446,13 @@ export function DecarbTab() {
     <div className="flex flex-col gap-4 p-2">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">Decarboxylation</h2>
+        <h2 className="text-xl font-semibold text-foreground">
+          Decarboxylation
+        </h2>
         <div className="flex items-center gap-2">
           <TabActions tabId="decarb" />
           <button
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
             onClick={handleReset}
             type="button"
           >
@@ -463,7 +465,7 @@ export function DecarbTab() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {/* ------------------- INPUT PANEL ------------------- */}
         <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/70">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Input
           </h3>
 
@@ -476,10 +478,10 @@ export function DecarbTab() {
             <div className="flex items-center gap-2">
               <input
                 className={cn(
-                  'flex-1 rounded-lg border bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   fieldErrors.weight
                     ? 'border-red-400/60 focus:border-red-400'
-                    : 'border-white/20 focus:border-white/40'
+                    : 'border-foreground/20 focus:border-foreground/40'
                 )}
                 onChange={e => setDecarb({ weight: e.target.value })}
                 placeholder="0.00"
@@ -504,10 +506,10 @@ export function DecarbTab() {
             </>,
             <input
               className={cn(
-                'rounded-lg border bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 fieldErrors.thcaPct
                   ? 'border-red-400/60 focus:border-red-400'
-                  : 'border-white/20 focus:border-white/40'
+                  : 'border-foreground/20 focus:border-foreground/40'
               )}
               onChange={e => setDecarb({ thcaPct: e.target.value })}
               placeholder="0.0"
@@ -526,10 +528,10 @@ export function DecarbTab() {
             </>,
             <input
               className={cn(
-                'rounded-lg border bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 fieldErrors.thcPct
                   ? 'border-red-400/60 focus:border-red-400'
-                  : 'border-white/20 focus:border-white/40'
+                  : 'border-foreground/20 focus:border-foreground/40'
               )}
               onChange={e => setDecarb({ thcPct: e.target.value })}
               placeholder="0.0"
@@ -547,13 +549,13 @@ export function DecarbTab() {
               <TooltipIcon text="Choose a decarboxylation method. Each preset defines recommended temperature, time, and expected efficiency range." />
             </>,
             <select
-              className="rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-white/40"
+              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
               onChange={e => handlePresetChange(e.target.value)}
               value={decarb.presetId}
             >
               {DECARB_METHODS.map(m => (
                 <option
-                  className="bg-neutral-900 text-white"
+                  className="bg-card text-foreground"
                   key={m.id}
                   value={m.id}
                 >
@@ -572,12 +574,12 @@ export function DecarbTab() {
             <div className="flex items-center gap-2">
               <input
                 className={cn(
-                  'flex-1 rounded-lg border bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   isTempOverride
                     ? 'border-amber-400/60 focus:border-amber-400'
                     : fieldErrors.temperature
                       ? 'border-red-400/60 focus:border-red-400'
-                      : 'border-white/20 focus:border-white/40'
+                      : 'border-foreground/20 focus:border-foreground/40'
                 )}
                 onChange={e => setDecarb({ tempOverride: e.target.value })}
                 placeholder={`${presetTempDisplay} ${units.tempUnit}`}
@@ -603,12 +605,12 @@ export function DecarbTab() {
             </>,
             <input
               className={cn(
-                'rounded-lg border bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 isTimeOverride
                   ? 'border-amber-400/60 focus:border-amber-400'
                   : fieldErrors.time
                     ? 'border-red-400/60 focus:border-red-400'
-                    : 'border-white/20 focus:border-white/40'
+                    : 'border-foreground/20 focus:border-foreground/40'
               )}
               onChange={e => setDecarb({ timeOverride: e.target.value })}
               placeholder={`${preset.timeMin}-${preset.timeMax} min`}
@@ -621,7 +623,7 @@ export function DecarbTab() {
 
           {/* Efficiency */}
           <div className="flex flex-col gap-1">
-            <span className="flex items-center gap-1.5 text-sm font-medium text-white/80">
+            <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
               Decarb Efficiency
               <TooltipIcon text="The percentage of THCA that successfully converts to THC during decarboxylation. 100% efficiency is theoretical maximum; real-world methods typically achieve 70-95%." />
             </span>
@@ -630,12 +632,12 @@ export function DecarbTab() {
                 <>Low {isEffLowOverride && <OverrideBadge />}</>,
                 <input
                   className={cn(
-                    'w-full rounded-lg border bg-white/5 px-2 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                    'w-full rounded-lg border bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                     isEffLowOverride
                       ? 'border-amber-400/60 focus:border-amber-400'
                       : fieldErrors.effLow
                         ? 'border-red-400/60 focus:border-red-400'
-                        : 'border-white/20 focus:border-white/40'
+                        : 'border-foreground/20 focus:border-foreground/40'
                   )}
                   max={1}
                   min={0}
@@ -651,12 +653,12 @@ export function DecarbTab() {
                 <>Expected {isEffExpectedOverride && <OverrideBadge />}</>,
                 <input
                   className={cn(
-                    'w-full rounded-lg border bg-white/5 px-2 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                    'w-full rounded-lg border bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                     isEffExpectedOverride
                       ? 'border-amber-400/60 focus:border-amber-400'
                       : fieldErrors.effExpected
                         ? 'border-red-400/60 focus:border-red-400'
-                        : 'border-white/20 focus:border-white/40'
+                        : 'border-foreground/20 focus:border-foreground/40'
                   )}
                   max={1}
                   min={0}
@@ -674,12 +676,12 @@ export function DecarbTab() {
                 <>High {isEffHighOverride && <OverrideBadge />}</>,
                 <input
                   className={cn(
-                    'w-full rounded-lg border bg-white/5 px-2 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                    'w-full rounded-lg border bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                     isEffHighOverride
                       ? 'border-amber-400/60 focus:border-amber-400'
                       : fieldErrors.effHigh
                         ? 'border-red-400/60 focus:border-red-400'
-                        : 'border-white/20 focus:border-white/40'
+                        : 'border-foreground/20 focus:border-foreground/40'
                   )}
                   max={1}
                   min={0}
@@ -697,15 +699,18 @@ export function DecarbTab() {
 
         {/* ------------------- RESULTS PANEL ------------------- */}
         <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/70">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Results
           </h3>
 
           {/* Warnings */}
           {inlineWarnings.length > 0 && (
-            <div className="flex flex-col gap-1 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2">
+            <div className="flex flex-col gap-1 rounded-lg border border-amber-400/30 bg-amber-100 dark:bg-amber-400/10 px-3 py-2">
               {inlineWarnings.map(w => (
-                <span className="text-xs text-amber-300" key={w}>
+                <span
+                  className="text-xs text-amber-700 dark:text-amber-300"
+                  key={w}
+                >
                   {w}
                 </span>
               ))}
@@ -713,31 +718,31 @@ export function DecarbTab() {
           )}
 
           {/* Theoretical Max */}
-          <div className="flex flex-col rounded-xl border border-white/10 bg-white/5 p-4">
-            <span className="text-xs font-medium uppercase tracking-wider text-white/70">
+          <div className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+            <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
               Theoretical Maximum THC
             </span>
-            <span className="mt-1 text-2xl font-bold text-white">
+            <span className="mt-1 text-2xl font-bold text-foreground">
               {results ? `${fmt1(results.theoreticalMax)} mg` : 'N/A'}
             </span>
           </div>
 
           {/* Decarb-adjusted */}
-          <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/5 p-4">
-            <span className="text-xs font-medium uppercase tracking-wider text-white/70">
+          <div className="flex flex-col gap-2 rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+            <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
               Decarb-Adjusted THC
             </span>
             <div className="mt-1 grid grid-cols-3 gap-2">
               <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-white/70">
+                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
                   Low
                 </span>
-                <span className="text-lg font-semibold text-white">
+                <span className="text-lg font-semibold text-foreground">
                   {results ? `${fmt1(results.decarbed.low)} mg` : 'N/A'}
                 </span>
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-white/70">
+                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
                   Expected
                 </span>
                 <span className="text-lg font-semibold text-emerald-300">
@@ -745,10 +750,10 @@ export function DecarbTab() {
                 </span>
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-white/70">
+                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
                   High
                 </span>
-                <span className="text-lg font-semibold text-white">
+                <span className="text-lg font-semibold text-foreground">
                   {results ? `${fmt1(results.decarbed.high)} mg` : 'N/A'}
                 </span>
               </div>
@@ -757,27 +762,27 @@ export function DecarbTab() {
 
           {/* Quality Badges */}
           <div className="grid grid-cols-3 gap-2">
-            <div className="flex flex-col items-center rounded-xl border border-white/10 bg-white/5 px-2 py-3 text-center">
-              <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
+            <div className="flex flex-col items-center rounded-xl border border-foreground/10 bg-foreground/5 px-2 py-3 text-center">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
                 Terpene Retention
               </span>
-              <span className="mt-1 text-sm font-semibold text-white">
+              <span className="mt-1 text-sm font-semibold text-foreground">
                 {preset.terpeneLabel}
               </span>
             </div>
-            <div className="flex flex-col items-center rounded-xl border border-white/10 bg-white/5 px-2 py-3 text-center">
-              <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
+            <div className="flex flex-col items-center rounded-xl border border-foreground/10 bg-foreground/5 px-2 py-3 text-center">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
                 CBN Risk
               </span>
-              <span className="mt-1 text-sm font-semibold text-white">
+              <span className="mt-1 text-sm font-semibold text-foreground">
                 {preset.cbnLabel}
               </span>
             </div>
-            <div className="flex flex-col items-center rounded-xl border border-white/10 bg-white/5 px-2 py-3 text-center">
-              <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
+            <div className="flex flex-col items-center rounded-xl border border-foreground/10 bg-foreground/5 px-2 py-3 text-center">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
                 Oxygen Exposure
               </span>
-              <span className="mt-1 text-sm font-semibold text-white">
+              <span className="mt-1 text-sm font-semibold text-foreground">
                 {preset.oxygenLabel}
               </span>
             </div>
@@ -786,7 +791,7 @@ export function DecarbTab() {
           {/* Show Formula */}
           <div>
             <button
-              className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex w-full items-center justify-between rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
               onClick={() => setShowFormula(v => !v)}
               type="button"
             >
@@ -798,21 +803,21 @@ export function DecarbTab() {
               )}
             </button>
             {showFormula && (
-              <div className="mt-2 rounded-lg border border-white/10 bg-black/30 px-4 py-3 font-mono text-xs leading-relaxed text-white/70">
+              <div className="mt-2 rounded-lg border border-foreground/10 bg-foreground/30 px-4 py-3 font-mono text-xs leading-relaxed text-foreground/70">
                 <p className="mb-2">
-                  <strong className="text-white/90">
+                  <strong className="text-foreground/90">
                     Theoretical max THC (mg)
                   </strong>{' '}
                   = material weight (g) x ((THCA% / 100) x 0.877 + (THC% / 100))
                   x 1000
                 </p>
                 <p className="mb-2">
-                  <strong className="text-white/90">
+                  <strong className="text-foreground/90">
                     Decarb-adjusted THC (mg)
                   </strong>{' '}
                   = theoretical max THC (mg) x decarb efficiency
                 </p>
-                <p className="text-white/70">
+                <p className="text-foreground/70">
                   THCA loses its carboxyl group (COOH) during decarboxylation.
                   The molecular weight ratio of THC to THCA is approximately
                   0.877.
@@ -824,7 +829,7 @@ export function DecarbTab() {
       </div>
 
       {/* Disclaimer */}
-      <p className="text-center text-xs leading-relaxed text-white/70">
+      <p className="text-center text-xs leading-relaxed text-foreground/70">
         Estimates are heuristic approximations, not laboratory results. Actual
         potency varies with material quality, decarb technique, and measurement
         accuracy.

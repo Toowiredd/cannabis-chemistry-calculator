@@ -11,7 +11,7 @@ export function Toast({
   return (
     <div
       className={cn(
-        'fixed bottom-6 left-1/2 z-[100] -translate-x-1/2 transform rounded-lg border border-white/20 bg-black/90 px-4 py-2 text-sm text-white shadow-xl transition-all duration-300',
+        'fixed bottom-6 left-1/2 z-[100] -translate-x-1/2 transform rounded-lg border border-foreground/20 bg-card px-4 py-2 text-sm text-card-foreground shadow-xl transition-all duration-300',
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
       )}
     >

@@ -9,6 +9,8 @@ export type TabId =
   | 'fats'
   | 'knowledge'
 
+export type Theme = 'dark' | 'light'
+
 export interface UnitPreferences {
   tempUnit: 'C' | 'F'
   weightUnit: 'g' | 'oz'
@@ -67,6 +69,10 @@ interface AppStore {
   activeTab: TabId
   setActiveTab: (tab: TabId) => void
 
+  theme: Theme
+  setTheme: (theme: Theme) => void
+  toggleTheme: () => void
+
   units: UnitPreferences
   setUnits: (units: Partial<UnitPreferences>) => void
 
@@ -115,6 +121,11 @@ export const useAppStore = create<AppStore>()(
     set => ({
       activeTab: 'decarb',
       setActiveTab: tab => set({ activeTab: tab }),
+
+      theme: 'dark',
+      setTheme: theme => set({ theme }),
+      toggleTheme: () =>
+        set(state => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
 
       units: {
         tempUnit: 'C',
@@ -225,7 +236,7 @@ export const useAppStore = create<AppStore>()(
     }),
     {
       name: 'cannabis-chem-units',
-      partialize: state => ({ units: state.units }),
+      partialize: state => ({ units: state.units, theme: state.theme }),
     }
   )
 )

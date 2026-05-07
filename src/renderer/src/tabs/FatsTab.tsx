@@ -31,9 +31,9 @@ function TooltipIcon({ text }: { text: string }) {
       onMouseLeave={() => setShow(false)}
       type="button"
     >
-      <Info className="size-4 shrink-0 cursor-help text-white/70 transition-colors hover:text-white/80" />
+      <Info className="size-4 shrink-0 cursor-help text-foreground/70 transition-colors hover:text-foreground/80" />
       {show && (
-        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-white/20 bg-black/90 px-3 py-2 text-xs leading-relaxed text-white/90 shadow-xl">
+        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-foreground/20 bg-card px-3 py-2 text-xs leading-relaxed text-foreground/90 shadow-xl">
           {text}
         </div>
       )}
@@ -232,11 +232,11 @@ export function FatsTab() {
     extraClass?: string
   ) => (
     <div className={cn('flex flex-col gap-1', extraClass)}>
-      <span className="flex items-center gap-1.5 text-sm font-medium text-white/80">
+      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
         {label}
       </span>
       {children}
-      {error && <span className="text-xs text-red-400">{error}</span>}
+      {error && <span className="text-xs text-red-500">{error}</span>}
     </div>
   )
 
@@ -248,11 +248,13 @@ export function FatsTab() {
     <div className="flex flex-col gap-4 p-2">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">Fat Comparison</h2>
+        <h2 className="text-xl font-semibold text-foreground">
+          Fat Comparison
+        </h2>
         <div className="flex items-center gap-2">
           <TabActions tabId="fats" />
           <button
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
             onClick={handleReset}
             type="button"
           >
@@ -264,7 +266,7 @@ export function FatsTab() {
 
       {/* Shared Input Panel */}
       <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-white/70">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
           Shared Input
         </h3>
 
@@ -277,10 +279,10 @@ export function FatsTab() {
             <div className="flex items-center gap-2">
               <input
                 className={cn(
-                  'flex-1 rounded-lg border bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   fieldErrors.decarbedThc
                     ? 'border-red-400/60 focus:border-red-400'
-                    : 'border-white/20 focus:border-white/40'
+                    : 'border-foreground/20 focus:border-foreground/40'
                 )}
                 onChange={e => setInfusion({ decarbedThc: e.target.value })}
                 placeholder="0.0"
@@ -288,7 +290,7 @@ export function FatsTab() {
                 type="number"
                 value={infusion.decarbedThc}
               />
-              <span className="text-sm text-white/70">mg</span>
+              <span className="text-sm text-foreground/70">mg</span>
             </div>,
             fieldErrors.decarbedThc
           )}
@@ -302,7 +304,7 @@ export function FatsTab() {
             <div className="flex items-center gap-2">
               <input
                 className={cn(
-                  'flex-1 rounded-lg border bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   fieldErrors.customEfficiency
                     ? 'border-red-400/60 focus:border-red-400'
                     : 'border-amber-400/60 focus:border-amber-400'
@@ -317,7 +319,7 @@ export function FatsTab() {
                 type="number"
                 value={infusion.customEfficiency}
               />
-              <span className="text-sm text-white/70">ratio</span>
+              <span className="text-sm text-foreground/70">ratio</span>
             </div>,
             fieldErrors.customEfficiency
           )}
@@ -341,7 +343,7 @@ export function FatsTab() {
             >
               {/* Header row with badge */}
               <div className="flex items-start justify-between gap-2">
-                <h4 className="text-base font-semibold text-white">
+                <h4 className="text-base font-semibold text-foreground">
                   {fat.name}
                 </h4>
                 <div className="flex shrink-0 flex-col items-end gap-1">
@@ -355,10 +357,10 @@ export function FatsTab() {
 
               {/* Extraction Efficiency */}
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
                   Extraction Efficiency
                 </span>
-                <span className="text-sm font-semibold text-white">
+                <span className="text-sm font-semibold text-foreground">
                   {Math.round(
                     (fatResults?.extractionEff ?? fat.extractionEff) * 100
                   )}
@@ -368,21 +370,23 @@ export function FatsTab() {
 
               {/* Resulting Final THC */}
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
                   Final THC
                 </span>
                 {fatResults ? (
-                  <span className="text-xl font-bold text-white">
+                  <span className="text-xl font-bold text-foreground">
                     {fmt1(fatResults.infusedThc)} mg
                   </span>
                 ) : (
-                  <span className="text-xl font-bold text-white/70">N/A</span>
+                  <span className="text-xl font-bold text-foreground/70">
+                    N/A
+                  </span>
                 )}
               </div>
 
               {/* mg/mL Concentration */}
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
                   Concentration
                 </span>
                 {fatResults && fatResults.mgPerMl != null ? (
@@ -390,16 +394,18 @@ export function FatsTab() {
                     {fmt1(fatResults.mgPerMl)} mg/mL
                   </span>
                 ) : (
-                  <span className="text-xl font-bold text-white/70">N/A</span>
+                  <span className="text-xl font-bold text-foreground/70">
+                    N/A
+                  </span>
                 )}
               </div>
 
               {/* Simplified Multiplier */}
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
                   Simplified Multiplier
                 </span>
-                <span className="text-sm font-semibold text-white">
+                <span className="text-sm font-semibold text-foreground">
                   {isCustom
                     ? (() => {
                         if (!fatResults) return 'N/A'
@@ -413,14 +419,14 @@ export function FatsTab() {
 
               {/* Notes (for presets) */}
               {fat.notes && !isCustom && (
-                <p className="text-xs leading-relaxed text-white/70">
+                <p className="text-xs leading-relaxed text-foreground/70">
                   {fat.notes}
                 </p>
               )}
 
               {/* Use This */}
               <button
-                className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
                 onClick={() => handleUseThis(fat.id)}
                 type="button"
               >
@@ -432,7 +438,7 @@ export function FatsTab() {
       </div>
 
       {/* Disclaimer */}
-      <p className="text-center text-xs leading-relaxed text-white/70">
+      <p className="text-center text-xs leading-relaxed text-foreground/70">
         Estimates are heuristic approximations, not laboratory results. Actual
         potency varies with material quality, infusion technique, and
         measurement accuracy.

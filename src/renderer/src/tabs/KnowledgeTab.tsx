@@ -21,7 +21,7 @@ function Cite({ label, doi }: { label: string; doi: string }) {
 
   return (
     <a
-      className="ml-1 inline text-xs text-sky-300/90 underline underline-offset-2 hover:text-sky-200"
+      className="ml-1 inline text-xs text-sky-700 dark:text-sky-700 dark:text-sky-300/90 underline underline-offset-2 hover:text-sky-200"
       href={`https://doi.org/${doi}`}
       onClick={handleClick}
       rel="noopener noreferrer"
@@ -48,12 +48,12 @@ function SectionCard({
   return (
     <div className={cn('glass-strong rounded-2xl p-6')}>
       <div className="flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-foreground/20 bg-foreground/10">
           {icon}
         </div>
-        <h3 className="text-lg font-semibold text-white">{title}</h3>
+        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
       </div>
-      <div className="mt-4 text-[14px] leading-relaxed text-white/80">
+      <div className="mt-4 text-[14px] leading-relaxed text-foreground/80">
         {children}
       </div>
     </div>
@@ -232,15 +232,15 @@ function ConceptualCurveChart() {
       <div className="flex flex-wrap items-center justify-center gap-4">
         <div className="flex items-center gap-2">
           <span className="inline-block size-3 rounded-full bg-blue-400/80" />
-          <span className="text-sm text-white/70">THCA</span>
+          <span className="text-sm text-foreground/70">THCA</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-block size-3 rounded-full bg-emerald-400/80" />
-          <span className="text-sm text-white/70">THC</span>
+          <span className="text-sm text-foreground/70">THC</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-block size-3 rounded-full bg-red-400/80" />
-          <span className="text-sm text-white/70">CBN</span>
+          <span className="text-sm text-foreground/70">CBN</span>
         </div>
       </div>
     </div>
@@ -257,15 +257,15 @@ export function KnowledgeTab() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <BookOpen className="size-5 text-white/70" />
-          <h2 className="text-xl font-semibold text-white">Knowledge</h2>
+          <BookOpen className="size-5 text-foreground/70" />
+          <h2 className="text-xl font-semibold text-foreground">Knowledge</h2>
         </div>
       </div>
 
       <div className="flex flex-col gap-4">
         {/* Section 1: Conversion Pathway */}
         <SectionCard
-          icon={<Flame className="size-5 text-white/80" />}
+          icon={<Flame className="size-5 text-foreground/80" />}
           title="Conversion Pathway"
         >
           <p>
@@ -293,7 +293,7 @@ export function KnowledgeTab() {
 
         {/* Section 2: The 0.877 Factor */}
         <SectionCard
-          icon={<Scale className="size-5 text-white/80" />}
+          icon={<Scale className="size-5 text-foreground/80" />}
           title="The 0.877 Factor"
         >
           <p>
@@ -315,7 +315,7 @@ export function KnowledgeTab() {
 
         {/* Section 3: Sous Vide Temperature Ceiling */}
         <SectionCard
-          icon={<FlaskConical className="size-5 text-white/80" />}
+          icon={<FlaskConical className="size-5 text-foreground/80" />}
           title="Sous Vide Temperature Ceiling"
         >
           <p>
@@ -338,7 +338,7 @@ export function KnowledgeTab() {
 
         {/* Section 4: Vacuum Sealing and Oxidation */}
         <SectionCard
-          icon={<Package className="size-5 text-white/80" />}
+          icon={<Package className="size-5 text-foreground/80" />}
           title="Vacuum Sealing and Oxidation"
         >
           <p>
@@ -365,7 +365,7 @@ export function KnowledgeTab() {
 
         {/* Section 5: Material Preparation */}
         <SectionCard
-          icon={<Leaf className="size-5 text-white/80" />}
+          icon={<Leaf className="size-5 text-foreground/80" />}
           title="Material Preparation"
         >
           <p>
@@ -387,7 +387,7 @@ export function KnowledgeTab() {
 
         {/* Section 6: Terpene Retention vs Maximum Conversion */}
         <SectionCard
-          icon={<Flame className="size-5 text-white/80" />}
+          icon={<Flame className="size-5 text-foreground/80" />}
           title="The Potency-Flavor Tradeoff"
         >
           <p>
@@ -411,7 +411,7 @@ export function KnowledgeTab() {
 
         {/* Section 7: Why Values Are Ranges, Not Exact Constants */}
         <SectionCard
-          icon={<Scale className="size-5 text-white/80" />}
+          icon={<Scale className="size-5 text-foreground/80" />}
           title="Why Values Are Ranges"
         >
           <p>
@@ -434,7 +434,7 @@ export function KnowledgeTab() {
 
         {/* Section 8: Clinical Dosing Context */}
         <SectionCard
-          icon={<Scale className="size-5 text-white/80" />}
+          icon={<Scale className="size-5 text-foreground/80" />}
           title="Clinical Dosing Context"
         >
           <p>
@@ -463,7 +463,7 @@ export function KnowledgeTab() {
 
         {/* Section 9: Lipid Extraction Science */}
         <SectionCard
-          icon={<FlaskConical className="size-5 text-white/80" />}
+          icon={<FlaskConical className="size-5 text-foreground/80" />}
           title="Lipid Extraction Science"
         >
           <p>
@@ -489,7 +489,7 @@ export function KnowledgeTab() {
 
         {/* Section 10: Kinetics and Activation Energy */}
         <SectionCard
-          icon={<Flame className="size-5 text-white/80" />}
+          icon={<Flame className="size-5 text-foreground/80" />}
           title="Decarboxylation Kinetics"
         >
           <p>
@@ -518,7 +518,7 @@ export function KnowledgeTab() {
 
         {/* Section 11: Biosynthesis */}
         <SectionCard
-          icon={<Leaf className="size-5 text-white/80" />}
+          icon={<Leaf className="size-5 text-foreground/80" />}
           title="Cannabinoid Biosynthesis"
         >
           <p>
@@ -543,7 +543,7 @@ export function KnowledgeTab() {
 
         {/* Section 12: Terpene Volatility */}
         <SectionCard
-          icon={<Flame className="size-5 text-white/80" />}
+          icon={<Flame className="size-5 text-foreground/80" />}
           title="Terpene Volatility and Vapor Pressure"
         >
           <p>
@@ -571,15 +571,15 @@ export function KnowledgeTab() {
         {/* Section 13: Conceptual Heat x Time Curve */}
         <div className={cn('glass-strong rounded-2xl p-6')}>
           <div className="flex items-center gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10">
-              <Flame className="size-5 text-white/80" />
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-foreground/20 bg-foreground/10">
+              <Flame className="size-5 text-foreground/80" />
             </div>
-            <h3 className="text-lg font-semibold text-white">
+            <h3 className="text-lg font-semibold text-foreground">
               Conceptual Heat x Time Curve
             </h3>
           </div>
 
-          <p className="mt-4 text-[14px] leading-relaxed text-white/80">
+          <p className="mt-4 text-[14px] leading-relaxed text-foreground/80">
             The chart below shows the conceptual relationship between heat
             exposure and the three main compounds. THCA drops as it converts,
             THC rises to a peak then falls as it degrades into CBN, and CBN
@@ -597,8 +597,8 @@ export function KnowledgeTab() {
             <ConceptualCurveChart />
           </div>
 
-          <div className="mt-4 rounded-lg border border-amber-400/20 bg-amber-400/10 px-4 py-3">
-            <p className="text-sm text-amber-300/90">
+          <div className="mt-4 rounded-lg border border-amber-400/20 bg-amber-100 dark:bg-amber-400/10 px-4 py-3">
+            <p className="text-sm text-amber-700 dark:text-amber-700 dark:text-amber-300/90">
               <strong>Illustrative only:</strong> This curve represents a
               conceptual model of the THCA -- THC -- CBN relationship over time
               and heat exposure. It is not derived from actual laboratory
@@ -611,7 +611,7 @@ export function KnowledgeTab() {
         {/* Section 14: Disclaimer */}
         <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-6 py-5">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-400/80" />
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-500/80" />
             <div>
               <h3 className="text-base font-semibold text-red-300">
                 Medical Disclaimer

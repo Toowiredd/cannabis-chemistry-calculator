@@ -26,9 +26,9 @@ function TooltipIcon({ text }: { text: string }) {
       onMouseLeave={() => setShow(false)}
       type="button"
     >
-      <Info className="size-4 shrink-0 cursor-help text-white/70 transition-colors hover:text-white/80" />
+      <Info className="size-4 shrink-0 cursor-help text-foreground/70 transition-colors hover:text-foreground/80" />
       {show && (
-        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-white/20 bg-black/90 px-3 py-2 text-xs leading-relaxed text-white/90 shadow-xl">
+        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-foreground/20 bg-card px-3 py-2 text-xs leading-relaxed text-foreground/90 shadow-xl">
           {text}
         </div>
       )}
@@ -82,7 +82,8 @@ const DOSE_ZONES: DoseZone[] = [
     label: 'Moderate',
     min: 10,
     max: 25,
-    color: 'bg-sky-400/20 border-sky-400/40 text-sky-300',
+    color:
+      'bg-sky-100 dark:bg-sky-400/20 border-sky-500/40 dark:border-sky-400/40 text-sky-700 dark:text-sky-300',
     description:
       '10 to 25 mg per serving. Noticeable effects for most users. A standard recreational dose for experienced consumers.',
   },
@@ -91,7 +92,8 @@ const DOSE_ZONES: DoseZone[] = [
     label: 'Strong',
     min: 25,
     max: 50,
-    color: 'bg-amber-400/20 border-amber-400/40 text-amber-300',
+    color:
+      'bg-amber-100 dark:bg-amber-400/20 border-amber-500/40 dark:border-amber-400/40 text-amber-700 dark:text-amber-300',
     description:
       '25 to 50 mg per serving. Strong effects. Recommended only for users with established tolerance and familiarity with cannabis.',
   },
@@ -166,7 +168,7 @@ function DoseScale({ classification }: { classification: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <span className="text-xs font-medium uppercase tracking-wider text-white/70">
+      <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
         Dose Classification Scale
       </span>
 
@@ -180,7 +182,7 @@ function DoseScale({ classification }: { classification: string }) {
                 'group relative flex flex-1 flex-col items-center gap-1 border-y border-l py-2 text-center transition-colors first:rounded-l-lg first:border-l last:rounded-r-lg last:border-r',
                 isActive
                   ? zone.color
-                  : 'border-white/10 bg-white/5 text-white/70',
+                  : 'border-foreground/10 bg-foreground/5 text-foreground/70',
                 isActive && 'z-10'
               )}
               key={zone.key}
@@ -195,19 +197,19 @@ function DoseScale({ classification }: { classification: string }) {
               <span
                 className={cn(
                   'text-[10px] font-semibold uppercase tracking-wider',
-                  isActive ? 'text-white' : 'text-white/70'
+                  isActive ? 'text-foreground' : 'text-foreground/70'
                 )}
               >
                 {zone.label}
               </span>
-              <span className="text-[10px] text-white/70">
+              <span className="text-[10px] text-foreground/70">
                 {zone.max != null
                   ? `${zone.min}-${zone.max} mg`
                   : `${zone.min}+ mg`}
               </span>
 
               {/* Tooltip on hover */}
-              <div className="absolute bottom-full left-1/2 z-50 mb-1 hidden w-56 -translate-x-1/2 rounded-lg border border-white/20 bg-black/90 px-3 py-2 text-xs leading-relaxed text-white/90 shadow-xl group-hover:block">
+              <div className="absolute bottom-full left-1/2 z-50 mb-1 hidden w-56 -translate-x-1/2 rounded-lg border border-foreground/20 bg-card px-3 py-2 text-xs leading-relaxed text-foreground/90 shadow-xl group-hover:block">
                 {zone.description}
               </div>
             </div>
@@ -229,11 +231,11 @@ const inputRow = (
   extraClass?: string
 ) => (
   <div className={cn('flex flex-col gap-1', extraClass)}>
-    <span className="flex items-center gap-1.5 text-sm font-medium text-white/80">
+    <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
       {label}
     </span>
     {children}
-    {error && <span className="text-xs text-red-400">{error}</span>}
+    {error && <span className="text-xs text-red-500">{error}</span>}
   </div>
 )
 
@@ -341,11 +343,13 @@ export function DoseTab() {
     <div className="flex flex-col gap-4 p-2">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">Dose Estimation</h2>
+        <h2 className="text-xl font-semibold text-foreground">
+          Dose Estimation
+        </h2>
         <div className="flex items-center gap-2">
           <TabActions tabId="dose" />
           <button
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
             onClick={handleReset}
             type="button"
           >
@@ -358,7 +362,7 @@ export function DoseTab() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {/* ------------------- INPUT PANEL ------------------- */}
         <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/70">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Input
           </h3>
 
@@ -371,10 +375,10 @@ export function DoseTab() {
             <div className="flex items-center gap-2">
               <input
                 className={cn(
-                  'flex-1 rounded-lg border bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   fieldErrors.totalThc
                     ? 'border-red-400/60 focus:border-red-400'
-                    : 'border-white/20 focus:border-white/40'
+                    : 'border-foreground/20 focus:border-foreground/40'
                 )}
                 onChange={e => setDose({ totalThc: e.target.value })}
                 placeholder="0.0"
@@ -382,7 +386,7 @@ export function DoseTab() {
                 type="number"
                 value={dose.totalThc}
               />
-              <span className="text-sm text-white/70">mg</span>
+              <span className="text-sm text-foreground/70">mg</span>
             </div>,
             fieldErrors.totalThc
           )}
@@ -395,10 +399,10 @@ export function DoseTab() {
             </>,
             <input
               className={cn(
-                'rounded-lg border bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 fieldErrors.servings
                   ? 'border-red-400/60 focus:border-red-400'
-                  : 'border-white/20 focus:border-white/40'
+                  : 'border-foreground/20 focus:border-foreground/40'
               )}
               onChange={e => setDose({ servings: e.target.value })}
               placeholder="0"
@@ -412,16 +416,16 @@ export function DoseTab() {
 
         {/* ------------------- RESULTS PANEL ------------------- */}
         <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/70">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Results
           </h3>
 
           {/* mg per serving */}
-          <div className="flex flex-col rounded-xl border border-white/10 bg-white/5 p-4">
-            <span className="text-xs font-medium uppercase tracking-wider text-white/70">
+          <div className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+            <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
               mg per Serving
             </span>
-            <span className="mt-1 text-2xl font-bold text-white">
+            <span className="mt-1 text-2xl font-bold text-foreground">
               {results
                 ? `${fmt1(results.mgPerServing)} mg per serving`
                 : '\u2014'}
@@ -429,8 +433,8 @@ export function DoseTab() {
           </div>
 
           {/* Classification label */}
-          <div className="flex flex-col rounded-xl border border-white/10 bg-white/5 p-4">
-            <span className="text-xs font-medium uppercase tracking-wider text-white/70">
+          <div className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+            <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
               Classification
             </span>
             <span className="mt-1 text-2xl font-bold text-emerald-300">
@@ -441,12 +445,12 @@ export function DoseTab() {
           </div>
 
           {/* Visual scale */}
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+          <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-4">
             {results ? (
               <DoseScale classification={results.classification} />
             ) : (
               <div className="flex flex-col gap-3">
-                <span className="text-xs font-medium uppercase tracking-wider text-white/70">
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Dose Classification Scale
                 </span>
                 <div className="flex w-full">
@@ -454,14 +458,14 @@ export function DoseTab() {
                     <div
                       className={cn(
                         'flex flex-1 flex-col items-center gap-1 border-y border-l py-2 text-center first:rounded-l-lg first:border-l last:rounded-r-lg last:border-r',
-                        'border-white/10 bg-white/5 text-white/70'
+                        'border-foreground/10 bg-foreground/5 text-foreground/70'
                       )}
                       key={zone.key}
                     >
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-white/70">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/70">
                         {zone.label}
                       </span>
-                      <span className="text-[10px] text-white/70">
+                      <span className="text-[10px] text-foreground/70">
                         {zone.max != null
                           ? `${zone.min}-${zone.max} mg`
                           : `${zone.min}+ mg`}
@@ -476,7 +480,7 @@ export function DoseTab() {
           {/* Show Formula */}
           <div>
             <button
-              className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex w-full items-center justify-between rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
               onClick={() => setShowFormula(v => !v)}
               type="button"
             >
@@ -488,12 +492,12 @@ export function DoseTab() {
               )}
             </button>
             {showFormula && (
-              <div className="mt-2 rounded-lg border border-white/10 bg-black/30 px-4 py-3 font-mono text-xs leading-relaxed text-white/70">
+              <div className="mt-2 rounded-lg border border-foreground/10 bg-foreground/30 px-4 py-3 font-mono text-xs leading-relaxed text-foreground/70">
                 <p className="mb-2">
-                  <strong className="text-white/90">mg per serving</strong> =
-                  total infused THC (mg) / number of servings
+                  <strong className="text-foreground/90">mg per serving</strong>{' '}
+                  = total infused THC (mg) / number of servings
                 </p>
-                <p className="text-white/70">
+                <p className="text-foreground/70">
                   The dose classification is based on the milligrams of THC per
                   individual serving. Individual tolerance varies significantly;
                   start low and adjust gradually.
@@ -505,7 +509,7 @@ export function DoseTab() {
       </div>
 
       {/* Disclaimer */}
-      <p className="text-center text-xs leading-relaxed text-white/70">
+      <p className="text-center text-xs leading-relaxed text-foreground/70">
         Estimates are heuristic approximations, not laboratory results. Actual
         potency varies with material quality, preparation technique, and
         measurement accuracy.

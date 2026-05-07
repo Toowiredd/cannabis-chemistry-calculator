@@ -62,7 +62,7 @@ export function TabActions({ tabId }: { tabId: string }) {
     <>
       <div className="flex items-center gap-2">
         <button
-          className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
           onClick={handleExport}
           type="button"
         >
@@ -70,7 +70,7 @@ export function TabActions({ tabId }: { tabId: string }) {
           Export Report
         </button>
         <button
-          className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
           onClick={handleCopy}
           type="button"
         >

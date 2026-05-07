@@ -35,9 +35,9 @@ function TooltipIcon({ text }: { text: string }) {
       onMouseLeave={() => setShow(false)}
       type="button"
     >
-      <Info className="size-4 shrink-0 cursor-help text-white/70 transition-colors hover:text-white/80" />
+      <Info className="size-4 shrink-0 cursor-help text-foreground/70 transition-colors hover:text-foreground/80" />
       {show && (
-        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-white/20 bg-black/90 px-3 py-2 text-xs leading-relaxed text-white/90 shadow-xl">
+        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-foreground/20 bg-card px-3 py-2 text-xs leading-relaxed text-foreground/90 shadow-xl">
           {text}
         </div>
       )}
@@ -55,14 +55,14 @@ function UnitToggle<T extends string>({
   onChange: (v: T) => void
 }) {
   return (
-    <div className="inline-flex shrink-0 rounded-lg border border-white/20 bg-white/5 p-0.5">
+    <div className="inline-flex shrink-0 rounded-lg border border-foreground/20 bg-foreground/5 p-0.5">
       {options.map(opt => (
         <button
           className={cn(
             'rounded-md px-3 py-1 text-xs font-medium transition-colors',
             value === opt
-              ? 'bg-white/15 text-white'
-              : 'text-white/70 hover:text-white/80'
+              ? 'bg-foreground/15 text-foreground'
+              : 'text-foreground/70 hover:text-foreground/80'
           )}
           key={opt}
           onClick={() => onChange(opt)}
@@ -329,11 +329,11 @@ export function MethodsTab() {
     extraClass?: string
   ) => (
     <div className={cn('flex flex-col gap-1', extraClass)}>
-      <span className="flex items-center gap-1.5 text-sm font-medium text-white/80">
+      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
         {label}
       </span>
       {children}
-      {error && <span className="text-xs text-red-400">{error}</span>}
+      {error && <span className="text-xs text-red-500">{error}</span>}
     </div>
   )
 
@@ -341,11 +341,13 @@ export function MethodsTab() {
     <div className="flex flex-col gap-4 p-2">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">Method Comparison</h2>
+        <h2 className="text-xl font-semibold text-foreground">
+          Method Comparison
+        </h2>
         <div className="flex items-center gap-2">
           <TabActions tabId="methods" />
           <button
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
             onClick={handleReset}
             type="button"
           >
@@ -357,14 +359,17 @@ export function MethodsTab() {
 
       {/* Shared Input Panel */}
       <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-white/70">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
           Shared Inputs
         </h3>
 
         {inlineWarnings.length > 0 && (
-          <div className="flex flex-col gap-1 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2">
+          <div className="flex flex-col gap-1 rounded-lg border border-amber-400/30 bg-amber-100 dark:bg-amber-400/10 px-3 py-2">
             {inlineWarnings.map(w => (
-              <span className="text-xs text-amber-300" key={w}>
+              <span
+                className="text-xs text-amber-700 dark:text-amber-300"
+                key={w}
+              >
                 {w}
               </span>
             ))}
@@ -380,10 +385,10 @@ export function MethodsTab() {
             <div className="flex items-center gap-2">
               <input
                 className={cn(
-                  'flex-1 rounded-lg border bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   fieldErrors.weight
                     ? 'border-red-400/60 focus:border-red-400'
-                    : 'border-white/20 focus:border-white/40'
+                    : 'border-foreground/20 focus:border-foreground/40'
                 )}
                 onChange={e => setDecarb({ weight: e.target.value })}
                 placeholder="0.00"
@@ -407,10 +412,10 @@ export function MethodsTab() {
             </>,
             <input
               className={cn(
-                'rounded-lg border bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 fieldErrors.thcaPct
                   ? 'border-red-400/60 focus:border-red-400'
-                  : 'border-white/20 focus:border-white/40'
+                  : 'border-foreground/20 focus:border-foreground/40'
               )}
               onChange={e => setDecarb({ thcaPct: e.target.value })}
               placeholder="0.0"
@@ -428,10 +433,10 @@ export function MethodsTab() {
             </>,
             <input
               className={cn(
-                'rounded-lg border bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 fieldErrors.thcPct
                   ? 'border-red-400/60 focus:border-red-400'
-                  : 'border-white/20 focus:border-white/40'
+                  : 'border-foreground/20 focus:border-foreground/40'
               )}
               onChange={e => setDecarb({ thcPct: e.target.value })}
               placeholder="0.0"
@@ -446,11 +451,11 @@ export function MethodsTab() {
 
       {/* Theoretical Max (shared) */}
       {results && (
-        <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-          <span className="text-xs font-medium uppercase tracking-wider text-white/70">
+        <div className="flex items-center gap-3 rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3">
+          <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
             Theoretical Maximum THC
           </span>
-          <span className="text-lg font-bold text-white">
+          <span className="text-lg font-bold text-foreground">
             {fmt1(results.theoreticalMax)} mg
           </span>
         </div>
@@ -467,7 +472,8 @@ export function MethodsTab() {
             <div
               className={cn(
                 'glass-strong flex flex-col gap-3 rounded-2xl p-5 transition-colors',
-                isMaxPotency && 'border-2 border-amber-400/50 bg-amber-400/10',
+                isMaxPotency &&
+                  'border-2 border-amber-400/50 bg-amber-100 dark:bg-amber-400/10',
                 isMaxTerpene &&
                   !isMaxPotency &&
                   'border-2 border-teal-400/50 bg-teal-400/10'
@@ -476,12 +482,12 @@ export function MethodsTab() {
             >
               {/* Header row with badges */}
               <div className="flex items-start justify-between gap-2">
-                <h4 className="text-base font-semibold text-white">
+                <h4 className="text-base font-semibold text-foreground">
                   {method.name}
                 </h4>
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   {isMaxPotency && (
-                    <span className="inline-flex items-center rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-300">
+                    <span className="inline-flex items-center rounded-full border border-amber-500/40 dark:border-amber-400/40 bg-amber-100 dark:bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
                       Highest Potency
                     </span>
                   )}
@@ -495,10 +501,10 @@ export function MethodsTab() {
 
               {/* Efficiency */}
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
                   Decarb Efficiency
                 </span>
-                <span className="text-sm font-semibold text-white">
+                <span className="text-sm font-semibold text-foreground">
                   {methodResults
                     ? methodResults.efficiencyDisplay
                     : `${Math.round(method.efficiency.low * 100)}–${Math.round(method.efficiency.high * 100)}%`}
@@ -507,47 +513,49 @@ export function MethodsTab() {
 
               {/* Resulting THC */}
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
                   Resulting THC
                 </span>
                 {methodResults ? (
                   <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-bold text-white">
+                    <span className="text-xl font-bold text-foreground">
                       {fmt1(methodResults.expectedThc)} mg
                     </span>
-                    <span className="text-xs text-white/70">
+                    <span className="text-xs text-foreground/70">
                       ({fmt1(methodResults.lowThc)}–
                       {fmt1(methodResults.highThc)})
                     </span>
                   </div>
                 ) : (
-                  <span className="text-xl font-bold text-white/70">N/A</span>
+                  <span className="text-xl font-bold text-foreground/70">
+                    N/A
+                  </span>
                 )}
               </div>
 
               {/* Qualitative labels */}
               <div className="grid grid-cols-3 gap-2">
-                <div className="flex flex-col items-center rounded-lg border border-white/10 bg-white/5 px-1 py-2 text-center">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
+                <div className="flex flex-col items-center rounded-lg border border-foreground/10 bg-foreground/5 px-1 py-2 text-center">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
                     Terpenes
                   </span>
-                  <span className="mt-0.5 text-xs font-semibold text-white">
+                  <span className="mt-0.5 text-xs font-semibold text-foreground">
                     {method.terpeneLabel}
                   </span>
                 </div>
-                <div className="flex flex-col items-center rounded-lg border border-white/10 bg-white/5 px-1 py-2 text-center">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
+                <div className="flex flex-col items-center rounded-lg border border-foreground/10 bg-foreground/5 px-1 py-2 text-center">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
                     CBN Risk
                   </span>
-                  <span className="mt-0.5 text-xs font-semibold text-white">
+                  <span className="mt-0.5 text-xs font-semibold text-foreground">
                     {method.cbnLabel}
                   </span>
                 </div>
-                <div className="flex flex-col items-center rounded-lg border border-white/10 bg-white/5 px-1 py-2 text-center">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
+                <div className="flex flex-col items-center rounded-lg border border-foreground/10 bg-foreground/5 px-1 py-2 text-center">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
                     Oxygen
                   </span>
-                  <span className="mt-0.5 text-xs font-semibold text-white">
+                  <span className="mt-0.5 text-xs font-semibold text-foreground">
                     {method.oxygenLabel}
                   </span>
                 </div>
@@ -555,7 +563,7 @@ export function MethodsTab() {
 
               {/* Use This */}
               <button
-                className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
                 onClick={() => handleUseThis(method.id)}
                 type="button"
               >
@@ -567,7 +575,7 @@ export function MethodsTab() {
       </div>
 
       {/* Disclaimer */}
-      <p className="text-center text-xs leading-relaxed text-white/70">
+      <p className="text-center text-xs leading-relaxed text-foreground/70">
         Estimates are heuristic approximations, not laboratory results. Actual
         potency varies with material quality, decarb technique, and measurement
         accuracy.

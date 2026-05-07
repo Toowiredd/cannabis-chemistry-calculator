@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { cn } from 'renderer/lib/utils'
 import { TitleBar } from 'renderer/src/components/TitleBar'
 import { GlassCard } from 'renderer/src/components/GlassCard'
@@ -21,9 +22,14 @@ const TAB_ITEMS: { id: TabId; label: string }[] = [
 export function MainScreen() {
   const activeTab = useAppStore(s => s.activeTab)
   const setActiveTab = useAppStore(s => s.setActiveTab)
+  const theme = useAppStore(s => s.theme)
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+  }, [theme])
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-[#0a0a0a] text-white overflow-hidden">
+    <div className="flex h-screen w-screen flex-col bg-background text-foreground overflow-hidden">
       <TitleBar />
 
       <nav className="glass flex shrink-0 items-center gap-1 overflow-x-auto px-4 py-2">
@@ -32,8 +38,8 @@ export function MainScreen() {
             className={cn(
               'app-region-no-drag whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors',
               activeTab === tab.id
-                ? 'bg-white/15 text-white border border-white/20'
-                : 'text-white/70 hover:bg-white/5 hover:text-white/80'
+                ? 'bg-foreground/15 text-foreground border border-foreground/20'
+                : 'text-foreground/70 hover:bg-foreground/5 hover:text-foreground/80'
             )}
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -68,7 +74,7 @@ export function MainScreen() {
       </main>
 
       <footer className="relative shrink-0 px-4 py-2 text-center">
-        <p className="text-xs text-white/70">
+        <p className="text-xs text-foreground/70">
           All calculations are heuristic estimates, not laboratory results.
         </p>
       </footer>

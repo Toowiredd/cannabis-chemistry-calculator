@@ -43,9 +43,9 @@ function TooltipIcon({ text }: { text: string }) {
       onMouseLeave={() => setShow(false)}
       type="button"
     >
-      <Info className="size-4 shrink-0 cursor-help text-white/70 transition-colors hover:text-white/80" />
+      <Info className="size-4 shrink-0 cursor-help text-foreground/70 transition-colors hover:text-foreground/80" />
       {show && (
-        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-white/20 bg-black/90 px-3 py-2 text-xs leading-relaxed text-white/90 shadow-xl">
+        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-foreground/20 bg-card px-3 py-2 text-xs leading-relaxed text-foreground/90 shadow-xl">
           {text}
         </div>
       )}
@@ -63,14 +63,14 @@ function UnitToggle<T extends string>({
   onChange: (v: T) => void
 }) {
   return (
-    <div className="inline-flex shrink-0 rounded-lg border border-white/20 bg-white/5 p-0.5">
+    <div className="inline-flex shrink-0 rounded-lg border border-foreground/20 bg-foreground/5 p-0.5">
       {options.map(opt => (
         <button
           className={cn(
             'rounded-md px-3 py-1 text-xs font-medium transition-colors',
             value === opt
-              ? 'bg-white/15 text-white'
-              : 'text-white/70 hover:text-white/80'
+              ? 'bg-foreground/15 text-foreground'
+              : 'text-foreground/70 hover:text-foreground/80'
           )}
           key={opt}
           onClick={() => onChange(opt)}
@@ -85,7 +85,7 @@ function UnitToggle<T extends string>({
 
 function OverrideBadge() {
   return (
-    <span className="ml-2 inline-flex items-center rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-300">
+    <span className="ml-2 inline-flex items-center rounded-full border border-amber-500/40 dark:border-amber-400/40 bg-amber-100 dark:bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
       Override
     </span>
   )
@@ -411,11 +411,11 @@ export function InfusionTab() {
     extraClass?: string
   ) => (
     <div className={cn('flex flex-col gap-1', extraClass)}>
-      <span className="flex items-center gap-1.5 text-sm font-medium text-white/80">
+      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
         {label}
       </span>
       {children}
-      {error && <span className="text-xs text-red-400">{error}</span>}
+      {error && <span className="text-xs text-red-500">{error}</span>}
     </div>
   )
 
@@ -427,11 +427,11 @@ export function InfusionTab() {
     <div className="flex flex-col gap-4 p-2">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">Fat Infusion</h2>
+        <h2 className="text-xl font-semibold text-foreground">Fat Infusion</h2>
         <div className="flex items-center gap-2">
           <TabActions tabId="infusion" />
           <button
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
             onClick={handleReset}
             type="button"
           >
@@ -444,7 +444,7 @@ export function InfusionTab() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {/* ------------------- INPUT PANEL ------------------- */}
         <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/70">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Input
           </h3>
 
@@ -457,10 +457,10 @@ export function InfusionTab() {
             <div className="flex items-center gap-2">
               <input
                 className={cn(
-                  'flex-1 rounded-lg border bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   fieldErrors.decarbedThc
                     ? 'border-red-400/60 focus:border-red-400'
-                    : 'border-white/20 focus:border-white/40'
+                    : 'border-foreground/20 focus:border-foreground/40'
                 )}
                 onChange={e => setInfusion({ decarbedThc: e.target.value })}
                 placeholder="0.0"
@@ -468,7 +468,7 @@ export function InfusionTab() {
                 type="number"
                 value={infusion.decarbedThc}
               />
-              <span className="text-sm text-white/70">mg</span>
+              <span className="text-sm text-foreground/70">mg</span>
             </div>,
             fieldErrors.decarbedThc
           )}
@@ -480,13 +480,13 @@ export function InfusionTab() {
               <TooltipIcon text="Select a carrier fat. Each fat has a typical extraction efficiency based on its lipid profile and affinity for cannabinoids." />
             </>,
             <select
-              className="rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-white/40"
+              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
               onChange={e => handleFatChange(e.target.value)}
               value={infusion.fatId}
             >
               {INFUSION_FATS.map(f => (
                 <option
-                  className="bg-neutral-900 text-white"
+                  className="bg-card text-foreground"
                   key={f.id}
                   value={f.id}
                 >
@@ -498,7 +498,7 @@ export function InfusionTab() {
 
           {/* Preset notes */}
           {preset.notes && (
-            <p className="text-xs leading-relaxed text-white/70">
+            <p className="text-xs leading-relaxed text-foreground/70">
               {preset.notes}
             </p>
           )}
@@ -513,12 +513,12 @@ export function InfusionTab() {
             <div className="flex items-center gap-2">
               <input
                 className={cn(
-                  'flex-1 rounded-lg border bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   isCustom
                     ? 'border-amber-400/60 focus:border-amber-400'
                     : fieldErrors.customEfficiency
                       ? 'border-red-400/60 focus:border-red-400'
-                      : 'border-white/20 focus:border-white/40'
+                      : 'border-foreground/20 focus:border-foreground/40'
                 )}
                 disabled={!isCustom}
                 max={1}
@@ -535,7 +535,7 @@ export function InfusionTab() {
                     : String(preset.extractionEff)
                 }
               />
-              <span className="text-sm text-white/70">
+              <span className="text-sm text-foreground/70">
                 {isCustom ? 'custom' : 'preset'}
               </span>
             </div>,
@@ -551,10 +551,10 @@ export function InfusionTab() {
             <div className="flex items-center gap-2">
               <input
                 className={cn(
-                  'flex-1 rounded-lg border bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30',
+                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   fieldErrors.volume
                     ? 'border-red-400/60 focus:border-red-400'
-                    : 'border-white/20 focus:border-white/40'
+                    : 'border-foreground/20 focus:border-foreground/40'
                 )}
                 onChange={e => setInfusion({ volume: e.target.value })}
                 placeholder="0.0"
@@ -574,15 +574,18 @@ export function InfusionTab() {
 
         {/* ------------------- RESULTS PANEL ------------------- */}
         <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/70">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Results
           </h3>
 
           {/* Warnings */}
           {inlineWarnings.length > 0 && (
-            <div className="flex flex-col gap-1 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2">
+            <div className="flex flex-col gap-1 rounded-lg border border-amber-400/30 bg-amber-100 dark:bg-amber-400/10 px-3 py-2">
               {inlineWarnings.map(w => (
-                <span className="text-xs text-amber-300" key={w}>
+                <span
+                  className="text-xs text-amber-700 dark:text-amber-300"
+                  key={w}
+                >
                   {w}
                 </span>
               ))}
@@ -591,24 +594,24 @@ export function InfusionTab() {
 
           {/* Fat name badge */}
           <div className="flex items-center gap-2">
-            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-white/70">
+            <span className="rounded-full border border-foreground/10 bg-foreground/5 px-2.5 py-1 text-xs font-medium text-foreground/70">
               {results?.fatName ?? preset.name}
             </span>
           </div>
 
           {/* Total infused THC */}
-          <div className="flex flex-col rounded-xl border border-white/10 bg-white/5 p-4">
-            <span className="text-xs font-medium uppercase tracking-wider text-white/70">
+          <div className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+            <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
               Total Infused THC
             </span>
-            <span className="mt-1 text-2xl font-bold text-white">
+            <span className="mt-1 text-2xl font-bold text-foreground">
               {results ? `${fmt1(results.infusedThc)} mg` : 'N/A'}
             </span>
           </div>
 
           {/* Per-unit */}
-          <div className="flex flex-col rounded-xl border border-white/10 bg-white/5 p-4">
-            <span className="text-xs font-medium uppercase tracking-wider text-white/70">
+          <div className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+            <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
               Concentration
             </span>
             <span className="mt-1 text-2xl font-bold text-emerald-300">
@@ -620,16 +623,16 @@ export function InfusionTab() {
 
           {/* Simplified multiplier estimate */}
           {!isCustom && (
-            <div className="flex flex-col gap-1 rounded-xl border border-white/10 bg-white/5 p-4">
-              <span className="text-xs font-medium uppercase tracking-wider text-white/70">
+            <div className="flex flex-col gap-1 rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+              <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                 Simplified Estimate
               </span>
-              <span className="text-lg font-semibold text-white">
+              <span className="text-lg font-semibold text-foreground">
                 {results?.simplifiedEstimate != null
                   ? `${fmt1(results.simplifiedEstimate)} mg`
                   : 'N/A'}
               </span>
-              <span className="text-xs text-white/70">
+              <span className="text-xs text-foreground/70">
                 Approximate total using {preset.simplifiedMultiplier}x
                 multiplier (requires weight and THCA% from Decarb tab)
               </span>
@@ -639,7 +642,7 @@ export function InfusionTab() {
           {/* Show Formula */}
           <div>
             <button
-              className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex w-full items-center justify-between rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
               onClick={() => setShowFormula(v => !v)}
               type="button"
             >
@@ -651,20 +654,24 @@ export function InfusionTab() {
               )}
             </button>
             {showFormula && (
-              <div className="mt-2 rounded-lg border border-white/10 bg-black/30 px-4 py-3 font-mono text-xs leading-relaxed text-white/70">
+              <div className="mt-2 rounded-lg border border-foreground/10 bg-foreground/30 px-4 py-3 font-mono text-xs leading-relaxed text-foreground/70">
                 <p className="mb-2">
-                  <strong className="text-white/90">Infused THC (mg)</strong> =
-                  decarbed THC (mg) x extraction efficiency
+                  <strong className="text-foreground/90">
+                    Infused THC (mg)
+                  </strong>{' '}
+                  = decarbed THC (mg) x extraction efficiency
                 </p>
                 <p className="mb-2">
-                  <strong className="text-white/90">mg per unit</strong> =
+                  <strong className="text-foreground/90">mg per unit</strong> =
                   infused THC ÷ fat volume (in selected unit)
                 </p>
                 <p className="mb-2">
-                  <strong className="text-white/90">Simplified estimate</strong>{' '}
+                  <strong className="text-foreground/90">
+                    Simplified estimate
+                  </strong>{' '}
                   = material weight (g) x THCA% x multiplier
                 </p>
-                <p className="text-white/70">
+                <p className="text-foreground/70">
                   Extraction efficiency represents the fraction of available THC
                   that successfully transfers into the carrier fat during
                   infusion. Real-world efficiency depends on fat type,
@@ -677,7 +684,7 @@ export function InfusionTab() {
       </div>
 
       {/* Disclaimer */}
-      <p className="text-center text-xs leading-relaxed text-white/70">
+      <p className="text-center text-xs leading-relaxed text-foreground/70">
         Estimates are heuristic approximations, not laboratory results. Actual
         potency varies with material quality, infusion technique, and
         measurement accuracy.
