@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, clipboard } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, clipboard, shell } from 'electron'
 import { join } from 'node:path'
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs'
 
@@ -217,6 +217,19 @@ export async function MainWindow() {
       const message =
         err instanceof Error ? err.message : 'Failed to load preset'
       return { success: false, error: message }
+    }
+  })
+
+  /* ---------------------------------------------------------------- */
+  /* Open external URL                                                 */
+  /* ---------------------------------------------------------------- */
+
+  ipcMain.handle('open-external', async (_event, url: string) => {
+    try {
+      const result = await shell.openExternal(url)
+      return { success: result }
+    } catch {
+      return { success: false }
     }
   })
 

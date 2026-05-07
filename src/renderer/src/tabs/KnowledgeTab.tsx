@@ -10,7 +10,30 @@ import {
 } from 'lucide-react'
 
 /* ------------------------------------------------------------------ */
-/* Section helpers                                                    */
+/* Inline citation helper                                              */
+/* ------------------------------------------------------------------ */
+
+function Cite({ label, doi }: { label: string; doi: string }) {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    window.App.openExternal(`https://doi.org/${doi}`)
+  }
+
+  return (
+    <a
+      className="ml-1 inline text-xs text-sky-300/90 underline underline-offset-2 hover:text-sky-200"
+      href={`https://doi.org/${doi}`}
+      onClick={handleClick}
+      rel="noopener noreferrer"
+      target="_blank"
+    >
+      [{label}]
+    </a>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Section helpers                                                     */
 /* ------------------------------------------------------------------ */
 
 function SectionCard({
@@ -251,6 +274,8 @@ export function KnowledgeTab() {
             (THC) through a process called decarboxylation. This happens because
             heat removes a small carbon dioxide (CO₂) group from each THCA
             molecule, turning it into THC.
+            <Cite doi="10.1089/can.2016.0020" label="Wang et al. 2016" />
+            <Cite doi="10.1186/s42238-021-00062-4" label="Tahir et al. 2021" />
           </p>
           <p className="mt-3">
             But heat is not selective. If you apply too much heat for too long,
@@ -258,6 +283,11 @@ export function KnowledgeTab() {
             compound that tends to cause drowsiness. That is why the same
             temperature that activates your material can also degrade it if you
             are not careful.
+            <Cite doi="10.1089/can.2021.0004" label="Jaidee et al. 2022" />
+            <Cite
+              doi="10.3389/fchem.2022.1038729"
+              label="Garcia-Valverde et al. 2022"
+            />
           </p>
         </SectionCard>
 
@@ -270,6 +300,7 @@ export function KnowledgeTab() {
             You will notice the calculator multiplies your THCA percentage by
             0.877 before turning it into milligrams. That number is not
             arbitrary -- it is the molecular weight ratio between THC and THCA.
+            <Cite doi="10.1089/can.2021.0072" label="Filer 2022" />
           </p>
           <p className="mt-3">
             THCA weighs about 358.5 g per mole. THC weighs about 314.5 g per
@@ -278,6 +309,7 @@ export function KnowledgeTab() {
             get 314.5 ÷ 358.5 ≈ 0.877. That is why 1 gram of pure THCA never
             yields 1 gram of THC -- you always lose that CO₂ fragment in the
             process.
+            <Cite doi="10.1021/acs.iecr.0c03791" label="Moreno et al. 2020" />
           </p>
         </SectionCard>
 
@@ -299,6 +331,8 @@ export function KnowledgeTab() {
             delicate compounds while also pushing THC toward CBN. The 95°C and
             85°C presets stay safely below that boiling ceiling while still
             providing plenty of heat for full decarboxylation.
+            <Cite doi="10.1089/can.2016.0020" label="Wang et al. 2016" />
+            <Cite doi="10.1021/acs.iecr.0c03791" label="Moreno et al. 2020" />
           </p>
         </SectionCard>
 
@@ -312,6 +346,11 @@ export function KnowledgeTab() {
             exposed to air during heating, oxygen molecules attack terpenes (the
             aromatic compounds) and also accelerate the conversion of THC into
             CBN.
+            <Cite
+              doi="10.3389/fchem.2022.1038729"
+              label="Garcia-Valverde et al. 2022"
+            />
+            <Cite doi="10.1089/can.2021.0173" label="Eyal et al. 2023" />
           </p>
           <p className="mt-3">
             Vacuum-sealed sous vide bags remove almost all the air around the
@@ -320,6 +359,7 @@ export function KnowledgeTab() {
             methods. You can see this reflected in the presets: oven-open
             methods carry a higher CBN risk label because they expose the
             material directly to oxygen.
+            <Cite doi="10.3390/molecules27206920" label="Raz et al. 2022" />
           </p>
         </SectionCard>
 
@@ -333,6 +373,7 @@ export function KnowledgeTab() {
             This sounds counterintuitive -- more surface area should mean faster
             heat transfer -- but the key is what happens before and during
             heating.
+            <Cite doi="10.1089/can.2021.0173" label="Eyal et al. 2023" />
           </p>
           <p className="mt-3">
             Fine powder has more total surface area exposed to air. Volatile
@@ -340,6 +381,7 @@ export function KnowledgeTab() {
             fine powder loses them even faster under heat. Coarse material or
             small buds lose fewer terpenes because the compounds stay trapped
             inside the plant structure longer during the decarb window.
+            <Cite doi="10.3390/molecules27206920" label="Raz et al. 2022" />
           </p>
         </SectionCard>
 
@@ -354,6 +396,8 @@ export function KnowledgeTab() {
             convert more THCA into THC (higher potency), but they also cook off
             more of the aromatic terpenes that give each strain its distinctive
             taste and smell.
+            <Cite doi="10.1089/can.2021.0173" label="Eyal et al. 2023" />
+            <Cite doi="10.3390/molecules27206920" label="Raz et al. 2022" />
           </p>
           <p className="mt-3">
             Lower temperatures and longer times preserve more terpenes but
@@ -377,6 +421,8 @@ export function KnowledgeTab() {
             temperature fluctuations, material moisture content, how densely the
             material is packed, what container you use (glass, metal, ceramic),
             ambient humidity, and even altitude.
+            <Cite doi="10.1089/can.2016.0020" label="Wang et al. 2016" />
+            <Cite doi="10.1021/acs.iecr.0c03791" label="Moreno et al. 2020" />
           </p>
           <p className="mt-3">
             That is why every preset shows a low-to-high efficiency range rather
@@ -386,7 +432,143 @@ export function KnowledgeTab() {
           </p>
         </SectionCard>
 
-        {/* Section 8: Conceptual Heat x Time Curve */}
+        {/* Section 8: Clinical Dosing Context */}
+        <SectionCard
+          icon={<Scale className="size-5 text-white/80" />}
+          title="Clinical Dosing Context"
+        >
+          <p>
+            The dose classifications used in this calculator are grounded in
+            clinical literature. MacCallum and Russo (2018) established a
+            practical framework for medical cannabis administration that
+            emphasizes starting low and titrating slowly to find the minimum
+            effective dose for each patient.
+            <Cite
+              doi="10.1016/j.ejim.2018.01.004"
+              label="MacCallum & Russo 2018"
+            />
+          </p>
+          <p className="mt-3">
+            Bhaskar et al. (2021) reached similar consensus through a modified
+            Delphi process with international pain specialists, recommending
+            initial doses in the microdose to low range (2.5–10 mg THC) for
+            chronic pain patients. These recommendations inform the
+            classification boundaries used throughout this app.
+            <Cite
+              doi="10.1186/s42238-021-00073-1"
+              label="Bhaskar et al. 2021"
+            />
+          </p>
+        </SectionCard>
+
+        {/* Section 9: Lipid Extraction Science */}
+        <SectionCard
+          icon={<FlaskConical className="size-5 text-white/80" />}
+          title="Lipid Extraction Science"
+        >
+          <p>
+            THC and other cannabinoids are highly lipophilic, meaning they
+            dissolve much more readily in fats and oils than in water. When you
+            infuse decarbed cannabis into a carrier fat, the cannabinoids
+            migrate from the plant material into the lipid phase. The efficiency
+            of this transfer depends on the fat type, temperature, time, and
+            surface area of the material.
+            <Cite doi="10.3390/molecules25132986" label="Ramella et al. 2020" />
+          </p>
+          <p className="mt-3">
+            Medium-chain triglyceride (MCT) oils generally show the highest
+            extraction efficiency because their smaller fat molecules can
+            penetrate plant cell walls more effectively. Ghee and coconut oil,
+            both rich in saturated fats, also perform well but with slightly
+            lower extraction yields. These differences are reflected in the
+            extraction efficiency values assigned to each fat preset.
+            <Cite doi="10.3390/molecules25132986" label="Ramella et al. 2020" />
+            <Cite doi="10.1055/s-0032-1327893" label="Romano & Hazekamp 2013" />
+          </p>
+        </SectionCard>
+
+        {/* Section 10: Kinetics and Activation Energy */}
+        <SectionCard
+          icon={<Flame className="size-5 text-white/80" />}
+          title="Decarboxylation Kinetics"
+        >
+          <p>
+            Decarboxylation of THCA follows first-order reaction kinetics in
+            most practical conditions, meaning the rate of conversion is
+            proportional to the amount of THCA remaining. The reaction can be
+            modeled with the Arrhenius equation, which relates reaction rate to
+            temperature through an activation energy barrier.
+            <Cite
+              doi="10.1016/j.molstruc.2010.11.062"
+              label="Perrotin-Brunel et al. 2011"
+            />
+            <Cite doi="10.1021/acs.iecr.0c03791" label="Moreno et al. 2020" />
+          </p>
+          <p className="mt-3">
+            Comparative kinetic studies place the activation energy for THCA
+            decarboxylation in the range of 85–100 kJ/mol, with CBDA showing a
+            similar but slightly different kinetic profile despite sharing the
+            same molecular formula. This explains why the same time-temperature
+            combination does not produce identical conversion rates for THCA and
+            CBDA.
+            <Cite doi="10.1021/acs.iecr.0c03791" label="Moreno et al. 2020" />
+            <Cite doi="10.1016/j.jpba.2017.11.044" label="Citti et al. 2018" />
+          </p>
+        </SectionCard>
+
+        {/* Section 11: Biosynthesis */}
+        <SectionCard
+          icon={<Leaf className="size-5 text-white/80" />}
+          title="Cannabinoid Biosynthesis"
+        >
+          <p>
+            In the living cannabis plant, cannabinoids are produced through a
+            biosynthetic pathway that starts with geranyl pyrophosphate and
+            olivetolic acid. These precursors combine to form cannabigerolic
+            acid (CBGA), which is then enzymatically converted into THCA, CBDA,
+            or CBCA depending on the specific synthase enzymes present.
+            <Cite doi="10.1186/s42238-021-00062-4" label="Tahir et al. 2021" />
+          </p>
+          <p className="mt-3">
+            Because THCA and CBDA are constitutional isomers (same molecular
+            formula C₂₂H₃₀O₄, identical molecular weight ~358.47 g/mol), they
+            share the same 0.877 decarboxylation factor when converting to their
+            neutral forms. This structural relationship is why the calculator
+            applies the same molecular weight ratio to both THC and CBD
+            pathways.
+            <Cite doi="10.1089/can.2021.0072" label="Filer 2022" />
+            <Cite doi="10.1186/s42238-021-00062-4" label="Tahir et al. 2021" />
+          </p>
+        </SectionCard>
+
+        {/* Section 12: Terpene Volatility */}
+        <SectionCard
+          icon={<Flame className="size-5 text-white/80" />}
+          title="Terpene Volatility and Vapor Pressure"
+        >
+          <p>
+            Terpenes are volatile organic compounds with high vapor pressures,
+            meaning they evaporate readily even at moderate temperatures.
+            Monoterpenes such as myrcene and limonene have normal boiling points
+            around 165–175°C, while sesquiterpenes like caryophyllene boil
+            closer to 250°C. These low boiling points explain why terpenes are
+            lost rapidly during any heating process.
+            <Cite doi="10.1089/can.2021.0173" label="Eyal et al. 2023" />
+          </p>
+          <p className="mt-3">
+            The vapor pressure of a compound determines how quickly it will
+            evaporate at a given temperature. Cannabis terpenes can begin
+            evaporating at temperatures as low as 40–50°C, long before
+            decarboxylation is complete. This is the fundamental reason why
+            low-temperature, long-time methods preserve more flavor: they
+            minimize the vapor-pressure-driven loss of volatile terpenes while
+            still providing enough thermal energy for THCA conversion.
+            <Cite doi="10.1089/can.2021.0173" label="Eyal et al. 2023" />
+            <Cite doi="10.3390/molecules27206920" label="Raz et al. 2022" />
+          </p>
+        </SectionCard>
+
+        {/* Section 13: Conceptual Heat x Time Curve */}
         <div className={cn('glass-strong rounded-2xl p-6')}>
           <div className="flex items-center gap-3">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10">
@@ -404,6 +586,11 @@ export function KnowledgeTab() {
             slowly accumulates over time. This is an illustrative model -- not
             data from a specific lab run -- but it captures the general behavior
             you should expect during decarboxylation.
+            <Cite doi="10.1089/can.2021.0004" label="Jaidee et al. 2022" />
+            <Cite
+              doi="10.3389/fchem.2022.1038729"
+              label="Garcia-Valverde et al. 2022"
+            />
           </p>
 
           <div className="mt-6">
@@ -421,7 +608,7 @@ export function KnowledgeTab() {
           </div>
         </div>
 
-        {/* Section 9: Disclaimer */}
+        {/* Section 14: Disclaimer */}
         <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-6 py-5">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-400/80" />

@@ -22,6 +22,7 @@ const API = {
   savePreset: (data: { name: string; presetData: Record<string, unknown> }) =>
     ipcRenderer.invoke('save-preset', data),
   loadPresetDialog: () => ipcRenderer.invoke('load-preset-dialog'),
+  openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
   platform: process.platform,
 } as const
 

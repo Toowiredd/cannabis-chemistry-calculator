@@ -24,6 +24,7 @@ declare global {
         data?: Record<string, unknown>
         canceled?: boolean
       }>
+      openExternal: (url: string) => Promise<{ success: boolean }>
       platform: string
     }
   }
