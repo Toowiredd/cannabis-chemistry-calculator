@@ -47,6 +47,23 @@ export const decarbInputSchema = z
 export type DecarbInput = z.infer<typeof decarbInputSchema>
 
 /* ------------------------------------------------------------------ */
+/* CBDA/CBD input                                                      */
+/* ------------------------------------------------------------------ */
+
+export const cbdaInputSchema = z
+  .object({
+    weight: positiveNumberSchema,
+    cbdaPct: percentageSchema,
+    cbdPct: percentageSchema,
+  })
+  .refine(data => data.cbdaPct + data.cbdPct <= 100, {
+    message: 'CBDA + CBD cannot exceed 100%',
+    path: ['cbdaPct'],
+  })
+
+export type CbdaInput = z.infer<typeof cbdaInputSchema>
+
+/* ------------------------------------------------------------------ */
 /* Infusion input                                                      */
 /* ------------------------------------------------------------------ */
 
@@ -83,6 +100,16 @@ function getDecarbWarnings(input: DecarbInput): string[] {
   return warnings
 }
 
+function getCbdaWarnings(input: CbdaInput): string[] {
+  const warnings: string[] = []
+  if (input.cbdaPct + input.cbdPct > 40) {
+    warnings.push(
+      'Note: High total cannabinoid percentage (>40%). Verify lab results.'
+    )
+  }
+  return warnings
+}
+
 function getInfusionWarnings(input: InfusionInput): string[] {
   const warnings: string[] = []
   // Threshold: volume less than 25 mL per 500 mg decarbed THC is considered low
@@ -99,6 +126,27 @@ function getInfusionWarnings(input: InfusionInput): string[] {
 /* ------------------------------------------------------------------ */
 /* Public API                                                          */
 /* ------------------------------------------------------------------ */
+
+export function validateCbdaInput(
+  input: CbdaInput
+): ValidationResult<CbdaInput> {
+  const parsed = cbdaInputSchema.safeParse(input)
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      errors: parsed.error.issues.map(e => e.message),
+    }
+  }
+
+  const data = parsed.data
+  const warnings = getCbdaWarnings(data)
+  return {
+    success: true,
+    data,
+    warnings: warnings.length > 0 ? warnings : undefined,
+  }
+}
 
 export function validateDecarbInput(
   input: DecarbInput
