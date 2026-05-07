@@ -11,6 +11,7 @@ export type TabId =
   | 'fats'
   | 'knowledge'
   | 'journal'
+  | 'dashboard'
 
 export type Theme = 'dark' | 'light'
 
@@ -73,6 +74,25 @@ const DEFAULT_LABEL: LabelState = {
   facilityGluten: false,
 }
 
+export interface InventoryItem {
+  id: string
+  date: string
+  type: 'purchase' | 'usage'
+  name: string
+  amountGrams: string
+  cost?: string
+  notes?: string
+}
+
+export interface InventoryState {
+  items: InventoryItem[]
+  lowStockThreshold: string
+}
+
+const DEFAULT_INVENTORY: InventoryState = {
+  items: [],
+  lowStockThreshold: '3.5',
+}
 export interface JournalEntry {
   id: string
   date: string
@@ -190,6 +210,12 @@ interface AppStore {
   timer: TimerState
   setTimer: (partial: Partial<TimerState>) => void
   resetTimer: () => void
+
+  /** Dashboard inventory */
+  inventory: InventoryState
+  setInventory: (partial: Partial<InventoryState>) => void
+  addInventoryItem: (item: InventoryItem) => void
+  deleteInventoryItem: (id: string) => void
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -287,6 +313,24 @@ export const useAppStore = create<AppStore>()(
             methodName: '',
           },
         }),
+
+      inventory: { ...DEFAULT_INVENTORY },
+      setInventory: partial =>
+        set(state => ({ inventory: { ...state.inventory, ...partial } })),
+      addInventoryItem: item =>
+        set(state => ({
+          inventory: {
+            ...state.inventory,
+            items: [item, ...state.inventory.items],
+          },
+        })),
+      deleteInventoryItem: id =>
+        set(state => ({
+          inventory: {
+            ...state.inventory,
+            items: state.inventory.items.filter(i => i.id !== id),
+          },
+        })),
 
       loadFromPreset: (preset: unknown) => {
         if (!isRecord(preset)) return

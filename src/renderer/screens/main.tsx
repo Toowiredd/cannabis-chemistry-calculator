@@ -9,9 +9,11 @@ import { MethodsTab } from 'renderer/src/tabs/MethodsTab'
 import { FatsTab } from 'renderer/src/tabs/FatsTab'
 import { KnowledgeTab } from 'renderer/src/tabs/KnowledgeTab'
 import { JournalTab } from 'renderer/src/tabs/JournalTab'
+import { DashboardTab } from 'renderer/src/tabs/DashboardTab'
 import { useAppStore, type TabId } from 'renderer/src/stores/appStore'
 
 const TAB_ITEMS: { id: TabId; label: string }[] = [
+  { id: 'dashboard', label: 'Dashboard' },
   { id: 'decarb', label: 'Decarb' },
   { id: 'infusion', label: 'Infusion' },
   { id: 'dose', label: 'Dose' },
@@ -54,6 +56,9 @@ export function MainScreen() {
 
       <main className="relative mx-auto flex w-full max-w-[1400px] flex-1 overflow-auto p-4">
         <GlassCard className="mx-auto h-full w-full max-w-[1400px] overflow-auto">
+          <div className={cn(activeTab === 'dashboard' ? 'block' : 'hidden')}>
+            <DashboardTab />
+          </div>
           <div className={cn(activeTab === 'decarb' ? 'block' : 'hidden')}>
             <DecarbTab />
           </div>
