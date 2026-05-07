@@ -15,7 +15,7 @@ import {
 } from 'renderer/src/engine/bagVolume'
 import { cmToIn, inToCm } from 'renderer/src/engine/units'
 import { cn } from 'renderer/lib/utils'
-import { Info, RotateCcw } from 'lucide-react'
+import { Info, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react'
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                            */
@@ -252,14 +252,17 @@ export function BagCalculator({ tempC }: { tempC: number }) {
         let widthCm = bagPreset.widthCm
         let lengthCm = bagPreset.lengthCm
         if (isCustomBag) {
-          const w =
+          const wRaw =
             decarb.bagWidthOverride != null
               ? parseFloat(decarb.bagWidthOverride)
               : 0
-          const l =
+          const lRaw =
             decarb.bagLengthOverride != null
               ? parseFloat(decarb.bagLengthOverride)
               : 0
+          // Convert from display unit to cm if needed
+          const w = units.bagUnit === 'in' ? inToCm(wRaw) : wRaw
+          const l = units.bagUnit === 'in' ? inToCm(lRaw) : lRaw
           if (!Number.isNaN(w) && w > 0) widthCm = w
           if (!Number.isNaN(l) && l > 0) lengthCm = l
         }
@@ -298,6 +301,7 @@ export function BagCalculator({ tempC }: { tempC: number }) {
     decarb.bagWidthOverride,
     decarb.bagLengthOverride,
     decarb.bagHasStems,
+    units.bagUnit,
     tempC,
   ])
 
@@ -362,9 +366,18 @@ export function BagCalculator({ tempC }: { tempC: number }) {
     <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
+        <button
+          className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-foreground/70 transition-colors hover:text-foreground"
+          onClick={() => setDecarb({ bagExpanded: !decarb.bagExpanded })}
+          type="button"
+        >
           Bag Volume Calculator
-        </h3>
+          {decarb.bagExpanded ? (
+            <ChevronUp className="size-4" />
+          ) : (
+            <ChevronDown className="size-4" />
+          )}
+        </button>
         <div className="flex items-center gap-2">
           <button
             className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
@@ -382,189 +395,203 @@ export function BagCalculator({ tempC }: { tempC: number }) {
         </div>
       </div>
 
-      {/* Material weight (read-only) */}
-      {inputRow(
-        <>Material Weight (from Decarb)</>,
-        <input
-          className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground/60 outline-none"
-          readOnly
-          type="text"
-          value={`${decarb.weight} ${units.weightUnit}`}
-        />
-      )}
-
-      {/* Grind level */}
-      {inputRow(
+      {decarb.bagExpanded && (
         <>
-          Grind Level
-          <TooltipIcon text="Coarse grind takes more volume per gram; fine grind is more compact." />
-        </>,
-        <select
-          className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
-          onChange={e => handleGrindChange(e.target.value)}
-          value={decarb.bagGrindId}
-        >
-          {GRIND_LEVELS.map(g => (
-            <option className="bg-card text-foreground" key={g.id} value={g.id}>
-              {g.name} ({g.cm3PerGram} cm³/g)
-            </option>
-          ))}
-        </select>
-      )}
-
-      {/* Bag preset */}
-      {inputRow(
-        <>
-          Bag Size
-          <TooltipIcon text="Select a bag preset or choose Custom to enter your own dimensions." />
-        </>,
-        <select
-          className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
-          onChange={e => handleBagPresetChange(e.target.value)}
-          value={decarb.bagPresetId}
-        >
-          {BAG_PRESETS.map(b => (
-            <option className="bg-card text-foreground" key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-          <option className="bg-card text-foreground" value="custom">
-            Custom
-          </option>
-        </select>
-      )}
-
-      {/* Dimensions */}
-      <div className="grid grid-cols-2 gap-2">
-        {inputRow(
-          <>Width ({units.bagUnit ?? 'cm'})</>,
-          <input
-            className={cn(
-              'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-              isCustomBag
-                ? 'border-foreground/20 focus:border-foreground/40'
-                : 'border-foreground/10 text-foreground/60'
-            )}
-            onChange={e => setDecarb({ bagWidthOverride: e.target.value })}
-            placeholder={isCustomBag ? '0.0' : displayWidth}
-            readOnly={!isCustomBag}
-            step="0.1"
-            type="number"
-            value={isCustomBag ? (decarb.bagWidthOverride ?? '') : displayWidth}
-          />
-        )}
-        {inputRow(
-          <>Length ({units.bagUnit ?? 'cm'})</>,
-          <input
-            className={cn(
-              'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-              isCustomBag
-                ? 'border-foreground/20 focus:border-foreground/40'
-                : 'border-foreground/10 text-foreground/60'
-            )}
-            onChange={e => setDecarb({ bagLengthOverride: e.target.value })}
-            placeholder={isCustomBag ? '0.0' : displayLength}
-            readOnly={!isCustomBag}
-            step="0.1"
-            type="number"
-            value={
-              isCustomBag ? (decarb.bagLengthOverride ?? '') : displayLength
-            }
-          />
-        )}
-      </div>
-
-      {/* Has stems checkbox */}
-      <label className="flex items-center gap-2 text-sm text-foreground/80">
-        <input
-          checked={decarb.bagHasStems}
-          className="size-4 rounded border-foreground/20 bg-foreground/5"
-          onChange={e => setDecarb({ bagHasStems: e.target.checked })}
-          type="checkbox"
-        />
-        Material contains stems (may puncture bag)
-      </label>
-
-      {/* Results */}
-      {bagResults && (
-        <div className="flex flex-col gap-3 rounded-xl border border-foreground/10 bg-foreground/5 p-4">
-          {/* Material volume */}
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
-              Material Volume
-            </span>
-            <span className="text-sm font-semibold text-foreground">
-              {fmt1(bagResults.materialVolume)} cm³
-            </span>
-          </div>
-
-          {/* Fill depth */}
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
-              Fill Depth
-            </span>
-            <span className="text-sm font-semibold text-foreground">
-              {round3(bagResults.fillDepth)} cm
-            </span>
-          </div>
-
-          {/* Headspace gauge */}
-          <HeadspaceGauge pct={bagResults.headspace} />
-
-          {/* Double-bag recommendation */}
-          {bagResults.doubleBag && (
-            <div className="rounded-lg border border-amber-400/30 bg-amber-100 dark:bg-amber-400/10 px-3 py-2">
-              <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">
-                Double-bag recommended
-              </span>
-              <p className="mt-0.5 text-[10px] text-amber-700 dark:text-amber-300">
-                {tempC >= 95
-                  ? 'High temperature increases risk of bag failure. Use two bags for safety.'
-                  : 'Stems detected — double-bagging reduces puncture risk.'}
-              </p>
-            </div>
+          {/* Material weight (read-only) */}
+          {inputRow(
+            <>Material Weight (from Decarb)</>,
+            <input
+              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground/60 outline-none"
+              readOnly
+              type="text"
+              value={`${decarb.weight} ${units.weightUnit}`}
+            />
           )}
 
-          {/* Best bag recommendation */}
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
-              Recommended Bag
-            </span>
-            {bagResults.best ? (
+          {/* Grind level */}
+          {inputRow(
+            <>
+              Grind Level
+              <TooltipIcon text="Coarse grind takes more volume per gram; fine grind is more compact." />
+            </>,
+            <select
+              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+              onChange={e => handleGrindChange(e.target.value)}
+              value={decarb.bagGrindId}
+            >
+              {GRIND_LEVELS.map(g => (
+                <option
+                  className="bg-card text-foreground"
+                  key={g.id}
+                  value={g.id}
+                >
+                  {g.name} ({g.cm3PerGram} cm³/g)
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Bag preset */}
+          {inputRow(
+            <>
+              Bag Size
+              <TooltipIcon text="Select a bag preset or choose Custom to enter your own dimensions." />
+            </>,
+            <select
+              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+              onChange={e => handleBagPresetChange(e.target.value)}
+              value={decarb.bagPresetId}
+            >
+              {BAG_PRESETS.map(b => (
+                <option
+                  className="bg-card text-foreground"
+                  key={b.id}
+                  value={b.id}
+                >
+                  {b.name}
+                </option>
+              ))}
+              <option className="bg-card text-foreground" value="custom">
+                Custom
+              </option>
+            </select>
+          )}
+
+          {/* Dimensions */}
+          <div className="grid grid-cols-2 gap-2">
+            {inputRow(
+              <>Width ({units.bagUnit ?? 'cm'})</>,
+              <input
+                className={cn(
+                  'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                  isCustomBag
+                    ? 'border-foreground/20 focus:border-foreground/40'
+                    : 'border-foreground/10 text-foreground/60'
+                )}
+                onChange={e => setDecarb({ bagWidthOverride: e.target.value })}
+                placeholder={isCustomBag ? '0.0' : displayWidth}
+                readOnly={!isCustomBag}
+                step="0.1"
+                type="number"
+                value={
+                  isCustomBag ? (decarb.bagWidthOverride ?? '') : displayWidth
+                }
+              />
+            )}
+            {inputRow(
+              <>Length ({units.bagUnit ?? 'cm'})</>,
+              <input
+                className={cn(
+                  'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                  isCustomBag
+                    ? 'border-foreground/20 focus:border-foreground/40'
+                    : 'border-foreground/10 text-foreground/60'
+                )}
+                onChange={e => setDecarb({ bagLengthOverride: e.target.value })}
+                placeholder={isCustomBag ? '0.0' : displayLength}
+                readOnly={!isCustomBag}
+                step="0.1"
+                type="number"
+                value={
+                  isCustomBag ? (decarb.bagLengthOverride ?? '') : displayLength
+                }
+              />
+            )}
+          </div>
+
+          {/* Has stems checkbox */}
+          <label className="flex items-center gap-2 text-sm text-foreground/80">
+            <input
+              checked={decarb.bagHasStems}
+              className="size-4 rounded border-foreground/20 bg-foreground/5"
+              onChange={e => setDecarb({ bagHasStems: e.target.checked })}
+              type="checkbox"
+            />
+            Material contains stems (may puncture bag)
+          </label>
+
+          {/* Results */}
+          {bagResults && (
+            <div className="flex flex-col gap-3 rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+              {/* Material volume */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
+                  Material Volume
+                </span>
+                <span className="text-sm font-semibold text-foreground">
+                  {fmt1(bagResults.materialVolume)} cm³
+                </span>
+              </div>
+
+              {/* Fill depth */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
+                  Fill Depth
+                </span>
+                <span className="text-sm font-semibold text-foreground">
+                  {round3(bagResults.fillDepth)} cm
+                </span>
+              </div>
+
+              {/* Headspace gauge */}
+              <HeadspaceGauge pct={bagResults.headspace} />
+
+              {/* Double-bag recommendation */}
+              {bagResults.doubleBag && (
+                <div className="rounded-lg border border-amber-400/30 bg-amber-100 dark:bg-amber-400/10 px-3 py-2">
+                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                    Double-bag recommended
+                  </span>
+                  <p className="mt-0.5 text-[10px] text-amber-700 dark:text-amber-300">
+                    {tempC >= 95
+                      ? 'High temperature increases risk of bag failure. Use two bags for safety.'
+                      : 'Stems detected — double-bagging reduces puncture risk.'}
+                  </p>
+                </div>
+              )}
+
+              {/* Best bag recommendation */}
               <div className="flex flex-col gap-1">
-                <span className="text-sm font-semibold text-emerald-300">
-                  {bagResults.best.name}
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
+                  Recommended Bag
                 </span>
-                <span className="text-xs text-foreground/70">
-                  Headspace:{' '}
-                  {fmt1(
-                    calculateHeadspace(
-                      bagResults.materialVolume,
-                      bagResults.best.volumeCm3
-                    )
-                  )}
-                  %
-                </span>
-                {bagResults.alternative && (
-                  <span className="text-xs text-foreground/70">
-                    Alternative: {bagResults.alternative.name} (
-                    {fmt1(
-                      calculateHeadspace(
-                        bagResults.materialVolume,
-                        bagResults.alternative.volumeCm3
-                      )
+                {bagResults.best ? (
+                  <div className="flex flex-col gap-1">
+                    <span className="text-sm font-semibold text-emerald-300">
+                      {bagResults.best.name}
+                    </span>
+                    <span className="text-xs text-foreground/70">
+                      Headspace:{' '}
+                      {fmt1(
+                        calculateHeadspace(
+                          bagResults.materialVolume,
+                          bagResults.best.volumeCm3
+                        )
+                      )}
+                      %
+                    </span>
+                    {bagResults.alternative && (
+                      <span className="text-xs text-foreground/70">
+                        Alternative: {bagResults.alternative.name} (
+                        {fmt1(
+                          calculateHeadspace(
+                            bagResults.materialVolume,
+                            bagResults.alternative.volumeCm3
+                          )
+                        )}
+                        %)
+                      </span>
                     )}
-                    %)
+                  </div>
+                ) : (
+                  <span className="text-sm text-red-400">
+                    No bag can fit this material volume
                   </span>
                 )}
               </div>
-            ) : (
-              <span className="text-sm text-red-400">
-                No bag can fit this material volume
-              </span>
-            )}
-          </div>
-        </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

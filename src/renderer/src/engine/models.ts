@@ -303,7 +303,7 @@ export const BAG_PRESETS: readonly PresetBag[] = [
     widthCm: 40.6,
     lengthCm: 42.9,
     depthCm: 0.25,
-    volumeCm3: 433.7,
+    volumeCm3: 435.4,
     bagType: 'zip',
   },
   {

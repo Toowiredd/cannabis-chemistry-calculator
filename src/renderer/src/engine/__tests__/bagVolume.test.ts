@@ -224,7 +224,7 @@ describe('selectBestBag', () => {
   })
 
   it('filters out bags that overflow (material > bag volume)', () => {
-    // 250 cm³ overflows all bags except 2-gallon (433.7 cm³)
+    // 250 cm³ overflows all bags except 2-gallon (435.4 cm³)
     const result = selectBestBag(250, BAG_PRESETS)
     expect(result.best?.id).toBe('2gallon')
     expect(result.alternative).toBeNull()
