@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { calculateMgPerServing, classifyDose } from 'renderer/src/engine/dosing'
 import { cn } from 'renderer/lib/utils'
@@ -255,15 +255,23 @@ export function DoseTab() {
   const dose = useAppStore(s => s.dose)
   const setDose = useAppStore(s => s.setDose)
   const resetDose = useAppStore(s => s.resetDose)
+  const lastInfusedThc = useAppStore(s => s.lastInfusedThc)
 
-  /* One-shot auto-fill from upstream infusion result */
+  /* Track the last upstream value we synced, so we can overwrite our own
+     auto-fill but NOT a manual user edit. */
+  const syncedInfusionRef = useRef<string>('')
+
+  /* Reactive auto-fill from upstream infusion result */
   useEffect(() => {
-    const store = useAppStore.getState()
-    if (!dose.totalThc && store.lastInfusedThc) {
-      setDose({ totalThc: store.lastInfusedThc })
+    if (lastInfusedThc) {
+      const current = dose.totalThc.trim()
+      // Fill if empty, or if the field still contains exactly what we last synced
+      if (!current || current === syncedInfusionRef.current) {
+        setDose({ totalThc: lastInfusedThc })
+        syncedInfusionRef.current = lastInfusedThc
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [dose.totalThc, lastInfusedThc, setDose])
 
   /* Local UI state */
   const [showFormula, setShowFormula] = useState(false)

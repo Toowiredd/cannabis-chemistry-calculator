@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import {
   calculateInfusedThc,
@@ -231,15 +231,23 @@ export function InfusionTab() {
   const units = useAppStore(s => s.units)
   const setUnits = useAppStore(s => s.setUnits)
   const decarb = useAppStore(s => s.decarb)
+  const lastDecarbExpected = useAppStore(s => s.lastDecarbExpected)
 
-  /* One-shot auto-fill from upstream decarb result */
+  /* Track the last upstream value we synced, so we can overwrite our own
+     auto-fill but NOT a manual user edit. */
+  const syncedDecarbRef = useRef<string>('')
+
+  /* Reactive auto-fill from upstream decarb result */
   useEffect(() => {
-    const store = useAppStore.getState()
-    if (!infusion.decarbedThc && store.lastDecarbExpected) {
-      setInfusion({ decarbedThc: store.lastDecarbExpected })
+    if (lastDecarbExpected) {
+      const current = infusion.decarbedThc.trim()
+      // Fill if empty, or if the field still contains exactly what we last synced
+      if (!current || current === syncedDecarbRef.current) {
+        setInfusion({ decarbedThc: lastDecarbExpected })
+        syncedDecarbRef.current = lastDecarbExpected
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [infusion.decarbedThc, lastDecarbExpected, setInfusion])
 
   /* Preset lookup */
   const preset = useMemo(
