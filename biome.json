@@ -45,6 +45,7 @@
       },
       "recommended": true,
       "style": {
+        "noNonNullAssertion": "warn",
         "noUselessElse": "warn"
       },
       "suspicious": {

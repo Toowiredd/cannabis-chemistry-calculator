@@ -19,21 +19,21 @@ describe('DEGRADATION_RATES', () => {
   })
 
   it('has 4C refrigerated rate ~0.00005 day^-1 (VAL-DEG-002)', () => {
-    const r = DEGRADATION_RATES.find((d) => d.tempC === 4)
+    const r = DEGRADATION_RATES.find(d => d.tempC === 4)
     expect(r).toBeDefined()
     expect(r!.ratePerDay).toBeCloseTo(0.00005, 5)
     expect(r!.label).toBe('Refrigerated')
   })
 
   it('has 25C room temp rate ~0.0005 day^-1 (VAL-DEG-001, VAL-DEG-002)', () => {
-    const r = DEGRADATION_RATES.find((d) => d.tempC === 25)
+    const r = DEGRADATION_RATES.find(d => d.tempC === 25)
     expect(r).toBeDefined()
     expect(r!.ratePerDay).toBeCloseTo(0.0005, 5)
     expect(r!.label).toBe('Room Temperature')
   })
 
   it('has 40C warm rate ~0.002 day^-1 (VAL-DEG-002)', () => {
-    const r = DEGRADATION_RATES.find((d) => d.tempC === 40)
+    const r = DEGRADATION_RATES.find(d => d.tempC === 40)
     expect(r).toBeDefined()
     expect(r!.ratePerDay).toBeCloseTo(0.002, 5)
     expect(r!.label).toBe('Warm Storage')
@@ -67,11 +67,15 @@ describe('calculateRemainingThcPercent', () => {
   })
 
   it('rejects negative days', () => {
-    expect(() => calculateRemainingThcPercent(-1, 0.0005)).toThrow(ValidationError)
+    expect(() => calculateRemainingThcPercent(-1, 0.0005)).toThrow(
+      ValidationError
+    )
   })
 
   it('rejects negative rate', () => {
-    expect(() => calculateRemainingThcPercent(10, -0.001)).toThrow(ValidationError)
+    expect(() => calculateRemainingThcPercent(10, -0.001)).toThrow(
+      ValidationError
+    )
   })
 })
 

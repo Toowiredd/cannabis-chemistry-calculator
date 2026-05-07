@@ -70,7 +70,8 @@ export const CONCENTRATE_TYPES: readonly ConcentrateType[] = [
     typicalThcaPct: 0,
     typicalThcPct: 90,
     decarbEfficiency: { low: 1.0, expected: 1.0, high: 1.0 },
-    decarbGuidance: 'Distillate is already fully decarboxylated. No decarb step needed.',
+    decarbGuidance:
+      'Distillate is already fully decarboxylated. No decarb step needed.',
   },
   {
     id: 'hash',
@@ -78,7 +79,7 @@ export const CONCENTRATE_TYPES: readonly ConcentrateType[] = [
     needsDecarb: true,
     typicalThcaPct: 45,
     typicalThcPct: 5,
-    decarbEfficiency: { low: 0.85, expected: 0.90, high: 0.94 },
+    decarbEfficiency: { low: 0.85, expected: 0.9, high: 0.94 },
     decarbGuidance:
       'Decarb at 110–115C for 30–45 minutes. Crumble or break apart before heating.',
   },
@@ -88,7 +89,7 @@ export const CONCENTRATE_TYPES: readonly ConcentrateType[] = [
     needsDecarb: true,
     typicalThcaPct: 55,
     typicalThcPct: 3,
-    decarbEfficiency: { low: 0.85, expected: 0.90, high: 0.94 },
+    decarbEfficiency: { low: 0.85, expected: 0.9, high: 0.94 },
     decarbGuidance:
       'Decarb at 110–115C for 25–35 minutes. Spread thinly for uniform heat distribution.',
   },
@@ -98,7 +99,7 @@ export const CONCENTRATE_TYPES: readonly ConcentrateType[] = [
     needsDecarb: true,
     typicalThcaPct: 60,
     typicalThcPct: 10,
-    decarbEfficiency: { low: 0.85, expected: 0.90, high: 0.93 },
+    decarbEfficiency: { low: 0.85, expected: 0.9, high: 0.93 },
     decarbGuidance:
       'Decarb at 110–115C for 30–40 minutes. RSO is viscous; use a shallow dish.',
   },

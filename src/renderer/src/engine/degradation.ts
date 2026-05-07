@@ -122,10 +122,10 @@ export function calculateHalfLifeDays(ratePerDay: number): number {
  * @throws ValidationError if temperature is not supported
  */
 function getRateForTemperature(tempC: number): DegradationRate {
-  const rate = DEGRADATION_RATES.find((r) => r.tempC === tempC)
+  const rate = DEGRADATION_RATES.find(r => r.tempC === tempC)
   if (!rate) {
     throw new ValidationError(
-      `Unsupported temperature: ${tempC}°C. Supported: ${DEGRADATION_RATES.map((r) => r.tempC).join(', ')}°C`
+      `Unsupported temperature: ${tempC}°C. Supported: ${DEGRADATION_RATES.map(r => r.tempC).join(', ')}°C`
     )
   }
   return rate

@@ -9,7 +9,6 @@ import {
   calculateConcentrateDecarbedThc,
   calculateConcentrateRange,
   CONCENTRATE_TYPES,
-  type ConcentrateType,
 } from '../concentrate'
 
 describe('calculateConcentrateTheoreticalMax', () => {

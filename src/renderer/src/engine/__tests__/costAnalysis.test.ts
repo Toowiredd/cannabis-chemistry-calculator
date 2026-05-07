@@ -95,14 +95,14 @@ describe('compareMethodCosts', () => {
     expect(ovenOpen).toBeDefined()
 
     // sv_dry should have lower cost per mg (more efficient)
-    expect(svDry!.costPerMg).toBeLessThan(ovenOpen!.costPerMg)
-    expect(svDry!.costPerDose).toBeLessThan(ovenOpen!.costPerDose)
+    expect(svDry?.costPerMg).toBeLessThan(ovenOpen?.costPerMg)
+    expect(svDry?.costPerDose).toBeLessThan(ovenOpen?.costPerDose)
 
     // sv_dry should have more servings
-    expect(svDry!.servings).toBeGreaterThan(ovenOpen!.servings)
+    expect(svDry?.servings).toBeGreaterThan(ovenOpen?.servings)
 
     // sv_dry should have more total THC
-    expect(svDry!.totalThcMg).toBeGreaterThan(ovenOpen!.totalThcMg)
+    expect(svDry?.totalThcMg).toBeGreaterThan(ovenOpen?.totalThcMg)
   })
 
   it('returns empty array when methods array is empty', () => {
@@ -114,45 +114,45 @@ describe('compareMethodCosts', () => {
     const methods = [
       { id: 'sv_dry', name: 'Sous Vide -- Dry', efficiency: 0.96 },
     ]
-    expect(() =>
-      compareMethodCosts(-10, 10, 20, 0, methods, 0.82, 10)
-    ).toThrow(ValidationError)
+    expect(() => compareMethodCosts(-10, 10, 20, 0, methods, 0.82, 10)).toThrow(
+      ValidationError
+    )
   })
 
   it('throws ValidationError for negative grams', () => {
     const methods = [
       { id: 'sv_dry', name: 'Sous Vide -- Dry', efficiency: 0.96 },
     ]
-    expect(() =>
-      compareMethodCosts(80, -10, 20, 0, methods, 0.82, 10)
-    ).toThrow(ValidationError)
+    expect(() => compareMethodCosts(80, -10, 20, 0, methods, 0.82, 10)).toThrow(
+      ValidationError
+    )
   })
 
   it('throws ValidationError for negative targetDose', () => {
     const methods = [
       { id: 'sv_dry', name: 'Sous Vide -- Dry', efficiency: 0.96 },
     ]
-    expect(() =>
-      compareMethodCosts(80, 10, 20, 0, methods, 0.82, -10)
-    ).toThrow(ValidationError)
+    expect(() => compareMethodCosts(80, 10, 20, 0, methods, 0.82, -10)).toThrow(
+      ValidationError
+    )
   })
 
   it('throws ValidationError for extractionEff above 1.0', () => {
     const methods = [
       { id: 'sv_dry', name: 'Sous Vide -- Dry', efficiency: 0.96 },
     ]
-    expect(() =>
-      compareMethodCosts(80, 10, 20, 0, methods, 1.5, 10)
-    ).toThrow(ValidationError)
+    expect(() => compareMethodCosts(80, 10, 20, 0, methods, 1.5, 10)).toThrow(
+      ValidationError
+    )
   })
 
   it('throws ValidationError for zero targetDose', () => {
     const methods = [
       { id: 'sv_dry', name: 'Sous Vide -- Dry', efficiency: 0.96 },
     ]
-    expect(() =>
-      compareMethodCosts(80, 10, 20, 0, methods, 0.82, 0)
-    ).toThrow(ValidationError)
+    expect(() => compareMethodCosts(80, 10, 20, 0, methods, 0.82, 0)).toThrow(
+      ValidationError
+    )
   })
 
   it('sv_dry produces exact expected values', () => {

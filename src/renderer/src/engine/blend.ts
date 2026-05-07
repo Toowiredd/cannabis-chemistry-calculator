@@ -84,10 +84,14 @@ export function calculateBlend(
 
   for (const strain of strains) {
     if (strain.potency < 0) {
-      throw new ValidationError(`potency for "${strain.name}" cannot be negative`)
+      throw new ValidationError(
+        `potency for "${strain.name}" cannot be negative`
+      )
     }
     if (strain.potency > 100) {
-      throw new ValidationError(`potency for "${strain.name}" cannot exceed 100%`)
+      throw new ValidationError(
+        `potency for "${strain.name}" cannot exceed 100%`
+      )
     }
   }
 
@@ -138,7 +142,10 @@ export function calculateBlend(
   let upper = sorted[sorted.length - 1]
 
   for (let i = 0; i < sorted.length - 1; i++) {
-    if (sorted[i].potency < targetPotency && sorted[i + 1].potency > targetPotency) {
+    if (
+      sorted[i].potency < targetPotency &&
+      sorted[i + 1].potency > targetPotency
+    ) {
       lower = sorted[i]
       upper = sorted[i + 1]
       break

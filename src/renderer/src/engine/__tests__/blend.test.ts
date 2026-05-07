@@ -4,10 +4,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { ValidationError } from '../errors'
-import {
-  calculateBlend,
-  type BlendStrain,
-} from '../blend'
+import { calculateBlend, type BlendStrain } from '../blend'
 
 describe('calculateBlend - two strains', () => {
   it('blends two strains to hit target potency (VAL-BLEND-001)', () => {
@@ -181,9 +178,7 @@ describe('calculateBlend - input validation (VAL-BLEND-003)', () => {
   })
 
   it('rejects fewer than 2 strains', () => {
-    const strains: BlendStrain[] = [
-      { name: 'A', potency: 20 },
-    ]
+    const strains: BlendStrain[] = [{ name: 'A', potency: 20 }]
     expect(() => calculateBlend(strains, 10, 20)).toThrow(ValidationError)
   })
 
