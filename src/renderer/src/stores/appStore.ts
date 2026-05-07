@@ -12,6 +12,7 @@ export type TabId =
   | 'knowledge'
   | 'journal'
   | 'dashboard'
+  | 'quickbatch'
 
 export type Theme = 'dark' | 'light'
 
@@ -216,6 +217,9 @@ interface AppStore {
   setInventory: (partial: Partial<InventoryState>) => void
   addInventoryItem: (item: InventoryItem) => void
   deleteInventoryItem: (id: string) => void
+
+  firstRunDismissed: boolean
+  dismissFirstRun: () => void
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -331,6 +335,9 @@ export const useAppStore = create<AppStore>()(
             items: state.inventory.items.filter(i => i.id !== id),
           },
         })),
+
+      firstRunDismissed: false,
+      dismissFirstRun: () => set({ firstRunDismissed: true }),
 
       loadFromPreset: (preset: unknown) => {
         if (!isRecord(preset)) return
@@ -449,6 +456,7 @@ export const useAppStore = create<AppStore>()(
         theme: state.theme,
         label: state.label,
         inventory: state.inventory,
+        firstRunDismissed: state.firstRunDismissed,
       }),
     }
   )

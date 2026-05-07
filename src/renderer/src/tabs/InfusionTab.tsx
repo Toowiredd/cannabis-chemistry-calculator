@@ -463,6 +463,12 @@ export function InfusionTab() {
           {inputRow(
             <>
               Decarbed THC
+              {infusion.decarbedThc === lastDecarbExpected &&
+                lastDecarbExpected && (
+                  <span className="inline-flex items-center rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-medium text-sky-300">
+                    Auto-filled from Decarb
+                  </span>
+                )}
               <TooltipIcon text="Total decarboxylated THC in milligrams. This is the output from the Decarb calculator." />
             </>,
             <div className="flex items-center gap-2">

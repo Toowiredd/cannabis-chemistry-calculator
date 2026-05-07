@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { calculateMgPerServing, classifyDose } from 'renderer/src/engine/dosing'
+import { scaleRecipe } from 'renderer/src/engine/recipe'
 import { cn } from 'renderer/lib/utils'
-import { Info, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
+import { Info, ChevronDown, ChevronUp, RotateCcw, Scale } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
 import { LabelGenerator } from 'renderer/src/components/LabelGenerator'
 
@@ -286,6 +287,42 @@ export function DoseTab() {
   /* Validation state (debounced) */
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
+  /* Scale batch local state */
+  const [scaleOpen, setScaleOpen] = useState(false)
+  const [customScale, setCustomScale] = useState<string>('')
+  const [scaleError, setScaleError] = useState<string>('')
+
+  const handleScale = useCallback((factor: number) => {
+    setScaleError('')
+    const store = useAppStore.getState()
+    const recipe = {
+      version: '1.0.0',
+      name: 'current',
+      createdAt: new Date().toISOString(),
+      units: store.units,
+      decarb: store.decarb,
+      infusion: store.infusion,
+      dose: store.dose,
+    }
+    try {
+      const scaled = scaleRecipe(recipe, factor)
+      store.setDecarb(scaled.decarb)
+      store.setInfusion(scaled.infusion)
+      store.setDose(scaled.dose)
+      if (scaled.computed) {
+        store.setLastDecarbExpected(
+          String(scaled.computed.decarbedRange.expected)
+        )
+        store.setLastInfusedThc(String(scaled.computed.infusedThc))
+      }
+      setScaleOpen(false)
+      setCustomScale('')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Scale failed'
+      setScaleError(msg)
+    }
+  }, [])
+
   /* ---------------------------------------------------------------- */
   /* Derived helpers                                                  */
   /* ---------------------------------------------------------------- */
@@ -382,6 +419,11 @@ export function DoseTab() {
           {inputRow(
             <>
               Total Infused THC
+              {dose.totalThc === lastInfusedThc && lastInfusedThc && (
+                <span className="inline-flex items-center rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-medium text-sky-300">
+                  Auto-filled from Infusion
+                </span>
+              )}
               <TooltipIcon text="Total amount of THC in milligrams present in the infused product. Use the output from the Infusion calculator." />
             </>,
             <div className="flex items-center gap-2">
@@ -424,6 +466,69 @@ export function DoseTab() {
             />,
             fieldErrors.servings
           )}
+
+          {/* Scale Batch */}
+          <div className="mt-1 flex flex-col gap-2 rounded-xl border border-foreground/10 bg-foreground/5 p-3">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-foreground/70">
+                <Scale className="size-3.5" />
+                Scale Batch
+              </span>
+              <button
+                className="text-[10px] font-medium text-foreground/70 transition-colors hover:text-foreground"
+                onClick={() => setScaleOpen(v => !v)}
+                type="button"
+              >
+                {scaleOpen ? 'Hide' : 'Show'}
+              </button>
+            </div>
+            {scaleOpen && (
+              <>
+                <div className="flex items-center gap-2">
+                  {([0.5, 2, 4] as const).map(factor => (
+                    <button
+                      className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-foreground/20 bg-foreground/5 px-2 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                      key={factor}
+                      onClick={() => handleScale(factor)}
+                      type="button"
+                    >
+                      {factor}x
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    className="flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                    onChange={e => {
+                      setCustomScale(e.target.value)
+                      setScaleError('')
+                    }}
+                    placeholder="Custom factor"
+                    step="0.1"
+                    type="number"
+                    value={customScale}
+                  />
+                  <button
+                    className="inline-flex items-center rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                    onClick={() => {
+                      const n = parseFloat(customScale)
+                      if (!Number.isNaN(n) && n > 0) {
+                        handleScale(n)
+                      } else {
+                        setScaleError('Enter a positive number')
+                      }
+                    }}
+                    type="button"
+                  >
+                    Apply
+                  </button>
+                </div>
+                {scaleError && (
+                  <span className="text-xs text-red-500">{scaleError}</span>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         {/* ------------------- RESULTS PANEL ------------------- */}
