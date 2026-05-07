@@ -1,17 +1,12 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
-import { INFUSION_FATS } from 'renderer/src/engine/models'
+import { INFUSION_FATS, DECARB_METHODS } from 'renderer/src/engine/models'
 import { cn } from 'renderer/lib/utils'
 import { Printer, X, Info, Tag, AlertTriangle, ShieldAlert } from 'lucide-react'
 
 function fmt1(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return ''
   return value.toFixed(1)
-}
-
-function todayDisplay(): string {
-  const d = new Date()
-  return d.toISOString().split('T')[0]
 }
 
 export function LabelGenerator({
@@ -28,11 +23,27 @@ export function LabelGenerator({
   const resetLabel = useAppStore(s => s.resetLabel)
   const incrementBatchNumber = useAppStore(s => s.incrementBatchNumber)
   const infusion = useAppStore(s => s.infusion)
+  const decarb = useAppStore(s => s.decarb)
+  const journalEntries = useAppStore(s => s.journalEntries)
 
   const [showPrintable, setShowPrintable] = useState(false)
 
   const fatPreset = INFUSION_FATS.find(f => f.id === infusion.fatId)
   const fatName = fatPreset?.name ?? infusion.fatId
+
+  const methodPreset = DECARB_METHODS.find(m => m.id === decarb.presetId)
+  const methodName = methodPreset?.name ?? decarb.presetId
+
+  /* Production date: prefer most recent journal entry, then stored label date */
+  const productionDate = useMemo(() => {
+    if (journalEntries.length > 0) {
+      const sorted = [...journalEntries].sort((a, b) =>
+        b.date.localeCompare(a.date)
+      )
+      return sorted[0]?.date ?? label.productionDate
+    }
+    return label.productionDate
+  }, [journalEntries, label.productionDate])
 
   /* Allergen warnings based on fat type */
   const allergenWarnings: string[] = []
@@ -272,24 +283,34 @@ export function LabelGenerator({
                 </div>
               </div>
 
-              {/* Fat type + date */}
+              {/* Method + Fat */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col">
                   <span className="text-[10px] uppercase tracking-wider text-gray-600">
-                    Carrier
+                    Decarb Method
+                  </span>
+                  <span className="text-sm font-semibold text-black">
+                    {methodName}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase tracking-wider text-gray-600">
+                    Carrier Fat
                   </span>
                   <span className="text-sm font-semibold text-black">
                     {fatName}
                   </span>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-600">
-                    Date Produced
-                  </span>
-                  <span className="text-sm font-semibold text-black">
-                    {todayDisplay()}
-                  </span>
-                </div>
+              </div>
+
+              {/* Date Produced */}
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase tracking-wider text-gray-600">
+                  Date Produced
+                </span>
+                <span className="text-sm font-semibold text-black">
+                  {productionDate}
+                </span>
               </div>
 
               {/* Ingredients */}

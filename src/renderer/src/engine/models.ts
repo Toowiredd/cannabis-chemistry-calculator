@@ -154,6 +154,49 @@ export interface PresetBag {
 }
 
 // ---------------------------------------------------------------------------
+// Edible Formats
+// ---------------------------------------------------------------------------
+
+export interface EdibleFormat {
+  id: string
+  name: string
+  suggestedServings: number
+}
+
+export const EDIBLE_FORMATS: readonly EdibleFormat[] = [
+  {
+    id: 'brownie_9x13',
+    name: 'Brownie (9×13 pan, 12-24 servings)',
+    suggestedServings: 18,
+  },
+  {
+    id: 'brownie_8x8',
+    name: 'Brownie (8×8 pan, 9-16 servings)',
+    suggestedServings: 12,
+  },
+  {
+    id: 'gummy_80',
+    name: 'Gummy mold (80 cavities)',
+    suggestedServings: 80,
+  },
+  {
+    id: 'gummy_160',
+    name: 'Gummy mold (160 cavities)',
+    suggestedServings: 160,
+  },
+  {
+    id: 'capsule_00',
+    name: 'Size 00 capsules',
+    suggestedServings: 24,
+  },
+  {
+    id: 'custom',
+    name: 'Custom',
+    suggestedServings: 10,
+  },
+] as const
+
+// ---------------------------------------------------------------------------
 // Strain Library
 // ---------------------------------------------------------------------------
 

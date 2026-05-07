@@ -53,6 +53,7 @@ export interface InfusionState {
 export interface DoseState {
   totalThc: string
   servings: string
+  formatId: string
 }
 
 export interface LabelState {
@@ -63,6 +64,12 @@ export interface LabelState {
   facilityNuts: boolean
   facilityDairy: boolean
   facilityGluten: boolean
+  productionDate: string
+}
+
+function todayIso(): string {
+  const d = new Date()
+  return d.toISOString().split('T')[0]
 }
 
 const DEFAULT_LABEL: LabelState = {
@@ -73,6 +80,7 @@ const DEFAULT_LABEL: LabelState = {
   facilityNuts: false,
   facilityDairy: false,
   facilityGluten: false,
+  productionDate: todayIso(),
 }
 
 export interface InventoryItem {
@@ -154,6 +162,7 @@ const DEFAULT_INFUSION: InfusionState = {
 const DEFAULT_DOSE: DoseState = {
   totalThc: '',
   servings: '10',
+  formatId: 'custom',
 }
 
 interface AppStore {
@@ -423,6 +432,7 @@ export const useAppStore = create<AppStore>()(
           loadedDose = {
             totalThc: stringish(di.totalThc, DEFAULT_DOSE.totalThc),
             servings: stringish(di.servings, DEFAULT_DOSE.servings),
+            formatId: stringish(di.formatId, DEFAULT_DOSE.formatId),
           }
         }
 

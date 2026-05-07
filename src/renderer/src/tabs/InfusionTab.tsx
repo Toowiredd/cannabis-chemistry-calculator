@@ -688,6 +688,17 @@ export function InfusionTab() {
                   </strong>{' '}
                   = material weight (g) x THCA% x multiplier
                 </p>
+                <p className="mb-2 rounded-md border border-foreground/10 bg-foreground/50 px-3 py-2 text-foreground/80">
+                  <strong className="text-foreground/90">
+                    Multiplier derivation:
+                  </strong>{' '}
+                  multiplier = 0.877 x 10 x extraction_efficiency
+                  <br />
+                  <span className="text-foreground/60">
+                    Example for Coconut Oil: 0.877 x 10 x 0.82 = 7.19 (rounded
+                    to 7.2)
+                  </span>
+                </p>
                 <p className="text-foreground/70">
                   Extraction efficiency represents the fraction of available THC
                   that successfully transfers into the carrier fat during

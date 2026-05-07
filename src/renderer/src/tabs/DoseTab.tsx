@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { calculateMgPerServing, classifyDose } from 'renderer/src/engine/dosing'
 import { scaleRecipe } from 'renderer/src/engine/recipe'
+import { EDIBLE_FORMATS } from 'renderer/src/engine/models'
 import { cn } from 'renderer/lib/utils'
 import { Info, ChevronDown, ChevronUp, RotateCcw, Scale } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
@@ -443,6 +444,36 @@ export function DoseTab() {
               <span className="text-sm text-foreground/70">mg</span>
             </div>,
             fieldErrors.totalThc
+          )}
+
+          {/* Edible Format */}
+          {inputRow(
+            <>
+              Edible Format
+              <TooltipIcon text="Select a common edible format to auto-fill the recommended number of servings." />
+            </>,
+            <select
+              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+              onChange={e => {
+                const formatId = e.target.value
+                const fmt = EDIBLE_FORMATS.find(f => f.id === formatId)
+                setDose({
+                  formatId,
+                  servings: String(fmt?.suggestedServings ?? 10),
+                })
+              }}
+              value={dose.formatId ?? 'custom'}
+            >
+              {EDIBLE_FORMATS.map(f => (
+                <option
+                  className="bg-card text-foreground"
+                  key={f.id}
+                  value={f.id}
+                >
+                  {f.name}
+                </option>
+              ))}
+            </select>
           )}
 
           {/* Number of servings */}
