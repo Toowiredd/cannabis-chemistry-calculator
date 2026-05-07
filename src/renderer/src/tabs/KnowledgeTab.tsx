@@ -1,3 +1,4 @@
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { cn } from 'renderer/lib/utils'
 import {
   BookOpen,
@@ -8,6 +9,466 @@ import {
   Leaf,
   AlertTriangle,
 } from 'lucide-react'
+import { DECARB_METHODS } from 'renderer/src/engine/models'
+import { useAppStore } from 'renderer/src/stores/appStore'
+import { round1 } from 'renderer/src/engine/units'
+
+/* ------------------------------------------------------------------ */
+/* Range slider styled for glassmorphism                               */
+/* ------------------------------------------------------------------ */
+
+function RangeSlider({
+  label,
+  value,
+  min,
+  max,
+  step,
+  unit,
+  onChange,
+}: {
+  label: string
+  value: number
+  min: number
+  max: number
+  step: number
+  unit: string
+  onChange: (v: number) => void
+}) {
+  const pct = ((value - min) / (max - min)) * 100
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-foreground/80">{label}</span>
+        <span className="text-sm tabular-nums text-foreground/70">
+          {value}
+          {unit}
+        </span>
+      </div>
+      <div className="relative h-6 flex items-center">
+        <input
+          className="absolute inset-0 z-10 w-full cursor-pointer opacity-0"
+          max={max}
+          min={min}
+          onChange={e => onChange(parseFloat(e.target.value))}
+          step={step}
+          type="range"
+          value={value}
+        />
+        {/* Track */}
+        <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/10">
+          <div
+            className="h-full rounded-full bg-accent transition-[width] duration-75"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        {/* Thumb */}
+        <div
+          className="pointer-events-none absolute top-1/2 size-4 -translate-y-1/2 rounded-full border-2 border-background bg-accent shadow-md transition-[left] duration-75"
+          style={{ left: `${pct}%`, transform: 'translate(-50%, -50%)' }}
+        />
+      </div>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Kinetic simulation helpers                                          */
+/* ------------------------------------------------------------------ */
+
+function simulateDoneness(
+  tempC: number,
+  maxTimeMin: number,
+  steps = 120
+): { t: number; thca: number; thc: number; cbn: number }[] {
+  const result: { t: number; thca: number; thc: number; cbn: number }[] = []
+  const dt = maxTimeMin / steps
+  const T_K = tempC + 273.15
+  const R = 8.314 // J/(mol*K)
+  // Simplified Arrhenius: higher temp = faster reactions
+  const Ea1 = 92_000 // THCA→THC (J/mol)
+  const Ea2 = 110_000 // THC→CBN (J/mol)
+  const A1 = 1.5e12 // pre-exponential factor
+  const A2 = 2.0e12
+
+  const k1 = A1 * Math.exp(-Ea1 / (R * T_K)) * 60 // per minute
+  const k2 = A2 * Math.exp(-Ea2 / (R * T_K)) * 60 // per minute
+
+  let thca = 1.0
+  let thc = 0.0
+  let cbn = 0.0
+
+  for (let i = 0; i <= steps; i++) {
+    const t = i * dt
+    result.push({
+      t: round1(t),
+      thca: round1(thca * 100),
+      thc: round1(thc * 100),
+      cbn: round1(cbn * 100),
+    })
+
+    const dThca = -k1 * thca * dt
+    const dThc = (k1 * thca - k2 * thc) * dt
+    const dCbn = k2 * thc * dt
+
+    thca += dThca
+    thc += dThc
+    cbn += dCbn
+
+    if (thca < 0) thca = 0
+    if (thc < 0) thc = 0
+    if (cbn < 0) cbn = 0
+    const total = thca + thc + cbn
+    if (total > 0) {
+      thca /= total
+      thc /= total
+      cbn /= total
+    }
+  }
+
+  return result
+}
+
+function timeLabel(minutes: number): string {
+  if (minutes >= 60) {
+    const h = Math.floor(minutes / 60)
+    const m = Math.round(minutes % 60)
+    if (m === 0) return `${h}h`
+    return `${h}h ${m}m`
+  }
+  return `${Math.round(minutes)}m`
+}
+
+/* ------------------------------------------------------------------ */
+/* Interactive animated doneness curve                                 */
+/* ------------------------------------------------------------------ */
+
+function DonenessCurve() {
+  const presetId = useAppStore(s => s.decarb.presetId)
+  const preset = useMemo(
+    () => DECARB_METHODS.find(m => m.id === presetId) ?? DECARB_METHODS[0],
+    [presetId]
+  )
+  const methodMaxTime = Math.max(120, preset.timeMax)
+  const defaultTemp = preset.tempC
+
+  const [tempC, setTempC] = useState(defaultTemp)
+  const [timeMin, setTimeMin] = useState(Math.round(methodMaxTime / 2))
+
+  // Reset to method defaults when preset changes
+  useEffect(() => {
+    setTempC(preset.tempC)
+    setTimeMin(Math.round(preset.timeMax / 2))
+  }, [preset])
+
+  const data = useMemo(
+    () => simulateDoneness(tempC, methodMaxTime),
+    [tempC, methodMaxTime]
+  )
+
+  const currentIndex = useMemo(() => {
+    let idx = 0
+    for (let i = 0; i < data.length; i++) {
+      if (data[i].t >= timeMin) {
+        idx = i
+        break
+      }
+    }
+    return idx
+  }, [data, timeMin])
+
+  const w = 560
+  const h = 280
+  const padLeft = 56
+  const padRight = 24
+  const padTop = 24
+  const padBottom = 56
+  const gw = w - padLeft - padRight
+  const gh = h - padTop - padBottom
+
+  const maxT = data[data.length - 1]?.t ?? methodMaxTime
+
+  const xFor = useCallback((t: number) => padLeft + (t / maxT) * gw, [maxT, gw])
+  const yFor = useCallback((val: number) => padTop + (1 - val / 100) * gh, [gh])
+
+  const buildPath = useCallback(
+    (key: 'thca' | 'thc' | 'cbn') => {
+      if (!data.length) return ''
+      let d = `M ${xFor(data[0].t)} ${yFor(data[0][key])}`
+      for (let i = 1; i < data.length; i++) {
+        d += ` L ${xFor(data[i].t)} ${yFor(data[i][key])}`
+      }
+      return d
+    },
+    [data, xFor, yFor]
+  )
+
+  const thcaPath = useMemo(() => buildPath('thca'), [buildPath])
+  const thcPath = useMemo(() => buildPath('thc'), [buildPath])
+  const cbnPath = useMemo(() => buildPath('cbn'), [buildPath])
+
+  const axisColor = 'rgba(255,255,255,0.35)'
+  const gridColor = 'rgba(255,255,255,0.08)'
+
+  const yTicks = [0, 25, 50, 75, 100]
+
+  const cursorX = xFor(data[currentIndex]?.t ?? 0)
+  const cursorThca = yFor(data[currentIndex]?.thca ?? 0)
+  const cursorThc = yFor(data[currentIndex]?.thc ?? 0)
+  const cursorCbn = yFor(data[currentIndex]?.cbn ?? 0)
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-4 sm:flex-row">
+        <div className="flex-1">
+          <RangeSlider
+            label="Temperature"
+            max={140}
+            min={60}
+            onChange={setTempC}
+            step={1}
+            unit="°C"
+            value={tempC}
+          />
+        </div>
+        <div className="flex-1">
+          <RangeSlider
+            label="Time"
+            max={methodMaxTime}
+            min={0}
+            onChange={setTimeMin}
+            step={5}
+            unit=""
+            value={timeMin}
+          />
+        </div>
+      </div>
+
+      <svg
+        aria-label="Simulated decarboxylation chart showing THCA, THC, and CBN progression over time"
+        className="w-full"
+        role="img"
+        viewBox={`0 0 ${w} ${h}`}
+      >
+        {/* Background */}
+        <rect fill="rgba(0,0,0,0.2)" height={h} rx="8" width={w} />
+
+        {/* Grid lines - horizontal */}
+        {yTicks.map(t => (
+          <line
+            key={`yh-${t}`}
+            stroke={gridColor}
+            strokeDasharray="4 4"
+            strokeWidth={1}
+            x1={padLeft}
+            x2={w - padRight}
+            y1={yFor(t)}
+            y2={yFor(t)}
+          />
+        ))}
+
+        {/* Grid lines - vertical (time markers) */}
+        {[0, 0.25, 0.5, 0.75, 1].map(t => (
+          <line
+            key={`xv-${t}`}
+            stroke={gridColor}
+            strokeDasharray="4 4"
+            strokeWidth={1}
+            x1={padLeft + t * gw}
+            x2={padLeft + t * gw}
+            y1={padTop}
+            y2={h - padBottom}
+          />
+        ))}
+
+        {/* Axes */}
+        <line
+          stroke={axisColor}
+          strokeWidth={2}
+          x1={padLeft}
+          x2={w - padRight}
+          y1={h - padBottom}
+          y2={h - padBottom}
+        />
+        <line
+          stroke={axisColor}
+          strokeWidth={2}
+          x1={padLeft}
+          x2={padLeft}
+          y1={padTop}
+          y2={h - padBottom}
+        />
+
+        {/* Animated fill areas under curves (subtle) */}
+        <path
+          d={`${thcPath} L ${padLeft + gw} ${h - padBottom} L ${padLeft} ${h - padBottom} Z`}
+          fill="rgba(52,211,153,0.08)"
+        />
+
+        {/* Curves */}
+        <path
+          d={thcaPath}
+          fill="none"
+          stroke="#60a5fa"
+          strokeLinecap="round"
+          strokeWidth={2.5}
+        />
+        <path
+          d={thcPath}
+          fill="none"
+          stroke="#34d399"
+          strokeLinecap="round"
+          strokeWidth={2.5}
+        />
+        <path
+          d={cbnPath}
+          fill="none"
+          stroke="#f87171"
+          strokeLinecap="round"
+          strokeWidth={2.5}
+        />
+
+        {/* Vertical cursor line at selected time */}
+        <line
+          opacity={0.6}
+          stroke="rgba(255,255,255,0.4)"
+          strokeDasharray="3 3"
+          strokeWidth={1.5}
+          x1={cursorX}
+          x2={cursorX}
+          y1={padTop}
+          y2={h - padBottom}
+        />
+
+        {/* Dots at cursor intersection */}
+        <circle
+          cx={cursorX}
+          cy={cursorThca}
+          fill="#60a5fa"
+          r={4}
+          stroke="rgba(0,0,0,0.5)"
+          strokeWidth={1}
+        />
+        <circle
+          cx={cursorX}
+          cy={cursorThc}
+          fill="#34d399"
+          r={4}
+          stroke="rgba(0,0,0,0.5)"
+          strokeWidth={1}
+        />
+        <circle
+          cx={cursorX}
+          cy={cursorCbn}
+          fill="#f87171"
+          r={4}
+          stroke="rgba(0,0,0,0.5)"
+          strokeWidth={1}
+        />
+
+        {/* Axis Labels */}
+        <text
+          fill="rgba(255,255,255,0.7)"
+          fontSize={13}
+          fontWeight={500}
+          textAnchor="middle"
+          x={padLeft + gw / 2}
+          y={h - 10}
+        >
+          Time
+        </text>
+        <text
+          dominantBaseline="middle"
+          fill="rgba(255,255,255,0.7)"
+          fontSize={13}
+          fontWeight={500}
+          textAnchor="middle"
+          transform={`rotate(-90, 18, ${padTop + gh / 2})`}
+          x={18}
+          y={padTop + gh / 2}
+        >
+          Relative Concentration
+        </text>
+
+        {/* Y tick labels */}
+        {yTicks.map(t => (
+          <text
+            dominantBaseline="middle"
+            fill="rgba(255,255,255,0.7)"
+            fontSize={11}
+            key={`yt-${t}`}
+            textAnchor="end"
+            x={padLeft - 8}
+            y={yFor(t)}
+          >
+            {t}%
+          </text>
+        ))}
+
+        {/* X tick labels */}
+        {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
+          const labels = [
+            '0m',
+            timeLabel(maxT * 0.25),
+            timeLabel(maxT * 0.5),
+            timeLabel(maxT * 0.75),
+            timeLabel(maxT),
+          ]
+          return (
+            <text
+              dominantBaseline="hanging"
+              fill="rgba(255,255,255,0.7)"
+              fontSize={11}
+              key={`xt-${t}`}
+              textAnchor="middle"
+              x={padLeft + t * gw}
+              y={h - padBottom + 8}
+            >
+              {labels[i]}
+            </text>
+          )
+        })}
+      </svg>
+
+      {/* Legend */}
+      <div className="flex flex-wrap items-center justify-center gap-6">
+        <div className="flex items-center gap-2">
+          <span className="inline-block size-3 rounded-full bg-blue-400/80" />
+          <span className="text-sm text-foreground/70">THCA</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-block size-3 rounded-full bg-emerald-400/80" />
+          <span className="text-sm text-foreground/70">THC</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-block size-3 rounded-full bg-red-400/80" />
+          <span className="text-sm text-foreground/70">CBN</span>
+        </div>
+      </div>
+
+      {/* Current-point readout */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-xl border border-blue-400/20 bg-blue-400/10 px-3 py-2 text-center">
+          <div className="text-xs text-blue-300/80">THCA</div>
+          <div className="text-sm font-semibold tabular-nums text-blue-200">
+            {(data[currentIndex]?.thca ?? 0).toFixed(1)}%
+          </div>
+        </div>
+        <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-center">
+          <div className="text-xs text-emerald-300/80">THC</div>
+          <div className="text-sm font-semibold tabular-nums text-emerald-200">
+            {(data[currentIndex]?.thc ?? 0).toFixed(1)}%
+          </div>
+        </div>
+        <div className="rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-center">
+          <div className="text-xs text-red-300/80">CBN</div>
+          <div className="text-sm font-semibold tabular-nums text-red-200">
+            {(data[currentIndex]?.cbn ?? 0).toFixed(1)}%
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 /* ------------------------------------------------------------------ */
 /* Inline citation helper                                              */
@@ -55,193 +516,6 @@ function SectionCard({
       </div>
       <div className="mt-4 text-[14px] leading-relaxed text-foreground/80">
         {children}
-      </div>
-    </div>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/* Conceptual curve chart (SVG)                                       */
-/* ------------------------------------------------------------------ */
-
-function ConceptualCurveChart() {
-  const w = 560
-  const h = 280
-  const padLeft = 56
-  const padRight = 24
-  const padTop = 24
-  const padBottom = 48
-  const gw = w - padLeft - padRight
-  const gh = h - padTop - padBottom
-
-  // conceptual smooth curves via cubic bezier
-  // THCA: starts high (1.0) drops to near zero by end
-  // THC: starts low, rises to peak mid, then falls
-  // CBN: starts near 0, slowly rises then accelerates
-  const thcaPath = `M ${padLeft} ${padTop + 0 * gh} C ${padLeft + gw * 0.15} ${padTop + 0.15 * gh}, ${padLeft + gw * 0.3} ${padTop + 0.4 * gh}, ${padLeft + gw * 0.55} ${padTop + 0.85 * gh} ${padLeft + gw * 0.75} ${padTop + 0.95 * gh}, ${padLeft + gw} ${padTop + 0.98 * gh}`
-
-  const thcPath = `M ${padLeft} ${padTop + 0.95 * gh} C ${padLeft + gw * 0.2} ${padTop + 0.75 * gh}, ${padLeft + gw * 0.35} ${padTop + 0.35 * gh}, ${padLeft + gw * 0.55} ${padTop + 0.18 * gh} ${padLeft + gw * 0.75} ${padTop + 0.35 * gh}, ${padLeft + gw * 0.85} ${padTop + 0.6 * gh}, ${padLeft + gw} ${padTop + 0.9 * gh}`
-
-  const cbnPath = `M ${padLeft} ${padTop + 0.98 * gh} C ${padLeft + gw * 0.25} ${padTop + 0.92 * gh}, ${padLeft + gw * 0.45} ${padTop + 0.78 * gh}, ${padLeft + gw * 0.65} ${padTop + 0.55 * gh} ${padLeft + gw * 0.82} ${padTop + 0.35 * gh}, ${padLeft + gw} ${padTop + 0.15 * gh}`
-
-  const axisColor = 'rgba(255,255,255,0.35)'
-  const gridColor = 'rgba(255,255,255,0.08)'
-
-  const yTicks = [0, 0.25, 0.5, 0.75, 1.0]
-  const xTicks = [0, 0.25, 0.5, 0.75, 1.0]
-
-  return (
-    <div className="flex flex-col gap-3">
-      <svg
-        aria-label="Conceptual chart showing THCA, THC, and CBN concentrations over time and heat exposure"
-        className="w-full"
-        role="img"
-        viewBox={`0 0 ${w} ${h}`}
-      >
-        {/* Background */}
-        <rect fill="rgba(0,0,0,0.2)" height={h} rx="8" width={w} />
-
-        {/* Grid lines - horizontal */}
-        {yTicks.map(t => (
-          <line
-            key={`yh-${t}`}
-            stroke={gridColor}
-            strokeDasharray="4 4"
-            strokeWidth={1}
-            x1={padLeft}
-            x2={w - padRight}
-            y1={padTop + (1 - t) * gh}
-            y2={padTop + (1 - t) * gh}
-          />
-        ))}
-
-        {/* Grid lines - vertical */}
-        {xTicks.map(t => (
-          <line
-            key={`xv-${t}`}
-            stroke={gridColor}
-            strokeDasharray="4 4"
-            strokeWidth={1}
-            x1={padLeft + t * gw}
-            x2={padLeft + t * gw}
-            y1={padTop}
-            y2={h - padBottom}
-          />
-        ))}
-
-        {/* Axes */}
-        <line
-          stroke={axisColor}
-          strokeWidth={2}
-          x1={padLeft}
-          x2={w - padRight}
-          y1={h - padBottom}
-          y2={h - padBottom}
-        />
-        <line
-          stroke={axisColor}
-          strokeWidth={2}
-          x1={padLeft}
-          x2={padLeft}
-          y1={padTop}
-          y2={h - padBottom}
-        />
-
-        {/* Curves */}
-        <path
-          d={thcaPath}
-          fill="none"
-          stroke="#60a5fa"
-          strokeLinecap="round"
-          strokeWidth={2.5}
-        />
-        <path
-          d={thcPath}
-          fill="none"
-          stroke="#34d399"
-          strokeLinecap="round"
-          strokeWidth={2.5}
-        />
-        <path
-          d={cbnPath}
-          fill="none"
-          stroke="#f87171"
-          strokeLinecap="round"
-          strokeWidth={2.5}
-        />
-
-        {/* Axis Labels */}
-        <text
-          fill="rgba(255,255,255,0.7)"
-          fontSize={13}
-          fontWeight={500}
-          textAnchor="middle"
-          x={padLeft + gw / 2}
-          y={h - 12}
-        >
-          Heat x Time
-        </text>
-        <text
-          dominantBaseline="middle"
-          fill="rgba(255,255,255,0.7)"
-          fontSize={13}
-          fontWeight={500}
-          textAnchor="middle"
-          transform={`rotate(-90, 18, ${padTop + gh / 2})`}
-          x={18}
-          y={padTop + gh / 2}
-        >
-          Relative Concentration
-        </text>
-
-        {/* Y tick labels */}
-        {yTicks.map(t => (
-          <text
-            dominantBaseline="middle"
-            fill="rgba(255,255,255,0.7)"
-            fontSize={11}
-            key={`yt-${t}`}
-            textAnchor="end"
-            x={padLeft - 8}
-            y={padTop + (1 - t) * gh}
-          >
-            {Math.round(t * 100)}%
-          </text>
-        ))}
-
-        {/* X tick labels */}
-        {xTicks.map((t, i) => {
-          const labels = ['Start', 'Early', 'Mid', 'Late', 'End']
-          return (
-            <text
-              dominantBaseline="hanging"
-              fill="rgba(255,255,255,0.7)"
-              fontSize={11}
-              key={`xt-${t}`}
-              textAnchor="middle"
-              x={padLeft + t * gw}
-              y={h - padBottom + 8}
-            >
-              {labels[i]}
-            </text>
-          )
-        })}
-      </svg>
-
-      {/* Legend */}
-      <div className="flex flex-wrap items-center justify-center gap-4">
-        <div className="flex items-center gap-2">
-          <span className="inline-block size-3 rounded-full bg-blue-400/80" />
-          <span className="text-sm text-foreground/70">THCA</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-block size-3 rounded-full bg-emerald-400/80" />
-          <span className="text-sm text-foreground/70">THC</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-block size-3 rounded-full bg-red-400/80" />
-          <span className="text-sm text-foreground/70">CBN</span>
-        </div>
       </div>
     </div>
   )
@@ -698,50 +972,37 @@ export function KnowledgeTab() {
           </p>
         </SectionCard>
 
-        {/* Section 13: Conceptual Heat x Time Curve */}
+        {/* Section 13: Interactive Doneness Curve */}
         <div className={cn('glass-strong rounded-2xl p-6')}>
           <div className="flex items-center gap-3">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-foreground/20 bg-foreground/10">
               <Flame className="size-5 text-foreground/80" />
             </div>
             <h3 className="text-lg font-semibold text-foreground">
-              Conceptual Heat x Time Curve
+              Interactive Decarboxylation Curve
             </h3>
           </div>
 
           <p className="mt-4 text-[14px] leading-relaxed text-foreground/80">
-            The chart below shows the conceptual relationship between heat
-            exposure and the three main compounds. The shape of these curves is
-            governed by first-order reaction kinetics: the rate of THCA
-            conversion is proportional to the amount of THCA remaining at any
-            moment. As THCA decays it forms THC, which in turn degrades into CBN
-            through a second thermal reaction. The Arrhenius equation (k =
-            A·e^(−Ea/RT)) explains why small temperature changes produce large
-            rate changes: the activation energy Ea for THCA decarboxylation is
-            approximately 85–100 kJ/mol, meaning a 10°C increase can roughly
-            double the reaction rate.
-            <Cite doi="10.1021/acs.iecr.0c03791" label="Moreno et al. 2020" />
-            <Cite
-              doi="10.1016/j.molstruc.2010.11.062"
-              label="Perrotin-Brunel et al. 2011"
-            />
-            This is why the calculator's heat×time presets differ so
-            dramatically: higher temperatures accelerate both THCA→THC and
-            THC→CBN simultaneously, shortening the window in which THC is at its
-            peak concentration.
+            The chart below shows a simulated model of the THCA → THC → CBN
+            progression over time at the selected temperature. This is driven by
+            a simplified Arrhenius kinetic model: the rate of THCA conversion
+            and THC degradation both increase exponentially with temperature.
+            Use the sliders to explore how different temperatures and times
+            shift the balance between the three compounds.
           </p>
 
           <div className="mt-6">
-            <ConceptualCurveChart />
+            <DonenessCurve />
           </div>
 
           <div className="mt-4 rounded-lg border border-amber-400/20 bg-amber-100 dark:bg-amber-400/10 px-4 py-3">
             <p className="text-sm text-amber-700 dark:text-amber-700 dark:text-amber-300/90">
-              <strong>Illustrative only:</strong> This curve represents a
-              conceptual model of the THCA -- THC -- CBN relationship over time
-              and heat exposure. It is not derived from actual laboratory
-              measurements and should be treated as educational guidance rather
-              than precise scientific data.
+              <strong>Simulated / Illustrative only:</strong> This curve is
+              generated from a simplified kinetic model for educational
+              purposes. It is not derived from actual laboratory measurements
+              and should be treated as illustrative guidance rather than precise
+              scientific data.
             </p>
           </div>
         </div>
