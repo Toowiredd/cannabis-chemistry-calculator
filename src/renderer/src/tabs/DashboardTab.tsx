@@ -64,8 +64,10 @@ function BarChartSVG({ data }: { data: { label: string; value: number }[] }) {
 
   return (
     <svg
+      aria-label="Bar chart of monthly usage amounts"
       className="w-full h-40"
       preserveAspectRatio="xMidYMid meet"
+      role="img"
       viewBox={`0 0 ${visible.length * (barWidth + gap)} ${chartHeight + 20}`}
     >
       {visible.map((d, i) => {
@@ -113,8 +115,10 @@ function PieChartSVG({
 
   return (
     <svg
+      aria-label="Pie chart of potency by category"
       className="w-full h-40"
       preserveAspectRatio="xMidYMid meet"
+      role="img"
       viewBox="0 0 200 120"
     >
       <g transform={`translate(${cx},${cy})`}>
@@ -165,7 +169,7 @@ function PieChartSVG({
 function SparklineSVG({ values }: { values: number[] }) {
   if (values.length === 0)
     return (
-      <div className="h-40 flex items-center justify-center text-xs text-foreground/50">
+      <div className="h-40 flex items-center justify-center text-xs text-foreground/70">
         No data
       </div>
     )
@@ -187,8 +191,10 @@ function SparklineSVG({ values }: { values: number[] }) {
 
   return (
     <svg
+      aria-label="Sparkline chart of potency values over time"
       className="w-full h-40"
       preserveAspectRatio="xMidYMid meet"
+      role="img"
       viewBox={`0 0 ${w} ${h}`}
     >
       <polyline
@@ -389,7 +395,7 @@ export function DashboardTab() {
         >
           {icon}
         </span>
-        <span className="text-xs font-medium uppercase tracking-wider text-foreground/60">
+        <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
           {label}
         </span>
       </div>
@@ -494,7 +500,7 @@ export function DashboardTab() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="glass-strong flex flex-col gap-3 rounded-2xl p-5">
           <div className="flex items-center gap-2">
-            <BarChart3 className="size-4 text-foreground/60" />
+            <BarChart3 className="size-4 text-foreground/70" />
             <h3 className="text-sm font-semibold text-foreground/70">
               Batches per Month
             </h3>
@@ -502,7 +508,7 @@ export function DashboardTab() {
           {barChartData.length > 0 ? (
             <BarChartSVG data={barChartData} />
           ) : (
-            <div className="flex h-40 items-center justify-center text-xs text-foreground/50">
+            <div className="flex h-40 items-center justify-center text-xs text-foreground/70">
               No journal entries yet
             </div>
           )}
@@ -510,7 +516,7 @@ export function DashboardTab() {
 
         <div className="glass-strong flex flex-col gap-3 rounded-2xl p-5">
           <div className="flex items-center gap-2">
-            <PieChart className="size-4 text-foreground/60" />
+            <PieChart className="size-4 text-foreground/70" />
             <h3 className="text-sm font-semibold text-foreground/70">
               Methods Used
             </h3>
@@ -518,7 +524,7 @@ export function DashboardTab() {
           {pieChartData.length > 0 ? (
             <PieChartSVG data={pieChartData} />
           ) : (
-            <div className="flex h-40 items-center justify-center text-xs text-foreground/50">
+            <div className="flex h-40 items-center justify-center text-xs text-foreground/70">
               No journal entries yet
             </div>
           )}
@@ -526,7 +532,7 @@ export function DashboardTab() {
 
         <div className="glass-strong flex flex-col gap-3 rounded-2xl p-5">
           <div className="flex items-center gap-2">
-            <TrendingUp className="size-4 text-foreground/60" />
+            <TrendingUp className="size-4 text-foreground/70" />
             <h3 className="text-sm font-semibold text-foreground/70">
               Potency Trend
             </h3>
@@ -534,7 +540,7 @@ export function DashboardTab() {
           {potencyTrend.length > 1 ? (
             <SparklineSVG values={potencyTrend} />
           ) : (
-            <div className="flex h-40 items-center justify-center text-xs text-foreground/50">
+            <div className="flex h-40 items-center justify-center text-xs text-foreground/70">
               Need at least 2 entries
             </div>
           )}
@@ -548,7 +554,7 @@ export function DashboardTab() {
             Inventory
           </h3>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-foreground/50">
+            <span className="text-xs text-foreground/70">
               Low-stock threshold (g)
             </span>
             <input
@@ -578,7 +584,7 @@ export function DashboardTab() {
           <div className="flex flex-col gap-3 rounded-xl border border-foreground/10 bg-foreground/5 p-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-foreground/60">
+                <span className="text-xs font-medium text-foreground/70">
                   Type
                 </span>
                 <select
@@ -600,7 +606,7 @@ export function DashboardTab() {
                 </select>
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-foreground/60">
+                <span className="text-xs font-medium text-foreground/70">
                   Name
                 </span>
                 <input
@@ -612,7 +618,7 @@ export function DashboardTab() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-foreground/60">
+                <span className="text-xs font-medium text-foreground/70">
                   Amount (g)
                 </span>
                 <input
@@ -627,7 +633,7 @@ export function DashboardTab() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-foreground/60">
+                <span className="text-xs font-medium text-foreground/70">
                   Cost ($)
                 </span>
                 <input
@@ -641,7 +647,7 @@ export function DashboardTab() {
               </div>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-foreground/60">
+              <span className="text-xs font-medium text-foreground/70">
                 Notes
               </span>
               <input
@@ -675,7 +681,7 @@ export function DashboardTab() {
         {/* Inventory list */}
         <div className="flex flex-col gap-2">
           {inventory.items.length === 0 && (
-            <div className="text-center text-xs text-foreground/50 py-4">
+            <div className="text-center text-xs text-foreground/70 py-4">
               No inventory logged yet.
             </div>
           )}
@@ -699,7 +705,7 @@ export function DashboardTab() {
                   <span className="text-sm font-medium text-foreground">
                     {item.name}
                   </span>
-                  <span className="text-[10px] text-foreground/50">
+                  <span className="text-[10px] text-foreground/70">
                     {item.date}{' '}
                     {item.cost ? `· $${parseFloat(item.cost).toFixed(2)}` : ''}{' '}
                     {item.notes ? `· ${item.notes}` : ''}

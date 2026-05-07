@@ -134,14 +134,17 @@
   }
 }
 
-/* Accessible focus styles - replaced outline-none per-tab with global ring */
+/* Accessible focus styles - strong visible ring for WCAG AA */
 @layer base {
   input:focus-visible,
   select:focus-visible,
   button:focus-visible,
-  textarea:focus-visible {
+  textarea:focus-visible,
+  a:focus-visible,
+  [tabindex]:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+    border-radius: 0.25rem;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.75);
   }
 }
 
@@ -150,8 +153,22 @@
   :not(.dark) input:focus-visible,
   :not(.dark) select:focus-visible,
   :not(.dark) button:focus-visible,
-  :not(.dark) textarea:focus-visible {
-    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.25);
+  :not(.dark) textarea:focus-visible,
+  :not(.dark) a:focus-visible,
+  :not(.dark) [tabindex]:focus-visible {
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Respect prefers-reduced-motion for all animated elements */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

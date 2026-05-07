@@ -64,12 +64,12 @@ export function LabPasteField({
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
-          <FlaskConical className="size-4 text-foreground/60" />
+          <FlaskConical className="size-4 text-foreground/70" />
           Paste Lab Results
         </span>
         {text && (
           <button
-            className="inline-flex items-center gap-1 rounded p-1 text-[10px] text-foreground/50 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded p-1 text-[10px] text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
             onClick={handleClear}
             type="button"
           >

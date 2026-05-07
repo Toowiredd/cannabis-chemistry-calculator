@@ -11,6 +11,7 @@ import {
 import { DECARB_METHODS } from 'renderer/src/engine/models'
 import type { Strain } from 'renderer/src/engine/models'
 import { cToF, fToC, gToOz, ozToG } from 'renderer/src/engine/units'
+import { minSigFigs, formatWithSigFigs } from 'renderer/src/engine/formatting'
 import { cn } from 'renderer/lib/utils'
 import { Info, ChevronDown, ChevronUp, RotateCcw, Leaf } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
@@ -30,6 +31,15 @@ function round1n(value: number): number {
 function fmt1(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return ''
   return value.toFixed(1)
+}
+
+function fmtSigFigs(
+  value: number | null | undefined,
+  ...inputs: string[]
+): string {
+  if (value == null || Number.isNaN(value)) return ''
+  const sf = minSigFigs(...inputs)
+  return formatWithSigFigs(value, sf)
 }
 
 function TooltipIcon({ text }: { text: string }) {
@@ -991,7 +1001,9 @@ export function DecarbTab() {
               Theoretical Maximum THC
             </span>
             <span className="mt-1 text-2xl font-bold text-foreground">
-              {results ? `${fmt1(results.theoreticalMax)} mg` : 'N/A'}
+              {results
+                ? `${fmtSigFigs(results.theoreticalMax, decarb.weight, decarb.thcaPct, decarb.thcPct)} mg`
+                : 'N/A'}
             </span>
           </div>
 
@@ -1006,7 +1018,9 @@ export function DecarbTab() {
                   Low
                 </span>
                 <span className="text-lg font-semibold text-foreground">
-                  {results ? `${fmt1(results.decarbed.low)} mg` : 'N/A'}
+                  {results
+                    ? `${fmtSigFigs(results.decarbed.low, decarb.weight, decarb.thcaPct, decarb.thcPct)} mg`
+                    : 'N/A'}
                 </span>
               </div>
               <div className="flex flex-col">
@@ -1014,7 +1028,9 @@ export function DecarbTab() {
                   Expected
                 </span>
                 <span className="text-lg font-semibold text-emerald-300">
-                  {results ? `${fmt1(results.decarbed.expected)} mg` : 'N/A'}
+                  {results
+                    ? `${fmtSigFigs(results.decarbed.expected, decarb.weight, decarb.thcaPct, decarb.thcPct)} mg`
+                    : 'N/A'}
                 </span>
               </div>
               <div className="flex flex-col">
@@ -1022,7 +1038,9 @@ export function DecarbTab() {
                   High
                 </span>
                 <span className="text-lg font-semibold text-foreground">
-                  {results ? `${fmt1(results.decarbed.high)} mg` : 'N/A'}
+                  {results
+                    ? `${fmtSigFigs(results.decarbed.high, decarb.weight, decarb.thcaPct, decarb.thcPct)} mg`
+                    : 'N/A'}
                 </span>
               </div>
             </div>
@@ -1069,7 +1087,7 @@ export function DecarbTab() {
                       Low
                     </span>
                     <span className="text-lg font-semibold text-foreground">
-                      {`${fmt1(cbdResults.decarbed.low)} mg`}
+                      {`${fmtSigFigs(cbdResults.decarbed.low, decarb.weight, decarb.cbdaPct, decarb.cbdPct)} mg`}
                     </span>
                   </div>
                   <div className="flex flex-col">
@@ -1077,7 +1095,7 @@ export function DecarbTab() {
                       Expected
                     </span>
                     <span className="text-lg font-semibold text-emerald-300">
-                      {`${fmt1(cbdResults.decarbed.expected)} mg`}
+                      {`${fmtSigFigs(cbdResults.decarbed.expected, decarb.weight, decarb.cbdaPct, decarb.cbdPct)} mg`}
                     </span>
                   </div>
                   <div className="flex flex-col">
@@ -1085,12 +1103,19 @@ export function DecarbTab() {
                       High
                     </span>
                     <span className="text-lg font-semibold text-foreground">
-                      {`${fmt1(cbdResults.decarbed.high)} mg`}
+                      {`${fmtSigFigs(cbdResults.decarbed.high, decarb.weight, decarb.cbdaPct, decarb.cbdPct)} mg`}
                     </span>
                   </div>
                 </div>
                 <span className="text-xs text-foreground/70">
-                  Theoretical max CBD: {fmt1(cbdResults.theoreticalMax)} mg
+                  Theoretical max CBD:{' '}
+                  {fmtSigFigs(
+                    cbdResults.theoreticalMax,
+                    decarb.weight,
+                    decarb.cbdaPct,
+                    decarb.cbdPct
+                  )}{' '}
+                  mg
                 </span>
               </div>
             )}

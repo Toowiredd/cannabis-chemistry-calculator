@@ -157,7 +157,7 @@ export function TimerWidget() {
               >
                 <Play className="size-3" />
                 {method.name}
-                <span className="text-foreground/50">({method.timeMax}m)</span>
+                <span className="text-foreground/70">({method.timeMax}m)</span>
               </button>
             ))}
           </div>

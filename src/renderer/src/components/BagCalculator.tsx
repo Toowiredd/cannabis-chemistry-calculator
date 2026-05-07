@@ -132,7 +132,7 @@ function HeadspaceGauge({ pct }: { pct: number }) {
         <div className="absolute left-[25%] top-0 h-full w-px bg-foreground/30" />
         <div className="absolute left-[40%] top-0 h-full w-px bg-foreground/20" />
       </div>
-      <div className="flex justify-between text-[10px] text-foreground/50">
+      <div className="flex justify-between text-[10px] text-foreground/70">
         <span>0%</span>
         <span
           className={cn(
@@ -401,7 +401,7 @@ export function BagCalculator({ tempC }: { tempC: number }) {
           {inputRow(
             <>Material Weight (from Decarb)</>,
             <input
-              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground/60 outline-none"
+              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground/70 outline-none"
               readOnly
               type="text"
               value={`${decarb.weight} ${units.weightUnit}`}
@@ -466,7 +466,7 @@ export function BagCalculator({ tempC }: { tempC: number }) {
                   'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   isCustomBag
                     ? 'border-foreground/20 focus:border-foreground/40'
-                    : 'border-foreground/10 text-foreground/60'
+                    : 'border-foreground/10 text-foreground/70'
                 )}
                 onChange={e => setDecarb({ bagWidthOverride: e.target.value })}
                 placeholder={isCustomBag ? '0.0' : displayWidth}
@@ -485,7 +485,7 @@ export function BagCalculator({ tempC }: { tempC: number }) {
                   'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   isCustomBag
                     ? 'border-foreground/20 focus:border-foreground/40'
-                    : 'border-foreground/10 text-foreground/60'
+                    : 'border-foreground/10 text-foreground/70'
                 )}
                 onChange={e => setDecarb({ bagLengthOverride: e.target.value })}
                 placeholder={isCustomBag ? '0.0' : displayLength}

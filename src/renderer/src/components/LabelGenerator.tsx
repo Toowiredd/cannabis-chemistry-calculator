@@ -87,7 +87,7 @@ export function LabelGenerator({
         {/* Product name */}
         <div className="flex flex-col gap-1">
           <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
-            <Tag className="size-3.5 text-foreground/60" />
+            <Tag className="size-3.5 text-foreground/70" />
             Product Name
           </span>
           <input
@@ -102,7 +102,7 @@ export function LabelGenerator({
         {/* Ingredients */}
         <div className="flex flex-col gap-1">
           <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
-            <Info className="size-3.5 text-foreground/60" />
+            <Info className="size-3.5 text-foreground/70" />
             Ingredients
           </span>
           <textarea

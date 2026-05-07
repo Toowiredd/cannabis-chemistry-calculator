@@ -8,6 +8,7 @@ import {
   Package,
   Leaf,
   AlertTriangle,
+  ArrowRight,
 } from 'lucide-react'
 import { DECARB_METHODS } from 'renderer/src/engine/models'
 import { useAppStore } from 'renderer/src/stores/appStore'
@@ -99,6 +100,22 @@ function DonenessCurve() {
     setTempC(preset.tempC)
     setTimeMin(Math.round(preset.timeMax / 2))
   }, [preset])
+
+  const setDecarb = useAppStore(s => s.setDecarb)
+  const setActiveTab = useAppStore(s => s.setActiveTab)
+
+  const handleApplyToDecarb = useCallback(() => {
+    setDecarb({
+      tempOverride: String(tempC),
+      timeOverride: String(timeMin),
+    })
+    setActiveTab('decarb')
+  }, [setDecarb, setActiveTab, tempC, timeMin])
+
+  function handleReset() {
+    setTempC(preset.tempC)
+    setTimeMin(Math.round(preset.timeMax / 2))
+  }
 
   const data = useMemo(
     () => simulateDoneness(tempC, methodMaxTime),
@@ -405,6 +422,24 @@ function DonenessCurve() {
             {(data[currentIndex]?.cbn ?? 0).toFixed(1)}%
           </div>
         </div>
+      </div>
+      {/* Apply + Reset controls */}
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <button
+          className="inline-flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/20 focus-visible:ring-2 focus-visible:ring-accent/50"
+          onClick={handleApplyToDecarb}
+          type="button"
+        >
+          Apply to Decarb Calculator
+          <ArrowRight className="size-4" />
+        </button>
+        <button
+          className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/30"
+          onClick={handleReset}
+          type="button"
+        >
+          Reset Curve
+        </button>
       </div>
     </div>
   )
@@ -849,7 +884,7 @@ export function KnowledgeTab() {
             </table>
           </div>
 
-          <p className="mt-3 text-xs text-foreground/60">
+          <p className="mt-3 text-xs text-foreground/70">
             Source: boiling-point data from Eyal et al. (2023)
             {<Cite doi="10.1089/can.2021.0173" label="Eyal et al. 2023" />}
             and Raz et al. (2022).

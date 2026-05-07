@@ -196,7 +196,7 @@ export function StrainManager({
             </h2>
           </div>
           <button
-            className="rounded-lg p-1 text-foreground/60 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            className="rounded-lg p-1 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
             onClick={onClose}
             type="button"
           >
@@ -351,7 +351,7 @@ export function StrainManager({
         {/* List */}
         <div className="max-h-64 flex-1 overflow-y-auto border-t border-foreground/10 px-5 py-3">
           {sortedStrains.length === 0 ? (
-            <p className="text-center text-sm text-foreground/50">
+            <p className="text-center text-sm text-foreground/70">
               No strains saved yet.
             </p>
           ) : (
@@ -369,7 +369,7 @@ export function StrainManager({
                     <span className="text-sm font-medium text-foreground">
                       {strain.name}
                     </span>
-                    <span className="text-[10px] text-foreground/60">
+                    <span className="text-[10px] text-foreground/70">
                       {strain.type} · THCA {strain.thcaPct}% · THC{' '}
                       {strain.thcPct}%
                       {strain.cbdaPct > 0 && ` · CBDA ${strain.cbdaPct}%`}
@@ -378,14 +378,14 @@ export function StrainManager({
                   </button>
                   <div className="flex items-center gap-1">
                     <button
-                      className="rounded p-1 text-foreground/50 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                      className="rounded p-1 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
                       onClick={() => handleEdit(strain)}
                       type="button"
                     >
                       <Pencil className="size-3.5" />
                     </button>
                     <button
-                      className="rounded p-1 text-foreground/50 transition-colors hover:bg-red-400/10 hover:text-red-400"
+                      className="rounded p-1 text-foreground/70 transition-colors hover:bg-red-400/10 hover:text-red-400"
                       onClick={() => handleDelete(strain.id)}
                       type="button"
                     >

@@ -562,7 +562,7 @@ export function JournalTab() {
         </h3>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex items-center gap-2">
-            <Search className="size-4 text-foreground/50" />
+            <Search className="size-4 text-foreground/70" />
             <input
               className="flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
               onChange={e => setSearch(e.target.value)}
@@ -598,11 +598,11 @@ export function JournalTab() {
       <div className="flex flex-col gap-3">
         {filtered.length === 0 && (
           <div className="glass-strong flex flex-col items-center gap-2 rounded-2xl p-8 text-center">
-            <BookOpen className="size-8 text-foreground/40" />
+            <BookOpen className="size-8 text-foreground/70" />
             <p className="text-sm text-foreground/70">
               No journal entries yet.
             </p>
-            <p className="text-xs text-foreground/50">
+            <p className="text-xs text-foreground/70">
               Click Log to Journal to auto-populate from your current calculator
               values.
             </p>
@@ -619,7 +619,7 @@ export function JournalTab() {
                 <span className="text-lg font-semibold text-foreground">
                   {entry.strainName || 'Unnamed Batch'}
                 </span>
-                <span className="text-xs text-foreground/60">
+                <span className="text-xs text-foreground/70">
                   {entry.date} — {entry.methodName || 'Unknown method'} /{' '}
                   {entry.fatName || 'Unknown fat'}
                 </span>
@@ -643,7 +643,7 @@ export function JournalTab() {
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/60">
+                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
                   Weight
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -651,7 +651,7 @@ export function JournalTab() {
                 </span>
               </div>
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/60">
+                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
                   THCA / THC
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -659,7 +659,7 @@ export function JournalTab() {
                 </span>
               </div>
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/60">
+                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
                   mg/Serving
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -667,7 +667,7 @@ export function JournalTab() {
                 </span>
               </div>
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/60">
+                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
                   Total THC
                 </span>
                 <span className="text-sm font-semibold text-foreground">
