@@ -331,7 +331,7 @@ export function KnowledgeTab() {
           <p>
             Coarse, chunky material retains terpenes better than fine powder.
             This sounds counterintuitive -- more surface area should mean faster
-            heat transfer N/A but the key is what happens before and during
+            heat transfer -- but the key is what happens before and during
             heating.
           </p>
           <p className="mt-3">
@@ -402,8 +402,8 @@ export function KnowledgeTab() {
             exposure and the three main compounds. THCA drops as it converts,
             THC rises to a peak then falls as it degrades into CBN, and CBN
             slowly accumulates over time. This is an illustrative model -- not
-            data from a specific lab run N/A but it captures the general
-            behavior you should expect during decarboxylation.
+            data from a specific lab run -- but it captures the general behavior
+            you should expect during decarboxylation.
           </p>
 
           <div className="mt-6">

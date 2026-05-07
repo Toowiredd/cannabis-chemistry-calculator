@@ -119,7 +119,7 @@ function validateDecarbFields(
   } else {
     const w = parseFloat(wStr)
     if (Number.isNaN(w)) errors.weight = 'Please enter a number'
-    else if (w < 0) errors.weight = 'Weight cannot be negative'
+    else if (w <= 0) errors.weight = 'Weight must be greater than 0'
   }
 
   // THCA
