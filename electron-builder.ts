@@ -47,6 +47,21 @@ export default {
   win: {
     artifactName,
     icon: `${resources}/build/icons/icon.ico`,
-    target: ['zip', 'portable'],
+    target: ['nsis', 'zip', 'portable'],
+  },
+
+  nsis: {
+    oneClick: false,
+    allowToChangeInstallationDirectory: true,
+    createDesktopShortcut: true,
+    createStartMenuShortcut: true,
+    installerIcon: `${resources}/build/icons/icon.ico`,
+    uninstallerIcon: `${resources}/build/icons/icon.ico`,
+    shortcutName: displayName,
+    deleteAppDataOnUninstall: true,
+  },
+
+  portable: {
+    artifactName: `${name}-v${version}-portable.exe`,
   },
 } satisfies Configuration
