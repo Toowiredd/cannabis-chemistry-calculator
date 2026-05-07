@@ -52,3 +52,13 @@ export function mlToCup(ml: number): number {
 export function cupToMl(cup: number): number {
   return cup * 236.588
 }
+
+/** Convert centimeters to inches. 1 in = 2.54 cm */
+export function cmToIn(cm: number): number {
+  return cm / 2.54
+}
+
+/** Convert inches to centimeters. 1 in = 2.54 cm */
+export function inToCm(inch: number): number {
+  return inch * 2.54
+}

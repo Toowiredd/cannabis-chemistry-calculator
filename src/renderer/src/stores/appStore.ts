@@ -15,6 +15,7 @@ export interface UnitPreferences {
   tempUnit: 'C' | 'F'
   weightUnit: 'g' | 'oz'
   volumeUnit: 'mL' | 'tsp' | 'tbsp' | 'cup'
+  bagUnit: 'cm' | 'in'
 }
 
 export interface DecarbState {
@@ -29,6 +30,12 @@ export interface DecarbState {
   effLowOverride: string | null
   effExpectedOverride: string | null
   effHighOverride: string | null
+  bagExpanded: boolean
+  bagGrindId: string
+  bagPresetId: string
+  bagWidthOverride: string | null
+  bagLengthOverride: string | null
+  bagHasStems: boolean
 }
 
 export interface InfusionState {
@@ -55,6 +62,12 @@ const DEFAULT_DECARB: DecarbState = {
   effLowOverride: null,
   effExpectedOverride: null,
   effHighOverride: null,
+  bagExpanded: true,
+  bagGrindId: 'medium',
+  bagPresetId: 'quart',
+  bagWidthOverride: null,
+  bagLengthOverride: null,
+  bagHasStems: false,
 }
 
 const DEFAULT_INFUSION: InfusionState = {
@@ -135,6 +148,7 @@ export const useAppStore = create<AppStore>()(
         tempUnit: 'C',
         weightUnit: 'g',
         volumeUnit: 'mL',
+        bagUnit: 'cm',
       },
       setUnits: partial =>
         set(state => ({ units: { ...state.units, ...partial } })),
@@ -169,6 +183,7 @@ export const useAppStore = create<AppStore>()(
           tempUnit: 'C',
           weightUnit: 'g',
           volumeUnit: 'mL',
+          bagUnit: 'cm',
         }
         if (isRecord(preset.units)) {
           const u = preset.units
@@ -183,6 +198,8 @@ export const useAppStore = create<AppStore>()(
             u.volumeUnit === 'cup'
           )
             loadedUnits.volumeUnit = u.volumeUnit
+          if (u.bagUnit === 'cm' || u.bagUnit === 'in')
+            loadedUnits.bagUnit = u.bagUnit
         }
 
         let loadedDecarb = { ...DEFAULT_DECARB }
@@ -201,6 +218,18 @@ export const useAppStore = create<AppStore>()(
             effLowOverride: nullableStringish(di.effLowOverride),
             effExpectedOverride: nullableStringish(di.effExpectedOverride),
             effHighOverride: nullableStringish(di.effHighOverride),
+            bagExpanded:
+              typeof di.bagExpanded === 'boolean'
+                ? di.bagExpanded
+                : DEFAULT_DECARB.bagExpanded,
+            bagGrindId: stringish(di.bagGrindId, DEFAULT_DECARB.bagGrindId),
+            bagPresetId: stringish(di.bagPresetId, DEFAULT_DECARB.bagPresetId),
+            bagWidthOverride: nullableStringish(di.bagWidthOverride),
+            bagLengthOverride: nullableStringish(di.bagLengthOverride),
+            bagHasStems:
+              typeof di.bagHasStems === 'boolean'
+                ? di.bagHasStems
+                : DEFAULT_DECARB.bagHasStems,
           }
         }
 

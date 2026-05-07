@@ -13,6 +13,7 @@ import { cToF, fToC, gToOz, ozToG } from 'renderer/src/engine/units'
 import { cn } from 'renderer/lib/utils'
 import { Info, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
+import { BagCalculator } from 'renderer/src/components/BagCalculator'
 
 /* ------------------------------------------------------------------ */
 /* Small helpers                                                      */
@@ -492,11 +493,24 @@ export function DecarbTab() {
     setShowFormula(false)
   }
 
-  /* Escape key resets current tab */
+  /* Escape key resets current tab, or bag calculator if focused */
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        handleReset()
+        const bagContainer = document.getElementById('bag-calculator-card')
+        const active = document.activeElement
+        if (bagContainer && active && bagContainer.contains(active)) {
+          setDecarb({
+            bagExpanded: true,
+            bagGrindId: 'medium',
+            bagPresetId: 'quart',
+            bagWidthOverride: null,
+            bagLengthOverride: null,
+            bagHasStems: false,
+          })
+        } else {
+          handleReset()
+        }
       }
     }
     document.addEventListener('keydown', onKeyDown)
@@ -1044,6 +1058,13 @@ export function DecarbTab() {
           </div>
         </div>
       </div>
+
+      {/* Bag Volume Calculator — visible only for sous vide methods */}
+      {decarb.presetId.startsWith('sv_') && decarb.bagExpanded && (
+        <div id="bag-calculator-card">
+          <BagCalculator tempC={preset.tempC} />
+        </div>
+      )}
 
       {/* Disclaimer */}
       <p className="text-center text-xs leading-relaxed text-foreground/70">

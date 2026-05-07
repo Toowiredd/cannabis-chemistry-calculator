@@ -203,15 +203,15 @@ describe('selectBestBag', () => {
     // Both optimal. Smallest volume = small_vac (57.9 < 61.4)
     const result = selectBestBag(49, BAG_PRESETS)
     expect(result.best).toBeDefined()
-    expect(result.best!.id).toBe('small_vac')
+    expect(result.best?.id).toBe('small_vac')
   })
 
   it('provides alternative when multiple bags are optimal', () => {
     // 49 cm³ → small_vac (best), quart (alternative, next smallest optimal)
     const result = selectBestBag(49, BAG_PRESETS)
-    expect(result.best!.id).toBe('small_vac')
+    expect(result.best?.id).toBe('small_vac')
     expect(result.alternative).toBeDefined()
-    expect(result.alternative!.id).toBe('quart')
+    expect(result.alternative?.id).toBe('quart')
   })
 
   it('picks closest-to-optimal when no bag has 10–25% headspace', () => {
@@ -219,14 +219,14 @@ describe('selectBestBag', () => {
     // Closest to optimal range: small_vac with 57.7% headspace
     const result = selectBestBag(12.3, BAG_PRESETS)
     expect(result.best).toBeDefined()
-    expect(result.best!.id).toBe('small_vac')
+    expect(result.best?.id).toBe('small_vac')
     expect(result.alternative).toBeNull()
   })
 
   it('filters out bags that overflow (material > bag volume)', () => {
     // 250 cm³ overflows all bags except 2-gallon (433.7 cm³)
     const result = selectBestBag(250, BAG_PRESETS)
-    expect(result.best!.id).toBe('2gallon')
+    expect(result.best?.id).toBe('2gallon')
     expect(result.alternative).toBeNull()
   })
 
@@ -236,7 +236,7 @@ describe('selectBestBag', () => {
     // large_vac headspace = (128.5 - 65) / 128.5 * 100 = 49.4% → distance = 24.4
     // large_vac is closer to optimal, so it is best
     const result = selectBestBag(65, BAG_PRESETS)
-    expect(result.best!.id).toBe('large_vac')
+    expect(result.best?.id).toBe('large_vac')
   })
 
   it('returns null best when no bag can fit the material', () => {
@@ -249,7 +249,7 @@ describe('selectBestBag', () => {
   it('handles zero material volume', () => {
     const result = selectBestBag(0, BAG_PRESETS)
     // All bags have 100% headspace. Smallest bag = small_vac
-    expect(result.best!.id).toBe('small_vac')
+    expect(result.best?.id).toBe('small_vac')
   })
 })
 
@@ -280,9 +280,9 @@ describe('Preset data integrity', () => {
     const coarse = GRIND_LEVELS.find(g => g.id === 'coarse')
     const medium = GRIND_LEVELS.find(g => g.id === 'medium')
     const fine = GRIND_LEVELS.find(g => g.id === 'fine')
-    expect(coarse!.cm3PerGram).toBe(6.0)
-    expect(medium!.cm3PerGram).toBe(3.5)
-    expect(fine!.cm3PerGram).toBe(2.2)
+    expect(coarse?.cm3PerGram).toBe(6.0)
+    expect(medium?.cm3PerGram).toBe(3.5)
+    expect(fine?.cm3PerGram).toBe(2.2)
   })
 
   it('bag names contain no emojis', () => {

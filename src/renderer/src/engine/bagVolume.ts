@@ -97,10 +97,7 @@ export function calculateHeadspace(
   if (bagVolumeCm3 <= 0) {
     throw new ValidationError('bagVolumeCm3 must be positive')
   }
-  return roundN(
-    ((bagVolumeCm3 - materialVolumeCm3) / bagVolumeCm3) * 100,
-    1
-  )
+  return roundN(((bagVolumeCm3 - materialVolumeCm3) / bagVolumeCm3) * 100, 1)
 }
 
 /**
