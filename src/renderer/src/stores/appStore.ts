@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 export type TabId =
   | 'decarb'
@@ -109,110 +110,122 @@ function nullableStringish(value: unknown): string | null {
   return null
 }
 
-export const useAppStore = create<AppStore>(set => ({
-  activeTab: 'decarb',
-  setActiveTab: tab => set({ activeTab: tab }),
+export const useAppStore = create<AppStore>()(
+  persist(
+    set => ({
+      activeTab: 'decarb',
+      setActiveTab: tab => set({ activeTab: tab }),
 
-  units: {
-    tempUnit: 'C',
-    weightUnit: 'g',
-    volumeUnit: 'mL',
-  },
-  setUnits: partial =>
-    set(state => ({ units: { ...state.units, ...partial } })),
+      units: {
+        tempUnit: 'C',
+        weightUnit: 'g',
+        volumeUnit: 'mL',
+      },
+      setUnits: partial =>
+        set(state => ({ units: { ...state.units, ...partial } })),
 
-  decarb: { ...DEFAULT_DECARB },
-  setDecarb: partial =>
-    set(state => ({ decarb: { ...state.decarb, ...partial } })),
-  resetDecarb: () => set({ decarb: { ...DEFAULT_DECARB } }),
+      decarb: { ...DEFAULT_DECARB },
+      setDecarb: partial =>
+        set(state => ({ decarb: { ...state.decarb, ...partial } })),
+      resetDecarb: () => set({ decarb: { ...DEFAULT_DECARB } }),
 
-  infusion: { ...DEFAULT_INFUSION },
-  setInfusion: partial =>
-    set(state => ({ infusion: { ...state.infusion, ...partial } })),
-  resetInfusion: () => set({ infusion: { ...DEFAULT_INFUSION } }),
+      infusion: { ...DEFAULT_INFUSION },
+      setInfusion: partial =>
+        set(state => ({ infusion: { ...state.infusion, ...partial } })),
+      resetInfusion: () => set({ infusion: { ...DEFAULT_INFUSION } }),
 
-  dose: { ...DEFAULT_DOSE },
-  setDose: partial => set(state => ({ dose: { ...state.dose, ...partial } })),
-  resetDose: () => set({ dose: { ...DEFAULT_DOSE } }),
+      dose: { ...DEFAULT_DOSE },
+      setDose: partial =>
+        set(state => ({ dose: { ...state.dose, ...partial } })),
+      resetDose: () => set({ dose: { ...DEFAULT_DOSE } }),
 
-  lastDecarbExpected: '',
-  setLastDecarbExpected: val => set({ lastDecarbExpected: val }),
+      lastDecarbExpected: '',
+      setLastDecarbExpected: val => set({ lastDecarbExpected: val }),
 
-  lastInfusedThc: '',
-  setLastInfusedThc: val => set({ lastInfusedThc: val }),
+      lastInfusedThc: '',
+      setLastInfusedThc: val => set({ lastInfusedThc: val }),
 
-  loadFromPreset: (preset: unknown) => {
-    if (!isRecord(preset)) return
+      loadFromPreset: (preset: unknown) => {
+        if (!isRecord(preset)) return
 
-    const tabs = isRecord(preset.tabs) ? preset.tabs : {}
+        const tabs = isRecord(preset.tabs) ? preset.tabs : {}
 
-    const loadedUnits: UnitPreferences = {
-      tempUnit: 'C',
-      weightUnit: 'g',
-      volumeUnit: 'mL',
+        const loadedUnits: UnitPreferences = {
+          tempUnit: 'C',
+          weightUnit: 'g',
+          volumeUnit: 'mL',
+        }
+        if (isRecord(preset.units)) {
+          const u = preset.units
+          if (u.tempUnit === 'C' || u.tempUnit === 'F')
+            loadedUnits.tempUnit = u.tempUnit
+          if (u.weightUnit === 'g' || u.weightUnit === 'oz')
+            loadedUnits.weightUnit = u.weightUnit
+          if (
+            u.volumeUnit === 'mL' ||
+            u.volumeUnit === 'tsp' ||
+            u.volumeUnit === 'tbsp' ||
+            u.volumeUnit === 'cup'
+          )
+            loadedUnits.volumeUnit = u.volumeUnit
+        }
+
+        let loadedDecarb = { ...DEFAULT_DECARB }
+        if (isRecord(tabs.decarb)) {
+          const d = tabs.decarb
+          const di = isRecord(d.inputs) ? d.inputs : d
+          loadedDecarb = {
+            weight: stringish(di.weight, DEFAULT_DECARB.weight),
+            thcaPct: stringish(di.thcaPct, DEFAULT_DECARB.thcaPct),
+            thcPct: stringish(di.thcPct, DEFAULT_DECARB.thcPct),
+            presetId: stringish(di.presetId, DEFAULT_DECARB.presetId),
+            tempOverride: nullableStringish(di.tempOverride),
+            timeOverride: nullableStringish(di.timeOverride),
+            effLowOverride: nullableStringish(di.effLowOverride),
+            effExpectedOverride: nullableStringish(di.effExpectedOverride),
+            effHighOverride: nullableStringish(di.effHighOverride),
+          }
+        }
+
+        let loadedInfusion = { ...DEFAULT_INFUSION }
+        if (isRecord(tabs.infusion)) {
+          const i = tabs.infusion
+          const ii = isRecord(i.inputs) ? i.inputs : i
+          loadedInfusion = {
+            decarbedThc: stringish(
+              ii.decarbedThc,
+              DEFAULT_INFUSION.decarbedThc
+            ),
+            volume: stringish(ii.volume, DEFAULT_INFUSION.volume),
+            fatId: stringish(ii.fatId, DEFAULT_INFUSION.fatId),
+            customEfficiency: stringish(
+              ii.customEfficiency,
+              DEFAULT_INFUSION.customEfficiency
+            ),
+          }
+        }
+
+        let loadedDose = { ...DEFAULT_DOSE }
+        if (isRecord(tabs.dose)) {
+          const d = tabs.dose
+          const di = isRecord(d.inputs) ? d.inputs : d
+          loadedDose = {
+            totalThc: stringish(di.totalThc, DEFAULT_DOSE.totalThc),
+            servings: stringish(di.servings, DEFAULT_DOSE.servings),
+          }
+        }
+
+        set({
+          units: loadedUnits,
+          decarb: loadedDecarb,
+          infusion: loadedInfusion,
+          dose: loadedDose,
+        })
+      },
+    }),
+    {
+      name: 'cannabis-chem-units',
+      partialize: state => ({ units: state.units }),
     }
-    if (isRecord(preset.units)) {
-      const u = preset.units
-      if (u.tempUnit === 'C' || u.tempUnit === 'F')
-        loadedUnits.tempUnit = u.tempUnit
-      if (u.weightUnit === 'g' || u.weightUnit === 'oz')
-        loadedUnits.weightUnit = u.weightUnit
-      if (
-        u.volumeUnit === 'mL' ||
-        u.volumeUnit === 'tsp' ||
-        u.volumeUnit === 'tbsp' ||
-        u.volumeUnit === 'cup'
-      )
-        loadedUnits.volumeUnit = u.volumeUnit
-    }
-
-    let loadedDecarb = { ...DEFAULT_DECARB }
-    if (isRecord(tabs.decarb)) {
-      const d = tabs.decarb
-      const di = isRecord(d.inputs) ? d.inputs : d
-      loadedDecarb = {
-        weight: stringish(di.weight, DEFAULT_DECARB.weight),
-        thcaPct: stringish(di.thcaPct, DEFAULT_DECARB.thcaPct),
-        thcPct: stringish(di.thcPct, DEFAULT_DECARB.thcPct),
-        presetId: stringish(di.presetId, DEFAULT_DECARB.presetId),
-        tempOverride: nullableStringish(di.tempOverride),
-        timeOverride: nullableStringish(di.timeOverride),
-        effLowOverride: nullableStringish(di.effLowOverride),
-        effExpectedOverride: nullableStringish(di.effExpectedOverride),
-        effHighOverride: nullableStringish(di.effHighOverride),
-      }
-    }
-
-    let loadedInfusion = { ...DEFAULT_INFUSION }
-    if (isRecord(tabs.infusion)) {
-      const i = tabs.infusion
-      const ii = isRecord(i.inputs) ? i.inputs : i
-      loadedInfusion = {
-        decarbedThc: stringish(ii.decarbedThc, DEFAULT_INFUSION.decarbedThc),
-        volume: stringish(ii.volume, DEFAULT_INFUSION.volume),
-        fatId: stringish(ii.fatId, DEFAULT_INFUSION.fatId),
-        customEfficiency: stringish(
-          ii.customEfficiency,
-          DEFAULT_INFUSION.customEfficiency
-        ),
-      }
-    }
-
-    let loadedDose = { ...DEFAULT_DOSE }
-    if (isRecord(tabs.dose)) {
-      const d = tabs.dose
-      const di = isRecord(d.inputs) ? d.inputs : d
-      loadedDose = {
-        totalThc: stringish(di.totalThc, DEFAULT_DOSE.totalThc),
-        servings: stringish(di.servings, DEFAULT_DOSE.servings),
-      }
-    }
-
-    set({
-      units: loadedUnits,
-      decarb: loadedDecarb,
-      infusion: loadedInfusion,
-      dose: loadedDose,
-    })
-  },
-}))
+  )
+)

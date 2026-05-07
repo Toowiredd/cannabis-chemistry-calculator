@@ -35,7 +35,7 @@ function TooltipIcon({ text }: { text: string }) {
       onMouseLeave={() => setShow(false)}
       type="button"
     >
-      <Info className="size-4 shrink-0 cursor-help text-white/50 transition-colors hover:text-white/80" />
+      <Info className="size-4 shrink-0 cursor-help text-white/70 transition-colors hover:text-white/80" />
       {show && (
         <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-white/20 bg-black/90 px-3 py-2 text-xs leading-relaxed text-white/90 shadow-xl">
           {text}
@@ -62,7 +62,7 @@ function UnitToggle<T extends string>({
             'rounded-md px-3 py-1 text-xs font-medium transition-colors',
             value === opt
               ? 'bg-white/15 text-white'
-              : 'text-white/60 hover:text-white/80'
+              : 'text-white/70 hover:text-white/80'
           )}
           key={opt}
           onClick={() => onChange(opt)}
@@ -463,7 +463,7 @@ export function DecarbTab() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {/* ------------------- INPUT PANEL ------------------- */}
         <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/60">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/70">
             Input
           </h3>
 
@@ -697,7 +697,7 @@ export function DecarbTab() {
 
         {/* ------------------- RESULTS PANEL ------------------- */}
         <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/60">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/70">
             Results
           </h3>
 
@@ -714,7 +714,7 @@ export function DecarbTab() {
 
           {/* Theoretical Max */}
           <div className="flex flex-col rounded-xl border border-white/10 bg-white/5 p-4">
-            <span className="text-xs font-medium uppercase tracking-wider text-white/50">
+            <span className="text-xs font-medium uppercase tracking-wider text-white/70">
               Theoretical Maximum THC
             </span>
             <span className="mt-1 text-2xl font-bold text-white">
@@ -724,12 +724,12 @@ export function DecarbTab() {
 
           {/* Decarb-adjusted */}
           <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/5 p-4">
-            <span className="text-xs font-medium uppercase tracking-wider text-white/50">
+            <span className="text-xs font-medium uppercase tracking-wider text-white/70">
               Decarb-Adjusted THC
             </span>
             <div className="mt-1 grid grid-cols-3 gap-2">
               <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-white/40">
+                <span className="text-[10px] uppercase tracking-wider text-white/70">
                   Low
                 </span>
                 <span className="text-lg font-semibold text-white">
@@ -737,7 +737,7 @@ export function DecarbTab() {
                 </span>
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-white/40">
+                <span className="text-[10px] uppercase tracking-wider text-white/70">
                   Expected
                 </span>
                 <span className="text-lg font-semibold text-emerald-300">
@@ -745,7 +745,7 @@ export function DecarbTab() {
                 </span>
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-white/40">
+                <span className="text-[10px] uppercase tracking-wider text-white/70">
                   High
                 </span>
                 <span className="text-lg font-semibold text-white">
@@ -758,7 +758,7 @@ export function DecarbTab() {
           {/* Quality Badges */}
           <div className="grid grid-cols-3 gap-2">
             <div className="flex flex-col items-center rounded-xl border border-white/10 bg-white/5 px-2 py-3 text-center">
-              <span className="text-[10px] font-medium uppercase tracking-wider text-white/40">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
                 Terpene Retention
               </span>
               <span className="mt-1 text-sm font-semibold text-white">
@@ -766,7 +766,7 @@ export function DecarbTab() {
               </span>
             </div>
             <div className="flex flex-col items-center rounded-xl border border-white/10 bg-white/5 px-2 py-3 text-center">
-              <span className="text-[10px] font-medium uppercase tracking-wider text-white/40">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
                 CBN Risk
               </span>
               <span className="mt-1 text-sm font-semibold text-white">
@@ -774,7 +774,7 @@ export function DecarbTab() {
               </span>
             </div>
             <div className="flex flex-col items-center rounded-xl border border-white/10 bg-white/5 px-2 py-3 text-center">
-              <span className="text-[10px] font-medium uppercase tracking-wider text-white/40">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
                 Oxygen Exposure
               </span>
               <span className="mt-1 text-sm font-semibold text-white">
@@ -812,7 +812,7 @@ export function DecarbTab() {
                   </strong>{' '}
                   = theoretical max THC (mg) x decarb efficiency
                 </p>
-                <p className="text-white/50">
+                <p className="text-white/70">
                   THCA loses its carboxyl group (COOH) during decarboxylation.
                   The molecular weight ratio of THC to THCA is approximately
                   0.877.
@@ -824,7 +824,7 @@ export function DecarbTab() {
       </div>
 
       {/* Disclaimer */}
-      <p className="text-center text-xs leading-relaxed text-white/40">
+      <p className="text-center text-xs leading-relaxed text-white/70">
         Estimates are heuristic approximations, not laboratory results. Actual
         potency varies with material quality, decarb technique, and measurement
         accuracy.

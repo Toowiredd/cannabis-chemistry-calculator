@@ -26,7 +26,7 @@ function TooltipIcon({ text }: { text: string }) {
       onMouseLeave={() => setShow(false)}
       type="button"
     >
-      <Info className="size-4 shrink-0 cursor-help text-white/50 transition-colors hover:text-white/80" />
+      <Info className="size-4 shrink-0 cursor-help text-white/70 transition-colors hover:text-white/80" />
       {show && (
         <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-white/20 bg-black/90 px-3 py-2 text-xs leading-relaxed text-white/90 shadow-xl">
           {text}
@@ -166,7 +166,7 @@ function DoseScale({ classification }: { classification: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <span className="text-xs font-medium uppercase tracking-wider text-white/50">
+      <span className="text-xs font-medium uppercase tracking-wider text-white/70">
         Dose Classification Scale
       </span>
 
@@ -180,7 +180,7 @@ function DoseScale({ classification }: { classification: string }) {
                 'group relative flex flex-1 flex-col items-center gap-1 border-y border-l py-2 text-center transition-colors first:rounded-l-lg first:border-l last:rounded-r-lg last:border-r',
                 isActive
                   ? zone.color
-                  : 'border-white/10 bg-white/5 text-white/40',
+                  : 'border-white/10 bg-white/5 text-white/70',
                 isActive && 'z-10'
               )}
               key={zone.key}
@@ -195,12 +195,12 @@ function DoseScale({ classification }: { classification: string }) {
               <span
                 className={cn(
                   'text-[10px] font-semibold uppercase tracking-wider',
-                  isActive ? 'text-white' : 'text-white/50'
+                  isActive ? 'text-white' : 'text-white/70'
                 )}
               >
                 {zone.label}
               </span>
-              <span className="text-[10px] text-white/40">
+              <span className="text-[10px] text-white/70">
                 {zone.max != null
                   ? `${zone.min}-${zone.max} mg`
                   : `${zone.min}+ mg`}
@@ -358,7 +358,7 @@ export function DoseTab() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {/* ------------------- INPUT PANEL ------------------- */}
         <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/60">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/70">
             Input
           </h3>
 
@@ -382,7 +382,7 @@ export function DoseTab() {
                 type="number"
                 value={dose.totalThc}
               />
-              <span className="text-sm text-white/60">mg</span>
+              <span className="text-sm text-white/70">mg</span>
             </div>,
             fieldErrors.totalThc
           )}
@@ -412,13 +412,13 @@ export function DoseTab() {
 
         {/* ------------------- RESULTS PANEL ------------------- */}
         <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/60">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/70">
             Results
           </h3>
 
           {/* mg per serving */}
           <div className="flex flex-col rounded-xl border border-white/10 bg-white/5 p-4">
-            <span className="text-xs font-medium uppercase tracking-wider text-white/50">
+            <span className="text-xs font-medium uppercase tracking-wider text-white/70">
               mg per Serving
             </span>
             <span className="mt-1 text-2xl font-bold text-white">
@@ -430,7 +430,7 @@ export function DoseTab() {
 
           {/* Classification label */}
           <div className="flex flex-col rounded-xl border border-white/10 bg-white/5 p-4">
-            <span className="text-xs font-medium uppercase tracking-wider text-white/50">
+            <span className="text-xs font-medium uppercase tracking-wider text-white/70">
               Classification
             </span>
             <span className="mt-1 text-2xl font-bold text-emerald-300">
@@ -446,7 +446,7 @@ export function DoseTab() {
               <DoseScale classification={results.classification} />
             ) : (
               <div className="flex flex-col gap-3">
-                <span className="text-xs font-medium uppercase tracking-wider text-white/50">
+                <span className="text-xs font-medium uppercase tracking-wider text-white/70">
                   Dose Classification Scale
                 </span>
                 <div className="flex w-full">
@@ -454,14 +454,14 @@ export function DoseTab() {
                     <div
                       className={cn(
                         'flex flex-1 flex-col items-center gap-1 border-y border-l py-2 text-center first:rounded-l-lg first:border-l last:rounded-r-lg last:border-r',
-                        'border-white/10 bg-white/5 text-white/40'
+                        'border-white/10 bg-white/5 text-white/70'
                       )}
                       key={zone.key}
                     >
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-white/50">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-white/70">
                         {zone.label}
                       </span>
-                      <span className="text-[10px] text-white/40">
+                      <span className="text-[10px] text-white/70">
                         {zone.max != null
                           ? `${zone.min}-${zone.max} mg`
                           : `${zone.min}+ mg`}
@@ -493,7 +493,7 @@ export function DoseTab() {
                   <strong className="text-white/90">mg per serving</strong> =
                   total infused THC (mg) / number of servings
                 </p>
-                <p className="text-white/50">
+                <p className="text-white/70">
                   The dose classification is based on the milligrams of THC per
                   individual serving. Individual tolerance varies significantly;
                   start low and adjust gradually.
@@ -505,7 +505,7 @@ export function DoseTab() {
       </div>
 
       {/* Disclaimer */}
-      <p className="text-center text-xs leading-relaxed text-white/40">
+      <p className="text-center text-xs leading-relaxed text-white/70">
         Estimates are heuristic approximations, not laboratory results. Actual
         potency varies with material quality, preparation technique, and
         measurement accuracy.

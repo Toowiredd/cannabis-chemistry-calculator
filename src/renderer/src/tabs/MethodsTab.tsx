@@ -35,7 +35,7 @@ function TooltipIcon({ text }: { text: string }) {
       onMouseLeave={() => setShow(false)}
       type="button"
     >
-      <Info className="size-4 shrink-0 cursor-help text-white/50 transition-colors hover:text-white/80" />
+      <Info className="size-4 shrink-0 cursor-help text-white/70 transition-colors hover:text-white/80" />
       {show && (
         <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-white/20 bg-black/90 px-3 py-2 text-xs leading-relaxed text-white/90 shadow-xl">
           {text}
@@ -62,7 +62,7 @@ function UnitToggle<T extends string>({
             'rounded-md px-3 py-1 text-xs font-medium transition-colors',
             value === opt
               ? 'bg-white/15 text-white'
-              : 'text-white/60 hover:text-white/80'
+              : 'text-white/70 hover:text-white/80'
           )}
           key={opt}
           onClick={() => onChange(opt)}
@@ -99,7 +99,7 @@ function validateSharedInputs(
   } else {
     const w = parseFloat(wStr)
     if (Number.isNaN(w)) errors.weight = 'Please enter a number'
-    else if (w < 0) errors.weight = 'Weight cannot be negative'
+    else if (w <= 0) errors.weight = 'Weight must be greater than 0'
   }
 
   const tStr = thcaPct.trim()
@@ -357,7 +357,7 @@ export function MethodsTab() {
 
       {/* Shared Input Panel */}
       <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-white/60">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-white/70">
           Shared Inputs
         </h3>
 
@@ -447,7 +447,7 @@ export function MethodsTab() {
       {/* Theoretical Max (shared) */}
       {results && (
         <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-          <span className="text-xs font-medium uppercase tracking-wider text-white/50">
+          <span className="text-xs font-medium uppercase tracking-wider text-white/70">
             Theoretical Maximum THC
           </span>
           <span className="text-lg font-bold text-white">
@@ -495,7 +495,7 @@ export function MethodsTab() {
 
               {/* Efficiency */}
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-white/40">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
                   Decarb Efficiency
                 </span>
                 <span className="text-sm font-semibold text-white">
@@ -507,7 +507,7 @@ export function MethodsTab() {
 
               {/* Resulting THC */}
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-white/40">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
                   Resulting THC
                 </span>
                 {methodResults ? (
@@ -515,20 +515,20 @@ export function MethodsTab() {
                     <span className="text-xl font-bold text-white">
                       {fmt1(methodResults.expectedThc)} mg
                     </span>
-                    <span className="text-xs text-white/50">
+                    <span className="text-xs text-white/70">
                       ({fmt1(methodResults.lowThc)}–
                       {fmt1(methodResults.highThc)})
                     </span>
                   </div>
                 ) : (
-                  <span className="text-xl font-bold text-white/30">N/A</span>
+                  <span className="text-xl font-bold text-white/70">N/A</span>
                 )}
               </div>
 
               {/* Qualitative labels */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="flex flex-col items-center rounded-lg border border-white/10 bg-white/5 px-1 py-2 text-center">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-white/40">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
                     Terpenes
                   </span>
                   <span className="mt-0.5 text-xs font-semibold text-white">
@@ -536,7 +536,7 @@ export function MethodsTab() {
                   </span>
                 </div>
                 <div className="flex flex-col items-center rounded-lg border border-white/10 bg-white/5 px-1 py-2 text-center">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-white/40">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
                     CBN Risk
                   </span>
                   <span className="mt-0.5 text-xs font-semibold text-white">
@@ -544,7 +544,7 @@ export function MethodsTab() {
                   </span>
                 </div>
                 <div className="flex flex-col items-center rounded-lg border border-white/10 bg-white/5 px-1 py-2 text-center">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-white/40">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">
                     Oxygen
                   </span>
                   <span className="mt-0.5 text-xs font-semibold text-white">
@@ -567,7 +567,7 @@ export function MethodsTab() {
       </div>
 
       {/* Disclaimer */}
-      <p className="text-center text-xs leading-relaxed text-white/40">
+      <p className="text-center text-xs leading-relaxed text-white/70">
         Estimates are heuristic approximations, not laboratory results. Actual
         potency varies with material quality, decarb technique, and measurement
         accuracy.

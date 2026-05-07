@@ -33,7 +33,7 @@ export function MainScreen() {
               'app-region-no-drag whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors',
               activeTab === tab.id
                 ? 'bg-white/15 text-white border border-white/20'
-                : 'text-white/60 hover:bg-white/5 hover:text-white/80'
+                : 'text-white/70 hover:bg-white/5 hover:text-white/80'
             )}
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -68,7 +68,7 @@ export function MainScreen() {
       </main>
 
       <footer className="relative shrink-0 px-4 py-2 text-center">
-        <p className="text-xs text-white/50">
+        <p className="text-xs text-white/70">
           All calculations are heuristic estimates, not laboratory results.
         </p>
       </footer>

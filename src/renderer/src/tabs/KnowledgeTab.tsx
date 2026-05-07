@@ -175,7 +175,7 @@ function ConceptualCurveChart() {
         {yTicks.map(t => (
           <text
             dominantBaseline="middle"
-            fill="rgba(255,255,255,0.5)"
+            fill="rgba(255,255,255,0.7)"
             fontSize={11}
             key={`yt-${t}`}
             textAnchor="end"
@@ -192,7 +192,7 @@ function ConceptualCurveChart() {
           return (
             <text
               dominantBaseline="hanging"
-              fill="rgba(255,255,255,0.5)"
+              fill="rgba(255,255,255,0.7)"
               fontSize={11}
               key={`xt-${t}`}
               textAnchor="middle"

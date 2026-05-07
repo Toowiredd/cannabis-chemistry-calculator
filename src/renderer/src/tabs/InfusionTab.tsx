@@ -43,7 +43,7 @@ function TooltipIcon({ text }: { text: string }) {
       onMouseLeave={() => setShow(false)}
       type="button"
     >
-      <Info className="size-4 shrink-0 cursor-help text-white/50 transition-colors hover:text-white/80" />
+      <Info className="size-4 shrink-0 cursor-help text-white/70 transition-colors hover:text-white/80" />
       {show && (
         <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-white/20 bg-black/90 px-3 py-2 text-xs leading-relaxed text-white/90 shadow-xl">
           {text}
@@ -70,7 +70,7 @@ function UnitToggle<T extends string>({
             'rounded-md px-3 py-1 text-xs font-medium transition-colors',
             value === opt
               ? 'bg-white/15 text-white'
-              : 'text-white/60 hover:text-white/80'
+              : 'text-white/70 hover:text-white/80'
           )}
           key={opt}
           onClick={() => onChange(opt)}
@@ -444,7 +444,7 @@ export function InfusionTab() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {/* ------------------- INPUT PANEL ------------------- */}
         <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/60">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/70">
             Input
           </h3>
 
@@ -468,7 +468,7 @@ export function InfusionTab() {
                 type="number"
                 value={infusion.decarbedThc}
               />
-              <span className="text-sm text-white/60">mg</span>
+              <span className="text-sm text-white/70">mg</span>
             </div>,
             fieldErrors.decarbedThc
           )}
@@ -498,7 +498,7 @@ export function InfusionTab() {
 
           {/* Preset notes */}
           {preset.notes && (
-            <p className="text-xs leading-relaxed text-white/50">
+            <p className="text-xs leading-relaxed text-white/70">
               {preset.notes}
             </p>
           )}
@@ -535,7 +535,7 @@ export function InfusionTab() {
                     : String(preset.extractionEff)
                 }
               />
-              <span className="text-sm text-white/60">
+              <span className="text-sm text-white/70">
                 {isCustom ? 'custom' : 'preset'}
               </span>
             </div>,
@@ -574,7 +574,7 @@ export function InfusionTab() {
 
         {/* ------------------- RESULTS PANEL ------------------- */}
         <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/60">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-white/70">
             Results
           </h3>
 
@@ -598,7 +598,7 @@ export function InfusionTab() {
 
           {/* Total infused THC */}
           <div className="flex flex-col rounded-xl border border-white/10 bg-white/5 p-4">
-            <span className="text-xs font-medium uppercase tracking-wider text-white/50">
+            <span className="text-xs font-medium uppercase tracking-wider text-white/70">
               Total Infused THC
             </span>
             <span className="mt-1 text-2xl font-bold text-white">
@@ -608,7 +608,7 @@ export function InfusionTab() {
 
           {/* Per-unit */}
           <div className="flex flex-col rounded-xl border border-white/10 bg-white/5 p-4">
-            <span className="text-xs font-medium uppercase tracking-wider text-white/50">
+            <span className="text-xs font-medium uppercase tracking-wider text-white/70">
               Concentration
             </span>
             <span className="mt-1 text-2xl font-bold text-emerald-300">
@@ -621,7 +621,7 @@ export function InfusionTab() {
           {/* Simplified multiplier estimate */}
           {!isCustom && (
             <div className="flex flex-col gap-1 rounded-xl border border-white/10 bg-white/5 p-4">
-              <span className="text-xs font-medium uppercase tracking-wider text-white/50">
+              <span className="text-xs font-medium uppercase tracking-wider text-white/70">
                 Simplified Estimate
               </span>
               <span className="text-lg font-semibold text-white">
@@ -629,7 +629,7 @@ export function InfusionTab() {
                   ? `${fmt1(results.simplifiedEstimate)} mg`
                   : 'N/A'}
               </span>
-              <span className="text-xs text-white/40">
+              <span className="text-xs text-white/70">
                 Approximate total using {preset.simplifiedMultiplier}x
                 multiplier (requires weight and THCA% from Decarb tab)
               </span>
@@ -664,7 +664,7 @@ export function InfusionTab() {
                   <strong className="text-white/90">Simplified estimate</strong>{' '}
                   = material weight (g) x THCA% x multiplier
                 </p>
-                <p className="text-white/50">
+                <p className="text-white/70">
                   Extraction efficiency represents the fraction of available THC
                   that successfully transfers into the carrier fat during
                   infusion. Real-world efficiency depends on fat type,
@@ -677,7 +677,7 @@ export function InfusionTab() {
       </div>
 
       {/* Disclaimer */}
-      <p className="text-center text-xs leading-relaxed text-white/40">
+      <p className="text-center text-xs leading-relaxed text-white/70">
         Estimates are heuristic approximations, not laboratory results. Actual
         potency varies with material quality, infusion technique, and
         measurement accuracy.
