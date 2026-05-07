@@ -303,12 +303,39 @@ export function KnowledgeTab() {
             <Cite doi="10.1089/can.2021.0072" label="Filer 2022" />
           </p>
           <p className="mt-3">
-            THCA weighs about 358.5 g per mole. THC weighs about 314.5 g per
-            mole. The difference (44.0 g) is the exact weight of the CO₂ group
+            THCA weighs about 358.47 g per mole. THC weighs about 314.45 g per
+            mole. The difference (44.02 g) is the exact weight of the CO₂ group
             that gets removed during decarboxylation. Divide THC by THCA and you
-            get 314.5 ÷ 358.5 ≈ 0.877. That is why 1 gram of pure THCA never
+            get 314.45 ÷ 358.47 ≈ 0.877. That is why 1 gram of pure THCA never
             yields 1 gram of THC -- you always lose that CO₂ fragment in the
             process.
+            <Cite doi="10.1021/acs.iecr.0c03791" label="Moreno et al. 2020" />
+          </p>
+        </SectionCard>
+
+        {/* Section 2b: CBDA→CBD Pathway */}
+        <SectionCard
+          icon={<Flame className="size-5 text-foreground/80" />}
+          title="CBDA to CBD Pathway"
+        >
+          <p>
+            Cannabidiolic acid (CBDA) decarboxylates into cannabidiol (CBD)
+            through the exact same mechanism as THCA converts to THC. CBDA and
+            THCA are constitutional isomers: they share the same molecular
+            formula C₂₂H₃₀O₄ and identical molecular weight of approximately
+            358.47 g/mol. Because of this structural identity, the same 0.877
+            factor applies to the CBDA→CBD conversion.
+            <Cite doi="10.1021/acs.iecr.0c03791" label="Moreno et al. 2020" />
+          </p>
+          <p className="mt-3">
+            Despite sharing the same molecular weight and decarboxylation
+            factor, CBDA decarboxylates faster than THCA under equivalent
+            conditions. Comparative kinetic studies show that CBDA has a
+            slightly lower activation energy barrier than THCA, meaning CBD-rich
+            materials may reach acceptable conversion at slightly lower
+            temperatures or shorter times compared with THC-dominant strains.
+            The calculator applies the same 0.877 ratio and efficiency ranges to
+            both pathways.
             <Cite doi="10.1021/acs.iecr.0c03791" label="Moreno et al. 2020" />
           </p>
         </SectionCard>
@@ -541,7 +568,110 @@ export function KnowledgeTab() {
           </p>
         </SectionCard>
 
-        {/* Section 12: Terpene Volatility */}
+        {/* Section 12: Terpene Boiling Points */}
+        <SectionCard
+          icon={<FlaskConical className="size-5 text-foreground/80" />}
+          title="Terpene Boiling Points"
+        >
+          <p>
+            Major cannabis terpenes have normal boiling points that range from
+            about 150°C to over 260°C, but significant evaporation begins well
+            below those thresholds because vapor pressure rises continuously
+            with temperature. The table below lists the normal boiling points of
+            the five most common cannabis terpenes.
+            <Cite doi="10.1089/can.2021.0173" label="Eyal et al. 2023" />
+          </p>
+
+          <div className="mt-4 overflow-hidden rounded-xl border border-foreground/10 bg-foreground/5">
+            <table className="w-full text-sm text-foreground/80">
+              <thead className="border-b border-foreground/10 bg-foreground/10">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
+                    Terpene
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
+                    Normal Boiling Point (°C)
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
+                    Common Character
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-foreground/5">
+                {[
+                  {
+                    name: 'Myrcene',
+                    bp: 168,
+                    note: 'Earthy, musky; most abundant in cannabis',
+                  },
+                  { name: 'Limonene', bp: 176, note: 'Citrus; mood elevation' },
+                  {
+                    name: 'alpha-Pinene',
+                    bp: 156,
+                    note: 'Pine-like; widespread in nature',
+                  },
+                  {
+                    name: 'Linalool',
+                    bp: 198,
+                    note: 'Floral, lavender; calming',
+                  },
+                  {
+                    name: 'beta-Caryophyllene',
+                    bp: 262,
+                    note: 'Spicy, peppery; CB2 binding',
+                  },
+                ].map(t => (
+                  <tr className="hover:bg-foreground/5" key={t.name}>
+                    <td className="px-4 py-2 font-medium text-foreground">
+                      {t.name}
+                    </td>
+                    <td className="px-4 py-2">
+                      {Math.round((t.bp * 9) / 5 + 32)}°F / {t.bp}°C
+                    </td>
+                    <td className="px-4 py-2 text-foreground/70">{t.note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="mt-3 text-xs text-foreground/60">
+            Source: boiling-point data from Eyal et al. (2023)
+            {<Cite doi="10.1089/can.2021.0173" label="Eyal et al. 2023" />}
+            and Raz et al. (2022).
+            {<Cite doi="10.3390/molecules27206920" label="Raz et al. 2022" />}
+          </p>
+        </SectionCard>
+
+        {/* Section 12b: Terpene Retention */}
+        <SectionCard
+          icon={<Leaf className="size-5 text-foreground/80" />}
+          title="Terpene Retention and Evaporation"
+        >
+          <p>
+            Terpene retention during decarboxylation depends on two competing
+            variables: temperature and exposure time. Eyal et al. (2023)
+            demonstrated that monoterpenes such as myrcene, limonene, and
+            alpha-pinene begin measurable evaporation at temperatures as low as
+            40–50°C, well before decarboxylation is complete.
+            {<Cite doi="10.1089/can.2021.0173" label="Eyal et al. 2023" />}
+            Raz et al. (2022) further showed that formulation and handling
+            conditions significantly alter the rate at which terpenes are lost,
+            with vacuum and closed systems dramatically improving preservation.
+            {<Cite doi="10.3390/molecules27206920" label="Raz et al. 2022" />}
+          </p>
+          <p className="mt-3">
+            In practical terms this means the lowest-temperature preset in the
+            calculator preserves the most terpenes, while the
+            highest-temperature presets sacrifice flavor compounds for faster
+            cannabinoid conversion. Vacuum-sealed methods retain both potency
+            and flavor better than open-air methods because they eliminate
+            oxygen-driven terpene oxidation and reduce the partial-pressure
+            gradient that drives evaporation.
+          </p>
+        </SectionCard>
+
+        {/* Section 12c: Terpene Volatility */}
         <SectionCard
           icon={<Flame className="size-5 text-foreground/80" />}
           title="Terpene Volatility and Vapor Pressure"
@@ -581,16 +711,24 @@ export function KnowledgeTab() {
 
           <p className="mt-4 text-[14px] leading-relaxed text-foreground/80">
             The chart below shows the conceptual relationship between heat
-            exposure and the three main compounds. THCA drops as it converts,
-            THC rises to a peak then falls as it degrades into CBN, and CBN
-            slowly accumulates over time. This is an illustrative model -- not
-            data from a specific lab run -- but it captures the general behavior
-            you should expect during decarboxylation.
-            <Cite doi="10.1089/can.2021.0004" label="Jaidee et al. 2022" />
+            exposure and the three main compounds. The shape of these curves is
+            governed by first-order reaction kinetics: the rate of THCA
+            conversion is proportional to the amount of THCA remaining at any
+            moment. As THCA decays it forms THC, which in turn degrades into CBN
+            through a second thermal reaction. The Arrhenius equation (k =
+            A·e^(−Ea/RT)) explains why small temperature changes produce large
+            rate changes: the activation energy Ea for THCA decarboxylation is
+            approximately 85–100 kJ/mol, meaning a 10°C increase can roughly
+            double the reaction rate.
+            <Cite doi="10.1021/acs.iecr.0c03791" label="Moreno et al. 2020" />
             <Cite
-              doi="10.3389/fchem.2022.1038729"
-              label="Garcia-Valverde et al. 2022"
+              doi="10.1016/j.molstruc.2010.11.062"
+              label="Perrotin-Brunel et al. 2011"
             />
+            This is why the calculator's heat×time presets differ so
+            dramatically: higher temperatures accelerate both THCA→THC and
+            THC→CBN simultaneously, shortening the window in which THC is at its
+            peak concentration.
           </p>
 
           <div className="mt-6">

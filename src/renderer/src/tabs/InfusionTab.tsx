@@ -400,6 +400,17 @@ export function InfusionTab() {
     setShowFormula(false)
   }
 
+  /* Escape key resets current tab */
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleReset()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   /* ---------------------------------------------------------------- */
   /* Render helpers                                                   */
   /* ---------------------------------------------------------------- */

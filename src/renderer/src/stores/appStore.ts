@@ -21,6 +21,8 @@ export interface DecarbState {
   weight: string
   thcaPct: string
   thcPct: string
+  cbdaPct: string
+  cbdPct: string
   presetId: string
   tempOverride: string | null
   timeOverride: string | null
@@ -45,6 +47,8 @@ const DEFAULT_DECARB: DecarbState = {
   weight: '3.5',
   thcaPct: '20',
   thcPct: '0',
+  cbdaPct: '0',
+  cbdPct: '0',
   presetId: 'sv_dry',
   tempOverride: null,
   timeOverride: null,
@@ -189,6 +193,8 @@ export const useAppStore = create<AppStore>()(
             weight: stringish(di.weight, DEFAULT_DECARB.weight),
             thcaPct: stringish(di.thcaPct, DEFAULT_DECARB.thcaPct),
             thcPct: stringish(di.thcPct, DEFAULT_DECARB.thcPct),
+            cbdaPct: stringish(di.cbdaPct, DEFAULT_DECARB.cbdaPct),
+            cbdPct: stringish(di.cbdPct, DEFAULT_DECARB.cbdPct),
             presetId: stringish(di.presetId, DEFAULT_DECARB.presetId),
             tempOverride: nullableStringish(di.tempOverride),
             timeOverride: nullableStringish(di.timeOverride),

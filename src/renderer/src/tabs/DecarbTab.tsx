@@ -4,6 +4,10 @@ import {
   calculateTheoreticalMax,
   calculateDecarbedThc,
 } from 'renderer/src/engine/decarb'
+import {
+  calculateTheoreticalMaxCbd,
+  calculateDecarbedCbd,
+} from 'renderer/src/engine/cbda'
 import { DECARB_METHODS } from 'renderer/src/engine/models'
 import { cToF, fToC, gToOz, ozToG } from 'renderer/src/engine/units'
 import { cn } from 'renderer/lib/utils'
@@ -91,6 +95,8 @@ interface FieldErrors {
   weight?: string
   thcaPct?: string
   thcPct?: string
+  cbdaPct?: string
+  cbdPct?: string
   temperature?: string
   time?: string
   effLow?: string
@@ -102,6 +108,8 @@ function validateDecarbFields(
   weight: string,
   thcaPct: string,
   thcPct: string,
+  cbdaPct: string,
+  cbdPct: string,
   tempOverride: string | null,
   timeOverride: string | null,
   effLowOverride: string | null,
@@ -144,7 +152,29 @@ function validateDecarbFields(
     else if (h > 100) errors.thcPct = 'THC cannot exceed 100%'
   }
 
-  // Combined checks
+  // CBDA
+  const cStr = cbdaPct.trim()
+  if (cStr === '') {
+    errors.cbdaPct = 'CBDA percentage is required'
+  } else {
+    const c = parseFloat(cStr)
+    if (Number.isNaN(c)) errors.cbdaPct = 'Please enter a number'
+    else if (c < 0) errors.cbdaPct = 'CBDA cannot be negative'
+    else if (c > 100) errors.cbdaPct = 'CBDA cannot exceed 100%'
+  }
+
+  // CBD
+  const bStr = cbdPct.trim()
+  if (bStr === '') {
+    errors.cbdPct = 'CBD percentage is required'
+  } else {
+    const b = parseFloat(bStr)
+    if (Number.isNaN(b)) errors.cbdPct = 'Please enter a number'
+    else if (b < 0) errors.cbdPct = 'CBD cannot be negative'
+    else if (b > 100) errors.cbdPct = 'CBD cannot exceed 100%'
+  }
+
+  // Combined THC checks
   if (!errors.thcaPct && !errors.thcPct) {
     const t = parseFloat(thcaPct)
     const h = parseFloat(thcPct)
@@ -155,6 +185,21 @@ function validateDecarbFields(
     if (!Number.isNaN(t) && !Number.isNaN(h) && t + h > 40) {
       warnings.push(
         'Note: High total cannabinoid percentage. Verify lab results.'
+      )
+    }
+  }
+
+  // Combined CBD checks
+  if (!errors.cbdaPct && !errors.cbdPct) {
+    const c = parseFloat(cbdaPct)
+    const b = parseFloat(cbdPct)
+    if (!Number.isNaN(c) && !Number.isNaN(b) && c + b > 100) {
+      errors.cbdaPct = 'CBDA + CBD cannot exceed 100%'
+      errors.cbdPct = 'CBDA + CBD cannot exceed 100%'
+    }
+    if (!Number.isNaN(c) && !Number.isNaN(b) && c + b > 40) {
+      warnings.push(
+        'Note: High total CBD cannabinoid percentage. Verify lab results.'
       )
     }
   }
@@ -259,12 +304,22 @@ export function DecarbTab() {
         errs.weight ||
         errs.thcaPct ||
         errs.thcPct ||
+        errs.cbdaPct ||
+        errs.cbdPct ||
         errs.effLow ||
         errs.effExpected ||
         errs.effHigh
       ),
     []
   )
+
+  /* ---------------------------------------------------------------- */
+  /* CBD results state                                                */
+  /* ---------------------------------------------------------------- */
+  const [cbdResults, setCbdResults] = useState<{
+    theoreticalMax: number
+    decarbed: { low: number; expected: number; high: number }
+  } | null>(null)
 
   /* ---------------------------------------------------------------- */
   /* Debounced recalculation                                          */
@@ -276,6 +331,8 @@ export function DecarbTab() {
         decarb.weight,
         decarb.thcaPct,
         decarb.thcPct,
+        decarb.cbdaPct,
+        decarb.cbdPct,
         decarb.tempOverride,
         decarb.timeOverride,
         decarb.effLowOverride,
@@ -289,6 +346,7 @@ export function DecarbTab() {
 
       if (hasBlockingErrors(errors)) {
         setResults(null)
+        setCbdResults(null)
         return
       }
 
@@ -321,6 +379,48 @@ export function DecarbTab() {
       } catch {
         setResults(null)
       }
+
+      try {
+        const cbda = parseFloat(decarb.cbdaPct)
+        const cbd = parseFloat(decarb.cbdPct)
+        if (
+          !Number.isNaN(cbda) &&
+          !Number.isNaN(cbd) &&
+          (cbda > 0 || cbd > 0)
+        ) {
+          const theoreticalMaxCbd = calculateTheoreticalMaxCbd(
+            weightGrams,
+            cbda,
+            cbd
+          )
+
+          const effLow =
+            decarb.effLowOverride != null
+              ? parseFloat(decarb.effLowOverride)
+              : preset.efficiency.low
+          const effExpected =
+            decarb.effExpectedOverride != null
+              ? parseFloat(decarb.effExpectedOverride)
+              : preset.efficiency.expected
+          const effHigh =
+            decarb.effHighOverride != null
+              ? parseFloat(decarb.effHighOverride)
+              : preset.efficiency.high
+
+          setCbdResults({
+            theoreticalMax: theoreticalMaxCbd,
+            decarbed: {
+              low: calculateDecarbedCbd(theoreticalMaxCbd, effLow),
+              expected: calculateDecarbedCbd(theoreticalMaxCbd, effExpected),
+              high: calculateDecarbedCbd(theoreticalMaxCbd, effHigh),
+            },
+          })
+        } else {
+          setCbdResults(null)
+        }
+      } catch {
+        setCbdResults(null)
+      }
     }, 300)
 
     return () => clearTimeout(timer)
@@ -328,6 +428,8 @@ export function DecarbTab() {
     decarb.weight,
     decarb.thcaPct,
     decarb.thcPct,
+    decarb.cbdaPct,
+    decarb.cbdPct,
     decarb.presetId,
     decarb.tempOverride,
     decarb.timeOverride,
@@ -384,10 +486,22 @@ export function DecarbTab() {
   const handleReset = () => {
     resetDecarb()
     setResults(null)
+    setCbdResults(null)
     setFieldErrors({})
     setInlineWarnings([])
     setShowFormula(false)
   }
+
+  /* Escape key resets current tab */
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleReset()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   /* ---------------------------------------------------------------- */
   /* Preset display values                                            */
@@ -540,6 +654,50 @@ export function DecarbTab() {
               value={decarb.thcPct}
             />,
             fieldErrors.thcPct
+          )}
+
+          {/* CBDA */}
+          {inputRow(
+            <>
+              CBDA %
+              <TooltipIcon text="Cannabidiolic acid -- the non-psychoactive precursor to CBD found in raw cannabis. Decarboxylates via the same 0.877 factor as THCA because CBDA and THCA are isomers with identical molecular weight." />
+            </>,
+            <input
+              className={cn(
+                'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                fieldErrors.cbdaPct
+                  ? 'border-red-400/60 focus:border-red-400'
+                  : 'border-foreground/20 focus:border-foreground/40'
+              )}
+              onChange={e => setDecarb({ cbdaPct: e.target.value })}
+              placeholder="0.0"
+              step="0.1"
+              type="number"
+              value={decarb.cbdaPct}
+            />,
+            fieldErrors.cbdaPct
+          )}
+
+          {/* CBD */}
+          {inputRow(
+            <>
+              Existing CBD %
+              <TooltipIcon text="Cannabidiol already present in the material. This does not need decarboxylation and contributes directly to total CBD potency." />
+            </>,
+            <input
+              className={cn(
+                'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                fieldErrors.cbdPct
+                  ? 'border-red-400/60 focus:border-red-400'
+                  : 'border-foreground/20 focus:border-foreground/40'
+              )}
+              onChange={e => setDecarb({ cbdPct: e.target.value })}
+              placeholder="0.0"
+              step="0.1"
+              type="number"
+              value={decarb.cbdPct}
+            />,
+            fieldErrors.cbdPct
           )}
 
           {/* Method preset */}
@@ -788,6 +946,45 @@ export function DecarbTab() {
             </div>
           </div>
 
+          {/* CBD Results (only when CBDA or CBD > 0) */}
+          {(parseFloat(decarb.cbdaPct) > 0 || parseFloat(decarb.cbdPct) > 0) &&
+            cbdResults && (
+              <div className="flex flex-col gap-2 rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
+                  Decarb-Adjusted CBD
+                </span>
+                <div className="mt-1 grid grid-cols-3 gap-2">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                      Low
+                    </span>
+                    <span className="text-lg font-semibold text-foreground">
+                      {`${fmt1(cbdResults.decarbed.low)} mg`}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                      Expected
+                    </span>
+                    <span className="text-lg font-semibold text-emerald-300">
+                      {`${fmt1(cbdResults.decarbed.expected)} mg`}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                      High
+                    </span>
+                    <span className="text-lg font-semibold text-foreground">
+                      {`${fmt1(cbdResults.decarbed.high)} mg`}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-xs text-foreground/70">
+                  Theoretical max CBD: {fmt1(cbdResults.theoreticalMax)} mg
+                </span>
+              </div>
+            )}
+
           {/* Show Formula */}
           <div>
             <button
@@ -817,10 +1014,30 @@ export function DecarbTab() {
                   </strong>{' '}
                   = theoretical max THC (mg) x decarb efficiency
                 </p>
+                {(parseFloat(decarb.cbdaPct) > 0 ||
+                  parseFloat(decarb.cbdPct) > 0) && (
+                  <>
+                    <p className="mb-2">
+                      <strong className="text-foreground/90">
+                        Theoretical max CBD (mg)
+                      </strong>{' '}
+                      = material weight (g) x ((CBDA% / 100) x 0.877 + (CBD% /
+                      100)) x 1000
+                    </p>
+                    <p className="mb-2">
+                      <strong className="text-foreground/90">
+                        Decarb-adjusted CBD (mg)
+                      </strong>{' '}
+                      = theoretical max CBD (mg) x decarb efficiency
+                    </p>
+                  </>
+                )}
                 <p className="text-foreground/70">
-                  THCA loses its carboxyl group (COOH) during decarboxylation.
-                  The molecular weight ratio of THC to THCA is approximately
-                  0.877.
+                  THCA and CBDA lose their carboxyl group (COOH) during
+                  decarboxylation. The molecular weight ratio is approximately
+                  0.877 (THC 314.45 / THCA 358.47). CBDA uses the same factor
+                  because THCA and CBDA are isomers with identical molecular
+                  formula C₂₂H₃₀O₄.
                 </p>
               </div>
             )}

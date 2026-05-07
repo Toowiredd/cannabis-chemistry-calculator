@@ -40,6 +40,8 @@ export function PresetActions() {
             weight: decarb.weight,
             thcaPct: decarb.thcaPct,
             thcPct: decarb.thcPct,
+            cbdaPct: decarb.cbdaPct,
+            cbdPct: decarb.cbdPct,
             presetId: decarb.presetId,
             tempOverride: decarb.tempOverride,
             timeOverride: decarb.timeOverride,

@@ -83,12 +83,16 @@ interface FieldErrors {
   weight?: string
   thcaPct?: string
   thcPct?: string
+  cbdaPct?: string
+  cbdPct?: string
 }
 
 function validateSharedInputs(
   weight: string,
   thcaPct: string,
-  thcPct: string
+  thcPct: string,
+  cbdaPct: string,
+  cbdPct: string
 ): { errors: FieldErrors; warnings: string[] } {
   const errors: FieldErrors = {}
   const warnings: string[] = []
@@ -122,6 +126,26 @@ function validateSharedInputs(
     else if (h > 100) errors.thcPct = 'THC cannot exceed 100%'
   }
 
+  const cStr = cbdaPct.trim()
+  if (cStr === '') {
+    errors.cbdaPct = 'CBDA percentage is required'
+  } else {
+    const c = parseFloat(cStr)
+    if (Number.isNaN(c)) errors.cbdaPct = 'Please enter a number'
+    else if (c < 0) errors.cbdaPct = 'CBDA cannot be negative'
+    else if (c > 100) errors.cbdaPct = 'CBDA cannot exceed 100%'
+  }
+
+  const bStr = cbdPct.trim()
+  if (bStr === '') {
+    errors.cbdPct = 'CBD percentage is required'
+  } else {
+    const b = parseFloat(bStr)
+    if (Number.isNaN(b)) errors.cbdPct = 'Please enter a number'
+    else if (b < 0) errors.cbdPct = 'CBD cannot be negative'
+    else if (b > 100) errors.cbdPct = 'CBD cannot exceed 100%'
+  }
+
   if (!errors.thcaPct && !errors.thcPct) {
     const t = parseFloat(thcaPct)
     const h = parseFloat(thcPct)
@@ -133,6 +157,15 @@ function validateSharedInputs(
       warnings.push(
         'Note: High total cannabinoid percentage. Verify lab results.'
       )
+    }
+  }
+
+  if (!errors.cbdaPct && !errors.cbdPct) {
+    const c = parseFloat(cbdaPct)
+    const b = parseFloat(cbdPct)
+    if (!Number.isNaN(c) && !Number.isNaN(b) && c + b > 100) {
+      errors.cbdaPct = 'CBDA + CBD cannot exceed 100%'
+      errors.cbdPct = 'CBDA + CBD cannot exceed 100%'
     }
   }
 
@@ -188,7 +221,14 @@ export function MethodsTab() {
   }, [decarb.weight, units.weightUnit])
 
   const hasBlockingErrors = useCallback(
-    (errs: FieldErrors) => !!(errs.weight || errs.thcaPct || errs.thcPct),
+    (errs: FieldErrors) =>
+      !!(
+        errs.weight ||
+        errs.thcaPct ||
+        errs.thcPct ||
+        errs.cbdaPct ||
+        errs.cbdPct
+      ),
     []
   )
 
@@ -201,7 +241,9 @@ export function MethodsTab() {
       const { errors, warnings } = validateSharedInputs(
         decarb.weight,
         decarb.thcaPct,
-        decarb.thcPct
+        decarb.thcPct,
+        decarb.cbdaPct,
+        decarb.cbdPct
       )
 
       setFieldErrors(errors)
@@ -445,6 +487,48 @@ export function MethodsTab() {
               value={decarb.thcPct}
             />,
             fieldErrors.thcPct
+          )}
+
+          {inputRow(
+            <>
+              CBDA %
+              <TooltipIcon text="Cannabidiolic acid -- the non-psychoactive precursor to CBD found in raw cannabis." />
+            </>,
+            <input
+              className={cn(
+                'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                fieldErrors.cbdaPct
+                  ? 'border-red-400/60 focus:border-red-400'
+                  : 'border-foreground/20 focus:border-foreground/40'
+              )}
+              onChange={e => setDecarb({ cbdaPct: e.target.value })}
+              placeholder="0.0"
+              step="0.1"
+              type="number"
+              value={decarb.cbdaPct}
+            />,
+            fieldErrors.cbdaPct
+          )}
+
+          {inputRow(
+            <>
+              Existing CBD %
+              <TooltipIcon text="Cannabidiol already present in the material. This does not need decarboxylation and contributes directly to total CBD potency." />
+            </>,
+            <input
+              className={cn(
+                'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                fieldErrors.cbdPct
+                  ? 'border-red-400/60 focus:border-red-400'
+                  : 'border-foreground/20 focus:border-foreground/40'
+              )}
+              onChange={e => setDecarb({ cbdPct: e.target.value })}
+              placeholder="0.0"
+              step="0.1"
+              type="number"
+              value={decarb.cbdPct}
+            />,
+            fieldErrors.cbdPct
           )}
         </div>
       </div>
