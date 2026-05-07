@@ -2,6 +2,11 @@ import { useMemo, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { cn } from 'renderer/lib/utils'
 import {
+  calculateTheoreticalMax,
+  calculateDecarbedThc,
+} from 'renderer/src/engine/decarb'
+import { calculateInfusedThc } from 'renderer/src/engine/infusion'
+import {
   LayoutDashboard,
   BarChart3,
   PieChart,
@@ -329,7 +334,9 @@ export function DashboardTab() {
       .filter(i => i.type === 'usage' && monthKey(i.date) === currentMonth)
       .reduce((sum, i) => sum + (parseFloat(i.amountGrams) || 0), 0)
 
-    const estimatedThcMg = onHand * 0.2 * 0.877 * 1000 * 0.82 * 0.85
+    const theoreticalMax = calculateTheoreticalMax(onHand, 20, 0)
+    const decarbedThc = calculateDecarbedThc(theoreticalMax, 0.85)
+    const estimatedThcMg = calculateInfusedThc(decarbedThc, 0.82)
 
     const threshold = parseFloat(inventory.lowStockThreshold) || 3.5
     const lowStock = onHand < threshold

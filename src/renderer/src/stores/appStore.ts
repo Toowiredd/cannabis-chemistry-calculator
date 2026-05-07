@@ -448,6 +448,7 @@ export const useAppStore = create<AppStore>()(
         units: state.units,
         theme: state.theme,
         label: state.label,
+        inventory: state.inventory,
       }),
     }
   )
