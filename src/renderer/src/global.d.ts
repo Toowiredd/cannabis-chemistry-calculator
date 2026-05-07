@@ -24,6 +24,21 @@ declare global {
         data?: Record<string, unknown>
         canceled?: boolean
       }>
+      saveJournalEntry: (data: Record<string, unknown>) => Promise<{
+        success: boolean
+        error?: string
+        id?: string
+        filePath?: string
+      }>
+      loadJournalEntries: () => Promise<{
+        success: boolean
+        error?: string
+        entries: Record<string, unknown>[]
+      }>
+      deleteJournalEntry: (id: string) => Promise<{
+        success: boolean
+        error?: string
+      }>
       openExternal: (url: string) => Promise<{ success: boolean }>
       platform: string
     }

@@ -14,6 +14,7 @@ import { cn } from 'renderer/lib/utils'
 import { Info, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
 import { BagCalculator } from 'renderer/src/components/BagCalculator'
+import { TimerWidget } from 'renderer/src/components/Timer'
 
 /* ------------------------------------------------------------------ */
 /* Small helpers                                                      */
@@ -1065,6 +1066,9 @@ export function DecarbTab() {
           <BagCalculator tempC={preset.tempC} />
         </div>
       )}
+
+      {/* Timer Widget */}
+      <TimerWidget />
 
       {/* Disclaimer */}
       <p className="text-center text-xs leading-relaxed text-foreground/70">

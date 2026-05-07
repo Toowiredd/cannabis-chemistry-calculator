@@ -8,6 +8,7 @@ export type TabId =
   | 'methods'
   | 'fats'
   | 'knowledge'
+  | 'journal'
 
 export type Theme = 'dark' | 'light'
 
@@ -48,6 +49,36 @@ export interface InfusionState {
 export interface DoseState {
   totalThc: string
   servings: string
+}
+
+export interface JournalEntry {
+  id: string
+  date: string
+  strainName: string
+  materialWeight: string
+  thcaPct: string
+  thcPct: string
+  cbdaPct: string
+  cbdPct: string
+  methodId: string
+  methodName: string
+  fatId: string
+  fatName: string
+  servings: string
+  mgPerServing: string
+  classification: string
+  totalInfusedThc: string
+  concentration: string
+  volume: string
+  volumeUnit: string
+  notes: string
+}
+
+export interface TimerState {
+  active: boolean
+  endTime: number | null
+  totalSeconds: number
+  methodName: string
 }
 
 const DEFAULT_DECARB: DecarbState = {
@@ -114,6 +145,17 @@ interface AppStore {
   setLastInfusedThc: (val: string) => void
 
   loadFromPreset: (preset: unknown) => void
+
+  /** Journal entries (loaded from disk on demand) */
+  journalEntries: JournalEntry[]
+  setJournalEntries: (entries: JournalEntry[]) => void
+  addJournalEntry: (entry: JournalEntry) => void
+  deleteJournalEntry: (id: string) => void
+
+  /** Timer state */
+  timer: TimerState
+  setTimer: (partial: Partial<TimerState>) => void
+  resetTimer: () => void
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -173,6 +215,35 @@ export const useAppStore = create<AppStore>()(
 
       lastInfusedThc: '',
       setLastInfusedThc: val => set({ lastInfusedThc: val }),
+
+      journalEntries: [],
+      setJournalEntries: entries => set({ journalEntries: entries }),
+      addJournalEntry: entry =>
+        set(state => ({
+          journalEntries: [entry, ...state.journalEntries],
+        })),
+      deleteJournalEntry: id =>
+        set(state => ({
+          journalEntries: state.journalEntries.filter(e => e.id !== id),
+        })),
+
+      timer: {
+        active: false,
+        endTime: null,
+        totalSeconds: 0,
+        methodName: '',
+      },
+      setTimer: partial =>
+        set(state => ({ timer: { ...state.timer, ...partial } })),
+      resetTimer: () =>
+        set({
+          timer: {
+            active: false,
+            endTime: null,
+            totalSeconds: 0,
+            methodName: '',
+          },
+        }),
 
       loadFromPreset: (preset: unknown) => {
         if (!isRecord(preset)) return

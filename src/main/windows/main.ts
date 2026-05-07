@@ -1,18 +1,32 @@
 import { app, BrowserWindow, ipcMain, dialog, clipboard, shell } from 'electron'
 import { join } from 'node:path'
-import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs'
+import {
+  writeFileSync,
+  readFileSync,
+  mkdirSync,
+  existsSync,
+  readdirSync,
+} from 'node:fs'
 
 import { createWindow } from 'lib/electron-app/factories/windows/create'
 import { ENVIRONMENT } from 'shared/constants'
 import { displayName } from '~/package.json'
 
 let presetsDir: string
+let journalDir: string
 
 function getPresetsDir(): string {
   if (!presetsDir) {
     presetsDir = join(app.getPath('userData'), 'presets')
   }
   return presetsDir
+}
+
+function getJournalDir(): string {
+  if (!journalDir) {
+    journalDir = join(app.getPath('userData'), 'journal')
+  }
+  return journalDir
 }
 
 export async function MainWindow() {
@@ -216,6 +230,102 @@ export async function MainWindow() {
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Failed to load preset'
+      return { success: false, error: message }
+    }
+  })
+
+  /* ---------------------------------------------------------------- */
+  /* Journal — save/load/delete entries                                */
+  /* ---------------------------------------------------------------- */
+
+  ipcMain.handle('save-journal-entry', async (_event, data: unknown) => {
+    try {
+      const dir = getJournalDir()
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true })
+      }
+
+      const entry = data as Record<string, unknown>
+      const id =
+        typeof entry.id === 'string' && entry.id
+          ? entry.id
+          : `entry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      const filePath = join(dir, `${id}.json`)
+
+      const payload = {
+        ...entry,
+        id,
+        savedAt: new Date().toISOString(),
+      }
+
+      writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf-8')
+      return { success: true, id, filePath }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to save journal entry'
+      return { success: false, error: message }
+    }
+  })
+
+  ipcMain.handle('load-journal-entries', async () => {
+    try {
+      const dir = getJournalDir()
+      if (!existsSync(dir)) {
+        return { success: true, entries: [] }
+      }
+
+      const files = readdirSync(dir).filter(f => f.endsWith('.json'))
+      const entries: Record<string, unknown>[] = []
+
+      for (const file of files) {
+        try {
+          const content = readFileSync(join(dir, file), 'utf-8')
+          const parsed = JSON.parse(content)
+          if (typeof parsed === 'object' && parsed !== null) {
+            entries.push(parsed as Record<string, unknown>)
+          }
+        } catch {
+          // Skip corrupt files silently
+        }
+      }
+
+      // Sort by date descending (newest first)
+      entries.sort((a, b) => {
+        const ad =
+          typeof a.date === 'string'
+            ? a.date
+            : typeof a.savedAt === 'string'
+              ? a.savedAt
+              : ''
+        const bd =
+          typeof b.date === 'string'
+            ? b.date
+            : typeof b.savedAt === 'string'
+              ? b.savedAt
+              : ''
+        return bd.localeCompare(ad)
+      })
+
+      return { success: true, entries }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to load journal entries'
+      return { success: false, error: message, entries: [] }
+    }
+  })
+
+  ipcMain.handle('delete-journal-entry', async (_event, id: string) => {
+    try {
+      const dir = getJournalDir()
+      const filePath = join(dir, `${id}.json`)
+      if (existsSync(filePath)) {
+        const { unlinkSync } = require('node:fs')
+        unlinkSync(filePath)
+      }
+      return { success: true }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to delete journal entry'
       return { success: false, error: message }
     }
   })

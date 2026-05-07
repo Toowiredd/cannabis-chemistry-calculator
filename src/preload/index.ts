@@ -22,6 +22,11 @@ const API = {
   savePreset: (data: { name: string; presetData: Record<string, unknown> }) =>
     ipcRenderer.invoke('save-preset', data),
   loadPresetDialog: () => ipcRenderer.invoke('load-preset-dialog'),
+  saveJournalEntry: (data: Record<string, unknown>) =>
+    ipcRenderer.invoke('save-journal-entry', data),
+  loadJournalEntries: () => ipcRenderer.invoke('load-journal-entries'),
+  deleteJournalEntry: (id: string) =>
+    ipcRenderer.invoke('delete-journal-entry', id),
   openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
   platform: process.platform,
 } as const

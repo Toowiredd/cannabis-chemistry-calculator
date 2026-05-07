@@ -8,6 +8,7 @@ import { DoseTab } from 'renderer/src/tabs/DoseTab'
 import { MethodsTab } from 'renderer/src/tabs/MethodsTab'
 import { FatsTab } from 'renderer/src/tabs/FatsTab'
 import { KnowledgeTab } from 'renderer/src/tabs/KnowledgeTab'
+import { JournalTab } from 'renderer/src/tabs/JournalTab'
 import { useAppStore, type TabId } from 'renderer/src/stores/appStore'
 
 const TAB_ITEMS: { id: TabId; label: string }[] = [
@@ -17,6 +18,7 @@ const TAB_ITEMS: { id: TabId; label: string }[] = [
   { id: 'methods', label: 'Methods' },
   { id: 'fats', label: 'Fats' },
   { id: 'knowledge', label: 'Knowledge' },
+  { id: 'journal', label: 'Journal' },
 ]
 
 export function MainScreen() {
@@ -69,6 +71,9 @@ export function MainScreen() {
           </div>
           <div className={cn(activeTab === 'knowledge' ? 'block' : 'hidden')}>
             <KnowledgeTab />
+          </div>
+          <div className={cn(activeTab === 'journal' ? 'block' : 'hidden')}>
+            <JournalTab />
           </div>
         </GlassCard>
       </main>
