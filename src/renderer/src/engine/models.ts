@@ -122,6 +122,38 @@ export interface PresetFat {
 }
 
 // ---------------------------------------------------------------------------
+// Bag Volume Calculator
+// ---------------------------------------------------------------------------
+
+/** Grind level with bulk-density factor */
+export interface GrindLevel {
+  /** Internal identifier */
+  id: string
+  /** Human-readable name (text-only, no symbols) */
+  name: string
+  /** Bulk volume in cm³ per gram of material */
+  cm3PerGram: number
+}
+
+/** Bag preset for sous vide cooking */
+export interface PresetBag {
+  /** Internal identifier */
+  id: string
+  /** Human-readable name (text-only, no symbols) */
+  name: string
+  /** Bag width in cm (internal unit) */
+  widthCm: number
+  /** Bag length in cm (internal unit) */
+  lengthCm: number
+  /** Typical usable depth in cm (internal unit) */
+  depthCm: number
+  /** Computed volume in cm³ */
+  volumeCm3: number
+  /** Bag construction type */
+  bagType: 'zip' | 'vacuum'
+}
+
+// ---------------------------------------------------------------------------
 // Method Preset Data -- exactly 6 entries
 // ---------------------------------------------------------------------------
 
@@ -229,5 +261,67 @@ export const INFUSION_FATS: readonly PresetFat[] = [
     extractionEff: 0.0,
     simplifiedMultiplier: 0.0,
     notes: 'User-defined carrier fat; set extraction efficiency manually',
+  },
+] as const
+
+// ---------------------------------------------------------------------------
+// Grind Level Data -- exactly 3 entries
+// ---------------------------------------------------------------------------
+
+export const GRIND_LEVELS: readonly GrindLevel[] = [
+  { id: 'coarse', name: 'Coarse', cm3PerGram: 6.0 },
+  { id: 'medium', name: 'Medium', cm3PerGram: 3.5 },
+  { id: 'fine', name: 'Fine', cm3PerGram: 2.2 },
+] as const
+
+// ---------------------------------------------------------------------------
+// Bag Preset Data -- 5 sizes + custom
+// ---------------------------------------------------------------------------
+
+export const BAG_PRESETS: readonly PresetBag[] = [
+  {
+    id: 'quart',
+    name: 'Quart Bag',
+    widthCm: 17.8,
+    lengthCm: 20.3,
+    depthCm: 0.17,
+    volumeCm3: 61.4,
+    bagType: 'zip',
+  },
+  {
+    id: 'gallon',
+    name: 'Gallon Bag',
+    widthCm: 28.0,
+    lengthCm: 27.9,
+    depthCm: 0.25,
+    volumeCm3: 195.3,
+    bagType: 'zip',
+  },
+  {
+    id: '2gallon',
+    name: '2-Gallon Bag',
+    widthCm: 40.6,
+    lengthCm: 42.9,
+    depthCm: 0.25,
+    volumeCm3: 433.7,
+    bagType: 'zip',
+  },
+  {
+    id: 'small_vac',
+    name: 'Small Vacuum Bag',
+    widthCm: 16.5,
+    lengthCm: 21.0,
+    depthCm: 0.167,
+    volumeCm3: 57.9,
+    bagType: 'vacuum',
+  },
+  {
+    id: 'large_vac',
+    name: 'Large Vacuum Bag',
+    widthCm: 22.9,
+    lengthCm: 33.0,
+    depthCm: 0.17,
+    volumeCm3: 128.5,
+    bagType: 'vacuum',
   },
 ] as const
