@@ -95,6 +95,8 @@ export interface CostComparisonResult {
   costPerDose: number
   /** Cost per mg of THC */
   costPerMg: number
+  /** True when infusedThc is zero, guarding against division-by-zero */
+  zeroYield: boolean
 }
 
 /**
@@ -148,12 +150,33 @@ export function compareMethodCosts(
     throw new ValidationError('targetDose must be greater than 0')
   }
 
+  for (const method of methods) {
+    if (method.efficiency < 0 || method.efficiency > 1) {
+      throw new ValidationError('method efficiency must be in [0.0, 1.0]')
+    }
+  }
+
   const theoreticalMax =
     grams * ((thcaPct / 100) * THCA_TO_THC_FACTOR + thcPct / 100) * 1000
 
   return methods.map(method => {
     const decarbedThc = theoreticalMax * method.efficiency
     const infusedThc = decarbedThc * extractionEff
+    const zeroYield = infusedThc === 0
+
+    if (zeroYield) {
+      return {
+        methodId: method.id,
+        methodName: method.name,
+        decarbEfficiency: method.efficiency,
+        totalThcMg: 0,
+        servings: 0,
+        costPerDose: 0,
+        costPerMg: 0,
+        zeroYield: true,
+      }
+    }
+
     const servings = infusedThc / targetDose
 
     return {
@@ -164,6 +187,7 @@ export function compareMethodCosts(
       servings: round1(servings),
       costPerDose: round2(materialCost / servings),
       costPerMg: round3(materialCost / infusedThc),
+      zeroYield: false,
     }
   })
 }

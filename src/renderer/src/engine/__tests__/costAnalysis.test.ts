@@ -75,6 +75,112 @@ describe('calculateCostPerMg', () => {
   })
 })
 
+describe('compareMethodCosts — efficiency validation', () => {
+  it('throws ValidationError when a method efficiency is below 0', () => {
+    const methods = [{ id: 'bad', name: 'Bad Method', efficiency: -0.1 }]
+    expect(() => compareMethodCosts(80, 10, 20, 0, methods, 0.82, 10)).toThrow(
+      ValidationError
+    )
+    expect(() => compareMethodCosts(80, 10, 20, 0, methods, 0.82, 10)).toThrow(
+      'method efficiency must be in [0.0, 1.0]'
+    )
+  })
+
+  it('throws ValidationError when a method efficiency is above 1.0', () => {
+    const methods = [{ id: 'bad', name: 'Bad Method', efficiency: 1.05 }]
+    expect(() => compareMethodCosts(80, 10, 20, 0, methods, 0.82, 10)).toThrow(
+      ValidationError
+    )
+    expect(() => compareMethodCosts(80, 10, 20, 0, methods, 0.82, 10)).toThrow(
+      'method efficiency must be in [0.0, 1.0]'
+    )
+  })
+
+  it('throws ValidationError when any method in array has invalid efficiency', () => {
+    const methods = [
+      { id: 'good', name: 'Good Method', efficiency: 0.96 },
+      { id: 'bad', name: 'Bad Method', efficiency: 1.2 },
+    ]
+    expect(() => compareMethodCosts(80, 10, 20, 0, methods, 0.82, 10)).toThrow(
+      ValidationError
+    )
+  })
+
+  it('accepts efficiency exactly 0.0', () => {
+    const methods = [{ id: 'zero', name: 'Zero Efficiency', efficiency: 0.0 }]
+    const result = compareMethodCosts(80, 10, 20, 0, methods, 0.82, 10)
+    expect(result).toHaveLength(1)
+    expect(result[0].zeroYield).toBe(true)
+  })
+
+  it('accepts efficiency exactly 1.0', () => {
+    const methods = [{ id: 'full', name: 'Full Efficiency', efficiency: 1.0 }]
+    const result = compareMethodCosts(80, 10, 20, 0, methods, 0.82, 10)
+    expect(result).toHaveLength(1)
+    expect(result[0].decarbEfficiency).toBe(1.0)
+  })
+})
+
+describe('compareMethodCosts — zero yield', () => {
+  it('returns zeroYield=true with 0 costs when grams is 0', () => {
+    const methods = [
+      { id: 'sv_dry', name: 'Sous Vide -- Dry', efficiency: 0.96 },
+    ]
+    const result = compareMethodCosts(80, 0, 20, 0, methods, 0.82, 10)
+    expect(result[0].totalThcMg).toBe(0)
+    expect(result[0].servings).toBe(0)
+    expect(result[0].costPerDose).toBe(0)
+    expect(result[0].costPerMg).toBe(0)
+    expect(result[0].zeroYield).toBe(true)
+  })
+
+  it('returns zeroYield=true with 0 costs when extractionEff is 0', () => {
+    const methods = [
+      { id: 'sv_dry', name: 'Sous Vide -- Dry', efficiency: 0.96 },
+    ]
+    const result = compareMethodCosts(80, 10, 20, 0, methods, 0.0, 10)
+    expect(result[0].totalThcMg).toBe(0)
+    expect(result[0].servings).toBe(0)
+    expect(result[0].costPerDose).toBe(0)
+    expect(result[0].costPerMg).toBe(0)
+    expect(result[0].zeroYield).toBe(true)
+  })
+
+  it('returns zeroYield=true with 0 costs when method efficiency is 0', () => {
+    const methods = [
+      { id: 'zero_eff', name: 'Zero Efficiency', efficiency: 0.0 },
+    ]
+    const result = compareMethodCosts(80, 10, 20, 0, methods, 0.82, 10)
+    expect(result[0].totalThcMg).toBe(0)
+    expect(result[0].servings).toBe(0)
+    expect(result[0].costPerDose).toBe(0)
+    expect(result[0].costPerMg).toBe(0)
+    expect(result[0].zeroYield).toBe(true)
+  })
+
+  it('returns zeroYield=true with 0 costs when THCA and THC are both 0', () => {
+    const methods = [
+      { id: 'sv_dry', name: 'Sous Vide -- Dry', efficiency: 0.96 },
+    ]
+    const result = compareMethodCosts(80, 10, 0, 0, methods, 0.82, 10)
+    expect(result[0].totalThcMg).toBe(0)
+    expect(result[0].servings).toBe(0)
+    expect(result[0].costPerDose).toBe(0)
+    expect(result[0].costPerMg).toBe(0)
+    expect(result[0].zeroYield).toBe(true)
+  })
+
+  it('returns zeroYield=false for normal non-zero yield', () => {
+    const methods = [
+      { id: 'sv_dry', name: 'Sous Vide -- Dry', efficiency: 0.96 },
+    ]
+    const result = compareMethodCosts(80, 10, 20, 0, methods, 0.82, 10)
+    expect(result[0].zeroYield).toBe(false)
+    expect(result[0].costPerDose).toBeGreaterThan(0)
+    expect(result[0].costPerMg).toBeGreaterThan(0)
+  })
+})
+
 describe('compareMethodCosts', () => {
   it('compares sv_dry vs oven_open (VAL-COST-002)', () => {
     // 10g, 20% THCA, 0% THC → theoretical max = 1754.0 mg
@@ -94,15 +200,17 @@ describe('compareMethodCosts', () => {
     expect(svDry).toBeDefined()
     expect(ovenOpen).toBeDefined()
 
-    // sv_dry should have lower cost per mg (more efficient)
-    expect(svDry?.costPerMg).toBeLessThan(ovenOpen?.costPerMg)
-    expect(svDry?.costPerDose).toBeLessThan(ovenOpen?.costPerDose)
+    if (svDry && ovenOpen) {
+      // sv_dry should have lower cost per mg (more efficient)
+      expect(svDry.costPerMg).toBeLessThan(ovenOpen.costPerMg)
+      expect(svDry.costPerDose).toBeLessThan(ovenOpen.costPerDose)
 
-    // sv_dry should have more servings
-    expect(svDry?.servings).toBeGreaterThan(ovenOpen?.servings)
+      // sv_dry should have more servings
+      expect(svDry.servings).toBeGreaterThan(ovenOpen.servings)
 
-    // sv_dry should have more total THC
-    expect(svDry?.totalThcMg).toBeGreaterThan(ovenOpen?.totalThcMg)
+      // sv_dry should have more total THC
+      expect(svDry.totalThcMg).toBeGreaterThan(ovenOpen.totalThcMg)
+    }
   })
 
   it('returns empty array when methods array is empty', () => {
