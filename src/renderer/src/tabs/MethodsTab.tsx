@@ -403,7 +403,7 @@ export function MethodsTab() {
           {inputRow(
             <>
               THCA %
-              <TooltipIcon text="Tetrahydrocannabinolic acid N/A the non-psychoactive precursor to THC found in raw cannabis." />
+              <TooltipIcon text="Tetrahydrocannabinolic acid -- the non-psychoactive precursor to THC found in raw cannabis." />
             </>,
             <input
               className={cn(
