@@ -13,7 +13,14 @@ import type { Strain } from 'renderer/src/engine/models'
 import { cToF, fToC, gToOz, ozToG } from 'renderer/src/engine/units'
 import { minSigFigs, formatWithSigFigs } from 'renderer/src/engine/formatting'
 import { cn } from 'renderer/lib/utils'
-import { Info, ChevronDown, ChevronUp, RotateCcw, Leaf } from 'lucide-react'
+import {
+  Info,
+  ChevronDown,
+  ChevronUp,
+  RotateCcw,
+  Leaf,
+  AlertTriangle,
+} from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
 import { BagCalculator } from 'renderer/src/components/BagCalculator'
 import { TimerWidget } from 'renderer/src/components/Timer'
@@ -274,6 +281,30 @@ export function DecarbTab() {
   const resetDecarb = useAppStore(s => s.resetDecarb)
   const units = useAppStore(s => s.units)
   const setUnits = useAppStore(s => s.setUnits)
+  const inventory = useAppStore(s => s.inventory)
+
+  /* Inventory warning */
+  const [inventoryWarning, setInventoryWarning] = useState<string | null>(null)
+
+  useEffect(() => {
+    const w = parseFloat(decarb.weight)
+    if (Number.isNaN(w) || w <= 0) {
+      setInventoryWarning(null)
+      return
+    }
+    const weightGrams = units.weightUnit === 'oz' ? ozToG(w) : w
+    const onHand = inventory.items.reduce((sum, i) => {
+      const g = parseFloat(i.amountGrams) || 0
+      return i.type === 'purchase' ? sum + g : sum - g
+    }, 0)
+    if (weightGrams > onHand) {
+      setInventoryWarning(
+        `Insufficient material: need ${weightGrams.toFixed(1)}g, have ${onHand.toFixed(1)}g`
+      )
+    } else {
+      setInventoryWarning(null)
+    }
+  }, [decarb.weight, units.weightUnit, inventory.items])
 
   /* Preset lookup */
   const preset = useMemo(
@@ -478,7 +509,7 @@ export function DecarbTab() {
       if (data.cbdPct !== '') updates.cbdPct = data.cbdPct
       if (Object.keys(updates).length > 0) setDecarb(updates)
     },
-    [decarb, setDecarb]
+    [setDecarb]
   )
 
   const handleSelectStrain = useCallback(
@@ -488,6 +519,7 @@ export function DecarbTab() {
         thcPct: String(strain.thcPct),
         cbdaPct: String(strain.cbdaPct),
         cbdPct: String(strain.cbdPct),
+        strainId: strain.id,
       })
     },
     [setDecarb]
@@ -544,6 +576,7 @@ export function DecarbTab() {
     setCbdResults(null)
     setFieldErrors({})
     setInlineWarnings([])
+    setInventoryWarning(null)
     setShowFormula(false)
   }
 
@@ -704,6 +737,12 @@ export function DecarbTab() {
           <LabPasteField onParsed={handleLabParsed} />
 
           {/* Weight */}
+          {inventoryWarning && (
+            <div className="flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">
+              <AlertTriangle className="size-4 shrink-0" />
+              {inventoryWarning}
+            </div>
+          )}
           {inputRow(
             <>
               Material Weight

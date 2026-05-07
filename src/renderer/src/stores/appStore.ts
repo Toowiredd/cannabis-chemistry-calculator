@@ -41,6 +41,7 @@ export interface DecarbState {
   bagWidthOverride: string | null
   bagLengthOverride: string | null
   bagHasStems: boolean
+  strainId: string | null
 }
 
 export interface InfusionState {
@@ -106,6 +107,7 @@ export interface JournalEntry {
   id: string
   date: string
   strainName: string
+  strainId: string | null
   materialWeight: string
   thcaPct: string
   thcPct: string
@@ -150,6 +152,7 @@ const DEFAULT_DECARB: DecarbState = {
   bagWidthOverride: null,
   bagLengthOverride: null,
   bagHasStems: false,
+  strainId: null,
 }
 
 const DEFAULT_INFUSION: InfusionState = {
@@ -404,6 +407,7 @@ export const useAppStore = create<AppStore>()(
               typeof di.bagHasStems === 'boolean'
                 ? di.bagHasStems
                 : DEFAULT_DECARB.bagHasStems,
+            strainId: nullableStringish(di.strainId),
           }
         }
 

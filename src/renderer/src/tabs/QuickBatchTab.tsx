@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
 import {
@@ -8,31 +8,19 @@ import {
 import {
   calculateInfusedThc,
   calculateMgPerMl,
-  calculateSimplifiedEstimate,
 } from 'renderer/src/engine/infusion'
 import { calculateMgPerServing, classifyDose } from 'renderer/src/engine/dosing'
 import { scaleRecipe } from 'renderer/src/engine/recipe'
-import {
-  gToOz,
-  ozToG,
-  cToF,
-  fToC,
-  mlToTsp,
-  mlToTbsp,
-  mlToCup,
-} from 'renderer/src/engine/units'
+import { ozToG, cToF } from 'renderer/src/engine/units'
 import { cn } from 'renderer/lib/utils'
 import {
   Info,
-  ChevronDown,
-  ChevronUp,
   RotateCcw,
-  Save,
   Scale,
   ArrowRight,
   ArrowLeft,
   BookOpen,
-  Tag,
+  AlertTriangle,
 } from 'lucide-react'
 import { LabelGenerator } from 'renderer/src/components/LabelGenerator'
 
@@ -75,8 +63,6 @@ const STEPS = [
   { key: 'label', label: 'Label & Save' },
 ] as const
 
-type StepKey = (typeof STEPS)[number]['key']
-
 export function QuickBatchTab() {
   const store = useAppStore()
   const decarb = useAppStore(s => s.decarb)
@@ -108,8 +94,8 @@ export function QuickBatchTab() {
     const weight = parseFloat(decarb.weight)
     const thca = parseFloat(decarb.thcaPct)
     const thc = parseFloat(decarb.thcPct)
-    const cbda = parseFloat(decarb.cbdaPct)
-    const cbd = parseFloat(decarb.cbdPct)
+    const _cbda = parseFloat(decarb.cbdaPct)
+    const _cbd = parseFloat(decarb.cbdPct)
     const method = DECARB_METHODS.find(m => m.id === decarb.presetId)
 
     const effLow = parseFloat(
@@ -240,6 +226,7 @@ export function QuickBatchTab() {
       id: `entry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       date: new Date().toISOString().split('T')[0],
       strainName: '',
+      strainId: store.decarb.strainId,
       materialWeight: decarb.weight,
       thcaPct: decarb.thcaPct,
       thcPct: decarb.thcPct,
@@ -290,7 +277,7 @@ export function QuickBatchTab() {
   const prevStep = () => setStep(s => Math.max(s - 1, 0))
 
   /* Temp override display */
-  const tempDisplay = useMemo(() => {
+  const _tempDisplay = useMemo(() => {
     const method = DECARB_METHODS.find(m => m.id === decarb.presetId)
     const base = method?.tempC ?? 95
     const val = decarb.tempOverride ? parseFloat(decarb.tempOverride) : base
@@ -304,6 +291,29 @@ export function QuickBatchTab() {
     parseFloat(decarb.weight) > 0 &&
     !Number.isNaN(parseFloat(decarb.thcaPct)) &&
     parseFloat(decarb.thcaPct) >= 0
+
+  // Inventory warning for weight
+  const [inventoryWarning, setInventoryWarning] = useState<string | null>(null)
+  useEffect(() => {
+    const inventory = store.inventory
+    const w = parseFloat(decarb.weight)
+    if (Number.isNaN(w) || w <= 0) {
+      setInventoryWarning(null)
+      return
+    }
+    const weightGrams = units.weightUnit === 'oz' ? ozToG(w) : w
+    const onHand = inventory.items.reduce((sum, i) => {
+      const g = parseFloat(i.amountGrams) || 0
+      return i.type === 'purchase' ? sum + g : sum - g
+    }, 0)
+    if (weightGrams > onHand) {
+      setInventoryWarning(
+        `Insufficient material: need ${weightGrams.toFixed(1)}g, have ${onHand.toFixed(1)}g`
+      )
+    } else {
+      setInventoryWarning(null)
+    }
+  }, [decarb.weight, units.weightUnit, store.inventory])
 
   const inputRow = (
     label: React.ReactNode,
@@ -368,6 +378,12 @@ export function QuickBatchTab() {
           </h3>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {inventoryWarning && (
+              <div className="col-span-full flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">
+                <AlertTriangle className="size-4 shrink-0" />
+                {inventoryWarning}
+              </div>
+            )}
             {inputRow(
               <>
                 Material Weight

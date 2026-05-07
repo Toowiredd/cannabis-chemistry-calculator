@@ -18,35 +18,46 @@ export interface ParsedLabResult {
 /* ------------------------------------------------------------------ */
 
 const THCA_PATTERNS = [
-  // "THCA: 22.4%", "THCa 22.4 %", "THCA = 22.4"
-  /\bTHCA\b[:\s=]+(\d+(?:\.\d+)?)\s*%?/i,
-  // "Total THCA: 22.4"
-  /Total\s+THCA\b[:\s=]+(\d+(?:\.\d+)?)\s*%?/i,
-  // "THCA (%) 22.4"
+  // mg/g first — avoids plain number being captured by percentage pattern
+  /\bTHCA\b[:\s=]*((?:\d+(?:\.\d+)?)\s*mg\/g)/i,
+  // Percentage with explicit %
+  /\bTHCA\b[:\s=]*(\d+(?:\.\d+)?)\s*%/i,
+  /Total\s+THCA\b[:\s=]*(\d+(?:\.\d+)?)\s*%/i,
+  // "THCA (%) 22.4" or "THCA 22.4"
   /\bTHCA\b\s*\(?%?\)?[:\s]+(\d+(?:\.\d+)?)/i,
+  // Fallback for bare `THCA = 22.4` without %
+  /\bTHCA\b[:\s=]+(\d+(?:\.\d+)?)/i,
 ]
 
 const THC_PATTERNS = [
-  // "THC: 0.8%", "THC 0.8 %", "THC = 0.8"
-  /\bTHC\b[:\s=]+(\d+(?:\.\d+)?)\s*%?/i,
-  // "Delta-9-THC: 0.8"
-  /Delta[-\s]?9[-\s]?THC\b[:\s=]+(\d+(?:\.\d+)?)\s*%?/i,
-  // "Total THC 0.8"
-  /Total\s+THC\b[:\s=]+(\d+(?:\.\d+)?)\s*%?/i,
+  // mg/g first
+  /\bTHC\b[:\s=]*((?:\d+(?:\.\d+)?)\s*mg\/g)/i,
+  // Percentage with explicit %
+  /\bTHC\b[:\s=]*(\d+(?:\.\d+)?)\s*%/i,
+  /Delta[-\s]?9[-\s]?THC\b[:\s=]*(\d+(?:\.\d+)?)\s*%/i,
+  /Total\s+THC\b[:\s=]*(\d+(?:\.\d+)?)\s*%/i,
+  // Fallback for bare `THC = 0.8` without %
+  /\bTHC\b[:\s=]+(\d+(?:\.\d+)?)/i,
 ]
 
 const CBDA_PATTERNS = [
-  // "CBDA: 15.2%"
-  /\bCBDA\b[:\s=]+(\d+(?:\.\d+)?)\s*%?/i,
-  // "Total CBDA 15.2"
-  /Total\s+CBDA\b[:\s=]+(\d+(?:\.\d+)?)\s*%?/i,
+  // mg/g first
+  /\bCBDA\b[:\s=]*((?:\d+(?:\.\d+)?)\s*mg\/g)/i,
+  // Percentage with explicit %
+  /\bCBDA\b[:\s=]*(\d+(?:\.\d+)?)\s*%/i,
+  /Total\s+CBDA\b[:\s=]*(\d+(?:\.\d+)?)\s*%/i,
+  // Fallback for bare `CBDA = 15.2` without %
+  /\bCBDA\b[:\s=]+(\d+(?:\.\d+)?)/i,
 ]
 
 const CBD_PATTERNS = [
-  // "CBD: 0.5%"
-  /\bCBD\b[:\s=]+(\d+(?:\.\d+)?)\s*%?/i,
-  // "Total CBD 0.5"
-  /Total\s+CBD\b[:\s=]+(\d+(?:\.\d+)?)\s*%?/i,
+  // mg/g first
+  /\bCBD\b[:\s=]*((?:\d+(?:\.\d+)?)\s*mg\/g)/i,
+  // Percentage with explicit %
+  /\bCBD\b[:\s=]*(\d+(?:\.\d+)?)\s*%/i,
+  /Total\s+CBD\b[:\s=]*(\d+(?:\.\d+)?)\s*%/i,
+  // Fallback for bare `CBD = 0.5` without %
+  /\bCBD\b[:\s=]+(\d+(?:\.\d+)?)/i,
 ]
 
 /* ------------------------------------------------------------------ */
@@ -57,13 +68,24 @@ function extractValue(text: string, patterns: RegExp[]): number | null {
   for (const pattern of patterns) {
     const match = text.match(pattern)
     if (match) {
-      const value = parseFloat(match[1])
-      if (!Number.isNaN(value)) {
-        // Clamp to reasonable range [0, 100]
-        if (value >= 0 && value <= 100) return Math.round(value * 100) / 100
-        // If > 100 it might be mg/g (multiply by 10 to get %)
-        if (value > 100 && value <= 1000) return Math.round(value * 10) / 100
+      const raw = match[1]
+      // Detect mg/g format from the full match
+      const isMgPerGram = raw.toLowerCase().includes('mg/g')
+      const numericValue = parseFloat(raw)
+      if (Number.isNaN(numericValue)) continue
+
+      if (isMgPerGram) {
+        // mg/g → % (divide by 10: 205 mg/g = 20.5%)
+        const pct = numericValue / 10
+        if (pct >= 0 && pct <= 100) return Math.round(pct * 100) / 100
+        return null
       }
+
+      // Percentage format
+      if (numericValue >= 0 && numericValue <= 100)
+        return Math.round(numericValue * 100) / 100
+      // If > 100 (no mg/g suffix), reject as unlikely
+      return null
     }
   }
   return null

@@ -7,6 +7,10 @@ import {
 } from 'renderer/src/engine/decarb'
 import { calculateInfusedThc } from 'renderer/src/engine/infusion'
 import {
+  calculateCostPerMg,
+  calculateCostPerDose,
+} from 'renderer/src/engine/costAnalysis'
+import {
   LayoutDashboard,
   BarChart3,
   PieChart,
@@ -278,6 +282,24 @@ export function DashboardTab() {
       0
     )
 
+    // Cost analysis using costAnalysis engine
+    let costPerMg = 0
+    let costPerBatch = 0
+    if (totalThc > 0 && totalCost > 0) {
+      try {
+        costPerMg = calculateCostPerMg(totalCost, totalThc)
+      } catch {
+        /* ignore */
+      }
+    }
+    if (totalBatches > 0 && totalCost > 0) {
+      try {
+        costPerBatch = calculateCostPerDose(totalCost, totalBatches)
+      } catch {
+        /* ignore */
+      }
+    }
+
     return {
       totalBatches,
       monthBatches,
@@ -286,6 +308,8 @@ export function DashboardTab() {
       mostUsedFat,
       totalThc,
       totalCost,
+      costPerMg,
+      costPerBatch,
     }
   }, [journalEntries, inventory.items, currentMonth])
 
@@ -475,6 +499,26 @@ export function DashboardTab() {
           icon={<ShoppingCart className="size-4 text-rose-400" />}
           label="Total Cost"
           value={`$${fmt1(stats.totalCost)}`}
+        />
+        <StatCard
+          accentClass="bg-amber-400/10"
+          icon={<TrendingUp className="size-4 text-amber-400" />}
+          label="Cost per mg"
+          value={
+            stats.totalThc > 0 && stats.totalCost > 0
+              ? `$${stats.costPerMg.toFixed(3)}`
+              : 'N/A'
+          }
+        />
+        <StatCard
+          accentClass="bg-fuchsia-400/10"
+          icon={<TrendingUp className="size-4 text-fuchsia-400" />}
+          label="Cost per Batch"
+          value={
+            stats.totalBatches > 0 && stats.totalCost > 0
+              ? `$${stats.costPerBatch.toFixed(2)}`
+              : 'N/A'
+          }
         />
         <StatCard
           accentClass="bg-emerald-400/10"

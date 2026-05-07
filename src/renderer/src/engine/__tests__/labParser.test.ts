@@ -93,6 +93,30 @@ describe('labParser', () => {
       expect(result.thcaPct).toBe(22.4)
     })
 
+    it('parses mg/g format "THCA 205 mg/g" to percentage', () => {
+      const result = parseLabText('THCA 205 mg/g')
+      expect(result.thcaPct).toBe(20.5)
+    })
+
+    it('parses mg/g format "THC: 8.5 mg/g" to percentage', () => {
+      const result = parseLabText('THC: 8.5 mg/g')
+      expect(result.thcPct).toBe(0.85)
+    })
+
+    it('parses mg/g format "CBDA 50 mg/g" to percentage', () => {
+      const result = parseLabText('CBDA 50 mg/g')
+      expect(result.cbdaPct).toBe(5.0)
+    })
+
+    it('parses full lab with mixed formats including mg/g', () => {
+      const text = 'THCA: 205 mg/g\nTHC: 0.8%\nCBDA: 12 mg/g\nCBD: 0.0%'
+      const result = parseLabText(text)
+      expect(result.thcaPct).toBe(20.5)
+      expect(result.thcPct).toBe(0.8)
+      expect(result.cbdaPct).toBe(1.2)
+      expect(result.cbdPct).toBe(0.0)
+    })
+
     it('handles "Total THCA" format', () => {
       const result = parseLabText('Total THCA: 19.8%')
       expect(result.thcaPct).toBe(19.8)

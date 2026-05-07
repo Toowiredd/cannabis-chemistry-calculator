@@ -30,6 +30,7 @@ interface JournalFormData {
   id: string
   date: string
   strainName: string
+  strainId: string | null
   materialWeight: string
   thcaPct: string
   thcPct: string
@@ -52,6 +53,7 @@ function emptyForm(): JournalFormData {
     id: '',
     date: todayInputValue(),
     strainName: '',
+    strainId: null,
     materialWeight: '',
     thcaPct: '',
     thcPct: '',
@@ -133,6 +135,7 @@ function buildFormFromStore(
     id: '',
     date: todayInputValue(),
     strainName: '',
+    strainId: store.decarb.strainId,
     materialWeight: decarb.weight,
     thcaPct: decarb.thcaPct,
     thcPct: decarb.thcPct,
@@ -182,6 +185,7 @@ export function JournalTab() {
           id: String(e.id ?? ''),
           date: String(e.date ?? e.savedAt ?? ''),
           strainName: String(e.strainName ?? ''),
+          strainId: e.strainId != null ? String(e.strainId) : null,
           materialWeight: String(e.materialWeight ?? ''),
           thcaPct: String(e.thcaPct ?? ''),
           thcPct: String(e.thcPct ?? ''),

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import type { Strain } from 'renderer/src/engine/models'
 import { Leaf, Save, X, Pencil, Trash2 } from 'lucide-react'
@@ -49,6 +49,7 @@ export function StrainManager({
   const updateStrain = useAppStore(s => s.updateStrain)
   const deleteStrain = useAppStore(s => s.deleteStrain)
   const setStrains = useAppStore(s => s.setStrains)
+  const journalEntries = useAppStore(s => s.journalEntries)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<StrainFormData>(EMPTY_FORM)
@@ -177,6 +178,27 @@ export function StrainManager({
     },
     [onSelect, onClose]
   )
+
+  // Compute per-strain usage stats from journal entries
+  const strainUsage = useMemo(() => {
+    const map: Record<
+      string,
+      { count: number; lastUsed: string; totalGrams: number }
+    > = {}
+    journalEntries.forEach(entry => {
+      if (!entry.strainId) return
+      const existing = map[entry.strainId] ?? {
+        count: 0,
+        lastUsed: '',
+        totalGrams: 0,
+      }
+      existing.count += 1
+      if (entry.date > existing.lastUsed) existing.lastUsed = entry.date
+      existing.totalGrams += parseFloat(entry.materialWeight) || 0
+      map[entry.strainId] = existing
+    })
+    return map
+  }, [journalEntries])
 
   if (!open) return null
 
@@ -356,44 +378,55 @@ export function StrainManager({
             </p>
           ) : (
             <div className="flex flex-col gap-2">
-              {sortedStrains.map(strain => (
-                <div
-                  className="flex items-center justify-between rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 transition-colors hover:bg-foreground/10"
-                  key={strain.id}
-                >
-                  <button
-                    className="flex flex-1 flex-col items-start gap-0.5 text-left"
-                    onClick={() => handleSelect(strain)}
-                    type="button"
+              {sortedStrains.map(strain => {
+                const usage = strainUsage[strain.id]
+                return (
+                  <div
+                    className="flex items-center justify-between rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 transition-colors hover:bg-foreground/10"
+                    key={strain.id}
                   >
-                    <span className="text-sm font-medium text-foreground">
-                      {strain.name}
-                    </span>
-                    <span className="text-[10px] text-foreground/70">
-                      {strain.type} · THCA {strain.thcaPct}% · THC{' '}
-                      {strain.thcPct}%
-                      {strain.cbdaPct > 0 && ` · CBDA ${strain.cbdaPct}%`}
-                      {strain.cbdPct > 0 && ` · CBD ${strain.cbdPct}%`}
-                    </span>
-                  </button>
-                  <div className="flex items-center gap-1">
                     <button
-                      className="rounded p-1 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
-                      onClick={() => handleEdit(strain)}
+                      className="flex flex-1 flex-col items-start gap-0.5 text-left"
+                      onClick={() => handleSelect(strain)}
                       type="button"
                     >
-                      <Pencil className="size-3.5" />
+                      <span className="text-sm font-medium text-foreground">
+                        {strain.name}
+                      </span>
+                      <span className="text-[10px] text-foreground/70">
+                        {strain.type} · THCA {strain.thcaPct}% · THC{' '}
+                        {strain.thcPct}%
+                        {strain.cbdaPct > 0 && ` · CBDA ${strain.cbdaPct}%`}
+                        {strain.cbdPct > 0 && ` · CBD ${strain.cbdPct}%`}
+                        {usage && (
+                          <>
+                            {' '}
+                            · Used in {usage.count} batch
+                            {usage.count !== 1 ? 'es' : ''}
+                            {usage.lastUsed && ` · Last: ${usage.lastUsed}`}
+                          </>
+                        )}
+                      </span>
                     </button>
-                    <button
-                      className="rounded p-1 text-foreground/70 transition-colors hover:bg-red-400/10 hover:text-red-400"
-                      onClick={() => handleDelete(strain.id)}
-                      type="button"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        className="rounded p-1 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                        onClick={() => handleEdit(strain)}
+                        type="button"
+                      >
+                        <Pencil className="size-3.5" />
+                      </button>
+                      <button
+                        className="rounded p-1 text-foreground/70 transition-colors hover:bg-red-400/10 hover:text-red-400"
+                        onClick={() => handleDelete(strain.id)}
+                        type="button"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
