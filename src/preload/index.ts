@@ -22,6 +22,8 @@ const API = {
   savePreset: (data: { name: string; presetData: Record<string, unknown> }) =>
     ipcRenderer.invoke('save-preset', data),
   loadPresetDialog: () => ipcRenderer.invoke('load-preset-dialog'),
+  saveStrains: (data: unknown) => ipcRenderer.invoke('save-strains', data),
+  loadStrains: () => ipcRenderer.invoke('load-strains'),
   saveJournalEntry: (data: Record<string, unknown>) =>
     ipcRenderer.invoke('save-journal-entry', data),
   loadJournalEntries: () => ipcRenderer.invoke('load-journal-entries'),

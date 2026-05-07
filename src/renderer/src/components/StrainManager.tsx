@@ -1,0 +1,403 @@
+import { useState, useCallback, useEffect } from 'react'
+import { useAppStore } from 'renderer/src/stores/appStore'
+import type { Strain } from 'renderer/src/engine/models'
+import { Leaf, Save, X, Pencil, Trash2 } from 'lucide-react'
+
+interface StrainFormData {
+  name: string
+  type: 'indica' | 'sativa' | 'hybrid'
+  thcaPct: string
+  thcPct: string
+  cbdaPct: string
+  cbdPct: string
+  notes: string
+}
+
+const EMPTY_FORM: StrainFormData = {
+  name: '',
+  type: 'hybrid',
+  thcaPct: '',
+  thcPct: '',
+  cbdaPct: '',
+  cbdPct: '',
+  notes: '',
+}
+
+function generateId(): string {
+  return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+}
+
+function clampTo100(value: string): string {
+  const n = parseFloat(value)
+  if (Number.isNaN(n)) return value
+  if (n < 0) return '0'
+  if (n > 100) return '100'
+  return value
+}
+
+export function StrainManager({
+  open,
+  onClose,
+  onSelect,
+}: {
+  open: boolean
+  onClose: () => void
+  onSelect?: (strain: Strain) => void
+}) {
+  const strains = useAppStore(s => s.strains)
+  const addStrain = useAppStore(s => s.addStrain)
+  const updateStrain = useAppStore(s => s.updateStrain)
+  const deleteStrain = useAppStore(s => s.deleteStrain)
+  const setStrains = useAppStore(s => s.setStrains)
+
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = useState<StrainFormData>(EMPTY_FORM)
+  const [error, setError] = useState('')
+
+  /* Load strains from disk on open */
+  useEffect(() => {
+    if (!open) return
+    async function load() {
+      try {
+        const res = await window.App.loadStrains()
+        if (res.success && Array.isArray(res.strains)) {
+          setStrains(res.strains)
+        }
+      } catch {
+        // silent fail
+      }
+    }
+    load()
+  }, [open, setStrains])
+
+  /* Persist strains whenever they change */
+  useEffect(() => {
+    if (!open) return
+    async function save() {
+      try {
+        await window.App.saveStrains(strains)
+      } catch {
+        // silent fail
+      }
+    }
+    save()
+  }, [strains, open])
+
+  const resetForm = useCallback(() => {
+    setForm(EMPTY_FORM)
+    setEditingId(null)
+    setError('')
+  }, [])
+
+  const validateForm = useCallback((): string | null => {
+    if (!form.name.trim()) return 'Strain name is required'
+    const thca = parseFloat(form.thcaPct)
+    const thc = parseFloat(form.thcPct)
+    if (!Number.isNaN(thca) && !Number.isNaN(thc) && thca + thc > 100) {
+      return 'THCA + THC cannot exceed 100%'
+    }
+    const cbda = parseFloat(form.cbdaPct)
+    const cbd = parseFloat(form.cbdPct)
+    if (!Number.isNaN(cbda) && !Number.isNaN(cbd) && cbda + cbd > 100) {
+      return 'CBDA + CBD cannot exceed 100%'
+    }
+    return null
+  }, [form])
+
+  const handleSave = useCallback(() => {
+    const err = validateForm()
+    if (err) {
+      setError(err)
+      return
+    }
+
+    const data: Strain = {
+      id: editingId ?? generateId(),
+      name: form.name.trim(),
+      type: form.type,
+      thcaPct: parseFloat(form.thcaPct) || 0,
+      thcPct: parseFloat(form.thcPct) || 0,
+      cbdaPct: parseFloat(form.cbdaPct) || 0,
+      cbdPct: parseFloat(form.cbdPct) || 0,
+      notes: form.notes.trim(),
+    }
+
+    if (editingId) {
+      updateStrain(data)
+    } else {
+      // Check for duplicate names
+      const exists = strains.some(
+        s =>
+          s.name.toLowerCase() === data.name.toLowerCase() && s.id !== data.id
+      )
+      if (exists) {
+        setError(`A strain named "${data.name}" already exists`)
+        return
+      }
+      addStrain(data)
+    }
+
+    resetForm()
+  }, [
+    form,
+    editingId,
+    strains,
+    validateForm,
+    resetForm,
+    addStrain,
+    updateStrain,
+  ])
+
+  const handleEdit = useCallback((strain: Strain) => {
+    setForm({
+      name: strain.name,
+      type: strain.type,
+      thcaPct: String(strain.thcaPct),
+      thcPct: String(strain.thcPct),
+      cbdaPct: String(strain.cbdaPct),
+      cbdPct: String(strain.cbdPct),
+      notes: strain.notes ?? '',
+    })
+    setEditingId(strain.id)
+    setError('')
+  }, [])
+
+  const handleDelete = useCallback(
+    (id: string) => {
+      deleteStrain(id)
+      if (editingId === id) resetForm()
+    },
+    [deleteStrain, editingId, resetForm]
+  )
+
+  const handleSelect = useCallback(
+    (strain: Strain) => {
+      onSelect?.(strain)
+      onClose()
+    },
+    [onSelect, onClose]
+  )
+
+  if (!open) return null
+
+  const sortedStrains = [...strains].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  )
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="glass-strong flex w-full max-w-lg flex-col rounded-2xl shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-foreground/10 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <Leaf className="size-5 text-emerald-400" />
+            <h2 className="text-lg font-semibold text-foreground">
+              Strain Library
+            </h2>
+          </div>
+          <button
+            className="rounded-lg p-1 text-foreground/60 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            onClick={onClose}
+            type="button"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <div className="flex flex-col gap-3 px-5 py-4">
+          {error && (
+            <div className="rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-2 text-xs text-red-300">
+              {error}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2 flex flex-col gap-1">
+              <span className="text-xs font-medium text-foreground/70">
+                Name
+              </span>
+              <input
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                onChange={e => setForm({ ...form, name: e.target.value })}
+                placeholder="e.g. Blue Dream"
+                value={form.name}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-foreground/70">
+                Type
+              </span>
+              <select
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                onChange={e =>
+                  setForm({ ...form, type: e.target.value as Strain['type'] })
+                }
+                value={form.type}
+              >
+                <option value="sativa">Sativa</option>
+                <option value="indica">Indica</option>
+                <option value="hybrid">Hybrid</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-foreground/70">
+                THCA %
+              </span>
+              <input
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                max={100}
+                min={0}
+                onChange={e =>
+                  setForm({ ...form, thcaPct: clampTo100(e.target.value) })
+                }
+                placeholder="0.0"
+                step="0.1"
+                type="number"
+                value={form.thcaPct}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-foreground/70">
+                THC %
+              </span>
+              <input
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                max={100}
+                min={0}
+                onChange={e =>
+                  setForm({ ...form, thcPct: clampTo100(e.target.value) })
+                }
+                placeholder="0.0"
+                step="0.1"
+                type="number"
+                value={form.thcPct}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-foreground/70">
+                CBDA %
+              </span>
+              <input
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                max={100}
+                min={0}
+                onChange={e =>
+                  setForm({ ...form, cbdaPct: clampTo100(e.target.value) })
+                }
+                placeholder="0.0"
+                step="0.1"
+                type="number"
+                value={form.cbdaPct}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-foreground/70">
+                CBD %
+              </span>
+              <input
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                max={100}
+                min={0}
+                onChange={e =>
+                  setForm({ ...form, cbdPct: clampTo100(e.target.value) })
+                }
+                placeholder="0.0"
+                step="0.1"
+                type="number"
+                value={form.cbdPct}
+              />
+            </div>
+
+            <div className="col-span-2 flex flex-col gap-1">
+              <span className="text-xs font-medium text-foreground/70">
+                Notes
+              </span>
+              <input
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                onChange={e => setForm({ ...form, notes: e.target.value })}
+                placeholder="Optional notes..."
+                value={form.notes}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
+              onClick={handleSave}
+              type="button"
+            >
+              <Save className="size-4" />
+              {editingId ? 'Update Strain' : 'Save Strain'}
+            </button>
+            {editingId && (
+              <button
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/10"
+                onClick={resetForm}
+                type="button"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* List */}
+        <div className="max-h-64 flex-1 overflow-y-auto border-t border-foreground/10 px-5 py-3">
+          {sortedStrains.length === 0 ? (
+            <p className="text-center text-sm text-foreground/50">
+              No strains saved yet.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {sortedStrains.map(strain => (
+                <div
+                  className="flex items-center justify-between rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 transition-colors hover:bg-foreground/10"
+                  key={strain.id}
+                >
+                  <button
+                    className="flex flex-1 flex-col items-start gap-0.5 text-left"
+                    onClick={() => handleSelect(strain)}
+                    type="button"
+                  >
+                    <span className="text-sm font-medium text-foreground">
+                      {strain.name}
+                    </span>
+                    <span className="text-[10px] text-foreground/60">
+                      {strain.type} · THCA {strain.thcaPct}% · THC{' '}
+                      {strain.thcPct}%
+                      {strain.cbdaPct > 0 && ` · CBDA ${strain.cbdaPct}%`}
+                      {strain.cbdPct > 0 && ` · CBD ${strain.cbdPct}%`}
+                    </span>
+                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      className="rounded p-1 text-foreground/50 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                      onClick={() => handleEdit(strain)}
+                      type="button"
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
+                    <button
+                      className="rounded p-1 text-foreground/50 transition-colors hover:bg-red-400/10 hover:text-red-400"
+                      onClick={() => handleDelete(strain.id)}
+                      type="button"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

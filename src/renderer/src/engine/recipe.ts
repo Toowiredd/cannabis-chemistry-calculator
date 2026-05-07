@@ -369,7 +369,8 @@ export function scaleRecipe(recipe: Recipe, factor: number): Recipe {
     scaledDecarb.effLowOverride ?? String(method?.efficiency.low ?? 0.9)
   )
   const effExpected = parseFinite(
-    scaledDecarb.effExpectedOverride ?? String(method?.efficiency.expected ?? 0.95)
+    scaledDecarb.effExpectedOverride ??
+      String(method?.efficiency.expected ?? 0.95)
   )
   const effHigh = parseFinite(
     scaledDecarb.effHighOverride ?? String(method?.efficiency.high ?? 0.98)
@@ -377,14 +378,15 @@ export function scaleRecipe(recipe: Recipe, factor: number): Recipe {
 
   // Decarb math
   const theoreticalMax =
-    Number.isFinite(grams) && Number.isFinite(thcaPct) && Number.isFinite(thcPct)
+    Number.isFinite(grams) &&
+    Number.isFinite(thcaPct) &&
+    Number.isFinite(thcPct)
       ? calculateTheoreticalMax(grams, thcaPct, thcPct)
       : 0
 
-  const decarbedRange =
-    Number.isFinite(theoreticalMax)
-      ? calculateRange(theoreticalMax, effLow, effExpected, effHigh)
-      : { low: 0, expected: 0, high: 0 }
+  const decarbedRange = Number.isFinite(theoreticalMax)
+    ? calculateRange(theoreticalMax, effLow, effExpected, effHigh)
+    : { low: 0, expected: 0, high: 0 }
 
   // Infusion math
   const fat = INFUSION_FATS.find(f => f.id === scaledInfusion.fatId)

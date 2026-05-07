@@ -93,7 +93,13 @@ describe('saveRecipe', () => {
 
   it('creates a timestamp', () => {
     const before = Date.now()
-    const recipe = saveRecipe('Timed', makeUnitPreferences(), makeDecarbState(), makeInfusionState(), makeDoseState())
+    const recipe = saveRecipe(
+      'Timed',
+      makeUnitPreferences(),
+      makeDecarbState(),
+      makeInfusionState(),
+      makeDoseState()
+    )
     const after = Date.now()
 
     const ts = new Date(recipe.createdAt).getTime()
@@ -131,7 +137,13 @@ describe('loadRecipe', () => {
       volumeUnit: 'cup',
       bagUnit: 'in',
     }
-    const recipe = saveRecipe('Units Test', units, makeDecarbState(), makeInfusionState(), makeDoseState())
+    const recipe = saveRecipe(
+      'Units Test',
+      units,
+      makeDecarbState(),
+      makeInfusionState(),
+      makeDoseState()
+    )
     const loaded = loadRecipe(recipe)
 
     expect(loaded.units.tempUnit).toBe('F')
@@ -147,7 +159,13 @@ describe('loadRecipe', () => {
       effExpectedOverride: '0.92',
       effHighOverride: '0.95',
     })
-    const recipe = saveRecipe('Override Test', makeUnitPreferences(), decarb, makeInfusionState(), makeDoseState())
+    const recipe = saveRecipe(
+      'Override Test',
+      makeUnitPreferences(),
+      decarb,
+      makeInfusionState(),
+      makeDoseState()
+    )
     const loaded = loadRecipe(recipe)
 
     expect(loaded.decarb.tempOverride).toBe('110')
@@ -191,8 +209,17 @@ describe('scaleRecipe', () => {
     const recipe = saveRecipe(
       'Scale Test',
       makeUnitPreferences(),
-      makeDecarbState({ weight: '7', thcaPct: '20', thcPct: '2', presetId: 'sv_dry' }),
-      makeInfusionState({ fatId: 'coconut', volume: '200', customEfficiency: '0.82' }),
+      makeDecarbState({
+        weight: '7',
+        thcaPct: '20',
+        thcPct: '2',
+        presetId: 'sv_dry',
+      }),
+      makeInfusionState({
+        fatId: 'coconut',
+        volume: '200',
+        customEfficiency: '0.82',
+      }),
       makeDoseState({ servings: '24' })
     )
 
@@ -206,8 +233,17 @@ describe('scaleRecipe', () => {
     const recipe = saveRecipe(
       'Half Test',
       makeUnitPreferences(),
-      makeDecarbState({ weight: '14', thcaPct: '20', thcPct: '2', presetId: 'sv_dry' }),
-      makeInfusionState({ fatId: 'coconut', volume: '400', customEfficiency: '0.82' }),
+      makeDecarbState({
+        weight: '14',
+        thcaPct: '20',
+        thcPct: '2',
+        presetId: 'sv_dry',
+      }),
+      makeInfusionState({
+        fatId: 'coconut',
+        volume: '400',
+        customEfficiency: '0.82',
+      }),
       makeDoseState({ servings: '48' })
     )
 
@@ -218,22 +254,46 @@ describe('scaleRecipe', () => {
   })
 
   it('rejects zero scale factor', () => {
-    const recipe = saveRecipe('Zero', makeUnitPreferences(), makeDecarbState(), makeInfusionState(), makeDoseState())
+    const recipe = saveRecipe(
+      'Zero',
+      makeUnitPreferences(),
+      makeDecarbState(),
+      makeInfusionState(),
+      makeDoseState()
+    )
     expect(() => scaleRecipe(recipe, 0)).toThrow(ValidationError)
   })
 
   it('rejects negative scale factor', () => {
-    const recipe = saveRecipe('Neg', makeUnitPreferences(), makeDecarbState(), makeInfusionState(), makeDoseState())
+    const recipe = saveRecipe(
+      'Neg',
+      makeUnitPreferences(),
+      makeDecarbState(),
+      makeInfusionState(),
+      makeDoseState()
+    )
     expect(() => scaleRecipe(recipe, -1)).toThrow(ValidationError)
   })
 
   it('rejects non-numeric scale factor', () => {
-    const recipe = saveRecipe('NaN', makeUnitPreferences(), makeDecarbState(), makeInfusionState(), makeDoseState())
+    const recipe = saveRecipe(
+      'NaN',
+      makeUnitPreferences(),
+      makeDecarbState(),
+      makeInfusionState(),
+      makeDoseState()
+    )
     expect(() => scaleRecipe(recipe, NaN)).toThrow(ValidationError)
   })
 
   it('rejects infinite scale factor', () => {
-    const recipe = saveRecipe('Inf', makeUnitPreferences(), makeDecarbState(), makeInfusionState(), makeDoseState())
+    const recipe = saveRecipe(
+      'Inf',
+      makeUnitPreferences(),
+      makeDecarbState(),
+      makeInfusionState(),
+      makeDoseState()
+    )
     expect(() => scaleRecipe(recipe, Infinity)).toThrow(ValidationError)
   })
 
@@ -247,8 +307,17 @@ describe('scaleRecipe', () => {
     const recipe = saveRecipe(
       'Downstream',
       makeUnitPreferences(),
-      makeDecarbState({ weight: '10', thcaPct: '20', thcPct: '2', presetId: 'sv_dry' }),
-      makeInfusionState({ fatId: 'coconut', volume: '100', customEfficiency: '0.82' }),
+      makeDecarbState({
+        weight: '10',
+        thcaPct: '20',
+        thcPct: '2',
+        presetId: 'sv_dry',
+      }),
+      makeInfusionState({
+        fatId: 'coconut',
+        volume: '100',
+        customEfficiency: '0.82',
+      }),
       makeDoseState({ servings: '10' })
     )
 
@@ -272,8 +341,17 @@ describe('scaleRecipe', () => {
     const recipe = saveRecipe(
       'Half Downstream',
       makeUnitPreferences(),
-      makeDecarbState({ weight: '10', thcaPct: '20', thcPct: '2', presetId: 'sv_dry' }),
-      makeInfusionState({ fatId: 'coconut', volume: '100', customEfficiency: '0.82' }),
+      makeDecarbState({
+        weight: '10',
+        thcaPct: '20',
+        thcPct: '2',
+        presetId: 'sv_dry',
+      }),
+      makeInfusionState({
+        fatId: 'coconut',
+        volume: '100',
+        customEfficiency: '0.82',
+      }),
       makeDoseState({ servings: '10' })
     )
 
@@ -290,8 +368,17 @@ describe('scaleRecipe', () => {
     const recipe = saveRecipe(
       'Volume Scale',
       makeUnitPreferences(),
-      makeDecarbState({ weight: '10', thcaPct: '20', thcPct: '0', presetId: 'sv_dry' }),
-      makeInfusionState({ fatId: 'ghee', volume: '100', customEfficiency: '0.85' }),
+      makeDecarbState({
+        weight: '10',
+        thcaPct: '20',
+        thcPct: '0',
+        presetId: 'sv_dry',
+      }),
+      makeInfusionState({
+        fatId: 'ghee',
+        volume: '100',
+        customEfficiency: '0.85',
+      }),
       makeDoseState({ servings: '10' })
     )
 
@@ -304,15 +391,26 @@ describe('scaleRecipe', () => {
     const recipe = saveRecipe(
       'Sync Test',
       makeUnitPreferences(),
-      makeDecarbState({ weight: '10', thcaPct: '20', thcPct: '0', presetId: 'sv_dry' }),
-      makeInfusionState({ fatId: 'coconut', volume: '100', customEfficiency: '0.82' }),
+      makeDecarbState({
+        weight: '10',
+        thcaPct: '20',
+        thcPct: '0',
+        presetId: 'sv_dry',
+      }),
+      makeInfusionState({
+        fatId: 'coconut',
+        volume: '100',
+        customEfficiency: '0.82',
+      }),
       makeDoseState({ servings: '10' })
     )
 
     const scaled = scaleRecipe(recipe, 2)
 
     // decarbedThc and totalThc should match the recomputed expected values
-    expect(parseFloat(scaled.infusion.decarbedThc)).toBe(scaled.computed!.decarbedRange.expected)
+    expect(parseFloat(scaled.infusion.decarbedThc)).toBe(
+      scaled.computed!.decarbedRange.expected
+    )
     expect(parseFloat(scaled.dose.totalThc)).toBe(scaled.computed!.infusedThc)
   })
 
@@ -320,8 +418,17 @@ describe('scaleRecipe', () => {
     const recipe = saveRecipe(
       'Custom Fat Scale',
       makeUnitPreferences(),
-      makeDecarbState({ weight: '10', thcaPct: '20', thcPct: '0', presetId: 'sv_dry' }),
-      makeInfusionState({ fatId: 'custom', volume: '100', customEfficiency: '0.75' }),
+      makeDecarbState({
+        weight: '10',
+        thcaPct: '20',
+        thcPct: '0',
+        presetId: 'sv_dry',
+      }),
+      makeInfusionState({
+        fatId: 'custom',
+        volume: '100',
+        customEfficiency: '0.75',
+      }),
       makeDoseState({ servings: '10' })
     )
 
@@ -370,7 +477,12 @@ describe('scaleRecipe', () => {
     const recipe = saveRecipe(
       'Rounding',
       makeUnitPreferences(),
-      makeDecarbState({ weight: '3.33', thcaPct: '19.7', thcPct: '0.8', presetId: 'sv_dry' }),
+      makeDecarbState({
+        weight: '3.33',
+        thcaPct: '19.7',
+        thcPct: '0.8',
+        presetId: 'sv_dry',
+      }),
       makeInfusionState({ fatId: 'coconut', volume: '73' }),
       makeDoseState({ servings: '7' })
     )
@@ -378,7 +490,11 @@ describe('scaleRecipe', () => {
     const scaled = scaleRecipe(recipe, 2)
 
     // All computed values should be rounded to 1 decimal
-    expect(scaled.computed!.theoreticalMax).toBe(Math.round(scaled.computed!.theoreticalMax * 10) / 10)
-    expect(scaled.computed!.mgPerServing).toBe(Math.round(scaled.computed!.mgPerServing * 10) / 10)
+    expect(scaled.computed!.theoreticalMax).toBe(
+      Math.round(scaled.computed!.theoreticalMax * 10) / 10
+    )
+    expect(scaled.computed!.mgPerServing).toBe(
+      Math.round(scaled.computed!.mgPerServing * 10) / 10
+    )
   })
 })

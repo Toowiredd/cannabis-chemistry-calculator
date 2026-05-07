@@ -14,6 +14,7 @@ import { displayName } from '~/package.json'
 
 let presetsDir: string
 let journalDir: string
+let strainsDir: string
 
 function getPresetsDir(): string {
   if (!presetsDir) {
@@ -27,6 +28,13 @@ function getJournalDir(): string {
     journalDir = join(app.getPath('userData'), 'journal')
   }
   return journalDir
+}
+
+function getStrainsDir(): string {
+  if (!strainsDir) {
+    strainsDir = join(app.getPath('userData'), 'strains')
+  }
+  return strainsDir
 }
 
 export async function MainWindow() {
@@ -327,6 +335,46 @@ export async function MainWindow() {
       const message =
         err instanceof Error ? err.message : 'Failed to delete journal entry'
       return { success: false, error: message }
+    }
+  })
+
+  /* ---------------------------------------------------------------- */
+  /* Strain Library — save/load/delete strains                         */
+  /* ---------------------------------------------------------------- */
+
+  ipcMain.handle('save-strains', async (_event, data: unknown) => {
+    try {
+      const dir = getStrainsDir()
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true })
+      }
+      const filePath = join(dir, 'strains.json')
+      writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8')
+      return { success: true, filePath }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to save strains'
+      return { success: false, error: message }
+    }
+  })
+
+  ipcMain.handle('load-strains', async () => {
+    try {
+      const dir = getStrainsDir()
+      const filePath = join(dir, 'strains.json')
+      if (!existsSync(filePath)) {
+        return { success: true, strains: [] }
+      }
+      const content = readFileSync(filePath, 'utf-8')
+      const parsed = JSON.parse(content)
+      if (Array.isArray(parsed)) {
+        return { success: true, strains: parsed }
+      }
+      return { success: true, strains: [] }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to load strains'
+      return { success: false, error: message, strains: [] }
     }
   })
 

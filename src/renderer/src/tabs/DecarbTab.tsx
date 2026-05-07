@@ -9,12 +9,15 @@ import {
   calculateDecarbedCbd,
 } from 'renderer/src/engine/cbda'
 import { DECARB_METHODS } from 'renderer/src/engine/models'
+import type { Strain } from 'renderer/src/engine/models'
 import { cToF, fToC, gToOz, ozToG } from 'renderer/src/engine/units'
 import { cn } from 'renderer/lib/utils'
-import { Info, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
+import { Info, ChevronDown, ChevronUp, RotateCcw, Leaf } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
 import { BagCalculator } from 'renderer/src/components/BagCalculator'
 import { TimerWidget } from 'renderer/src/components/Timer'
+import { LabPasteField } from 'renderer/src/components/LabPasteField'
+import { StrainManager } from 'renderer/src/components/StrainManager'
 
 /* ------------------------------------------------------------------ */
 /* Small helpers                                                      */
@@ -446,6 +449,46 @@ export function DecarbTab() {
   ])
 
   /* ---------------------------------------------------------------- */
+  /* Strain + Lab paste handlers                                        */
+  /* ---------------------------------------------------------------- */
+  const [strainManagerOpen, setStrainManagerOpen] = useState(false)
+  const strains = useAppStore(s => s.strains)
+
+  const handleLabParsed = useCallback(
+    (data: {
+      thcaPct: string
+      thcPct: string
+      cbdaPct: string
+      cbdPct: string
+    }) => {
+      const updates: Partial<typeof decarb> = {}
+      if (data.thcaPct !== '') updates.thcaPct = data.thcaPct
+      if (data.thcPct !== '') updates.thcPct = data.thcPct
+      if (data.cbdaPct !== '') updates.cbdaPct = data.cbdaPct
+      if (data.cbdPct !== '') updates.cbdPct = data.cbdPct
+      if (Object.keys(updates).length > 0) setDecarb(updates)
+    },
+    [decarb, setDecarb]
+  )
+
+  const handleSelectStrain = useCallback(
+    (strain: Strain) => {
+      setDecarb({
+        thcaPct: String(strain.thcaPct),
+        thcPct: String(strain.thcPct),
+        cbdaPct: String(strain.cbdaPct),
+        cbdPct: String(strain.cbdPct),
+      })
+    },
+    [setDecarb]
+  )
+
+  const sortedStrains = useMemo(
+    () => [...strains].sort((a, b) => a.name.localeCompare(b.name)),
+    [strains]
+  )
+
+  /* ---------------------------------------------------------------- */
   /* Handlers                                                         */
   /* ---------------------------------------------------------------- */
 
@@ -571,6 +614,52 @@ export function DecarbTab() {
     </div>
   )
 
+  /* ---------------------------------------------------------------- */
+  /* Sub-components (render helpers)                                    */
+  /* ---------------------------------------------------------------- */
+
+  function StrainSelector() {
+    return (
+      <div className="flex items-center gap-2">
+        {sortedStrains.length > 0 ? (
+          <select
+            className="flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+            onChange={e => {
+              if (e.target.value === '__manage__') {
+                setStrainManagerOpen(true)
+                e.target.value = ''
+                return
+              }
+              const strain = strains.find(s => s.id === e.target.value)
+              if (strain) handleSelectStrain(strain)
+              e.target.value = ''
+            }}
+            value=""
+          >
+            <option disabled value="">
+              Select a strain...
+            </option>
+            {sortedStrains.map(s => (
+              <option key={s.id} value={s.id}>
+                {s.name} ({s.type}) · THCA {s.thcaPct}% · THC {s.thcPct}%
+              </option>
+            ))}
+            <option value="__manage__">Manage Strains...</option>
+          </select>
+        ) : (
+          <button
+            className="flex flex-1 items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            onClick={() => setStrainManagerOpen(true)}
+            type="button"
+          >
+            <Leaf className="size-4 text-emerald-400" />
+            Manage Strains
+          </button>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-4 p-2">
       {/* Header */}
@@ -597,6 +686,12 @@ export function DecarbTab() {
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Input
           </h3>
+
+          {/* Strain selector */}
+          <StrainSelector />
+
+          {/* Lab paste */}
+          <LabPasteField onParsed={handleLabParsed} />
 
           {/* Weight */}
           {inputRow(
@@ -1076,6 +1171,13 @@ export function DecarbTab() {
         potency varies with material quality, decarb technique, and measurement
         accuracy.
       </p>
+
+      {/* Strain Manager Modal */}
+      <StrainManager
+        onClose={() => setStrainManagerOpen(false)}
+        onSelect={handleSelectStrain}
+        open={strainManagerOpen}
+      />
     </div>
   )
 }

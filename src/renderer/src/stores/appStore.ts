@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+import type { Strain } from 'renderer/src/engine/models'
+
 export type TabId =
   | 'decarb'
   | 'infusion'
@@ -145,6 +147,13 @@ interface AppStore {
   setLastInfusedThc: (val: string) => void
 
   loadFromPreset: (preset: unknown) => void
+
+  /** Strain library */
+  strains: Strain[]
+  setStrains: (strains: Strain[]) => void
+  addStrain: (strain: Strain) => void
+  updateStrain: (strain: Strain) => void
+  deleteStrain: (id: string) => void
 
   /** Journal entries (loaded from disk on demand) */
   journalEntries: JournalEntry[]
@@ -339,6 +348,21 @@ export const useAppStore = create<AppStore>()(
           dose: loadedDose,
         })
       },
+
+      strains: [],
+      setStrains: strains => set({ strains }),
+      addStrain: strain =>
+        set(state => ({
+          strains: [...state.strains, strain],
+        })),
+      updateStrain: strain =>
+        set(state => ({
+          strains: state.strains.map(s => (s.id === strain.id ? strain : s)),
+        })),
+      deleteStrain: id =>
+        set(state => ({
+          strains: state.strains.filter(s => s.id !== id),
+        })),
     }),
     {
       name: 'cannabis-chem-units',

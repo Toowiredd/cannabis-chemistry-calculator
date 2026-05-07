@@ -154,6 +154,29 @@ export interface PresetBag {
 }
 
 // ---------------------------------------------------------------------------
+// Strain Library
+// ---------------------------------------------------------------------------
+
+export interface Strain {
+  /** Unique identifier */
+  id: string
+  /** Human-readable name */
+  name: string
+  /** Type classification */
+  type: 'indica' | 'sativa' | 'hybrid'
+  /** Typical THCA percentage */
+  thcaPct: number
+  /** Typical THC percentage */
+  thcPct: number
+  /** Typical CBDA percentage */
+  cbdaPct: number
+  /** Typical CBD percentage */
+  cbdPct: number
+  /** Optional notes */
+  notes?: string
+}
+
+// ---------------------------------------------------------------------------
 // Method Preset Data -- exactly 6 entries
 // ---------------------------------------------------------------------------
 
