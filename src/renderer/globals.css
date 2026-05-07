@@ -206,3 +206,28 @@
     -webkit-app-region: no-drag;
   }
 }
+
+/* Print label styles */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .label-card,
+  .label-card * {
+    visibility: visible;
+  }
+  .label-card {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 3.5in;
+    margin: 0;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    background: #fff !important;
+    border: 2px solid #000 !important;
+    box-shadow: none !important;
+    transform: translate(-50%, -50%);
+  }
+}

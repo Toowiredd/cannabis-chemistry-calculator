@@ -53,6 +53,26 @@ export interface DoseState {
   servings: string
 }
 
+export interface LabelState {
+  productName: string
+  ingredients: string
+  storage: string
+  batchNumber: number
+  facilityNuts: boolean
+  facilityDairy: boolean
+  facilityGluten: boolean
+}
+
+const DEFAULT_LABEL: LabelState = {
+  productName: '',
+  ingredients: '',
+  storage: 'Store in a cool, dark place. Keep sealed.',
+  batchNumber: 1,
+  facilityNuts: false,
+  facilityDairy: false,
+  facilityGluten: false,
+}
+
 export interface JournalEntry {
   id: string
   date: string
@@ -138,6 +158,11 @@ interface AppStore {
   setDose: (partial: Partial<DoseState>) => void
   resetDose: () => void
 
+  label: LabelState
+  setLabel: (partial: Partial<LabelState>) => void
+  resetLabel: () => void
+  incrementBatchNumber: () => void
+
   /** Last computed decarb expected mg for downstream carry-forward */
   lastDecarbExpected: string
   setLastDecarbExpected: (val: string) => void
@@ -218,6 +243,15 @@ export const useAppStore = create<AppStore>()(
       setDose: partial =>
         set(state => ({ dose: { ...state.dose, ...partial } })),
       resetDose: () => set({ dose: { ...DEFAULT_DOSE } }),
+
+      label: { ...DEFAULT_LABEL },
+      setLabel: partial =>
+        set(state => ({ label: { ...state.label, ...partial } })),
+      resetLabel: () => set({ label: { ...DEFAULT_LABEL } }),
+      incrementBatchNumber: () =>
+        set(state => ({
+          label: { ...state.label, batchNumber: state.label.batchNumber + 1 },
+        })),
 
       lastDecarbExpected: '',
       setLastDecarbExpected: val => set({ lastDecarbExpected: val }),
@@ -366,7 +400,11 @@ export const useAppStore = create<AppStore>()(
     }),
     {
       name: 'cannabis-chem-units',
-      partialize: state => ({ units: state.units, theme: state.theme }),
+      partialize: state => ({
+        units: state.units,
+        theme: state.theme,
+        label: state.label,
+      }),
     }
   )
 )

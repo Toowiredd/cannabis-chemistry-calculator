@@ -4,6 +4,7 @@ import { calculateMgPerServing, classifyDose } from 'renderer/src/engine/dosing'
 import { cn } from 'renderer/lib/utils'
 import { Info, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
+import { LabelGenerator } from 'renderer/src/components/LabelGenerator'
 
 /* ------------------------------------------------------------------ */
 /* Small helpers (mirroring DecarbTab / InfusionTab patterns)         */
@@ -370,7 +371,7 @@ export function DoseTab() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         {/* ------------------- INPUT PANEL ------------------- */}
         <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
@@ -517,6 +518,17 @@ export function DoseTab() {
             )}
           </div>
         </div>
+
+        {/* ------------------- LABEL GENERATOR ------------------- */}
+        {results && (
+          <div className="flex flex-col gap-4">
+            <LabelGenerator
+              classification={displayClassification(results.classification)}
+              mgPerServing={results.mgPerServing}
+              servings={parseFloat(dose.servings) || 0}
+            />
+          </div>
+        )}
       </div>
 
       {/* Disclaimer */}
