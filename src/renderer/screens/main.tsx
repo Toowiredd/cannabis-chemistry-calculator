@@ -37,7 +37,7 @@ export function MainScreen() {
   const theme = useAppStore(s => s.theme)
   const firstRunDismissed = useAppStore(s => s.firstRunDismissed)
   const _dismissFirstRun = useAppStore(s => s.dismissFirstRun)
-  const firstTimerOpen = useAppStore(s => s.firstTimerOpen)
+  const _firstTimerOpen = useAppStore(s => s.firstTimerOpen)
   const setFirstTimerOpen = useAppStore(s => s.setFirstTimerOpen)
 
   useEffect(() => {

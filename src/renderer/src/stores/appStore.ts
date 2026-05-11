@@ -364,7 +364,8 @@ export const useAppStore = create<AppStore>()(
         })),
 
       firstRunDismissed: false,
-      dismissFirstRun: () => set({ firstRunDismissed: true, firstTimerOpen: false }),
+      dismissFirstRun: () =>
+        set({ firstRunDismissed: true, firstTimerOpen: false }),
 
       firstTimerOpen: false,
       setFirstTimerOpen: open => set({ firstTimerOpen: open }),

@@ -37,7 +37,8 @@
         "useButtonType": "off"
       },
       "complexity": {
-        "noBannedTypes": "warn"
+        "noBannedTypes": "warn",
+        "noImportantStyles": "off"
       },
       "correctness": {
         "noUnusedImports": "warn",

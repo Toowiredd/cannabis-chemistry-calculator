@@ -229,7 +229,7 @@ describe('CONCENTRATE_TYPES presets (VAL-CONC-003)', () => {
   it('distillate has needsDecarb = false (skip decarb step)', () => {
     const distillate = CONCENTRATE_TYPES.find(t => t.id === 'distillate')
     expect(distillate).toBeDefined()
-    expect(distillate!.needsDecarb).toBe(false)
+    expect(distillate?.needsDecarb).toBe(false)
   })
 
   it('non-distillate types have needsDecarb = true', () => {

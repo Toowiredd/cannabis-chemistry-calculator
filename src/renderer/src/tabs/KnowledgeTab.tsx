@@ -856,7 +856,8 @@ export function KnowledgeTab() {
                       {t.name}
                     </td>
                     <td className="px-4 py-2">
-                      {Math.round((t.boilingPointC * 9) / 5 + 32)}°F / {t.boilingPointC}°C
+                      {Math.round((t.boilingPointC * 9) / 5 + 32)}°F /{' '}
+                      {t.boilingPointC}°C
                     </td>
                     <td className="px-4 py-2 text-foreground/70">
                       {t.notes ?? '-'}

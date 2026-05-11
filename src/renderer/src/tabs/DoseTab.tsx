@@ -1,11 +1,22 @@
-import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { calculateMgPerServing, classifyDose } from 'renderer/src/engine/dosing'
 import { reverseFullWorkflow } from 'renderer/src/engine/reverse'
 import { scaleRecipe } from 'renderer/src/engine/recipe'
-import { EDIBLE_FORMATS, DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
+import {
+  EDIBLE_FORMATS,
+  DECARB_METHODS,
+  INFUSION_FATS,
+} from 'renderer/src/engine/models'
 import { cn } from 'renderer/lib/utils'
-import { Info, ChevronDown, ChevronUp, RotateCcw, Scale, ArrowLeftRight, ArrowDownUp } from 'lucide-react'
+import {
+  Info,
+  ChevronDown,
+  ChevronUp,
+  RotateCcw,
+  Scale,
+  ArrowDownUp,
+} from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
 import { LabelGenerator } from 'renderer/src/components/LabelGenerator'
 
@@ -184,10 +195,10 @@ function validateReverseFields(
     const d = parseFloat(dStr)
     if (Number.isNaN(d))
       errors.desiredMgPerServing = 'That does not look like a number'
-    else if (d < 0)
-      errors.desiredMgPerServing = 'Dose cannot be negative'
+    else if (d < 0) errors.desiredMgPerServing = 'Dose cannot be negative'
     else if (d > 500)
-      errors.desiredMgPerServing = 'That is an extraordinarily high dose. Double-check your units.'
+      errors.desiredMgPerServing =
+        'That is an extraordinarily high dose. Double-check your units.'
   }
 
   const sStr = servings.trim()
@@ -332,7 +343,8 @@ export function DoseTab() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   /* Reverse mode state */
-  const [reverseFieldErrors, setReverseFieldErrors] = useState<ReverseFieldErrors>({})
+  const [reverseFieldErrors, setReverseFieldErrors] =
+    useState<ReverseFieldErrors>({})
   const [reverseGrams, setReverseGrams] = useState<number | null>(null)
   const [reverseError, setReverseError] = useState<string | null>(null)
 
@@ -437,8 +449,11 @@ export function DoseTab() {
       }
 
       try {
-        const method = DECARB_METHODS.find(m => m.id === decarb.presetId) ?? DECARB_METHODS[0]
-        const fat = INFUSION_FATS.find(f => f.id === infusion.fatId) ?? INFUSION_FATS[0]
+        const method =
+          DECARB_METHODS.find(m => m.id === decarb.presetId) ??
+          DECARB_METHODS[0]
+        const fat =
+          INFUSION_FATS.find(f => f.id === infusion.fatId) ?? INFUSION_FATS[0]
 
         const result = reverseFullWorkflow({
           desiredMgPerServing: parseFloat(dose.desiredMgPerServing),
@@ -743,97 +758,99 @@ export function DoseTab() {
 
         {/* ------------------- RESULTS PANEL ------------------- */}
         {!isReverse && (
-        <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
-            Results
-          </h3>
+          <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
+              Results
+            </h3>
 
-          {/* mg per serving */}
-          <div className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4">
-            <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
-              mg per Serving
-            </span>
-            <span className="mt-1 text-2xl font-bold text-foreground">
-              {results
-                ? `${fmt1(results.mgPerServing)} mg per serving`
-                : '\u2014'}
-            </span>
-          </div>
+            {/* mg per serving */}
+            <div className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+              <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
+                mg per Serving
+              </span>
+              <span className="mt-1 text-2xl font-bold text-foreground">
+                {results
+                  ? `${fmt1(results.mgPerServing)} mg per serving`
+                  : '\u2014'}
+              </span>
+            </div>
 
-          {/* Classification label */}
-          <div className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4">
-            <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
-              Classification
-            </span>
-            <span className="mt-1 text-2xl font-bold text-emerald-300">
-              {results
-                ? displayClassification(results.classification)
-                : '\u2014'}
-            </span>
-          </div>
+            {/* Classification label */}
+            <div className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+              <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
+                Classification
+              </span>
+              <span className="mt-1 text-2xl font-bold text-emerald-300">
+                {results
+                  ? displayClassification(results.classification)
+                  : '\u2014'}
+              </span>
+            </div>
 
-          {/* Visual scale */}
-          <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-4">
-            {results ? (
-              <DoseScale classification={results.classification} />
-            ) : (
-              <div className="flex flex-col gap-3">
-                <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
-                  Dose Classification Scale
-                </span>
-                <div className="flex w-full">
-                  {DOSE_ZONES.map((zone, _i) => (
-                    <div
-                      className={cn(
-                        'flex flex-1 flex-col items-center gap-1 border-y border-l py-2 text-center first:rounded-l-lg first:border-l last:rounded-r-lg last:border-r',
-                        'border-foreground/10 bg-foreground/5 text-foreground/70'
-                      )}
-                      key={zone.key}
-                    >
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/70">
-                        {zone.label}
-                      </span>
-                      <span className="text-[10px] text-foreground/70">
-                        {zone.max != null
-                          ? `${zone.min}-${zone.max} mg`
-                          : `${zone.min}+ mg`}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Show Formula */}
-          <div>
-            <button
-              className="flex w-full items-center justify-between rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
-              onClick={() => setShowFormula(v => !v)}
-              type="button"
-            >
-              <span>{showFormula ? 'Hide Formula' : 'Show Formula'}</span>
-              {showFormula ? (
-                <ChevronUp className="size-4" />
+            {/* Visual scale */}
+            <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+              {results ? (
+                <DoseScale classification={results.classification} />
               ) : (
-                <ChevronDown className="size-4" />
+                <div className="flex flex-col gap-3">
+                  <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
+                    Dose Classification Scale
+                  </span>
+                  <div className="flex w-full">
+                    {DOSE_ZONES.map((zone, _i) => (
+                      <div
+                        className={cn(
+                          'flex flex-1 flex-col items-center gap-1 border-y border-l py-2 text-center first:rounded-l-lg first:border-l last:rounded-r-lg last:border-r',
+                          'border-foreground/10 bg-foreground/5 text-foreground/70'
+                        )}
+                        key={zone.key}
+                      >
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/70">
+                          {zone.label}
+                        </span>
+                        <span className="text-[10px] text-foreground/70">
+                          {zone.max != null
+                            ? `${zone.min}-${zone.max} mg`
+                            : `${zone.min}+ mg`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
-            </button>
-            {showFormula && (
-              <div className="mt-2 rounded-lg border border-foreground/10 bg-foreground/30 px-4 py-3 font-mono text-xs leading-relaxed text-foreground/70">
-                <p className="mb-2">
-                  <strong className="text-foreground/90">mg per serving</strong>{' '}
-                  = total infused THC (mg) / number of servings
-                </p>
-                <p className="text-foreground/70">
-                  The dose classification is based on the milligrams of THC per
-                  individual serving. Individual tolerance varies significantly;
-                  start low and adjust gradually.
-                </p>
-              </div>
-            )}
+            </div>
+
+            {/* Show Formula */}
+            <div>
+              <button
+                className="flex w-full items-center justify-between rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                onClick={() => setShowFormula(v => !v)}
+                type="button"
+              >
+                <span>{showFormula ? 'Hide Formula' : 'Show Formula'}</span>
+                {showFormula ? (
+                  <ChevronUp className="size-4" />
+                ) : (
+                  <ChevronDown className="size-4" />
+                )}
+              </button>
+              {showFormula && (
+                <div className="mt-2 rounded-lg border border-foreground/10 bg-foreground/30 px-4 py-3 font-mono text-xs leading-relaxed text-foreground/70">
+                  <p className="mb-2">
+                    <strong className="text-foreground/90">
+                      mg per serving
+                    </strong>{' '}
+                    = total infused THC (mg) / number of servings
+                  </p>
+                  <p className="text-foreground/70">
+                    The dose classification is based on the milligrams of THC
+                    per individual serving. Individual tolerance varies
+                    significantly; start low and adjust gradually.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
         )}
 
         {/* ------------------- LABEL GENERATOR ------------------- */}

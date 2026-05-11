@@ -24,7 +24,6 @@ const EMPTY_FORM: StrainFormData = {
   notes: '',
 }
 
-
 function clampTo100(value: string): string {
   const n = parseFloat(value)
   if (Number.isNaN(n)) return value
@@ -134,13 +133,7 @@ export function StrainManager({
     }
 
     resetForm()
-  }, [
-    form,
-    editingId,
-    validateForm,
-    resetForm,
-    setStrains,
-  ])
+  }, [form, editingId, validateForm, resetForm, setStrains])
 
   const handleEdit = useCallback((strain: Strain) => {
     setForm({

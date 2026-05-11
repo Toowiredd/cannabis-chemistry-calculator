@@ -144,7 +144,7 @@ function nullableStringish(value: unknown): string | null {
   return null
 }
 
-function numberish(value: unknown, fallback: number): number {
+function _numberish(value: unknown, fallback: number): number {
   if (typeof value === 'number') return value
   const n = typeof value === 'string' ? Number(value) : NaN
   return Number.isFinite(n) ? n : fallback

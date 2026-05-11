@@ -8,7 +8,6 @@ import {
   saveRecipe,
   loadRecipe,
   scaleRecipe,
-  type Recipe,
   type RecipeUnits,
   type RecipeDecarb,
   type RecipeInfusion,
@@ -329,12 +328,12 @@ describe('scaleRecipe', () => {
     // volume doubled to 200 → mg/mL stays 15.5
     // servings doubled to 20 → mg/serving stays 155.4
     expect(scaled.computed).toBeDefined()
-    expect(scaled.computed!.theoreticalMax).toBe(3908.0)
-    expect(scaled.computed!.decarbedRange.expected).toBe(3790.8)
-    expect(scaled.computed!.infusedThc).toBe(3108.5)
-    expect(scaled.computed!.mgPerMl).toBe(15.5)
-    expect(scaled.computed!.mgPerServing).toBe(155.4)
-    expect(scaled.computed!.classification).toBe('extreme')
+    expect(scaled.computed?.theoreticalMax).toBe(3908.0)
+    expect(scaled.computed?.decarbedRange.expected).toBe(3790.8)
+    expect(scaled.computed?.infusedThc).toBe(3108.5)
+    expect(scaled.computed?.mgPerMl).toBe(15.5)
+    expect(scaled.computed?.mgPerServing).toBe(155.4)
+    expect(scaled.computed?.classification).toBe('extreme')
   })
 
   it('recalculates downstream values when scaling 0.5x', () => {
@@ -358,10 +357,10 @@ describe('scaleRecipe', () => {
     const scaled = scaleRecipe(recipe, 0.5)
 
     expect(scaled.computed).toBeDefined()
-    expect(scaled.computed!.theoreticalMax).toBe(977.0)
-    expect(scaled.computed!.infusedThc).toBe(777.1)
-    expect(scaled.computed!.mgPerMl).toBe(15.5)
-    expect(scaled.computed!.mgPerServing).toBe(155.4)
+    expect(scaled.computed?.theoreticalMax).toBe(977.0)
+    expect(scaled.computed?.infusedThc).toBe(777.1)
+    expect(scaled.computed?.mgPerMl).toBe(15.5)
+    expect(scaled.computed?.mgPerServing).toBe(155.4)
   })
 
   it('scales volume proportionally to maintain concentration', () => {
@@ -409,9 +408,9 @@ describe('scaleRecipe', () => {
 
     // decarbedThc and totalThc should match the recomputed expected values
     expect(parseFloat(scaled.infusion.decarbedThc)).toBe(
-      scaled.computed!.decarbedRange.expected
+      scaled.computed?.decarbedRange.expected
     )
-    expect(parseFloat(scaled.dose.totalThc)).toBe(scaled.computed!.infusedThc)
+    expect(parseFloat(scaled.dose.totalThc)).toBe(scaled.computed?.infusedThc)
   })
 
   it('handles custom fat with override efficiency during scaling', () => {
@@ -438,8 +437,8 @@ describe('scaleRecipe', () => {
     // sv_dry expected 0.97 → 1701.4
     // custom eff 0.75 → infused = 1276.1
     // doubled weight → 3508.0 theoretical → 3402.8 decarbed → 2552.1 infused
-    expect(scaled.computed!.theoreticalMax).toBe(3508.0)
-    expect(scaled.computed!.infusedThc).toBe(2552.1)
+    expect(scaled.computed?.theoreticalMax).toBe(3508.0)
+    expect(scaled.computed?.infusedThc).toBe(2552.1)
     expect(scaled.infusion.fatId).toBe('custom')
     expect(scaled.infusion.customEfficiency).toBe('0.75')
   })
@@ -467,8 +466,8 @@ describe('scaleRecipe', () => {
     // theoretical 1754.0 * 2 = 3508.0
     // decarbed expected = 3508.0 * 0.93 = 3262.4
     // mct eff 0.92 → infused = 3001.4
-    expect(scaled.computed!.decarbedRange.expected).toBe(3262.4)
-    expect(scaled.computed!.infusedThc).toBe(3001.4)
+    expect(scaled.computed?.decarbedRange.expected).toBe(3262.4)
+    expect(scaled.computed?.infusedThc).toBe(3001.4)
     expect(scaled.decarb.effExpectedOverride).toBe('0.93')
   })
 
@@ -490,11 +489,12 @@ describe('scaleRecipe', () => {
     const scaled = scaleRecipe(recipe, 2)
 
     // All computed values should be rounded to 1 decimal
-    expect(scaled.computed!.theoreticalMax).toBe(
-      Math.round(scaled.computed!.theoreticalMax * 10) / 10
+    const computed = scaled.computed!
+    expect(computed.theoreticalMax!).toBe(
+      Math.round(computed.theoreticalMax! * 10) / 10
     )
-    expect(scaled.computed!.mgPerServing).toBe(
-      Math.round(scaled.computed!.mgPerServing * 10) / 10
+    expect(computed.mgPerServing!).toBe(
+      Math.round(computed.mgPerServing! * 10) / 10
     )
   })
 })
