@@ -301,7 +301,7 @@ export const INFUSION_FATS: readonly PresetFat[] = [
     id: 'ghee',
     name: 'Ghee',
     extractionEff: 0.85,
-    simplifiedMultiplier: 8.5,
+    simplifiedMultiplier: 7.45,
     notes:
       'Clarified butter with high smoke point and rich flavor; excellent cannabinoid solubility',
   },
@@ -309,7 +309,7 @@ export const INFUSION_FATS: readonly PresetFat[] = [
     id: 'coconut',
     name: 'Coconut Oil',
     extractionEff: 0.82,
-    simplifiedMultiplier: 8.2,
+    simplifiedMultiplier: 7.19,
     notes:
       'High medium-chain triglyceride content; mild coconut aroma and solid at room temperature',
   },
@@ -317,7 +317,7 @@ export const INFUSION_FATS: readonly PresetFat[] = [
     id: 'mct',
     name: 'MCT Oil',
     extractionEff: 0.92,
-    simplifiedMultiplier: 9.2,
+    simplifiedMultiplier: 8.07,
     notes:
       'Fractionated coconut oil; very high extraction efficiency, neutral flavor, liquid at room temperature',
   },

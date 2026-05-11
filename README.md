@@ -277,9 +277,9 @@ total_infused_THC / servings
 
 | Fat | Extraction Efficiency | Simplified Multiplier | Notes |
 |-----|----------------------|----------------------|-------|
-| Ghee | 0.85 | 8.5 | Clarified butter, high smoke point |
-| Coconut Oil | 0.82 | 8.2 | High MCT content, solid at room temp |
-| MCT Oil | 0.92 | 9.2 | Fractionated, neutral flavor, liquid |
+| Ghee | 0.85 | 7.45 | Clarified butter, high smoke point |
+| Coconut Oil | 0.82 | 7.19 | High MCT content, solid at room temp |
+| MCT Oil | 0.92 | 8.07 | Fractionated, neutral flavor, liquid |
 | Custom | user-defined | N/A | Manual efficiency entry |
 
 ## License

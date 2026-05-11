@@ -199,28 +199,28 @@ describe('Preset cross-checks (contract-mandated values)', () => {
     expect(m.efficiency.high).toBe(0.95)
   })
 
-  it('ghee has extractionEff 0.85, multiplier 8.5', () => {
+  it('ghee has extractionEff 0.85, multiplier 7.45', () => {
     const f = INFUSION_FATS.find(x => x.id === 'ghee') as NonNullable<
       (typeof INFUSION_FATS)[number]
     >
     expect(f.extractionEff).toBe(0.85)
-    expect(f.simplifiedMultiplier).toBe(8.5)
+    expect(f.simplifiedMultiplier).toBe(7.45)
   })
 
-  it('coconut has extractionEff 0.82, multiplier 8.2', () => {
+  it('coconut has extractionEff 0.82, multiplier 7.19', () => {
     const f = INFUSION_FATS.find(x => x.id === 'coconut') as NonNullable<
       (typeof INFUSION_FATS)[number]
     >
     expect(f.extractionEff).toBe(0.82)
-    expect(f.simplifiedMultiplier).toBe(8.2)
+    expect(f.simplifiedMultiplier).toBe(7.19)
   })
 
-  it('mct has extractionEff 0.92, multiplier 9.2', () => {
+  it('mct has extractionEff 0.92, multiplier 8.07', () => {
     const f = INFUSION_FATS.find(x => x.id === 'mct') as NonNullable<
       (typeof INFUSION_FATS)[number]
     >
     expect(f.extractionEff).toBe(0.92)
-    expect(f.simplifiedMultiplier).toBe(9.2)
+    expect(f.simplifiedMultiplier).toBe(8.07)
   })
 
   it('custom has extractionEff 0.0, multiplier 0.0', () => {

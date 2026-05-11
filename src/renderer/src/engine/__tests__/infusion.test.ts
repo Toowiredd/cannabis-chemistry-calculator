@@ -109,18 +109,18 @@ describe('calculateMgPerMl', () => {
 
 describe('calculateSimplifiedEstimate', () => {
   it('calculates ghee simplified estimate (feature spec / VAL-INFUSE-013)', () => {
-    // 10 g × 18 × 8.5 = 1530.0 mg
-    expect(calculateSimplifiedEstimate(10, 18, 8.5)).toBe(1530.0)
+    // 10 g × 18 × 7.45 = 1341.0 mg (0.877 × 10 × 0.85 = 7.45)
+    expect(calculateSimplifiedEstimate(10, 18, 7.45)).toBe(1341.0)
   })
 
   it('calculates coconut oil estimate (VAL-INFUSE-014)', () => {
-    // 10 g × 18 × 8.2 = 1476.0 mg
-    expect(calculateSimplifiedEstimate(10, 18, 8.2)).toBe(1476.0)
+    // 10 g × 18 × 7.19 = 1294.2 mg (0.877 × 10 × 0.82 = 7.19)
+    expect(calculateSimplifiedEstimate(10, 18, 7.19)).toBe(1294.2)
   })
 
   it('calculates MCT oil estimate (VAL-INFUSE-015)', () => {
-    // 10 g × 18 × 9.2 = 1656.0 mg
-    expect(calculateSimplifiedEstimate(10, 18, 9.2)).toBe(1656.0)
+    // 10 g × 18 × 8.07 = 1452.6 mg (0.877 × 10 × 0.92 = 8.07)
+    expect(calculateSimplifiedEstimate(10, 18, 8.07)).toBe(1452.6)
   })
 
   it('returns 0.0 when grams is 0', () => {
@@ -136,16 +136,16 @@ describe('calculateSimplifiedEstimate', () => {
   })
 
   it('rejects negative grams', () => {
-    expect(() => calculateSimplifiedEstimate(-5, 18, 8.5)).toThrow(
+    expect(() => calculateSimplifiedEstimate(-5, 18, 7.45)).toThrow(
       ValidationError
     )
-    expect(() => calculateSimplifiedEstimate(-5, 18, 8.5)).toThrow(
+    expect(() => calculateSimplifiedEstimate(-5, 18, 7.45)).toThrow(
       'grams cannot be negative'
     )
   })
 
   it('rejects negative thcaPct', () => {
-    expect(() => calculateSimplifiedEstimate(10, -10, 8.5)).toThrow(
+    expect(() => calculateSimplifiedEstimate(10, -10, 7.45)).toThrow(
       ValidationError
     )
   })
@@ -157,15 +157,15 @@ describe('calculateSimplifiedEstimate', () => {
   })
 
   it('rejects thcaPct > 100', () => {
-    expect(() => calculateSimplifiedEstimate(10, 110, 8.5)).toThrow(
+    expect(() => calculateSimplifiedEstimate(10, 110, 7.45)).toThrow(
       ValidationError
     )
   })
 
   it('rounds to max 1 decimal', () => {
-    // 3.33 g × 19.7 × 8.2 = 537.9282 → 537.9
-    expect(calculateSimplifiedEstimate(3.33, 19.7, 8.2)).toBe(537.9)
-    // 3.33 g × 19.7 × 8.3 = 544.449 → 544.5
-    expect(calculateSimplifiedEstimate(3.33, 19.7, 8.3)).toBe(544.5)
+    // 3.33 g × 19.7 × 7.19 = 471.67119 → 471.7
+    expect(calculateSimplifiedEstimate(3.33, 19.7, 7.19)).toBe(471.7)
+    // 3.33 g × 19.7 × 7.45 = 488.72745 → 488.7
+    expect(calculateSimplifiedEstimate(3.33, 19.7, 7.45)).toBe(488.7)
   })
 })
