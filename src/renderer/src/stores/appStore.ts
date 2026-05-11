@@ -311,10 +311,18 @@ export const useAppStore = create<AppStore>()(
         })),
 
       lastDecarbExpected: '',
-      setLastDecarbExpected: val => set({ lastDecarbExpected: val }),
+      setLastDecarbExpected: val =>
+        set(state => {
+          if (state.lastDecarbExpected === val) return {} // no-op
+          return { lastDecarbExpected: val }
+        }),
 
       lastInfusedThc: '',
-      setLastInfusedThc: val => set({ lastInfusedThc: val }),
+      setLastInfusedThc: val =>
+        set(state => {
+          if (state.lastInfusedThc === val) return {} // no-op
+          return { lastInfusedThc: val }
+        }),
 
       journalEntries: [],
       setJournalEntries: entries => set({ journalEntries: entries }),

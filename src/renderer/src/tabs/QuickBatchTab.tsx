@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
 import {
@@ -174,15 +174,21 @@ export function QuickBatchTab() {
     }
   }, [decarb, infusion, dose, units])
 
-  /* Keep upstream carry-forward in sync */
+  /* Keep upstream carry-forward in sync — use refs to avoid infinite loops */
+  const prevDecarbExpected = useRef<string>('')
+  const prevInfusedThc = useRef<string>('')
   useEffect(() => {
-    if (results.decarbedExpected > 0) {
-      store.setLastDecarbExpected(String(round1n(results.decarbedExpected)))
+    const decarbStr = results.decarbedExpected > 0 ? String(round1n(results.decarbedExpected)) : ''
+    const infusedStr = results.infusedThc > 0 ? String(round1n(results.infusedThc)) : ''
+    if (decarbStr && decarbStr !== prevDecarbExpected.current) {
+      prevDecarbExpected.current = decarbStr
+      useAppStore.getState().setLastDecarbExpected(decarbStr)
     }
-    if (results.infusedThc > 0) {
-      store.setLastInfusedThc(String(round1n(results.infusedThc)))
+    if (infusedStr && infusedStr !== prevInfusedThc.current) {
+      prevInfusedThc.current = infusedStr
+      useAppStore.getState().setLastInfusedThc(infusedStr)
     }
-  }, [results.decarbedExpected, results.infusedThc, store])
+  }, [results.decarbedExpected, results.infusedThc])
 
   /* Scale batch handler */
   const [scaleOpen, setScaleOpen] = useState(false)

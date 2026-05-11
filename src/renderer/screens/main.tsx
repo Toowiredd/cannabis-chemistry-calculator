@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { cn } from 'renderer/lib/utils'
 import { TitleBar } from 'renderer/src/components/TitleBar'
 import { GlassCard } from 'renderer/src/components/GlassCard'
@@ -74,7 +74,7 @@ export function MainScreen() {
 
       <nav className="glass flex shrink-0 items-center gap-1 overflow-x-auto px-4 py-2 relative">
         {TAB_ITEMS.map((tab, i) => (
-          <>
+          <Fragment key={tab.id}>
             {/* Group divider */}
             {i > 0 && tab.group !== TAB_ITEMS[i - 1].group && (
               <div className="mx-1 h-6 w-px bg-foreground/20" />
@@ -86,13 +86,12 @@ export function MainScreen() {
                   ? 'bg-foreground/15 text-foreground border border-foreground/20'
                   : 'text-foreground/70 hover:bg-foreground/5 hover:text-foreground/80'
               )}
-              key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               type="button"
             >
               {tab.label}
             </button>
-          </>
+          </Fragment>
         ))}
 
         {/* Re-access First-Timer Guide link (visible after dismiss) */}
