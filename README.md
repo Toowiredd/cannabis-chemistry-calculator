@@ -1,6 +1,6 @@
 # Cannabis Chemistry Calculator
 
-A production-quality, local-first Electron desktop application for cannabis decarboxylation, fat infusion, and dose estimation calculations.
+A local-first Electron desktop app for cannabis decarboxylation, fat infusion, and dose estimation calculations. Built with React 19, TypeScript 5, and Tailwind CSS v4.
 
 ## Overview
 
@@ -13,7 +13,7 @@ Cannabis Chemistry Calculator provides accurate, real-time heuristic estimates f
 - **Fat Comparison** — Compare all four carrier fats side-by-side with shared inputs.
 - **Knowledge Base** — Educational content covering the chemistry of decarboxylation, the 0.877 molecular weight factor, sous vide constraints, terpene retention trade-offs, and more.
 
-All calculations are **heuristic estimates**, not laboratory results. They are designed to be scientifically grounded while remaining practical for home and small-scale use.
+All calculations are heuristic estimates, not laboratory results. The math is rooted in real chemistry — the 0.877 molecular weight ratio, extraction efficiency data from peer-reviewed studies — but your actual yield will vary with material quality, technique, and measurement accuracy. This tool is written for home cooks and small-batch makers, not commercial labs.
 
 ## Features
 
@@ -24,7 +24,7 @@ All calculations are **heuristic estimates**, not laboratory results. They are d
 - Visual override highlighting (amber border + badge)
 - Unit toggles: Celsius / Fahrenheit, grams / ounces, mL / tsp / tbsp / cups
 - Inline Zod input validation with clear error messages
-- Glassmorphism dark-mode UI with premium translucent panels
+- Glassmorphism dark-mode UI with translucent panels
 - Cross-tab data flow — upstream results carry forward to downstream tabs
 - Export reports (human-readable .txt + structured .json)
 - Copy summary to clipboard with toast confirmation

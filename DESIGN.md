@@ -21,7 +21,7 @@ This document covers the architecture choices, modeling rationale, and design de
 
 ## Architecture Overview
 
-The application follows a **strictly layered architecture** with a hard boundary between the calculation engine and the UI layer. This separation ensures:
+The application follows a **layered architecture** with a hard boundary between the calculation engine and the UI. This gives us:
 
 - **Testability** — Engine functions can be validated in isolation with 100% deterministic behavior.
 - **Portability** — The engine is pure TypeScript and could be reused in a web app, CLI, or mobile wrapper without modification.
@@ -40,7 +40,7 @@ The codebase is organized into four primary layers:
 
 ### Engine Layer (src/renderer/src/engine/)
 
-The engine is the core intellectual property of the application. It is intentionally boring — all functions are deterministic, pure, and side-effect-free.
+The engine is the heart of the application. All functions are deterministic, pure, and side-effect-free — no network calls, no DOM access, no randomness.
 
 | Module | Purpose |
 |--------|---------|
@@ -52,7 +52,7 @@ The engine is the core intellectual property of the application. It is intention
 | `models.ts` | TypeScript interfaces + preset data constants |
 | `errors.ts` | Domain ValidationError class |
 
-**Invariant:** The engine imports nothing from React, Electron, or any UI library. The reverse dependency is allowed: UI imports engine.
+**Invariant:** The engine imports nothing from React, Electron, or any UI library. The reverse dependency is fine: UI imports engine.
 
 ### State Layer (src/renderer/src/stores/appStore.ts)
 
@@ -73,7 +73,7 @@ A single Zustand store with `persist` middleware holds all mutable application s
 - Native TypeScript support
 - Small bundle size (~1 KB)
 - Built-in persist middleware for local storage
-- Excellent selector performance out of the box
+- Good selector performance out of the box
 
 ### Presentation Layer (src/renderer/src/tabs/)
 
@@ -105,7 +105,7 @@ The main window is `frameless: true` with `titleBarStyle: 'hidden'`. A custom `T
 - Minimize / Maximize / Close buttons (right)
 - Native drag region for moving the window
 
-**Rationale:** Frameless windows are the industry standard for polished Electron apps. They allow the UI to extend to the window edge without visual discontinuity.
+Frameless windows are common in Electron apps because they let the UI extend to the window edge without a visual break.
 
 ### Preload Security
 
@@ -209,7 +209,7 @@ Boundaries use **inclusive floor, exclusive ceiling** to avoid double-labeling a
 
 | Fat | Rationale |
 |-----|-----------|
-| **Ghee** | Traditional choice. Clarified butter has a high smoke point (~252°C) and excellent cannabinoid solubility. The 0.85 extraction efficiency is a conservative estimate based on peer-reviewed extraction studies. |
+| **Ghee** | Traditional choice. Clarified butter has a high smoke point (~252°C) and good cannabinoid solubility. The 0.85 extraction efficiency is a conservative estimate based on peer-reviewed extraction studies. |
 | **Coconut Oil** | Popular alternative with high saturated fat content. Solid at room temperature, making it easy to portion. |
 | **MCT Oil** | Fractionated coconut oil with highest extraction efficiency (0.92). Liquid at room temp, neutral flavor, easiest to measure. |
 | **Custom** | Allows users to enter any efficiency value. Simplified multiplier is disabled because there is no known multiplier for arbitrary fats. |
@@ -248,7 +248,7 @@ All inputs are validated through Zod schemas defined in `engine/validation.ts`:
 **Why Zod?** Zod provides:
 
 - Type-safe schema definitions
-- Excellent error messages out of the box
+- Clear error messages out of the box
 - Composable refinements (e.g., `thcaPct + thcPct <= 100`)
 - Small bundle size
 
@@ -275,7 +275,7 @@ The visual identity is built on **glassmorphism**:
 - `border-white/20` — Subtle borders for definition
 - `shadow-2xl shadow-black/20` — Deep shadows for lift
 
-**Rationale:** Glassmorphism communicates "precision" and "scientific" without being sterile. The dark mode default avoids eye strain during extended use.
+I went with glassmorphism because it looks clean and technical without feeling like a spreadsheet. The dark mode default cuts down on eye strain during long sessions.
 
 ### Text-Only Labels
 
@@ -290,7 +290,7 @@ When a user edits a preset value, the input gets:
 - Amber border (`border-amber-400`)
 - "Override" badge
 
-This communicates: "You are no longer using the trusted preset value."
+The amber border + badge is a clear signal: "you're not on the preset anymore."
 
 ### Responsive Constraints
 
@@ -379,7 +379,7 @@ dist/v1.0.0/
 | No CSS-in-JS | Styled-components, Emotion | Tailwind v4 is faster at build time and easier to maintain in a team |
 | No database | SQLite, localStorage | JSON files in `%APPDATA%` are sufficient for preset persistence; no schema migration needed |
 | Single store | Multiple stores | Cross-tab data flow is simpler with one store; Zustand selectors prevent performance issues |
-| Frameless window | Native frame | Glassmorphism requires edge-to-edge rendering; custom title bar is standard for polished Electron apps |
+| Frameless window | Native frame | Glassmorphism needs edge-to-edge rendering; custom title bar is normal for Electron apps |
 | Text-only labels | Emoji | Accessibility, consistency across OS versions, professional tone |
 
 ---
