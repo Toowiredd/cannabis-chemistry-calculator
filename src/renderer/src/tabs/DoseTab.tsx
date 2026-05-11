@@ -781,7 +781,14 @@ export function DoseTab() {
               <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                 mg per Serving
               </span>
-              <span className="mt-1 text-2xl font-bold text-foreground">
+              <span
+                className="result-bloom mt-1 text-2xl font-bold text-foreground"
+                key={
+                  results
+                    ? `dose-mg-${fmt1(results.mgPerServing)}`
+                    : 'dose-mg-empty'
+                }
+              >
                 {results
                   ? `${fmt1(results.mgPerServing)} mg per serving`
                   : 'Enter total THC and number of servings above to see results'}
@@ -793,7 +800,14 @@ export function DoseTab() {
               <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                 Classification
               </span>
-              <span className="mt-1 text-2xl font-bold text-success">
+              <span
+                className="result-bloom mt-1 text-2xl font-bold text-success"
+                key={
+                  results
+                    ? `dose-class-${displayClassification(results.classification)}`
+                    : 'dose-class-empty'
+                }
+              >
                 {results
                   ? displayClassification(results.classification)
                   : '\u2014'}

@@ -1276,7 +1276,14 @@ export function DecarbTab() {
                 <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Expected
                 </span>
-                <span className="text-lg font-semibold text-success">
+                <span
+                  className="result-bloom text-lg font-semibold text-success"
+                  key={
+                    results
+                      ? `decarb-expected-${fmtSigFigs(results.decarbed.expected, decarb.weight, decarb.thcaPct, decarb.thcPct)}`
+                      : 'decarb-expected-empty'
+                  }
+                >
                   {results
                     ? `${fmtSigFigs(results.decarbed.expected, decarb.weight, decarb.thcaPct, decarb.thcPct)} mg`
                     : 'Enter your material weight and potency above to see results'}

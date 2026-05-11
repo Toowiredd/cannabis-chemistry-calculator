@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { cn } from 'renderer/lib/utils'
 import { TitleBar } from 'renderer/src/components/TitleBar'
 import { GlassCard } from 'renderer/src/components/GlassCard'
+import { TransformationCanvas } from 'renderer/src/components/TransformationCanvas'
 import { DecarbTab } from 'renderer/src/tabs/DecarbTab'
 import { InfusionTab } from 'renderer/src/tabs/InfusionTab'
 import { DoseTab } from 'renderer/src/tabs/DoseTab'
@@ -50,6 +51,16 @@ export function MainScreen() {
     document.documentElement.classList.toggle('dark', theme === 'dark')
   }, [theme])
 
+  useEffect(() => {
+    const map: Partial<Record<TabId, string>> = {
+      decarb: 'decarb',
+      infusion: 'infusion',
+      dose: 'dose',
+    }
+    const stage = map[activeTab] ?? 'landing'
+    document.body.dataset.workflowStage = stage
+  }, [activeTab])
+
   /* Open guide automatically on first launch */
   useEffect(() => {
     if (!firstRunDismissed) {
@@ -59,6 +70,7 @@ export function MainScreen() {
 
   return (
     <div className="flex h-screen w-screen flex-col bg-background text-foreground overflow-hidden">
+      <TransformationCanvas />
       <TitleBar />
 
       <FirstTimerGuide />
@@ -87,6 +99,11 @@ export function MainScreen() {
                   : 'text-foreground/70 hover:bg-foreground/5 hover:text-foreground/80'
               )}
               onClick={() => setActiveTab(tab.id)}
+              style={
+                activeTab === tab.id
+                  ? { color: 'var(--stage-accent)' }
+                  : undefined
+              }
               type="button"
             >
               {tab.label}

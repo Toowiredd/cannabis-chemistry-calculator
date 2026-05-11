@@ -638,7 +638,14 @@ export function InfusionTab() {
             <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
               Total Infused THC
             </span>
-            <span className="mt-1 text-2xl font-bold text-foreground">
+            <span
+              className="result-bloom mt-1 text-2xl font-bold text-foreground"
+              key={
+                results
+                  ? `infusion-thc-${fmt1(results.infusedThc)}`
+                  : 'infusion-thc-empty'
+              }
+            >
               {results
                 ? `${fmt1(results.infusedThc)} mg`
                 : 'Enter your decarbed THC and fat volume above to see results'}
@@ -650,7 +657,14 @@ export function InfusionTab() {
             <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
               Concentration
             </span>
-            <span className="mt-1 text-2xl font-bold text-success">
+            <span
+              className="result-bloom mt-1 text-2xl font-bold text-success"
+              key={
+                results
+                  ? `infusion-conc-${fmt1(results.mgPerUnit)}`
+                  : 'infusion-conc-empty'
+              }
+            >
               {results
                 ? `${fmt1(results.mgPerUnit)} ${results.unitLabel}`
                 : 'Enter your decarbed THC and fat volume above to see results'}
