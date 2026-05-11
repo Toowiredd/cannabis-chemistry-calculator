@@ -244,6 +244,9 @@ interface AppStore {
 
   firstRunDismissed: boolean
   dismissFirstRun: () => void
+
+  firstTimerOpen: boolean
+  setFirstTimerOpen: (open: boolean) => void
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -361,7 +364,10 @@ export const useAppStore = create<AppStore>()(
         })),
 
       firstRunDismissed: false,
-      dismissFirstRun: () => set({ firstRunDismissed: true }),
+      dismissFirstRun: () => set({ firstRunDismissed: true, firstTimerOpen: false }),
+
+      firstTimerOpen: false,
+      setFirstTimerOpen: open => set({ firstTimerOpen: open }),
 
       loadFromPreset: (preset: unknown) => {
         if (!isRecord(preset)) return
