@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import type { Strain } from 'renderer/src/engine/models'
+import { globalStrainLibrary } from 'renderer/src/engine/strainLib'
 import { Leaf, Save, X, Pencil, Trash2 } from 'lucide-react'
 
 interface StrainFormData {
@@ -23,9 +24,6 @@ const EMPTY_FORM: StrainFormData = {
   notes: '',
 }
 
-function generateId(): string {
-  return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
-}
 
 function clampTo100(value: string): string {
   const n = parseFloat(value)
@@ -45,9 +43,6 @@ export function StrainManager({
   onSelect?: (strain: Strain) => void
 }) {
   const strains = useAppStore(s => s.strains)
-  const addStrain = useAppStore(s => s.addStrain)
-  const updateStrain = useAppStore(s => s.updateStrain)
-  const deleteStrain = useAppStore(s => s.deleteStrain)
   const setStrains = useAppStore(s => s.setStrains)
   const journalEntries = useAppStore(s => s.journalEntries)
 
@@ -112,41 +107,39 @@ export function StrainManager({
       return
     }
 
-    const data: Strain = {
-      id: editingId ?? generateId(),
-      name: form.name.trim(),
-      type: form.type,
-      thcaPct: parseFloat(form.thcaPct) || 0,
-      thcPct: parseFloat(form.thcPct) || 0,
-      cbdaPct: parseFloat(form.cbdaPct) || 0,
-      cbdPct: parseFloat(form.cbdPct) || 0,
-      notes: form.notes.trim(),
-    }
-
-    if (editingId) {
-      updateStrain(data)
-    } else {
-      // Check for duplicate names
-      const exists = strains.some(
-        s =>
-          s.name.toLowerCase() === data.name.toLowerCase() && s.id !== data.id
-      )
-      if (exists) {
-        setError(`A strain named "${data.name}" already exists`)
-        return
+    try {
+      const data = {
+        name: form.name.trim(),
+        type: form.type,
+        thcaPct: parseFloat(form.thcaPct) || 0,
+        thcPct: parseFloat(form.thcPct) || 0,
+        cbdaPct: parseFloat(form.cbdaPct) || 0,
+        cbdPct: parseFloat(form.cbdPct) || 0,
+        notes: form.notes.trim(),
       }
-      addStrain(data)
+
+      if (editingId) {
+        globalStrainLibrary.update(editingId, data)
+      } else {
+        globalStrainLibrary.add(data)
+      }
+
+      // Sync engine state back to Zustand for UI reactivity
+      setStrains(globalStrainLibrary.list())
+    } catch (catchErr: unknown) {
+      const msg =
+        catchErr instanceof Error ? catchErr.message : 'Failed to save strain'
+      setError(msg)
+      return
     }
 
     resetForm()
   }, [
     form,
     editingId,
-    strains,
     validateForm,
     resetForm,
-    addStrain,
-    updateStrain,
+    setStrains,
   ])
 
   const handleEdit = useCallback((strain: Strain) => {
@@ -165,10 +158,11 @@ export function StrainManager({
 
   const handleDelete = useCallback(
     (id: string) => {
-      deleteStrain(id)
+      globalStrainLibrary.delete(id)
+      setStrains(globalStrainLibrary.list())
       if (editingId === id) resetForm()
     },
-    [deleteStrain, editingId, resetForm]
+    [editingId, resetForm, setStrains]
   )
 
   const handleSelect = useCallback(
