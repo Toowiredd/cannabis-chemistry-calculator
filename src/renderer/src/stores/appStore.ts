@@ -42,6 +42,10 @@ export interface DecarbState {
   bagLengthOverride: string | null
   bagHasStems: boolean
   strainId: string | null
+  /** Toggle between flower and concentrate mode */
+  materialMode: 'flower' | 'concentrate'
+  /** Selected concentrate type ID (e.g. 'wax', 'shatter') */
+  concentrateTypeId: string
 }
 
 export interface InfusionState {
@@ -153,6 +157,8 @@ const DEFAULT_DECARB: DecarbState = {
   bagLengthOverride: null,
   bagHasStems: false,
   strainId: null,
+  materialMode: 'flower',
+  concentrateTypeId: 'wax',
 }
 
 const DEFAULT_INFUSION: InfusionState = {
@@ -408,6 +414,14 @@ export const useAppStore = create<AppStore>()(
                 ? di.bagHasStems
                 : DEFAULT_DECARB.bagHasStems,
             strainId: nullableStringish(di.strainId),
+            materialMode:
+              di.materialMode === 'flower' || di.materialMode === 'concentrate'
+                ? di.materialMode
+                : DEFAULT_DECARB.materialMode,
+            concentrateTypeId: stringish(
+              di.concentrateTypeId,
+              DEFAULT_DECARB.concentrateTypeId
+            ),
           }
         }
 
