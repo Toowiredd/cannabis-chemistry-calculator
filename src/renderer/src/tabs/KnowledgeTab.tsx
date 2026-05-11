@@ -16,6 +16,7 @@ import {
   simulateDoneness,
   timeLabel,
 } from 'renderer/src/engine/doneness-simulation'
+import { TERPENES } from 'renderer/src/engine/terpenes'
 
 /* ------------------------------------------------------------------ */
 /* Range slider styled for glassmorphism                               */
@@ -838,45 +839,31 @@ export function KnowledgeTab() {
                     Terpene
                   </th>
                   <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
-                    Normal Boiling Point (°C)
+                    Normal Boiling Point
                   </th>
                   <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
-                    Common Character
+                    Notes
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
+                    Source
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-foreground/5">
-                {[
-                  {
-                    name: 'Myrcene',
-                    bp: 168,
-                    note: 'Earthy, musky; most abundant in cannabis',
-                  },
-                  { name: 'Limonene', bp: 176, note: 'Citrus; mood elevation' },
-                  {
-                    name: 'alpha-Pinene',
-                    bp: 156,
-                    note: 'Pine-like; widespread in nature',
-                  },
-                  {
-                    name: 'Linalool',
-                    bp: 198,
-                    note: 'Floral, lavender; calming',
-                  },
-                  {
-                    name: 'beta-Caryophyllene',
-                    bp: 262,
-                    note: 'Spicy, peppery; CB2 binding',
-                  },
-                ].map(t => (
+                {TERPENES.map(t => (
                   <tr className="hover:bg-foreground/5" key={t.name}>
                     <td className="px-4 py-2 font-medium text-foreground">
                       {t.name}
                     </td>
                     <td className="px-4 py-2">
-                      {Math.round((t.bp * 9) / 5 + 32)}°F / {t.bp}°C
+                      {Math.round((t.boilingPointC * 9) / 5 + 32)}°F / {t.boilingPointC}°C
                     </td>
-                    <td className="px-4 py-2 text-foreground/70">{t.note}</td>
+                    <td className="px-4 py-2 text-foreground/70">
+                      {t.notes ?? '-'}
+                    </td>
+                    <td className="px-4 py-2 text-foreground/70">
+                      {t.citation}
+                    </td>
                   </tr>
                 ))}
               </tbody>
