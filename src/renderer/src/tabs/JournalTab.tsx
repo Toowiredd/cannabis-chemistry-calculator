@@ -647,7 +647,7 @@ export function JournalTab() {
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Weight
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -655,7 +655,7 @@ export function JournalTab() {
                 </span>
               </div>
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                <span className="text-xs uppercase tracking-wider text-foreground/70">
                   THCA / THC
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -663,7 +663,7 @@ export function JournalTab() {
                 </span>
               </div>
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                <span className="text-xs uppercase tracking-wider text-foreground/70">
                   mg/Serving
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -671,7 +671,7 @@ export function JournalTab() {
                 </span>
               </div>
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Total THC
                 </span>
                 <span className="text-sm font-semibold text-foreground">

@@ -89,7 +89,7 @@ function BarChartSVG({ data }: { data: { label: string; value: number }[] }) {
               y={y}
             />
             <text
-              className="fill-foreground/70 text-[10px]"
+              className="fill-foreground/70 text-xs"
               textAnchor="middle"
               x={x + barWidth / 2}
               y={chartHeight + 15}
@@ -157,11 +157,7 @@ function PieChartSVG({
             x={140}
             y={16 + i * 18}
           />
-          <text
-            className="fill-foreground/70 text-[10px]"
-            x={152}
-            y={24 + i * 18}
-          >
+          <text className="fill-foreground/70 text-xs" x={152} y={24 + i * 18}>
             {d.label} {Math.round((d.value / total) * 100)}%
           </text>
         </g>
@@ -737,7 +733,7 @@ export function DashboardTab() {
               <div className="flex items-center gap-3">
                 <span
                   className={cn(
-                    'flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold',
+                    'flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold',
                     item.type === 'purchase'
                       ? 'bg-emerald-400/15 text-emerald-400'
                       : 'bg-rose-400/15 text-rose-400'
@@ -749,7 +745,7 @@ export function DashboardTab() {
                   <span className="text-sm font-medium text-foreground">
                     {item.name}
                   </span>
-                  <span className="text-[10px] text-foreground/70">
+                  <span className="text-xs text-foreground/70">
                     {item.date}{' '}
                     {item.cost ? `· $${parseFloat(item.cost).toFixed(2)}` : ''}{' '}
                     {item.notes ? `· ${item.notes}` : ''}

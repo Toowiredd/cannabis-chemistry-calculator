@@ -258,7 +258,7 @@ export function LabelGenerator({
               {/* THC / servings row */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-600">
+                  <span className="text-xs uppercase tracking-wider text-gray-600">
                     THC per Serving
                   </span>
                   <span className="text-base font-bold text-black">
@@ -266,7 +266,7 @@ export function LabelGenerator({
                   </span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-600">
+                  <span className="text-xs uppercase tracking-wider text-gray-600">
                     Servings
                   </span>
                   <span className="text-base font-bold text-black">
@@ -274,7 +274,7 @@ export function LabelGenerator({
                   </span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-600">
+                  <span className="text-xs uppercase tracking-wider text-gray-600">
                     Classification
                   </span>
                   <span className="text-sm font-semibold text-black">
@@ -286,7 +286,7 @@ export function LabelGenerator({
               {/* Method + Fat */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-600">
+                  <span className="text-xs uppercase tracking-wider text-gray-600">
                     Decarb Method
                   </span>
                   <span className="text-sm font-semibold text-black">
@@ -294,7 +294,7 @@ export function LabelGenerator({
                   </span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-600">
+                  <span className="text-xs uppercase tracking-wider text-gray-600">
                     Carrier Fat
                   </span>
                   <span className="text-sm font-semibold text-black">
@@ -305,7 +305,7 @@ export function LabelGenerator({
 
               {/* Date Produced */}
               <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-gray-600">
+                <span className="text-xs uppercase tracking-wider text-gray-600">
                   Date Produced
                 </span>
                 <span className="text-sm font-semibold text-black">
@@ -316,7 +316,7 @@ export function LabelGenerator({
               {/* Ingredients */}
               {label.ingredients && (
                 <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-600">
+                  <span className="text-xs uppercase tracking-wider text-gray-600">
                     Ingredients
                   </span>
                   <span className="text-xs leading-relaxed text-black">
@@ -328,7 +328,7 @@ export function LabelGenerator({
               {/* Storage */}
               {label.storage && (
                 <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-600">
+                  <span className="text-xs uppercase tracking-wider text-gray-600">
                     Storage
                   </span>
                   <span className="text-xs leading-relaxed text-black">
@@ -340,13 +340,13 @@ export function LabelGenerator({
               {/* Allergen warnings */}
               {allergenWarnings.length > 0 && (
                 <div className="flex flex-col gap-1 rounded-md border border-amber-500/60 bg-amber-50 p-2">
-                  <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                  <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-amber-800">
                     <AlertTriangle className="size-3" />
                     Allergen Notice
                   </span>
                   {allergenWarnings.map(w => (
                     <span
-                      className="text-[10px] font-medium text-amber-900"
+                      className="text-xs font-medium text-amber-900"
                       key={w}
                     >
                       {w}
@@ -358,15 +358,12 @@ export function LabelGenerator({
               {/* Dosage warnings */}
               {dosageWarnings.length > 0 && (
                 <div className="flex flex-col gap-1 rounded-md border border-red-500/60 bg-red-50 p-2">
-                  <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-red-800">
+                  <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-red-800">
                     <ShieldAlert className="size-3" />
                     Dosage Warning
                   </span>
                   {dosageWarnings.map(w => (
-                    <span
-                      className="text-[10px] font-medium text-red-900"
-                      key={w}
-                    >
+                    <span className="text-xs font-medium text-red-900" key={w}>
                       {w}
                     </span>
                   ))}
@@ -376,7 +373,7 @@ export function LabelGenerator({
               {/* Child safety footer */}
               <div className="flex items-center justify-center gap-1 border-t-2 border-black pt-2">
                 <ShieldAlert className="size-3.5 text-red-700" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-red-700">
+                <span className="text-xs font-bold uppercase tracking-wider text-red-700">
                   Keep out of reach of children
                 </span>
               </div>

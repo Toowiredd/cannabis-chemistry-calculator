@@ -583,12 +583,12 @@ export function MethodsTab() {
                 </h4>
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   {isMaxPotency && (
-                    <span className="inline-flex items-center rounded-full border border-amber-500/40 dark:border-amber-400/40 bg-amber-100 dark:bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                    <span className="inline-flex items-center rounded-full border border-amber-500/40 dark:border-amber-400/40 bg-amber-100 dark:bg-amber-400/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
                       Highest Potency
                     </span>
                   )}
                   {isMaxTerpene && (
-                    <span className="inline-flex items-center rounded-full border border-teal-400/40 bg-teal-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-teal-300">
+                    <span className="inline-flex items-center rounded-full border border-teal-400/40 bg-teal-400/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-teal-300">
                       Max Terpene Retention
                     </span>
                   )}
@@ -597,7 +597,7 @@ export function MethodsTab() {
 
               {/* Efficiency */}
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Decarb Efficiency
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -609,7 +609,7 @@ export function MethodsTab() {
 
               {/* Resulting THC */}
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Resulting THC
                 </span>
                 {methodResults ? (
@@ -624,7 +624,9 @@ export function MethodsTab() {
                   </div>
                 ) : (
                   <span className="text-xl font-bold text-foreground/70">
-                    N/A
+                    {methodResults
+                      ? ''
+                      : 'Enter your material weight and potency above to see results'}
                   </span>
                 )}
               </div>
@@ -632,7 +634,7 @@ export function MethodsTab() {
               {/* Qualitative labels */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="flex flex-col items-center rounded-lg border border-foreground/10 bg-foreground/5 px-1 py-2 text-center">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
+                  <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                     Terpenes
                   </span>
                   <span className="mt-0.5 text-xs font-semibold text-foreground">
@@ -640,7 +642,7 @@ export function MethodsTab() {
                   </span>
                 </div>
                 <div className="flex flex-col items-center rounded-lg border border-foreground/10 bg-foreground/5 px-1 py-2 text-center">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
+                  <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                     CBN Risk
                   </span>
                   <span className="mt-0.5 text-xs font-semibold text-foreground">
@@ -648,7 +650,7 @@ export function MethodsTab() {
                   </span>
                 </div>
                 <div className="flex flex-col items-center rounded-lg border border-foreground/10 bg-foreground/5 px-1 py-2 text-center">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
+                  <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                     Oxygen
                   </span>
                   <span className="mt-0.5 text-xs font-semibold text-foreground">

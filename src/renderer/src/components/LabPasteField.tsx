@@ -69,7 +69,7 @@ export function LabPasteField({
         </span>
         {text && (
           <button
-            className="inline-flex items-center gap-1 rounded p-1 text-[10px] text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded p-1 text-xs text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
             onClick={handleClear}
             type="button"
           >

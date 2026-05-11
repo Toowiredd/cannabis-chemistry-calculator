@@ -490,7 +490,7 @@ function SectionCard({
         </div>
         <h3 className="text-lg font-semibold text-foreground">{title}</h3>
       </div>
-      <div className="mt-4 text-[14px] leading-relaxed text-foreground/80">
+      <div className="mt-4 text-sm leading-relaxed text-foreground/80">
         {children}
       </div>
     </div>
@@ -944,7 +944,7 @@ export function KnowledgeTab() {
             </h3>
           </div>
 
-          <p className="mt-4 text-[14px] leading-relaxed text-foreground/80">
+          <p className="mt-4 text-sm leading-relaxed text-foreground/80">
             Slide the temperature and time sliders below to watch THCA drop, THC
             rise and peak, and CBN slowly accumulate. The shapes are driven by a
             simplified Arrhenius model: both the conversion of THCA into THC and
@@ -976,7 +976,7 @@ export function KnowledgeTab() {
               <h3 className="text-base font-semibold text-red-300">
                 Medical Disclaimer
               </h3>
-              <p className="mt-2 text-[14px] leading-relaxed text-red-300/80">
+              <p className="mt-2 text-sm leading-relaxed text-red-300/80">
                 The content in this Knowledge section is for educational and
                 informational purposes only. It does not constitute medical
                 advice, diagnosis, or treatment. Always consult a qualified

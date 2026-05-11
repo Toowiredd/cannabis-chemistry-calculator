@@ -7,7 +7,7 @@ import {
 import { INFUSION_FATS } from 'renderer/src/engine/models'
 import { cupToMl, tbspToMl, tspToMl } from 'renderer/src/engine/units'
 import { cn } from 'renderer/lib/utils'
-import { Info, RotateCcw } from 'lucide-react'
+import { Info, RotateCcw, Loader2 } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
 
 /* ------------------------------------------------------------------ */
@@ -127,6 +127,7 @@ export function FatsTab() {
     >
     bestEffId: string
   } | null>(null)
+  const [isCalculating, setIsCalculating] = useState(false)
 
   /* ---------------------------------------------------------------- */
   /* Derived helpers                                                  */
@@ -146,6 +147,7 @@ export function FatsTab() {
   /* ---------------------------------------------------------------- */
 
   useEffect(() => {
+    setIsCalculating(true)
     const timer = setTimeout(() => {
       const { errors } = validateFatsTab(
         infusion.decarbedThc,
@@ -193,6 +195,7 @@ export function FatsTab() {
         }
 
         setResults({ byFat, bestEffId })
+        setIsCalculating(false)
       } catch {
         setResults(null)
       }
@@ -254,6 +257,12 @@ export function FatsTab() {
           Fat Comparison
         </h2>
         <div className="flex items-center gap-2">
+          {isCalculating && (
+            <span className="inline-flex items-center gap-1 text-xs text-foreground/60">
+              <Loader2 className="size-3.5 animate-spin" />
+              Calculating&hellip;
+            </span>
+          )}
           <TabActions tabId="fats" />
           <button
             className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
@@ -350,7 +359,7 @@ export function FatsTab() {
                 </h4>
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   {isBest && (
-                    <span className="inline-flex items-center rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-300">
+                    <span className="inline-flex items-center rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-emerald-300">
                       Best Extraction
                     </span>
                   )}
@@ -359,7 +368,7 @@ export function FatsTab() {
 
               {/* Extraction Efficiency */}
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Extraction Efficiency
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -372,7 +381,7 @@ export function FatsTab() {
 
               {/* Resulting Final THC */}
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Final THC
                 </span>
                 {fatResults ? (
@@ -381,14 +390,14 @@ export function FatsTab() {
                   </span>
                 ) : (
                   <span className="text-xl font-bold text-foreground/70">
-                    N/A
+                    Enter your decarbed THC and fat volume above to see results
                   </span>
                 )}
               </div>
 
               {/* mg/mL Concentration */}
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Concentration
                 </span>
                 {fatResults && fatResults.mgPerMl != null ? (
@@ -397,14 +406,14 @@ export function FatsTab() {
                   </span>
                 ) : (
                   <span className="text-xl font-bold text-foreground/70">
-                    N/A
+                    Enter your decarbed THC and fat volume above to see results
                   </span>
                 )}
               </div>
 
               {/* Simplified Multiplier */}
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Simplified Multiplier
                 </span>
                 <span className="text-sm font-semibold text-foreground">

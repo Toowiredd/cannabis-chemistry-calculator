@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { cn } from 'renderer/lib/utils'
 import { TitleBar } from 'renderer/src/components/TitleBar'
 import { GlassCard } from 'renderer/src/components/GlassCard'
@@ -13,7 +13,7 @@ import { DashboardTab } from 'renderer/src/tabs/DashboardTab'
 import { QuickBatchTab } from 'renderer/src/tabs/QuickBatchTab'
 import { FirstTimerGuide } from 'renderer/src/tabs/FirstTimerGuide'
 import { useAppStore, type TabId } from 'renderer/src/stores/appStore'
-import { BookOpen } from 'lucide-react'
+import { BookOpen, Loader2 } from 'lucide-react'
 
 const TAB_ITEMS: {
   id: TabId
@@ -40,6 +40,12 @@ export function MainScreen() {
   const _firstTimerOpen = useAppStore(s => s.firstTimerOpen)
   const setFirstTimerOpen = useAppStore(s => s.setFirstTimerOpen)
 
+  const [isLoading, setIsLoading] = useState(true)
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 600)
+    return () => clearTimeout(timer)
+  }, [])
+
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
   }, [theme])
@@ -56,6 +62,15 @@ export function MainScreen() {
       <TitleBar />
 
       <FirstTimerGuide />
+
+      {isLoading && (
+        <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center gap-3 bg-background/90">
+          <Loader2 className="size-8 animate-spin text-foreground/70" />
+          <span className="text-sm font-medium text-foreground/70">
+            Loading calculations&hellip;
+          </span>
+        </div>
+      )}
 
       <nav className="glass flex shrink-0 items-center gap-1 overflow-x-auto px-4 py-2 relative">
         {TAB_ITEMS.map((tab, i) => (

@@ -26,6 +26,7 @@ import {
   Leaf,
   AlertTriangle,
   Droplets,
+  Loader2,
 } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
 import { BagCalculator } from 'renderer/src/components/BagCalculator'
@@ -109,7 +110,7 @@ function UnitToggle<T extends string>({
 
 function OverrideBadge() {
   return (
-    <span className="ml-2 inline-flex items-center rounded-full border border-amber-500/40 dark:border-amber-400/40 bg-amber-100 dark:bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+    <span className="ml-2 inline-flex items-center rounded-full border border-amber-500/40 dark:border-amber-400/40 bg-amber-100 dark:bg-amber-400/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
       Override
     </span>
   )
@@ -337,6 +338,7 @@ export function DecarbTab() {
     decarbed: { low: number; expected: number; high: number }
     warnings: string[]
   } | null>(null)
+  const [isCalculating, setIsCalculating] = useState(false)
 
   /* Validation state (debounced) */
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -397,6 +399,7 @@ export function DecarbTab() {
   /* ---------------------------------------------------------------- */
 
   useEffect(() => {
+    setIsCalculating(true)
     const timer = setTimeout(() => {
       const { errors, warnings } = validateDecarbFields(
         decarb.weight,
@@ -455,6 +458,7 @@ export function DecarbTab() {
           setResults({ theoreticalMax, decarbed, warnings })
           useAppStore.getState().setLastDecarbExpected(fmt1(decarbed.expected))
           setCbdResults(null) // concentrate mode doesn't show CBD
+          setIsCalculating(false)
         } else {
           // Flower mode
           const thca = parseFloat(decarb.thcaPct)
@@ -1187,21 +1191,19 @@ export function DecarbTab() {
               </span>
               <div className="mt-1 grid grid-cols-3 gap-2 text-center">
                 <div>
-                  <span className="text-[10px] text-foreground/70">Low</span>
+                  <span className="text-xs text-foreground/70">Low</span>
                   <p className="text-sm font-medium text-foreground">
                     {fmt1(selectedConcentrate.decarbEfficiency.low * 100)}%
                   </p>
                 </div>
                 <div>
-                  <span className="text-[10px] text-foreground/70">
-                    Expected
-                  </span>
+                  <span className="text-xs text-foreground/70">Expected</span>
                   <p className="text-sm font-medium text-emerald-300">
                     {fmt1(selectedConcentrate.decarbEfficiency.expected * 100)}%
                   </p>
                 </div>
                 <div>
-                  <span className="text-[10px] text-foreground/70">High</span>
+                  <span className="text-xs text-foreground/70">High</span>
                   <p className="text-sm font-medium text-foreground">
                     {fmt1(selectedConcentrate.decarbEfficiency.high * 100)}%
                   </p>
@@ -1213,9 +1215,17 @@ export function DecarbTab() {
 
         {/* ------------------- RESULTS PANEL ------------------- */}
         <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
-            Results
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
+              Results
+            </h3>
+            {isCalculating && (
+              <span className="inline-flex items-center gap-1 text-xs text-foreground/60">
+                <Loader2 className="size-3.5 animate-spin" />
+                Calculating&hellip;
+              </span>
+            )}
+          </div>
 
           {/* Warnings */}
           {inlineWarnings.length > 0 && (
@@ -1239,7 +1249,7 @@ export function DecarbTab() {
             <span className="mt-1 text-2xl font-bold text-foreground">
               {results
                 ? `${fmtSigFigs(results.theoreticalMax, decarb.weight, decarb.thcaPct, decarb.thcPct)} mg`
-                : 'N/A'}
+                : 'Enter your material weight and potency above to see results'}
             </span>
           </div>
 
@@ -1250,33 +1260,33 @@ export function DecarbTab() {
             </span>
             <div className="mt-1 grid grid-cols-3 gap-2">
               <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Low
                 </span>
                 <span className="text-lg font-semibold text-foreground">
                   {results
                     ? `${fmtSigFigs(results.decarbed.low, decarb.weight, decarb.thcaPct, decarb.thcPct)} mg`
-                    : 'N/A'}
+                    : 'Enter your material weight and potency above to see results'}
                 </span>
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Expected
                 </span>
                 <span className="text-lg font-semibold text-emerald-300">
                   {results
                     ? `${fmtSigFigs(results.decarbed.expected, decarb.weight, decarb.thcaPct, decarb.thcPct)} mg`
-                    : 'N/A'}
+                    : 'Enter your material weight and potency above to see results'}
                 </span>
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                <span className="text-xs uppercase tracking-wider text-foreground/70">
                   High
                 </span>
                 <span className="text-lg font-semibold text-foreground">
                   {results
                     ? `${fmtSigFigs(results.decarbed.high, decarb.weight, decarb.thcaPct, decarb.thcPct)} mg`
-                    : 'N/A'}
+                    : 'Enter your material weight and potency above to see results'}
                 </span>
               </div>
             </div>
@@ -1286,7 +1296,7 @@ export function DecarbTab() {
           {!isConcentrate && (
             <div className="grid grid-cols-3 gap-2">
               <div className="flex flex-col items-center rounded-xl border border-foreground/10 bg-foreground/5 px-2 py-3 text-center">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Terpene Retention
                 </span>
                 <span className="mt-1 text-sm font-semibold text-foreground">
@@ -1294,7 +1304,7 @@ export function DecarbTab() {
                 </span>
               </div>
               <div className="flex flex-col items-center rounded-xl border border-foreground/10 bg-foreground/5 px-2 py-3 text-center">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   CBN Risk
                 </span>
                 <span className="mt-1 text-sm font-semibold text-foreground">
@@ -1302,7 +1312,7 @@ export function DecarbTab() {
                 </span>
               </div>
               <div className="flex flex-col items-center rounded-xl border border-foreground/10 bg-foreground/5 px-2 py-3 text-center">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/70">
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Oxygen Exposure
                 </span>
                 <span className="mt-1 text-sm font-semibold text-foreground">
@@ -1321,7 +1331,7 @@ export function DecarbTab() {
                 </span>
                 <div className="mt-1 grid grid-cols-3 gap-2">
                   <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                    <span className="text-xs uppercase tracking-wider text-foreground/70">
                       Low
                     </span>
                     <span className="text-lg font-semibold text-foreground">
@@ -1329,7 +1339,7 @@ export function DecarbTab() {
                     </span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                    <span className="text-xs uppercase tracking-wider text-foreground/70">
                       Expected
                     </span>
                     <span className="text-lg font-semibold text-emerald-300">
@@ -1337,7 +1347,7 @@ export function DecarbTab() {
                     </span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                    <span className="text-xs uppercase tracking-wider text-foreground/70">
                       High
                     </span>
                     <span className="text-lg font-semibold text-foreground">

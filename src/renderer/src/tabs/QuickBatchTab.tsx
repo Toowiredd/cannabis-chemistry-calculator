@@ -540,10 +540,10 @@ export function QuickBatchTab() {
                     {Math.round(method.efficiency.high * 100)}%
                   </span>
                   <div className="mt-1 flex flex-wrap gap-1">
-                    <span className="rounded-full border border-foreground/10 bg-foreground/5 px-2 py-0.5 text-[10px] text-foreground/70">
+                    <span className="rounded-full border border-foreground/10 bg-foreground/5 px-2 py-0.5 text-xs text-foreground/70">
                       {method.terpeneLabel}
                     </span>
-                    <span className="rounded-full border border-foreground/10 bg-foreground/5 px-2 py-0.5 text-[10px] text-foreground/70">
+                    <span className="rounded-full border border-foreground/10 bg-foreground/5 px-2 py-0.5 text-xs text-foreground/70">
                       {method.cbnLabel}
                     </span>
                   </div>
@@ -733,7 +733,7 @@ export function QuickBatchTab() {
                 Scale Batch
               </span>
               <button
-                className="text-[10px] font-medium text-foreground/70 transition-colors hover:text-foreground"
+                className="text-xs font-medium text-foreground/70 transition-colors hover:text-foreground"
                 onClick={() => setScaleOpen(v => !v)}
                 type="button"
               >
@@ -841,7 +841,7 @@ export function QuickBatchTab() {
             {/* Summary */}
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Material
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -849,7 +849,7 @@ export function QuickBatchTab() {
                 </span>
               </div>
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Method
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -857,7 +857,7 @@ export function QuickBatchTab() {
                 </span>
               </div>
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Fat
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -865,7 +865,7 @@ export function QuickBatchTab() {
                 </span>
               </div>
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Servings
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -873,7 +873,7 @@ export function QuickBatchTab() {
                 </span>
               </div>
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Theoretical Max
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -881,7 +881,7 @@ export function QuickBatchTab() {
                 </span>
               </div>
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Infused THC
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -889,7 +889,7 @@ export function QuickBatchTab() {
                 </span>
               </div>
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                <span className="text-xs uppercase tracking-wider text-foreground/70">
                   mg/Serving
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -897,7 +897,7 @@ export function QuickBatchTab() {
                 </span>
               </div>
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
-                <span className="text-[10px] uppercase tracking-wider text-foreground/70">
+                <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Classification
                 </span>
                 <span className="text-sm font-semibold text-emerald-300">

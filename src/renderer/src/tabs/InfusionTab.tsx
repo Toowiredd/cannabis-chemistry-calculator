@@ -15,7 +15,7 @@ import {
   tspToMl,
 } from 'renderer/src/engine/units'
 import { cn } from 'renderer/lib/utils'
-import { Info, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
+import { Info, ChevronDown, ChevronUp, RotateCcw, Loader2 } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
 
 /* ------------------------------------------------------------------ */
@@ -85,7 +85,7 @@ function UnitToggle<T extends string>({
 
 function OverrideBadge() {
   return (
-    <span className="ml-2 inline-flex items-center rounded-full border border-amber-500/40 dark:border-amber-400/40 bg-amber-100 dark:bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+    <span className="ml-2 inline-flex items-center rounded-full border border-amber-500/40 dark:border-amber-400/40 bg-amber-100 dark:bg-amber-400/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
       Override
     </span>
   )
@@ -271,6 +271,7 @@ export function InfusionTab() {
     simplifiedEstimate: number | null
     fatName: string
   } | null>(null)
+  const [isCalculating, setIsCalculating] = useState(false)
 
   /* Validation state */
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -303,6 +304,7 @@ export function InfusionTab() {
   /* ---------------------------------------------------------------- */
 
   useEffect(() => {
+    setIsCalculating(true)
     const timer = setTimeout(() => {
       const { errors, warnings } = validateInfusionFields(
         infusion.decarbedThc,
@@ -355,6 +357,7 @@ export function InfusionTab() {
           fatName: preset.name,
         })
         useAppStore.getState().setLastInfusedThc(fmt1(infusedThc))
+        setIsCalculating(false)
       } catch {
         setResults(null)
       }
@@ -470,7 +473,7 @@ export function InfusionTab() {
               Decarbed THC
               {infusion.decarbedThc === lastDecarbExpected &&
                 lastDecarbExpected && (
-                  <span className="inline-flex items-center rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-medium text-sky-300">
+                  <span className="inline-flex items-center rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-xs font-medium text-sky-300">
                     Auto-filled from Decarb
                   </span>
                 )}
@@ -596,9 +599,17 @@ export function InfusionTab() {
 
         {/* ------------------- RESULTS PANEL ------------------- */}
         <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
-            Results
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
+              Results
+            </h3>
+            {isCalculating && (
+              <span className="inline-flex items-center gap-1 text-xs text-foreground/60">
+                <Loader2 className="size-3.5 animate-spin" />
+                Calculating&hellip;
+              </span>
+            )}
+          </div>
 
           {/* Warnings */}
           {inlineWarnings.length > 0 && (
@@ -627,7 +638,9 @@ export function InfusionTab() {
               Total Infused THC
             </span>
             <span className="mt-1 text-2xl font-bold text-foreground">
-              {results ? `${fmt1(results.infusedThc)} mg` : 'N/A'}
+              {results
+                ? `${fmt1(results.infusedThc)} mg`
+                : 'Enter your decarbed THC and fat volume above to see results'}
             </span>
           </div>
 
@@ -639,7 +652,7 @@ export function InfusionTab() {
             <span className="mt-1 text-2xl font-bold text-emerald-300">
               {results
                 ? `${fmt1(results.mgPerUnit)} ${results.unitLabel}`
-                : 'N/A'}
+                : 'Enter your decarbed THC and fat volume above to see results'}
             </span>
           </div>
 
@@ -652,7 +665,7 @@ export function InfusionTab() {
               <span className="text-lg font-semibold text-foreground">
                 {results?.simplifiedEstimate != null
                   ? `${fmt1(results.simplifiedEstimate)} mg`
-                  : 'N/A'}
+                  : 'Enter your decarbed THC and fat volume above to see results'}
               </span>
               <span className="text-xs text-foreground/70">
                 Approximate total using {preset.simplifiedMultiplier}x

@@ -16,6 +16,7 @@ import {
   RotateCcw,
   Scale,
   ArrowDownUp,
+  Loader2,
 } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
 import { LabelGenerator } from 'renderer/src/components/LabelGenerator'
@@ -250,13 +251,13 @@ function DoseScale({ classification }: { classification: string }) {
 
               <span
                 className={cn(
-                  'text-[10px] font-semibold uppercase tracking-wider',
+                  'text-xs font-semibold uppercase tracking-wider',
                   isActive ? 'text-foreground' : 'text-foreground/70'
                 )}
               >
                 {zone.label}
               </span>
-              <span className="text-[10px] text-foreground/70">
+              <span className="text-xs text-foreground/70">
                 {zone.max != null
                   ? `${zone.min}-${zone.max} mg`
                   : `${zone.min}+ mg`}
@@ -338,6 +339,7 @@ export function DoseTab() {
     mgPerServing: number
     classification: string
   } | null>(null)
+  const [isCalculating, setIsCalculating] = useState(false)
 
   /* Validation state (debounced) */
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -398,6 +400,7 @@ export function DoseTab() {
   /* ---------------------------------------------------------------- */
 
   useEffect(() => {
+    setIsCalculating(true)
     const timer = setTimeout(() => {
       const { errors } = validateDoseFields(dose.totalThc, dose.servings)
 
@@ -405,6 +408,7 @@ export function DoseTab() {
 
       if (hasBlockingErrors(errors)) {
         setResults(null)
+        setIsCalculating(false)
         return
       }
 
@@ -418,6 +422,7 @@ export function DoseTab() {
       } catch {
         setResults(null)
       }
+      setIsCalculating(false)
     }, 300)
 
     return () => clearTimeout(timer)
@@ -562,7 +567,7 @@ export function DoseTab() {
               <>
                 Total Infused THC
                 {dose.totalThc === lastInfusedThc && lastInfusedThc && (
-                  <span className="inline-flex items-center rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-medium text-sky-300">
+                  <span className="inline-flex items-center rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-xs font-medium text-sky-300">
                     Auto-filled from Infusion
                   </span>
                 )}
@@ -632,7 +637,7 @@ export function DoseTab() {
                       : '\u2014'}
                   </span>
                 )}
-                <p className="mt-2 text-[10px] leading-relaxed text-foreground/60">
+                <p className="mt-2 text-xs leading-relaxed text-foreground/60">
                   Uses currently selected decarb method and fat efficiency.
                 </p>
               </div>
@@ -700,7 +705,7 @@ export function DoseTab() {
                 Scale Batch
               </span>
               <button
-                className="text-[10px] font-medium text-foreground/70 transition-colors hover:text-foreground"
+                className="text-xs font-medium text-foreground/70 transition-colors hover:text-foreground"
                 onClick={() => setScaleOpen(v => !v)}
                 type="button"
               >
@@ -759,9 +764,17 @@ export function DoseTab() {
         {/* ------------------- RESULTS PANEL ------------------- */}
         {!isReverse && (
           <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
-              Results
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
+                Results
+              </h3>
+              {isCalculating && (
+                <span className="inline-flex items-center gap-1 text-xs text-foreground/60">
+                  <Loader2 className="size-3.5 animate-spin" />
+                  Calculating&hellip;
+                </span>
+              )}
+            </div>
 
             {/* mg per serving */}
             <div className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4">
@@ -771,7 +784,7 @@ export function DoseTab() {
               <span className="mt-1 text-2xl font-bold text-foreground">
                 {results
                   ? `${fmt1(results.mgPerServing)} mg per serving`
-                  : '\u2014'}
+                  : 'Enter total THC and number of servings above to see results'}
               </span>
             </div>
 
@@ -805,10 +818,10 @@ export function DoseTab() {
                         )}
                         key={zone.key}
                       >
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/70">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-foreground/70">
                           {zone.label}
                         </span>
-                        <span className="text-[10px] text-foreground/70">
+                        <span className="text-xs text-foreground/70">
                           {zone.max != null
                             ? `${zone.min}-${zone.max} mg`
                             : `${zone.min}+ mg`}

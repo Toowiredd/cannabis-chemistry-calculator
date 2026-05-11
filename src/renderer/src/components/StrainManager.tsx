@@ -380,7 +380,7 @@ export function StrainManager({
                       <span className="text-sm font-medium text-foreground">
                         {strain.name}
                       </span>
-                      <span className="text-[10px] text-foreground/70">
+                      <span className="text-xs text-foreground/70">
                         {strain.type} · THCA {strain.thcaPct}% · THC{' '}
                         {strain.thcPct}%
                         {strain.cbdaPct > 0 && ` · CBDA ${strain.cbdaPct}%`}

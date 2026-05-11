@@ -132,7 +132,7 @@ function HeadspaceGauge({ pct }: { pct: number }) {
         <div className="absolute left-[25%] top-0 h-full w-px bg-foreground/30" />
         <div className="absolute left-[40%] top-0 h-full w-px bg-foreground/20" />
       </div>
-      <div className="flex justify-between text-[10px] text-foreground/70">
+      <div className="flex justify-between text-xs text-foreground/70">
         <span>0%</span>
         <span
           className={cn(
@@ -542,7 +542,7 @@ export function BagCalculator({ tempC }: { tempC: number }) {
                   <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">
                     Double-bag recommended
                   </span>
-                  <p className="mt-0.5 text-[10px] text-amber-700 dark:text-amber-300">
+                  <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-300">
                     {tempC >= 95
                       ? 'High heat can weaken bags. Double up for safety.'
                       : 'Stems can poke holes. Two bags for peace of mind.'}
