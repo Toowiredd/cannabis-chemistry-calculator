@@ -569,22 +569,19 @@ export function KnowledgeTab() {
         >
           <p>
             Cannabidiolic acid (CBDA) decarboxylates into cannabidiol (CBD)
-            through the exact same mechanism as THCA converts to THC. CBDA and
-            THCA are constitutional isomers: they share the same molecular
-            formula C₂₂H₃₀O₄ and identical molecular weight of approximately
-            358.47 g/mol. Because of this structural identity, the same 0.877
-            factor applies to the CBDA→CBD conversion.
+            through the same mechanism as THCA → THC. CBDA and THCA are
+            constitutional isomers: same atoms (C₂₂H₃₀O₄), same weight (~358.47
+            g/mol), different arrangement. Same structure means same 0.877
+            factor applies.
             <Cite doi="10.1021/acs.iecr.0c03791" label="Moreno et al. 2020" />
           </p>
           <p className="mt-3">
-            Despite sharing the same molecular weight and decarboxylation
-            factor, CBDA decarboxylates faster than THCA under equivalent
-            conditions. Comparative kinetic studies show that CBDA has a
-            slightly lower activation energy barrier than THCA, meaning CBD-rich
-            materials may reach acceptable conversion at slightly lower
-            temperatures or shorter times compared with THC-dominant strains.
-            The calculator applies the same 0.877 ratio and efficiency ranges to
-            both pathways.
+            Despite being the same molecule reshuffled, CBDA decarboxylates
+            faster than THCA. Its activation energy barrier is a touch lower, so
+            CBD-rich material can hit good conversion at slightly cooler
+            temperatures or shorter times than THC-dominant strains. The
+            calculator still applies the same 0.877 ratio and efficiency ranges
+            to both pathways — the molecular-weight math is identical.
             <Cite doi="10.1021/acs.iecr.0c03791" label="Moreno et al. 2020" />
           </p>
         </SectionCard>
@@ -714,22 +711,21 @@ export function KnowledgeTab() {
           title="Clinical Dosing Context"
         >
           <p>
-            The dose classifications used in this calculator are grounded in
-            clinical literature. MacCallum and Russo (2018) established a
-            practical framework for medical cannabis administration that
-            emphasizes starting low and titrating slowly to find the minimum
-            effective dose for each patient.
+            The dose labels in this calculator pull from real clinical
+            guidelines. MacCallum and Russo (2018) laid out a practical approach
+            that I think gets it right: start low and go slow until you find the
+            smallest dose that works. Simple advice, but it genuinely prevents a
+            lot of bad experiences.
             <Cite
               doi="10.1016/j.ejim.2018.01.004"
               label="MacCallum & Russo 2018"
             />
           </p>
           <p className="mt-3">
-            Bhaskar et al. (2021) reached similar consensus through a modified
-            Delphi process with international pain specialists, recommending
-            initial doses in the microdose to low range (2.5–10 mg THC) for
-            chronic pain patients. These recommendations inform the
-            classification boundaries used throughout this app.
+            Bhaskar et al. (2021) got a panel of international pain specialists
+            to agree on basically the same thing — for chronic pain, start in
+            the 2.5–10 mg THC range. That is where the dose boundaries in this
+            app come from.
             <Cite
               doi="10.1186/s42238-021-00073-1"
               label="Bhaskar et al. 2021"
@@ -743,21 +739,21 @@ export function KnowledgeTab() {
           title="Lipid Extraction Science"
         >
           <p>
-            THC and other cannabinoids are highly lipophilic, meaning they
-            dissolve much more readily in fats and oils than in water. When you
-            infuse decarbed cannabis into a carrier fat, the cannabinoids
-            migrate from the plant material into the lipid phase. The efficiency
-            of this transfer depends on the fat type, temperature, time, and
-            surface area of the material.
+            Here is the reason infusion recipes always use fat instead of water:
+            cannabinoids are intensely lipophilic. They practically flee from
+            water and leap into oil. When you simmer decarbed material in a
+            carrier fat, the THC and friends migrate out of the plant and into
+            the lipid. How well this works depends on which fat you pick, how
+            hot you go, how long you wait, and how finely you broke up the
+            material.
             <Cite doi="10.3390/molecules25132986" label="Ramella et al. 2020" />
           </p>
           <p className="mt-3">
-            Medium-chain triglyceride (MCT) oils generally show the highest
-            extraction efficiency because their smaller fat molecules can
-            penetrate plant cell walls more effectively. Ghee and coconut oil,
-            both rich in saturated fats, also perform well but with slightly
-            lower extraction yields. These differences are reflected in the
-            extraction efficiency values assigned to each fat preset.
+            MCT oil wins on extraction efficiency. The molecules are small
+            enough to squeeze into plant cells better than longer-chain fats
+            can. Ghee and coconut oil — both loaded with saturated fats — come
+            close but land a bit behind. That is why you will see higher
+            extraction numbers on the MCT preset than on butter or olive oil.
             <Cite doi="10.3390/molecules25132986" label="Ramella et al. 2020" />
             <Cite doi="10.1055/s-0032-1327893" label="Romano & Hazekamp 2013" />
           </p>
@@ -769,11 +765,11 @@ export function KnowledgeTab() {
           title="Decarboxylation Kinetics"
         >
           <p>
-            Decarboxylation of THCA follows first-order reaction kinetics in
-            most practical conditions, meaning the rate of conversion is
-            proportional to the amount of THCA remaining. The reaction can be
-            modeled with the Arrhenius equation, which relates reaction rate to
-            temperature through an activation energy barrier.
+            In a home kitchen, THCA decarboxylation follows first-order
+            kinetics. What that actually means: the speed of the reaction
+            depends on how much THCA is left, so it slows down as it goes. The
+            Arrhenius equation captures the relationship between temperature and
+            reaction rate — each 10°C bump roughly doubles the speed.
             <Cite
               doi="10.1016/j.molstruc.2010.11.062"
               label="Perrotin-Brunel et al. 2011"
@@ -781,12 +777,13 @@ export function KnowledgeTab() {
             <Cite doi="10.1021/acs.iecr.0c03791" label="Moreno et al. 2020" />
           </p>
           <p className="mt-3">
-            Comparative kinetic studies place the activation energy for THCA
-            decarboxylation in the range of 85–100 kJ/mol, with CBDA showing a
-            similar but slightly different kinetic profile despite sharing the
-            same molecular formula. This explains why the same time-temperature
-            combination does not produce identical conversion rates for THCA and
-            CBDA.
+            The activation energy for THCA decarboxylation sits around 85–100
+            kJ/mol. CBDA has a slightly different kinetic profile despite being
+            the same molecule with the atoms rearranged — same formula
+            (C₂₂H₃₀O₄), same weight (~358.47 g/mol), but not quite the same
+            reaction speed. That is why you cannot assume the same
+            time-temperature combo gives identical results for THC and CBD
+            pathways.
             <Cite doi="10.1021/acs.iecr.0c03791" label="Moreno et al. 2020" />
             <Cite doi="10.1016/j.jpba.2017.11.044" label="Citti et al. 2018" />
           </p>
@@ -798,20 +795,21 @@ export function KnowledgeTab() {
           title="Cannabinoid Biosynthesis"
         >
           <p>
-            In the living cannabis plant, cannabinoids are produced through a
-            biosynthetic pathway that starts with geranyl pyrophosphate and
-            olivetolic acid. These precursors combine to form cannabigerolic
-            acid (CBGA), which is then enzymatically converted into THCA, CBDA,
-            or CBCA depending on the specific synthase enzymes present.
+            Inside a living cannabis plant, cannabinoids are built from two
+            simple starting materials: geranyl pyrophosphate and olivetolic
+            acid. These hook together to make CBGA — the mother of all
+            cannabinoids. From there, three different enzymes steer CBGA into
+            either THCA, CBDA, or CBCA. Which one dominates depends entirely on
+            which enzyme the plant is making more of at that moment.
             <Cite doi="10.1186/s42238-021-00062-4" label="Tahir et al. 2021" />
           </p>
           <p className="mt-3">
-            Because THCA and CBDA are constitutional isomers (same molecular
-            formula C₂₂H₃₀O₄, identical molecular weight ~358.47 g/mol), they
-            share the same 0.877 decarboxylation factor when converting to their
-            neutral forms. This structural relationship is why the calculator
-            applies the same molecular weight ratio to both THC and CBD
-            pathways.
+            THCA and CBDA end up as constitutional isomers: same atoms
+            (C₂₂H₃₀O₄), same weight (~358.47 g/mol), different arrangement. That
+            shared structure is why both use the same 0.877 factor when they
+            lose CO₂ during decarboxylation. The calculator treats both pathways
+            identically because, on a molecular-weight basis, they are
+            identical.
             <Cite doi="10.1089/can.2021.0072" label="Filer 2022" />
             <Cite doi="10.1186/s42238-021-00062-4" label="Tahir et al. 2021" />
           </p>
@@ -823,11 +821,12 @@ export function KnowledgeTab() {
           title="Terpene Boiling Points"
         >
           <p>
-            Major cannabis terpenes have normal boiling points that range from
-            about 150°C to over 260°C, but significant evaporation begins well
-            below those thresholds because vapor pressure rises continuously
-            with temperature. The table below lists the normal boiling points of
-            the five most common cannabis terpenes.
+            The major cannabis terpenes have normal boiling points ranging from
+            about 150°C to over 260°C, but here is the catch: noticeable
+            evaporation starts way below those numbers. Vapor pressure climbs
+            steadily with temperature, so terpenes begin drifting away in a warm
+            kitchen well before the oven hits their official boiling point. The
+            table below lists the big five.
             <Cite doi="10.1089/can.2021.0173" label="Eyal et al. 2023" />
           </p>
 
@@ -898,25 +897,25 @@ export function KnowledgeTab() {
           title="Terpene Retention and Evaporation"
         >
           <p>
-            Terpene retention during decarboxylation depends on two competing
-            variables: temperature and exposure time. Eyal et al. (2023)
-            demonstrated that monoterpenes such as myrcene, limonene, and
-            alpha-pinene begin measurable evaporation at temperatures as low as
-            40–50°C, well before decarboxylation is complete.
+            Terpene retention during decarboxylation is a tug-of-war between two
+            variables: temperature and time. Eyal et al. (2023) found that
+            monoterpenes — myrcene, limonene, alpha-pinene — start evaporating
+            measurably at 40–50°C, which is barely warm. Long before your decarb
+            is done, your flavor is already leaking away.
             {<Cite doi="10.1089/can.2021.0173" label="Eyal et al. 2023" />}
-            Raz et al. (2022) further showed that formulation and handling
-            conditions significantly alter the rate at which terpenes are lost,
-            with vacuum and closed systems dramatically improving preservation.
+            Raz et al. (2022) looked at how handling and packaging change the
+            rate of loss. The headline result: vacuum and sealed systems make a
+            dramatic difference. Removing air cuts terpene oxidation and slows
+            the evaporation gradient.
             {<Cite doi="10.3390/molecules27206920" label="Raz et al. 2022" />}
           </p>
           <p className="mt-3">
-            In practical terms this means the lowest-temperature preset in the
-            calculator preserves the most terpenes, while the
-            highest-temperature presets sacrifice flavor compounds for faster
-            cannabinoid conversion. Vacuum-sealed methods retain both potency
-            and flavor better than open-air methods because they eliminate
-            oxygen-driven terpene oxidation and reduce the partial-pressure
-            gradient that drives evaporation.
+            What this boils down to: the coolest preset in the calculator keeps
+            the most terpenes. The hottest presets trade flavor for speed on the
+            cannabinoid side. Vacuum-sealed methods beat open-air methods for
+            both potency and flavor because they knock out two threats at once —
+            oxygen-driven degradation and the vapor-pressure gradient that
+            pushes volatiles into the air.
           </p>
         </SectionCard>
 
@@ -926,22 +925,21 @@ export function KnowledgeTab() {
           title="Terpene Volatility and Vapor Pressure"
         >
           <p>
-            Terpenes are volatile organic compounds with high vapor pressures,
-            meaning they evaporate readily even at moderate temperatures.
-            Monoterpenes such as myrcene and limonene have normal boiling points
-            around 165–175°C, while sesquiterpenes like caryophyllene boil
-            closer to 250°C. These low boiling points explain why terpenes are
-            lost rapidly during any heating process.
+            Terpenes are volatile organic compounds — high vapor pressure, ready
+            to evaporate at temperatures you would barely call warm.
+            Monoterpenes like myrcene and limonene officially boil around
+            165–175°C. Sesquiterpenes like caryophyllene hold out closer to
+            250°C. But none of that matters much because they start vanishing
+            long before the thermometer gets there.
             <Cite doi="10.1089/can.2021.0173" label="Eyal et al. 2023" />
           </p>
           <p className="mt-3">
-            The vapor pressure of a compound determines how quickly it will
-            evaporate at a given temperature. Cannabis terpenes can begin
-            evaporating at temperatures as low as 40–50°C, long before
-            decarboxylation is complete. This is the fundamental reason why
-            low-temperature, long-time methods preserve more flavor: they
-            minimize the vapor-pressure-driven loss of volatile terpenes while
-            still providing enough thermal energy for THCA conversion.
+            Vapor pressure is what makes a compound flee. Cannabis terpenes
+            begin losing measurable mass around 40–50°C — barely above body
+            temperature, way before decarboxylation finishes. That is the whole
+            reason low-temperature, long-time methods keep more flavor: they
+            give THCA enough thermal energy to convert while keeping the vapor
+            pressure on delicate terpenes as low as possible.
             <Cite doi="10.1089/can.2021.0173" label="Eyal et al. 2023" />
             <Cite doi="10.3390/molecules27206920" label="Raz et al. 2022" />
           </p>
@@ -959,12 +957,12 @@ export function KnowledgeTab() {
           </div>
 
           <p className="mt-4 text-[14px] leading-relaxed text-foreground/80">
-            The chart below shows a simulated model of the THCA → THC → CBN
-            progression over time at the selected temperature. This is driven by
-            a simplified Arrhenius kinetic model: the rate of THCA conversion
-            and THC degradation both increase exponentially with temperature.
-            Use the sliders to explore how different temperatures and times
-            shift the balance between the three compounds.
+            Slide the temperature and time sliders below to watch THCA drop, THC
+            rise and peak, and CBN slowly accumulate. The shapes are driven by a
+            simplified Arrhenius model: both the conversion of THCA into THC and
+            the degradation of THC into CBN speed up exponentially as
+            temperature increases. Mess around with the sliders for a minute —
+            you will feel the tradeoffs faster than you can read about them.
           </p>
 
           <div className="mt-6">
