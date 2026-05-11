@@ -318,6 +318,7 @@ export function InfusionTab() {
 
       if (hasBlockingErrors(errors)) {
         setResults(null)
+        setIsCalculating(false)
         return
       }
 
@@ -357,10 +358,10 @@ export function InfusionTab() {
           fatName: preset.name,
         })
         useAppStore.getState().setLastInfusedThc(fmt1(infusedThc))
-        setIsCalculating(false)
       } catch {
         setResults(null)
       }
+      setIsCalculating(false)
     }, 300)
 
     return () => clearTimeout(timer)

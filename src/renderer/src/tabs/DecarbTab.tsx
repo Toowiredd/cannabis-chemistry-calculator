@@ -421,6 +421,7 @@ export function DecarbTab() {
       if (hasBlockingErrors(errors)) {
         setResults(null)
         setCbdResults(null)
+        setIsCalculating(false)
         return
       }
 
@@ -458,7 +459,6 @@ export function DecarbTab() {
           setResults({ theoreticalMax, decarbed, warnings })
           useAppStore.getState().setLastDecarbExpected(fmt1(decarbed.expected))
           setCbdResults(null) // concentrate mode doesn't show CBD
-          setIsCalculating(false)
         } else {
           // Flower mode
           const thca = parseFloat(decarb.thcaPct)
@@ -489,6 +489,7 @@ export function DecarbTab() {
         }
       } catch {
         setResults(null)
+        setCbdResults(null)
       }
 
       if (!isConcentrate) {
@@ -534,6 +535,8 @@ export function DecarbTab() {
           setCbdResults(null)
         }
       }
+
+      setIsCalculating(false)
     }, 300)
 
     return () => clearTimeout(timer)

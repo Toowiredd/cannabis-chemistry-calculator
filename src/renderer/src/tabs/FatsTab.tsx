@@ -158,6 +158,7 @@ export function FatsTab() {
 
       if (hasBlockingErrors(errors)) {
         setResults(null)
+        setIsCalculating(false)
         return
       }
 
@@ -195,10 +196,10 @@ export function FatsTab() {
         }
 
         setResults({ byFat, bestEffId })
-        setIsCalculating(false)
       } catch {
         setResults(null)
       }
+      setIsCalculating(false)
     }, 300)
 
     return () => clearTimeout(timer)
