@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { calculateMgPerServing, classifyDose } from 'renderer/src/engine/dosing'
+import { reverseFullWorkflow } from 'renderer/src/engine/reverse'
 import { scaleRecipe } from 'renderer/src/engine/recipe'
-import { EDIBLE_FORMATS } from 'renderer/src/engine/models'
+import { EDIBLE_FORMATS, DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
 import { cn } from 'renderer/lib/utils'
-import { Info, ChevronDown, ChevronUp, RotateCcw, Scale } from 'lucide-react'
+import { Info, ChevronDown, ChevronUp, RotateCcw, Scale, ArrowLeftRight, ArrowDownUp } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
 import { LabelGenerator } from 'renderer/src/components/LabelGenerator'
 
@@ -162,6 +163,46 @@ function validateDoseFields(
 }
 
 /* ------------------------------------------------------------------ */
+/* Reverse mode validation                                             */
+/* ------------------------------------------------------------------ */
+
+interface ReverseFieldErrors {
+  desiredMgPerServing?: string
+  servings?: string
+}
+
+function validateReverseFields(
+  desiredMgPerServing: string,
+  servings: string
+): { errors: ReverseFieldErrors } {
+  const errors: ReverseFieldErrors = {}
+
+  const dStr = desiredMgPerServing.trim()
+  if (dStr === '') {
+    errors.desiredMgPerServing = 'What dose do you want per serving?'
+  } else {
+    const d = parseFloat(dStr)
+    if (Number.isNaN(d))
+      errors.desiredMgPerServing = 'That does not look like a number'
+    else if (d < 0)
+      errors.desiredMgPerServing = 'Dose cannot be negative'
+    else if (d > 500)
+      errors.desiredMgPerServing = 'That is an extraordinarily high dose. Double-check your units.'
+  }
+
+  const sStr = servings.trim()
+  if (sStr === '') {
+    errors.servings = 'How many servings are you planning?'
+  } else {
+    const s = parseFloat(sStr)
+    if (Number.isNaN(s)) errors.servings = 'That does not look like a number'
+    else if (s <= 0) errors.servings = 'Servings needs to be a positive number'
+  }
+
+  return { errors }
+}
+
+/* ------------------------------------------------------------------ */
 /* Visual Scale Indicator                                               */
 /* ------------------------------------------------------------------ */
 
@@ -260,6 +301,9 @@ export function DoseTab() {
   const setDose = useAppStore(s => s.setDose)
   const resetDose = useAppStore(s => s.resetDose)
   const lastInfusedThc = useAppStore(s => s.lastInfusedThc)
+  const decarb = useAppStore(s => s.decarb)
+  const infusion = useAppStore(s => s.infusion)
+  const isReverse = dose.reverseMode
 
   /* Track the last upstream value we synced, so we can overwrite our own
      auto-fill but NOT a manual user edit. */
@@ -286,6 +330,11 @@ export function DoseTab() {
 
   /* Validation state (debounced) */
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+
+  /* Reverse mode state */
+  const [reverseFieldErrors, setReverseFieldErrors] = useState<ReverseFieldErrors>({})
+  const [reverseGrams, setReverseGrams] = useState<number | null>(null)
+  const [reverseError, setReverseError] = useState<string | null>(null)
 
   /* Scale batch local state */
   const [scaleOpen, setScaleOpen] = useState(false)
@@ -363,6 +412,70 @@ export function DoseTab() {
   }, [dose.totalThc, dose.servings, hasBlockingErrors])
 
   /* ---------------------------------------------------------------- */
+  /* Debounced reverse calculation                                    */
+  /* ---------------------------------------------------------------- */
+
+  useEffect(() => {
+    if (!isReverse) {
+      setReverseGrams(null)
+      setReverseError(null)
+      setReverseFieldErrors({})
+      return
+    }
+
+    const timer = setTimeout(() => {
+      const { errors } = validateReverseFields(
+        dose.desiredMgPerServing,
+        dose.servings
+      )
+      setReverseFieldErrors(errors)
+
+      if (errors.desiredMgPerServing || errors.servings) {
+        setReverseGrams(null)
+        setReverseError(null)
+        return
+      }
+
+      try {
+        const method = DECARB_METHODS.find(m => m.id === decarb.presetId) ?? DECARB_METHODS[0]
+        const fat = INFUSION_FATS.find(f => f.id === infusion.fatId) ?? INFUSION_FATS[0]
+
+        const result = reverseFullWorkflow({
+          desiredMgPerServing: parseFloat(dose.desiredMgPerServing),
+          servings: parseFloat(dose.servings),
+          thcaPct: parseFloat(decarb.thcaPct) || 0,
+          thcPct: parseFloat(decarb.thcPct) || 0,
+          decarbEfficiency: decarb.effExpectedOverride
+            ? parseFloat(decarb.effExpectedOverride)
+            : method.efficiency.expected,
+          extractionEfficiency: infusion.customEfficiency
+            ? parseFloat(infusion.customEfficiency)
+            : fat.extractionEff,
+        })
+
+        setReverseGrams(result)
+        setReverseError(null)
+      } catch (err: unknown) {
+        setReverseGrams(null)
+        const msg = err instanceof Error ? err.message : 'Calculation failed'
+        setReverseError(msg)
+      }
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [
+    isReverse,
+    dose.desiredMgPerServing,
+    dose.servings,
+    decarb.presetId,
+    decarb.thcaPct,
+    decarb.thcPct,
+    decarb.effExpectedOverride,
+    infusion.fatId,
+    infusion.customEfficiency,
+  ])
+
+  /* ---------------------------------------------------------------- */
   /* Handlers                                                         */
   /* ---------------------------------------------------------------- */
 
@@ -398,6 +511,19 @@ export function DoseTab() {
         <div className="flex items-center gap-2">
           <TabActions tabId="dose" />
           <button
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+              isReverse
+                ? 'border-accent/40 bg-accent/10 text-accent-foreground hover:bg-accent/20'
+                : 'border-foreground/20 bg-foreground/5 text-foreground/80 hover:bg-foreground/10 hover:text-foreground'
+            )}
+            onClick={() => setDose({ reverseMode: !isReverse })}
+            type="button"
+          >
+            <ArrowDownUp className="size-3.5" />
+            {isReverse ? 'Reverse Mode (on)' : 'Reverse Mode'}
+          </button>
+          <button
             className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
             onClick={handleReset}
             type="button"
@@ -415,65 +541,119 @@ export function DoseTab() {
             Input
           </h3>
 
-          {/* Total infused THC */}
-          {inputRow(
-            <>
-              Total Infused THC
-              {dose.totalThc === lastInfusedThc && lastInfusedThc && (
-                <span className="inline-flex items-center rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-medium text-sky-300">
-                  Auto-filled from Infusion
-                </span>
-              )}
-              <TooltipIcon text="Total amount of THC in milligrams present in the infused product. Use the output from the Infusion calculator." />
-            </>,
-            <div className="flex items-center gap-2">
-              <input
-                className={cn(
-                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                  fieldErrors.totalThc
-                    ? 'border-red-400/60 focus:border-red-400'
-                    : 'border-foreground/20 focus:border-foreground/40'
+          {/* Total infused THC — hidden in reverse mode */}
+          {!isReverse &&
+            inputRow(
+              <>
+                Total Infused THC
+                {dose.totalThc === lastInfusedThc && lastInfusedThc && (
+                  <span className="inline-flex items-center rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-medium text-sky-300">
+                    Auto-filled from Infusion
+                  </span>
                 )}
-                onChange={e => setDose({ totalThc: e.target.value })}
-                placeholder="0.0"
-                step="0.1"
-                type="number"
-                value={dose.totalThc}
-              />
-              <span className="text-sm text-foreground/70">mg</span>
-            </div>,
-            fieldErrors.totalThc
+                <TooltipIcon text="Total amount of THC in milligrams present in the infused product. Use the output from the Infusion calculator." />
+              </>,
+              <div className="flex items-center gap-2">
+                <input
+                  className={cn(
+                    'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                    fieldErrors.totalThc
+                      ? 'border-red-400/60 focus:border-red-400'
+                      : 'border-foreground/20 focus:border-foreground/40'
+                  )}
+                  onChange={e => setDose({ totalThc: e.target.value })}
+                  placeholder="0.0"
+                  step="0.1"
+                  type="number"
+                  value={dose.totalThc}
+                />
+                <span className="text-sm text-foreground/70">mg</span>
+              </div>,
+              fieldErrors.totalThc
+            )}
+
+          {/* Reverse mode inputs */}
+          {isReverse && (
+            <>
+              {inputRow(
+                <>
+                  Desired mg per Serving
+                  <TooltipIcon text="How many milligrams of THC you want in each individual serving. The calculator works backward from this number." />
+                </>,
+                <div className="flex items-center gap-2">
+                  <input
+                    className={cn(
+                      'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                      reverseFieldErrors.desiredMgPerServing
+                        ? 'border-red-400/60 focus:border-red-400'
+                        : 'border-foreground/20 focus:border-foreground/40'
+                    )}
+                    onChange={e =>
+                      setDose({ desiredMgPerServing: e.target.value })
+                    }
+                    placeholder="10.0"
+                    step="0.1"
+                    type="number"
+                    value={dose.desiredMgPerServing}
+                  />
+                  <span className="text-sm text-foreground/70">mg</span>
+                </div>,
+                reverseFieldErrors.desiredMgPerServing
+              )}
+
+              {/* Reverse result card — inline in input panel */}
+              <div className="rounded-xl border border-accent/30 bg-accent/10 p-4">
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
+                  Required Material
+                </span>
+                {reverseError ? (
+                  <span className="mt-1 block text-sm text-red-400">
+                    {reverseError}
+                  </span>
+                ) : (
+                  <span className="mt-1 block text-2xl font-bold text-accent-foreground">
+                    {reverseGrams != null
+                      ? `${reverseGrams.toFixed(2)} g`
+                      : '\u2014'}
+                  </span>
+                )}
+                <p className="mt-2 text-[10px] leading-relaxed text-foreground/60">
+                  Uses currently selected decarb method and fat efficiency.
+                </p>
+              </div>
+            </>
           )}
 
-          {/* Edible Format */}
-          {inputRow(
-            <>
-              Edible Format
-              <TooltipIcon text="Select a common edible format to auto-fill the recommended number of servings." />
-            </>,
-            <select
-              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
-              onChange={e => {
-                const formatId = e.target.value
-                const fmt = EDIBLE_FORMATS.find(f => f.id === formatId)
-                setDose({
-                  formatId,
-                  servings: String(fmt?.suggestedServings ?? 10),
-                })
-              }}
-              value={dose.formatId ?? 'custom'}
-            >
-              {EDIBLE_FORMATS.map(f => (
-                <option
-                  className="bg-card text-foreground"
-                  key={f.id}
-                  value={f.id}
-                >
-                  {f.name}
-                </option>
-              ))}
-            </select>
-          )}
+          {/* Edible Format — hidden in reverse mode */}
+          {!isReverse &&
+            inputRow(
+              <>
+                Edible Format
+                <TooltipIcon text="Select a common edible format to auto-fill the recommended number of servings." />
+              </>,
+              <select
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                onChange={e => {
+                  const formatId = e.target.value
+                  const fmt = EDIBLE_FORMATS.find(f => f.id === formatId)
+                  setDose({
+                    formatId,
+                    servings: String(fmt?.suggestedServings ?? 10),
+                  })
+                }}
+                value={dose.formatId ?? 'custom'}
+              >
+                {EDIBLE_FORMATS.map(f => (
+                  <option
+                    className="bg-card text-foreground"
+                    key={f.id}
+                    value={f.id}
+                  >
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            )}
 
           {/* Number of servings */}
           {inputRow(
@@ -562,6 +742,7 @@ export function DoseTab() {
         </div>
 
         {/* ------------------- RESULTS PANEL ------------------- */}
+        {!isReverse && (
         <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Results
@@ -653,9 +834,10 @@ export function DoseTab() {
             )}
           </div>
         </div>
+        )}
 
         {/* ------------------- LABEL GENERATOR ------------------- */}
-        {results && (
+        {!isReverse && results && (
           <div className="flex flex-col gap-4">
             <LabelGenerator
               classification={displayClassification(results.classification)}

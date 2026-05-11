@@ -59,6 +59,10 @@ export interface DoseState {
   totalThc: string
   servings: string
   formatId: string
+  /** Toggle reverse mode: user enters desired mg/serving, calculator works backward */
+  reverseMode: boolean
+  /** Desired mg per serving (reverse mode) */
+  desiredMgPerServing: string
 }
 
 export interface LabelState {
@@ -172,6 +176,8 @@ const DEFAULT_DOSE: DoseState = {
   totalThc: '',
   servings: '10',
   formatId: 'custom',
+  reverseMode: false,
+  desiredMgPerServing: '10',
 }
 
 interface AppStore {
@@ -451,6 +457,14 @@ export const useAppStore = create<AppStore>()(
             totalThc: stringish(di.totalThc, DEFAULT_DOSE.totalThc),
             servings: stringish(di.servings, DEFAULT_DOSE.servings),
             formatId: stringish(di.formatId, DEFAULT_DOSE.formatId),
+            reverseMode:
+              typeof di.reverseMode === 'boolean'
+                ? di.reverseMode
+                : DEFAULT_DOSE.reverseMode,
+            desiredMgPerServing: stringish(
+              di.desiredMgPerServing,
+              DEFAULT_DOSE.desiredMgPerServing
+            ),
           }
         }
 
