@@ -387,7 +387,7 @@ export function QuickBatchTab() {
             {inputRow(
               <>
                 Material Weight
-                <TooltipIcon text="Total weight of raw cannabis material before decarboxylation." />
+                <TooltipIcon text="How much raw material you are starting with." />
               </>,
               <div className="flex items-center gap-2">
                 <input
@@ -421,7 +421,7 @@ export function QuickBatchTab() {
             {inputRow(
               <>
                 THCA %
-                <TooltipIcon text="Tetrahydrocannabinolic acid -- the non-psychoactive precursor to THC." />
+                <TooltipIcon text="Raw cannabis actually contains THCA, not THC. Heat converts it." />
               </>,
               <input
                 className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
@@ -436,7 +436,7 @@ export function QuickBatchTab() {
             {inputRow(
               <>
                 Existing THC %
-                <TooltipIcon text="Delta-9-THC already present in the material." />
+                <TooltipIcon text="THC already in your material. Ready to go, no heat needed." />
               </>,
               <input
                 className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
@@ -451,7 +451,7 @@ export function QuickBatchTab() {
             {inputRow(
               <>
                 CBDA %
-                <TooltipIcon text="Cannabidiolic acid -- the non-psychoactive precursor to CBD." />
+                <TooltipIcon text="Like THCA, raw cannabis contains CBDA instead of CBD. Heat converts it." />
               </>,
               <input
                 className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
@@ -466,7 +466,7 @@ export function QuickBatchTab() {
             {inputRow(
               <>
                 Existing CBD %
-                <TooltipIcon text="Cannabidiol already present in the material." />
+                <TooltipIcon text="CBD already in your material. No heat needed." />
               </>,
               <input
                 className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
@@ -628,7 +628,7 @@ export function QuickBatchTab() {
           {inputRow(
             <>
               Fat Volume
-              <TooltipIcon text="Total volume of carrier fat used for infusion." />
+              <TooltipIcon text="How much fat you are infusing." />
             </>,
             <div className="flex items-center gap-2">
               <input
@@ -713,7 +713,7 @@ export function QuickBatchTab() {
           {inputRow(
             <>
               Number of Servings
-              <TooltipIcon text="How many individual servings the total infused product will be divided into." />
+              <TooltipIcon text="How many pieces or portions you are dividing the batch into." />
             </>,
             <input
               className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"

@@ -22,12 +22,12 @@ export function LabPasteField({
     setSuccess(false)
 
     if (!text.trim()) {
-      setError('Please paste lab result text first')
+      setError('Paste something first')
       return
     }
 
     if (!looksLikeLabData(text)) {
-      setError('No cannabinoid values detected')
+      setError('Could not find any cannabinoid values in that text')
       return
     }
 
@@ -39,7 +39,7 @@ export function LabPasteField({
       result.cbdPct != null
 
     if (!hasAny) {
-      setError('No cannabinoid values detected')
+      setError('Could not find any cannabinoid values in that text')
       return
     }
 

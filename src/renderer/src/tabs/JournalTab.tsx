@@ -216,7 +216,7 @@ export function JournalTab() {
 
   const handleSave = async () => {
     if (!form.strainName.trim()) {
-      showToast('Strain name is required')
+      showToast('Your batch needs a name')
       return
     }
 
@@ -237,9 +237,9 @@ export function JournalTab() {
       addJournalEntry(entry)
       setForm(emptyForm())
       setShowForm(false)
-      showToast('Journal entry saved')
+      showToast('Entry saved')
     } else {
-      showToast(result.error ?? 'Save failed')
+      showToast(result.error ?? 'Could not save')
     }
   }
 
@@ -249,7 +249,7 @@ export function JournalTab() {
       deleteJournalEntry(id)
       showToast('Entry deleted')
     } else {
-      showToast(result.error ?? 'Delete failed')
+      showToast(result.error ?? 'Could not delete')
     }
   }
 

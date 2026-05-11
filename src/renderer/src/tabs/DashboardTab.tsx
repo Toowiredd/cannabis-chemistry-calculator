@@ -380,7 +380,7 @@ export function DashboardTab() {
       !form.amountGrams.trim() ||
       parseFloat(form.amountGrams) <= 0
     ) {
-      showToast('Please enter a name and a positive amount')
+      showToast('Give it a name and a positive amount')
       return
     }
     const item = {
@@ -395,7 +395,7 @@ export function DashboardTab() {
     addInventoryItem(item)
     setForm(emptyInventoryForm())
     setShowForm(false)
-    showToast(`${form.type === 'purchase' ? 'Purchase' : 'Usage'} logged`)
+    showToast(`${form.type === 'purchase' ? 'Purchase' : 'Usage'} added`)
   }
 
   const StatCard = ({
@@ -726,7 +726,7 @@ export function DashboardTab() {
         <div className="flex flex-col gap-2">
           {inventory.items.length === 0 && (
             <div className="text-center text-xs text-foreground/70 py-4">
-              No inventory logged yet.
+              No inventory items yet.
             </div>
           )}
           {inventory.items.map(item => (
@@ -764,7 +764,7 @@ export function DashboardTab() {
                   className="inline-flex items-center rounded-lg border border-red-400/20 bg-red-400/10 px-2 py-1 text-xs text-red-400 transition-colors hover:bg-red-400/20"
                   onClick={() => {
                     deleteInventoryItem(item.id)
-                    showToast('Item removed')
+                    showToast('Gone')
                   }}
                   title="Delete"
                   type="button"

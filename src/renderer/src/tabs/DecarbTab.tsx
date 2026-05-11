@@ -145,55 +145,67 @@ function validateDecarbFields(
   // Weight
   const wStr = weight.trim()
   if (wStr === '') {
-    errors.weight = 'Weight is required'
+    errors.weight = 'Tell us how much material you are working with'
   } else {
     const w = parseFloat(wStr)
-    if (Number.isNaN(w)) errors.weight = 'Please enter a number'
-    else if (w <= 0) errors.weight = 'Weight must be greater than 0'
+    if (Number.isNaN(w)) errors.weight = 'That does not look like a number'
+    else if (w <= 0) errors.weight = 'Weight needs to be a positive number'
   }
 
   // THCA
   const tStr = thcaPct.trim()
   if (tStr === '') {
-    errors.thcaPct = 'THCA percentage is required'
+    errors.thcaPct = 'We need a THCA percentage'
   } else {
     const t = parseFloat(tStr)
-    if (Number.isNaN(t)) errors.thcaPct = 'Please enter a number'
-    else if (t < 0) errors.thcaPct = 'THCA cannot be negative'
-    else if (t > 100) errors.thcaPct = 'THCA cannot exceed 100%'
+    if (Number.isNaN(t)) errors.thcaPct = 'That does not look like a number'
+    else if (t < 0)
+      errors.thcaPct = 'THCA cannot be negative -- percentages start at zero'
+    else if (t > 100)
+      errors.thcaPct =
+        'THCA cannot be above 100% -- that would be quite the plant'
   }
 
   // THC
   const hStr = thcPct.trim()
   if (hStr === '') {
-    errors.thcPct = 'THC percentage is required'
+    errors.thcPct = 'We need an existing THC percentage'
   } else {
     const h = parseFloat(hStr)
-    if (Number.isNaN(h)) errors.thcPct = 'Please enter a number'
-    else if (h < 0) errors.thcPct = 'THC cannot be negative'
-    else if (h > 100) errors.thcPct = 'THC cannot exceed 100%'
+    if (Number.isNaN(h)) errors.thcPct = 'That does not look like a number'
+    else if (h < 0)
+      errors.thcPct = 'THC cannot be negative -- percentages start at zero'
+    else if (h > 100)
+      errors.thcPct =
+        'THC cannot be above 100% -- that would be quite the plant'
   }
 
   // CBDA
   const cStr = cbdaPct.trim()
   if (cStr === '') {
-    errors.cbdaPct = 'CBDA percentage is required'
+    errors.cbdaPct = 'We need a CBDA percentage'
   } else {
     const c = parseFloat(cStr)
-    if (Number.isNaN(c)) errors.cbdaPct = 'Please enter a number'
-    else if (c < 0) errors.cbdaPct = 'CBDA cannot be negative'
-    else if (c > 100) errors.cbdaPct = 'CBDA cannot exceed 100%'
+    if (Number.isNaN(c)) errors.cbdaPct = 'That does not look like a number'
+    else if (c < 0)
+      errors.cbdaPct = 'CBDA cannot be negative -- percentages start at zero'
+    else if (c > 100)
+      errors.cbdaPct =
+        'CBDA cannot be above 100% -- that would be quite the plant'
   }
 
   // CBD
   const bStr = cbdPct.trim()
   if (bStr === '') {
-    errors.cbdPct = 'CBD percentage is required'
+    errors.cbdPct = 'We need an existing CBD percentage'
   } else {
     const b = parseFloat(bStr)
-    if (Number.isNaN(b)) errors.cbdPct = 'Please enter a number'
-    else if (b < 0) errors.cbdPct = 'CBD cannot be negative'
-    else if (b > 100) errors.cbdPct = 'CBD cannot exceed 100%'
+    if (Number.isNaN(b)) errors.cbdPct = 'That does not look like a number'
+    else if (b < 0)
+      errors.cbdPct = 'CBD cannot be negative -- percentages start at zero'
+    else if (b > 100)
+      errors.cbdPct =
+        'CBD cannot be above 100% -- that would be quite the plant'
   }
 
   // Combined THC checks
@@ -201,12 +213,12 @@ function validateDecarbFields(
     const t = parseFloat(thcaPct)
     const h = parseFloat(thcPct)
     if (!Number.isNaN(t) && !Number.isNaN(h) && t + h > 100) {
-      errors.thcaPct = 'THCA + THC cannot exceed 100%'
-      errors.thcPct = 'THCA + THC cannot exceed 100%'
+      errors.thcaPct = "THCA plus THC can't go past 100%"
+      errors.thcPct = "THCA plus THC can't go past 100%"
     }
     if (!Number.isNaN(t) && !Number.isNaN(h) && t + h > 40) {
       warnings.push(
-        'Note: High total cannabinoid percentage. Verify lab results.'
+        'High cannabinoid levels -- worth double-checking your lab report'
       )
     }
   }
@@ -216,32 +228,31 @@ function validateDecarbFields(
     const c = parseFloat(cbdaPct)
     const b = parseFloat(cbdPct)
     if (!Number.isNaN(c) && !Number.isNaN(b) && c + b > 100) {
-      errors.cbdaPct = 'CBDA + CBD cannot exceed 100%'
-      errors.cbdPct = 'CBDA + CBD cannot exceed 100%'
+      errors.cbdaPct = "CBDA plus CBD can't go past 100%"
+      errors.cbdPct = "CBDA plus CBD can't go past 100%"
     }
     if (!Number.isNaN(c) && !Number.isNaN(b) && c + b > 40) {
-      warnings.push(
-        'Note: High total CBD cannabinoid percentage. Verify lab results.'
-      )
+      warnings.push('High CBD levels -- worth double-checking your lab report')
     }
   }
 
   // Temperature override
   if (tempOverride != null) {
     const tv = parseFloat(tempOverride.trim())
-    if (Number.isNaN(tv)) errors.temperature = 'Please enter a number'
-    else if (tv < 0) errors.temperature = 'Temperature must be above 0'
+    if (Number.isNaN(tv))
+      errors.temperature = 'That does not look like a number'
+    else if (tv < 0) errors.temperature = 'Temperature needs to be above zero'
     else if (tv > 300 && tempUnit === 'C')
-      errors.temperature = 'Temperature above 300 C will destroy cannabinoids'
+      errors.temperature = 'Above 300 C will destroy most cannabinoids'
     else if (tv > 572 && tempUnit === 'F')
-      errors.temperature = 'Temperature above 572 F will destroy cannabinoids'
+      errors.temperature = 'Above 572 F will destroy most cannabinoids'
   }
 
   // Time override
   if (timeOverride != null) {
     const tim = parseFloat(timeOverride.trim())
-    if (Number.isNaN(tim)) errors.time = 'Please enter a number'
-    else if (tim <= 0) errors.time = 'Time must be greater than 0'
+    if (Number.isNaN(tim)) errors.time = 'That does not look like a number'
+    else if (tim <= 0) errors.time = 'Time needs to be a positive number'
   }
 
   // Efficiency overrides
@@ -260,10 +271,10 @@ function validateDecarbFields(
       const v = parseFloat(f.val.trim())
       if (Number.isNaN(v))
         (errors as Record<string, string | undefined>)[f.key] =
-          'Please enter a number'
+          'That does not look like a number'
       else if (v < 0 || v > 1)
         (errors as Record<string, string | undefined>)[f.key] =
-          'Efficiency must be between 0% and 100%'
+          'Efficiency needs to be between 0 and 1 (like 0.85 for 85%)'
     }
   }
 

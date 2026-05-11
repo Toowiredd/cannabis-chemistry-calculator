@@ -91,16 +91,16 @@ export function StrainManager({
   }, [])
 
   const validateForm = useCallback((): string | null => {
-    if (!form.name.trim()) return 'Strain name is required'
+    if (!form.name.trim()) return 'Your strain needs a name'
     const thca = parseFloat(form.thcaPct)
     const thc = parseFloat(form.thcPct)
     if (!Number.isNaN(thca) && !Number.isNaN(thc) && thca + thc > 100) {
-      return 'THCA + THC cannot exceed 100%'
+      return 'THCA plus THC cannot go past 100%'
     }
     const cbda = parseFloat(form.cbdaPct)
     const cbd = parseFloat(form.cbdPct)
     if (!Number.isNaN(cbda) && !Number.isNaN(cbd) && cbda + cbd > 100) {
-      return 'CBDA + CBD cannot exceed 100%'
+      return 'CBDA plus CBD cannot go past 100%'
     }
     return null
   }, [form])

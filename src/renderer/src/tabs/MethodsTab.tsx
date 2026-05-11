@@ -99,51 +99,63 @@ function validateSharedInputs(
 
   const wStr = weight.trim()
   if (wStr === '') {
-    errors.weight = 'Weight is required'
+    errors.weight = 'Tell us how much material you are working with'
   } else {
     const w = parseFloat(wStr)
-    if (Number.isNaN(w)) errors.weight = 'Please enter a number'
-    else if (w <= 0) errors.weight = 'Weight must be greater than 0'
+    if (Number.isNaN(w)) errors.weight = 'That does not look like a number'
+    else if (w <= 0) errors.weight = 'Weight needs to be a positive number'
   }
 
   const tStr = thcaPct.trim()
   if (tStr === '') {
-    errors.thcaPct = 'THCA percentage is required'
+    errors.thcaPct = 'We need a THCA percentage'
   } else {
     const t = parseFloat(tStr)
-    if (Number.isNaN(t)) errors.thcaPct = 'Please enter a number'
-    else if (t < 0) errors.thcaPct = 'THCA cannot be negative'
-    else if (t > 100) errors.thcaPct = 'THCA cannot exceed 100%'
+    if (Number.isNaN(t)) errors.thcaPct = 'That does not look like a number'
+    else if (t < 0)
+      errors.thcaPct = 'THCA cannot be negative -- percentages start at zero'
+    else if (t > 100)
+      errors.thcaPct =
+        'THCA cannot be above 100% -- that would be quite the plant'
   }
 
   const hStr = thcPct.trim()
   if (hStr === '') {
-    errors.thcPct = 'THC percentage is required'
+    errors.thcPct = 'We need an existing THC percentage'
   } else {
     const h = parseFloat(hStr)
-    if (Number.isNaN(h)) errors.thcPct = 'Please enter a number'
-    else if (h < 0) errors.thcPct = 'THC cannot be negative'
-    else if (h > 100) errors.thcPct = 'THC cannot exceed 100%'
+    if (Number.isNaN(h)) errors.thcPct = 'That does not look like a number'
+    else if (h < 0)
+      errors.thcPct = 'THC cannot be negative -- percentages start at zero'
+    else if (h > 100)
+      errors.thcPct =
+        'THC cannot be above 100% -- that would be quite the plant'
   }
 
   const cStr = cbdaPct.trim()
   if (cStr === '') {
-    errors.cbdaPct = 'CBDA percentage is required'
+    errors.cbdaPct = 'We need a CBDA percentage'
   } else {
     const c = parseFloat(cStr)
-    if (Number.isNaN(c)) errors.cbdaPct = 'Please enter a number'
-    else if (c < 0) errors.cbdaPct = 'CBDA cannot be negative'
-    else if (c > 100) errors.cbdaPct = 'CBDA cannot exceed 100%'
+    if (Number.isNaN(c)) errors.cbdaPct = 'That does not look like a number'
+    else if (c < 0)
+      errors.cbdaPct = 'CBDA cannot be negative -- percentages start at zero'
+    else if (c > 100)
+      errors.cbdaPct =
+        'CBDA cannot be above 100% -- that would be quite the plant'
   }
 
   const bStr = cbdPct.trim()
   if (bStr === '') {
-    errors.cbdPct = 'CBD percentage is required'
+    errors.cbdPct = 'We need an existing CBD percentage'
   } else {
     const b = parseFloat(bStr)
-    if (Number.isNaN(b)) errors.cbdPct = 'Please enter a number'
-    else if (b < 0) errors.cbdPct = 'CBD cannot be negative'
-    else if (b > 100) errors.cbdPct = 'CBD cannot exceed 100%'
+    if (Number.isNaN(b)) errors.cbdPct = 'That does not look like a number'
+    else if (b < 0)
+      errors.cbdPct = 'CBD cannot be negative -- percentages start at zero'
+    else if (b > 100)
+      errors.cbdPct =
+        'CBD cannot be above 100% -- that would be quite the plant'
   }
 
   if (!errors.thcaPct && !errors.thcPct) {
@@ -155,7 +167,7 @@ function validateSharedInputs(
     }
     if (!Number.isNaN(t) && !Number.isNaN(h) && t + h > 40) {
       warnings.push(
-        'Note: High total cannabinoid percentage. Verify lab results.'
+        'High cannabinoid levels -- worth double-checking your lab report'
       )
     }
   }

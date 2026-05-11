@@ -39,10 +39,10 @@ export function TabActions({ tabId }: { tabId: string }) {
         jsonContent: exportData.jsonContent,
       })
       if (result && !result.canceled) {
-        showToast('Report saved')
+        showToast('Saved')
       }
     } catch {
-      showToast('Export failed')
+      showToast('Could not export')
     }
   }
 
@@ -51,10 +51,10 @@ export function TabActions({ tabId }: { tabId: string }) {
     try {
       await window.App.copyToClipboard(text)
       setCopied(true)
-      showToast('Copied to clipboard')
+      showToast('Copied')
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      showToast('Copy failed')
+      showToast('Could not copy')
     }
   }
 

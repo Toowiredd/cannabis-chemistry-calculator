@@ -58,21 +58,23 @@ function validateFatsTab(
 
   const dStr = decarbedThc.trim()
   if (dStr === '') {
-    errors.decarbedThc = 'Decarbed THC is required'
+    errors.decarbedThc = 'We need your decarbed THC amount'
   } else {
     const d = parseFloat(dStr)
-    if (Number.isNaN(d)) errors.decarbedThc = 'Please enter a number'
-    else if (d < 0) errors.decarbedThc = 'THC amount cannot be negative'
+    if (Number.isNaN(d)) errors.decarbedThc = 'That does not look like a number'
+    else if (d < 0) errors.decarbedThc = 'THC cannot be negative'
   }
 
   const eStr = customEfficiency.trim()
   if (eStr === '') {
-    errors.customEfficiency = 'Efficiency is required'
+    errors.customEfficiency = 'We need an efficiency value'
   } else {
     const e = parseFloat(eStr)
-    if (Number.isNaN(e)) errors.customEfficiency = 'Please enter a number'
+    if (Number.isNaN(e))
+      errors.customEfficiency = 'That does not look like a number'
     else if (e < 0 || e > 1)
-      errors.customEfficiency = 'Efficiency must be between 0% and 100%'
+      errors.customEfficiency =
+        'Efficiency needs to be between 0 and 1 (like 0.85 for 85%)'
   }
 
   return { errors }

@@ -60,7 +60,7 @@ const DOSE_ZONES: DoseZone[] = [
     max: 2.5,
     color: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300',
     description:
-      'Below the standard microdose threshold. Effects are typically imperceptible. Suitable for building tolerance or very sensitive individuals.',
+      'Barely there. Good for building tolerance gently, or if you are very sensitive.',
   },
   {
     key: 'microdose',
@@ -69,7 +69,7 @@ const DOSE_ZONES: DoseZone[] = [
     max: 5,
     color: 'bg-emerald-400/20 border-emerald-400/40 text-emerald-300',
     description:
-      '2.5 to 5 mg per serving. Very mild effects. Good for beginners or those seeking functional, sub-perceptual benefits without impairment.',
+      'Very mild. Great starting point if you are new to this or want to stay functional.',
   },
   {
     key: 'low',
@@ -78,7 +78,7 @@ const DOSE_ZONES: DoseZone[] = [
     max: 10,
     color: 'bg-teal-400/20 border-teal-400/40 text-teal-300',
     description:
-      '5 to 10 mg per serving. Mild psychoactive effects. Suitable for users with low tolerance or those seeking light relaxation.',
+      'Light effects. Good if you have a low tolerance or just want to unwind a little.',
   },
   {
     key: 'moderate',
@@ -88,7 +88,7 @@ const DOSE_ZONES: DoseZone[] = [
     color:
       'bg-sky-100 dark:bg-sky-400/20 border-sky-500/40 dark:border-sky-400/40 text-sky-700 dark:text-sky-300',
     description:
-      '10 to 25 mg per serving. Noticeable effects for most users. A standard recreational dose for experienced consumers.',
+      'For most people this is the sweet spot. Noticeable but not overwhelming.',
   },
   {
     key: 'strong',
@@ -97,8 +97,7 @@ const DOSE_ZONES: DoseZone[] = [
     max: 50,
     color:
       'bg-amber-100 dark:bg-amber-400/20 border-amber-500/40 dark:border-amber-400/40 text-amber-700 dark:text-amber-300',
-    description:
-      '25 to 50 mg per serving. Strong effects. Recommended only for users with established tolerance and familiarity with cannabis.',
+    description: 'Strong. Only go here if you know your tolerance well.',
   },
   {
     key: 'very strong',
@@ -107,7 +106,7 @@ const DOSE_ZONES: DoseZone[] = [
     max: 100,
     color: 'bg-orange-400/20 border-orange-400/40 text-orange-300',
     description:
-      '50 to 100 mg per serving. Very strong effects. High-tolerance users only. Risk of overconsumption and discomfort for most people.',
+      'Very strong. High-tolerance users only -- this will be too much for most people.',
   },
   {
     key: 'extreme',
@@ -116,7 +115,7 @@ const DOSE_ZONES: DoseZone[] = [
     max: null,
     color: 'bg-red-400/20 border-red-400/40 text-red-300',
     description:
-      '100 mg or more per serving. Extremely potent. Only for users with very high tolerance. High risk of anxiety, paranoia, and physical discomfort.',
+      'Extremely potent. Only for very high tolerance. High risk of a really uncomfortable time.',
   },
 ]
 
@@ -142,21 +141,21 @@ function validateDoseFields(
   // Total THC
   const tStr = totalThc.trim()
   if (tStr === '') {
-    errors.totalThc = 'Total THC is required'
+    errors.totalThc = 'How much total THC is in your infusion?'
   } else {
     const t = parseFloat(tStr)
-    if (Number.isNaN(t)) errors.totalThc = 'Please enter a number'
-    else if (t < 0) errors.totalThc = 'Total THC cannot be negative'
+    if (Number.isNaN(t)) errors.totalThc = 'That does not look like a number'
+    else if (t < 0) errors.totalThc = 'THC amount cannot be negative'
   }
 
   // Servings
   const sStr = servings.trim()
   if (sStr === '') {
-    errors.servings = 'Servings is required'
+    errors.servings = 'How many servings are you planning?'
   } else {
     const s = parseFloat(sStr)
-    if (Number.isNaN(s)) errors.servings = 'Please enter a number'
-    else if (s <= 0) errors.servings = 'Servings must be greater than 0'
+    if (Number.isNaN(s)) errors.servings = 'That does not look like a number'
+    else if (s <= 0) errors.servings = 'Servings needs to be a positive number'
   }
 
   return { errors }

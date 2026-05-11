@@ -544,8 +544,8 @@ export function BagCalculator({ tempC }: { tempC: number }) {
                   </span>
                   <p className="mt-0.5 text-[10px] text-amber-700 dark:text-amber-300">
                     {tempC >= 95
-                      ? 'High temperature increases risk of bag failure. Use two bags for safety.'
-                      : 'Stems detected — double-bagging reduces puncture risk.'}
+                      ? 'High heat can weaken bags. Double up for safety.'
+                      : 'Stems can poke holes. Two bags for peace of mind.'}
                   </p>
                 </div>
               )}

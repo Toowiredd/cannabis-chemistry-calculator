@@ -113,35 +113,38 @@ function validateInfusionFields(
   // Decarbed THC
   const dStr = decarbedThc.trim()
   if (dStr === '') {
-    errors.decarbedThc = 'Decarbed THC is required'
+    errors.decarbedThc = 'We need your decarbed THC amount'
   } else {
     const d = parseFloat(dStr)
-    if (Number.isNaN(d)) errors.decarbedThc = 'Please enter a number'
-    else if (d < 0) errors.decarbedThc = 'THC amount cannot be negative'
+    if (Number.isNaN(d)) errors.decarbedThc = 'That does not look like a number'
+    else if (d < 0) errors.decarbedThc = 'THC cannot be negative'
   }
 
   // Volume
   const vStr = volume.trim()
   if (vStr === '') {
-    errors.volume = 'Volume is required'
+    errors.volume = 'Tell us how much fat you are using'
   } else {
     const v = parseFloat(vStr)
-    if (Number.isNaN(v)) errors.volume = 'Please enter a number'
-    else if (v <= 0) errors.volume = 'Volume must be greater than 0'
+    if (Number.isNaN(v)) errors.volume = 'That does not look like a number'
+    else if (v <= 0) errors.volume = 'Volume needs to be a positive number'
   }
 
   // Custom efficiency
   if (isCustom) {
     const eStr = customEfficiency.trim()
     if (eStr === '') {
-      errors.customEfficiency = 'Efficiency is required for custom fat'
+      errors.customEfficiency = 'Custom fat needs an efficiency value'
     } else {
       const e = parseFloat(eStr)
-      if (Number.isNaN(e)) errors.customEfficiency = 'Please enter a number'
+      if (Number.isNaN(e))
+        errors.customEfficiency = 'That does not look like a number'
       else if (e < 0)
-        errors.customEfficiency = 'Efficiency must be between 0% and 100%'
+        errors.customEfficiency =
+          'Efficiency needs to be between 0 and 1 (like 0.85 for 85%)'
       else if (e > 1)
-        errors.customEfficiency = 'Efficiency must be between 0% and 100%'
+        errors.customEfficiency =
+          'Efficiency needs to be between 0 and 1 (like 0.85 for 85%)'
     }
   }
 
@@ -149,7 +152,9 @@ function validateInfusionFields(
   const d = parseFloat(dStr)
   const v = parseFloat(vStr)
   if (!Number.isNaN(d) && !Number.isNaN(v) && d > 0 && v > 0 && v < d / 20) {
-    warnings.push('Warning: Low fat volume may not fully absorb cannabinoids.')
+    warnings.push(
+      'Not much fat volume here -- may not absorb all the cannabinoids.'
+    )
   }
 
   return { errors, warnings }

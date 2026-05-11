@@ -90,10 +90,10 @@ export function PresetActions() {
         setShowSaveModal(false)
         showToast(`Preset saved: ${name}`)
       } else {
-        setSaveError(result.error || 'Failed to save preset')
+        setSaveError(result.error || 'Could not save')
       }
     } catch {
-      setSaveError('Failed to save preset')
+      setSaveError('Could not save')
     }
   }
 
@@ -110,20 +110,18 @@ export function PresetActions() {
       if (result.canceled) return
 
       if (!result.success) {
-        showToast(result.error || 'Failed to load preset')
+        showToast(result.error || 'Could not load')
         return
       }
 
       if (result.data) {
         loadFromPreset(result.data)
         const name =
-          typeof result.data.name === 'string'
-            ? result.data.name
-            : 'Unnamed preset'
+          typeof result.data.name === 'string' ? result.data.name : 'Unnamed'
         showToast(`Preset loaded: ${name}`)
       }
     } catch {
-      showToast('Failed to load preset')
+      showToast('Could not load')
     }
   }
 

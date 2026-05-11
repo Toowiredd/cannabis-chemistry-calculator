@@ -303,15 +303,14 @@ export const INFUSION_FATS: readonly PresetFat[] = [
     extractionEff: 0.85,
     simplifiedMultiplier: 7.45,
     notes:
-      'Clarified butter with high smoke point and rich flavor; excellent cannabinoid solubility',
+      'Clarified butter. High smoke point, rich flavor, great at dissolving cannabinoids.',
   },
   {
     id: 'coconut',
     name: 'Coconut Oil',
     extractionEff: 0.82,
     simplifiedMultiplier: 7.19,
-    notes:
-      'High medium-chain triglyceride content; mild coconut aroma and solid at room temperature',
+    notes: 'High in MCTs. Mild coconut aroma, solid at room temp.',
   },
   {
     id: 'mct',
@@ -319,14 +318,14 @@ export const INFUSION_FATS: readonly PresetFat[] = [
     extractionEff: 0.92,
     simplifiedMultiplier: 8.07,
     notes:
-      'Fractionated coconut oil; very high extraction efficiency, neutral flavor, liquid at room temperature',
+      'Fractionated coconut oil. Highest extraction efficiency, neutral flavor, stays liquid.',
   },
   {
     id: 'custom',
     name: 'Custom',
     extractionEff: 0.0,
     simplifiedMultiplier: 0.0,
-    notes: 'User-defined carrier fat; set extraction efficiency manually',
+    notes: 'Your own fat. Set the extraction efficiency yourself.',
   },
 ] as const
 
