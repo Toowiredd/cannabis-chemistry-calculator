@@ -104,7 +104,7 @@ export function TimerWidget() {
       className={cn(
         'glass-strong rounded-2xl p-4 transition-all',
         alertVisible &&
-          'border-2 border-amber-400/50 bg-amber-100 dark:bg-amber-400/10'
+          'border-2 border-warning/50 bg-warning/10 dark:bg-warning/10'
       )}
     >
       <div className="flex items-center justify-between">
@@ -125,7 +125,7 @@ export function TimerWidget() {
             </span>
           )}
           {alertVisible && (
-            <span className="flex items-center gap-1 text-sm font-bold text-amber-700 dark:text-amber-300">
+            <span className="flex items-center gap-1 text-sm font-bold text-warning dark:text-warning">
               <Bell className="size-4" />
               Done
             </span>
@@ -185,7 +185,7 @@ export function TimerWidget() {
           {/* Stop button */}
           {(timer.active || alertVisible) && (
             <button
-              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs font-medium text-red-400 transition-colors hover:bg-red-400/20"
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-danger/20 bg-danger/10 px-3 py-2 text-xs font-medium text-danger transition-colors hover:bg-danger/20"
               onClick={stopTimer}
               type="button"
             >

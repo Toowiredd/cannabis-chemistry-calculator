@@ -64,7 +64,7 @@ export function TitleBar() {
             <Square className="size-3.5" />
           </TitleBarButton>
           <TitleBarButton
-            hoverClass="hover:bg-red-600 hover:text-foreground"
+            hoverClass="hover:bg-danger hover:text-foreground"
             onClick={() => window.App.window.close()}
           >
             <X className="size-4" />

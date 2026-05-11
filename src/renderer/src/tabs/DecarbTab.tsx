@@ -110,7 +110,7 @@ function UnitToggle<T extends string>({
 
 function OverrideBadge() {
   return (
-    <span className="ml-2 inline-flex items-center rounded-full border border-amber-500/40 dark:border-amber-400/40 bg-amber-100 dark:bg-amber-400/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+    <span className="ml-2 inline-flex items-center rounded-full border border-warning/40 dark:border-warning/40 bg-warning/10 dark:bg-warning/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-warning dark:text-warning">
       Override
     </span>
   )
@@ -724,7 +724,7 @@ export function DecarbTab() {
         {label}
       </span>
       {children}
-      {error && <span className="text-xs text-red-500">{error}</span>}
+      {error && <span className="text-xs text-danger">{error}</span>}
     </div>
   )
 
@@ -766,7 +766,7 @@ export function DecarbTab() {
             onClick={() => setStrainManagerOpen(true)}
             type="button"
           >
-            <Leaf className="size-4 text-emerald-400" />
+            <Leaf className="size-4 text-success" />
             Manage Strains
           </button>
         )}
@@ -870,7 +870,7 @@ export function DecarbTab() {
                 ))}
               </select>
               {!selectedConcentrate.needsDecarb && (
-                <span className="mt-1 text-xs text-sky-400">
+                <span className="mt-1 text-xs text-info">
                   {selectedConcentrate.decarbGuidance}
                 </span>
               )}
@@ -885,7 +885,7 @@ export function DecarbTab() {
 
           {/* Weight */}
           {inventoryWarning && (
-            <div className="flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">
+            <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
               <AlertTriangle className="size-4 shrink-0" />
               {inventoryWarning}
             </div>
@@ -900,7 +900,7 @@ export function DecarbTab() {
                 className={cn(
                   'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   fieldErrors.weight
-                    ? 'border-red-400/60 focus:border-red-400'
+                    ? 'border-danger/60 focus:border-danger'
                     : 'border-foreground/20 focus:border-foreground/40'
                 )}
                 onChange={e => setDecarb({ weight: e.target.value })}
@@ -928,7 +928,7 @@ export function DecarbTab() {
               className={cn(
                 'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 fieldErrors.thcaPct
-                  ? 'border-red-400/60 focus:border-red-400'
+                  ? 'border-danger/60 focus:border-danger'
                   : 'border-foreground/20 focus:border-foreground/40'
               )}
               onChange={e => setDecarb({ thcaPct: e.target.value })}
@@ -950,7 +950,7 @@ export function DecarbTab() {
               className={cn(
                 'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 fieldErrors.thcPct
-                  ? 'border-red-400/60 focus:border-red-400'
+                  ? 'border-danger/60 focus:border-danger'
                   : 'border-foreground/20 focus:border-foreground/40'
               )}
               onChange={e => setDecarb({ thcPct: e.target.value })}
@@ -973,7 +973,7 @@ export function DecarbTab() {
                 className={cn(
                   'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   fieldErrors.cbdaPct
-                    ? 'border-red-400/60 focus:border-red-400'
+                    ? 'border-danger/60 focus:border-danger'
                     : 'border-foreground/20 focus:border-foreground/40'
                 )}
                 onChange={e => setDecarb({ cbdaPct: e.target.value })}
@@ -996,7 +996,7 @@ export function DecarbTab() {
                 className={cn(
                   'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   fieldErrors.cbdPct
-                    ? 'border-red-400/60 focus:border-red-400'
+                    ? 'border-danger/60 focus:border-danger'
                     : 'border-foreground/20 focus:border-foreground/40'
                 )}
                 onChange={e => setDecarb({ cbdPct: e.target.value })}
@@ -1044,9 +1044,9 @@ export function DecarbTab() {
                   className={cn(
                     'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                     isTempOverride
-                      ? 'border-amber-400/60 focus:border-amber-400'
+                      ? 'border-warning/60 focus:border-warning'
                       : fieldErrors.temperature
-                        ? 'border-red-400/60 focus:border-red-400'
+                        ? 'border-danger/60 focus:border-danger'
                         : 'border-foreground/20 focus:border-foreground/40'
                   )}
                   onChange={e => setDecarb({ tempOverride: e.target.value })}
@@ -1076,9 +1076,9 @@ export function DecarbTab() {
                 className={cn(
                   'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   isTimeOverride
-                    ? 'border-amber-400/60 focus:border-amber-400'
+                    ? 'border-warning/60 focus:border-warning'
                     : fieldErrors.time
-                      ? 'border-red-400/60 focus:border-red-400'
+                      ? 'border-danger/60 focus:border-danger'
                       : 'border-foreground/20 focus:border-foreground/40'
                 )}
                 onChange={e => setDecarb({ timeOverride: e.target.value })}
@@ -1104,9 +1104,9 @@ export function DecarbTab() {
                     className={cn(
                       'w-full rounded-lg border bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                       isEffLowOverride
-                        ? 'border-amber-400/60 focus:border-amber-400'
+                        ? 'border-warning/60 focus:border-warning'
                         : fieldErrors.effLow
-                          ? 'border-red-400/60 focus:border-red-400'
+                          ? 'border-danger/60 focus:border-danger'
                           : 'border-foreground/20 focus:border-foreground/40'
                     )}
                     max={1}
@@ -1127,9 +1127,9 @@ export function DecarbTab() {
                     className={cn(
                       'w-full rounded-lg border bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                       isEffExpectedOverride
-                        ? 'border-amber-400/60 focus:border-amber-400'
+                        ? 'border-warning/60 focus:border-warning'
                         : fieldErrors.effExpected
-                          ? 'border-red-400/60 focus:border-red-400'
+                          ? 'border-danger/60 focus:border-danger'
                           : 'border-foreground/20 focus:border-foreground/40'
                     )}
                     max={1}
@@ -1150,9 +1150,9 @@ export function DecarbTab() {
                     className={cn(
                       'w-full rounded-lg border bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                       isEffHighOverride
-                        ? 'border-amber-400/60 focus:border-amber-400'
+                        ? 'border-warning/60 focus:border-warning'
                         : fieldErrors.effHigh
-                          ? 'border-red-400/60 focus:border-red-400'
+                          ? 'border-danger/60 focus:border-danger'
                           : 'border-foreground/20 focus:border-foreground/40'
                     )}
                     max={1}
@@ -1198,7 +1198,7 @@ export function DecarbTab() {
                 </div>
                 <div>
                   <span className="text-xs text-foreground/70">Expected</span>
-                  <p className="text-sm font-medium text-emerald-300">
+                  <p className="text-sm font-medium text-success">
                     {fmt1(selectedConcentrate.decarbEfficiency.expected * 100)}%
                   </p>
                 </div>
@@ -1229,10 +1229,10 @@ export function DecarbTab() {
 
           {/* Warnings */}
           {inlineWarnings.length > 0 && (
-            <div className="flex flex-col gap-1 rounded-lg border border-amber-400/30 bg-amber-100 dark:bg-amber-400/10 px-3 py-2">
+            <div className="flex flex-col gap-1 rounded-lg border border-warning/30 bg-warning/10 dark:bg-warning/10 px-3 py-2">
               {inlineWarnings.map(w => (
                 <span
-                  className="text-xs text-amber-700 dark:text-amber-300"
+                  className="text-xs text-warning dark:text-warning"
                   key={w}
                 >
                   {w}
@@ -1273,7 +1273,7 @@ export function DecarbTab() {
                 <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Expected
                 </span>
-                <span className="text-lg font-semibold text-emerald-300">
+                <span className="text-lg font-semibold text-success">
                   {results
                     ? `${fmtSigFigs(results.decarbed.expected, decarb.weight, decarb.thcaPct, decarb.thcPct)} mg`
                     : 'Enter your material weight and potency above to see results'}
@@ -1342,7 +1342,7 @@ export function DecarbTab() {
                     <span className="text-xs uppercase tracking-wider text-foreground/70">
                       Expected
                     </span>
-                    <span className="text-lg font-semibold text-emerald-300">
+                    <span className="text-lg font-semibold text-success">
                       {`${fmtSigFigs(cbdResults.decarbed.expected, decarb.weight, decarb.cbdaPct, decarb.cbdPct)} mg`}
                     </span>
                   </div>

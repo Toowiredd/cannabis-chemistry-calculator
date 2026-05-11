@@ -82,9 +82,9 @@ export function LabPasteField({
         className={cn(
           'min-h-[4.5rem] resize-none rounded-lg border bg-foreground/5 px-3 py-2 text-xs text-foreground outline-none transition-colors placeholder:text-foreground/30',
           error
-            ? 'border-red-400/60 focus:border-red-400'
+            ? 'border-danger/60 focus:border-danger'
             : success
-              ? 'border-emerald-400/60 focus:border-emerald-400'
+              ? 'border-success/60 focus:border-success'
               : 'border-foreground/20 focus:border-foreground/40'
         )}
         onChange={e => {
@@ -98,9 +98,9 @@ export function LabPasteField({
 
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          {error && <span className="text-xs text-red-400">{error}</span>}
+          {error && <span className="text-xs text-danger">{error}</span>}
           {success && !error && (
-            <span className="text-xs text-emerald-400">
+            <span className="text-xs text-success">
               Lab data parsed and applied
             </span>
           )}

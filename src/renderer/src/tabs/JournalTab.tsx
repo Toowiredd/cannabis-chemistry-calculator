@@ -548,7 +548,7 @@ export function JournalTab() {
               Clear
             </button>
             <button
-              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-400/20"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-success/20 bg-success/10 px-3 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20"
               onClick={handleSave}
               type="button"
             >
@@ -635,7 +635,7 @@ export function JournalTab() {
                   </span>
                 )}
                 <button
-                  className="inline-flex items-center rounded-lg border border-red-400/20 bg-red-400/10 px-2 py-1 text-xs text-red-400 transition-colors hover:bg-red-400/20"
+                  className="inline-flex items-center rounded-lg border border-danger/20 bg-danger/10 px-2 py-1 text-xs text-danger transition-colors hover:bg-danger/20"
                   onClick={() => handleDelete(entry.id)}
                   title="Delete entry"
                   type="button"

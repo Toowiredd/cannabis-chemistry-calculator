@@ -339,16 +339,13 @@ export function LabelGenerator({
 
               {/* Allergen warnings */}
               {allergenWarnings.length > 0 && (
-                <div className="flex flex-col gap-1 rounded-md border border-amber-500/60 bg-amber-50 p-2">
-                  <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-amber-800">
+                <div className="flex flex-col gap-1 rounded-md border border-warning/60 bg-warning/10 p-2">
+                  <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-warning">
                     <AlertTriangle className="size-3" />
                     Allergen Notice
                   </span>
                   {allergenWarnings.map(w => (
-                    <span
-                      className="text-xs font-medium text-amber-900"
-                      key={w}
-                    >
+                    <span className="text-xs font-medium text-warning" key={w}>
                       {w}
                     </span>
                   ))}
@@ -357,13 +354,13 @@ export function LabelGenerator({
 
               {/* Dosage warnings */}
               {dosageWarnings.length > 0 && (
-                <div className="flex flex-col gap-1 rounded-md border border-red-500/60 bg-red-50 p-2">
-                  <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-red-800">
+                <div className="flex flex-col gap-1 rounded-md border border-danger/30 bg-danger/10 p-2">
+                  <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-danger">
                     <ShieldAlert className="size-3" />
                     Dosage Warning
                   </span>
                   {dosageWarnings.map(w => (
-                    <span className="text-xs font-medium text-red-900" key={w}>
+                    <span className="text-xs font-medium text-danger" key={w}>
                       {w}
                     </span>
                   ))}
@@ -372,8 +369,8 @@ export function LabelGenerator({
 
               {/* Child safety footer */}
               <div className="flex items-center justify-center gap-1 border-t-2 border-black pt-2">
-                <ShieldAlert className="size-3.5 text-red-700" />
-                <span className="text-xs font-bold uppercase tracking-wider text-red-700">
+                <ShieldAlert className="size-3.5 text-danger" />
+                <span className="text-xs font-bold uppercase tracking-wider text-danger">
                   Keep out of reach of children
                 </span>
               </div>

@@ -199,7 +199,7 @@ export function StrainManager({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-foreground/10 px-5 py-4">
           <div className="flex items-center gap-2">
-            <Leaf className="size-5 text-emerald-400" />
+            <Leaf className="size-5 text-success" />
             <h2 className="text-lg font-semibold text-foreground">
               Strain Library
             </h2>
@@ -216,7 +216,7 @@ export function StrainManager({
         {/* Form */}
         <div className="flex flex-col gap-3 px-5 py-4">
           {error && (
-            <div className="rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-2 text-xs text-red-300">
+            <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
               {error}
             </div>
           )}
@@ -338,7 +338,7 @@ export function StrainManager({
 
           <div className="flex gap-2">
             <button
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-success px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-success"
               onClick={handleSave}
               type="button"
             >
@@ -404,7 +404,7 @@ export function StrainManager({
                         <Pencil className="size-3.5" />
                       </button>
                       <button
-                        className="rounded p-1 text-foreground/70 transition-colors hover:bg-red-400/10 hover:text-red-400"
+                        className="rounded p-1 text-foreground/70 transition-colors hover:bg-danger/10 hover:text-danger"
                         onClick={() => handleDelete(strain.id)}
                         type="button"
                       >

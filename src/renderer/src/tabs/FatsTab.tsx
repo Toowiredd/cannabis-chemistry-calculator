@@ -241,7 +241,7 @@ export function FatsTab() {
         {label}
       </span>
       {children}
-      {error && <span className="text-xs text-red-500">{error}</span>}
+      {error && <span className="text-xs text-danger">{error}</span>}
     </div>
   )
 
@@ -292,7 +292,7 @@ export function FatsTab() {
                 className={cn(
                   'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   fieldErrors.decarbedThc
-                    ? 'border-red-400/60 focus:border-red-400'
+                    ? 'border-danger/60 focus:border-danger'
                     : 'border-foreground/20 focus:border-foreground/40'
                 )}
                 onChange={e => setInfusion({ decarbedThc: e.target.value })}
@@ -317,8 +317,8 @@ export function FatsTab() {
                 className={cn(
                   'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   fieldErrors.customEfficiency
-                    ? 'border-red-400/60 focus:border-red-400'
-                    : 'border-amber-400/60 focus:border-amber-400'
+                    ? 'border-danger/60 focus:border-danger'
+                    : 'border-warning/60 focus:border-warning'
                 )}
                 max={1}
                 min={0}
@@ -348,7 +348,7 @@ export function FatsTab() {
             <div
               className={cn(
                 'glass-strong flex flex-col gap-3 rounded-2xl p-5 transition-colors',
-                isBest && 'border-2 border-emerald-400/50 bg-emerald-400/10'
+                isBest && 'border-2 border-success/50 bg-success/10'
               )}
               key={fat.id}
             >
@@ -359,7 +359,7 @@ export function FatsTab() {
                 </h4>
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   {isBest && (
-                    <span className="inline-flex items-center rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-emerald-300">
+                    <span className="inline-flex items-center rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-success">
                       Best Extraction
                     </span>
                   )}
@@ -401,7 +401,7 @@ export function FatsTab() {
                   Concentration
                 </span>
                 {fatResults && fatResults.mgPerMl != null ? (
-                  <span className="text-xl font-bold text-emerald-300">
+                  <span className="text-xl font-bold text-success">
                     {fmt1(fatResults.mgPerMl)} mg/mL
                   </span>
                 ) : (

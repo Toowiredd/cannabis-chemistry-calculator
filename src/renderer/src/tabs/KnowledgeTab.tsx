@@ -390,36 +390,36 @@ function DonenessCurve() {
       {/* Legend */}
       <div className="flex flex-wrap items-center justify-center gap-6">
         <div className="flex items-center gap-2">
-          <span className="inline-block size-3 rounded-full bg-blue-400/80" />
+          <span className="inline-block size-3 rounded-full bg-info/80" />
           <span className="text-sm text-foreground/70">THCA</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="inline-block size-3 rounded-full bg-emerald-400/80" />
+          <span className="inline-block size-3 rounded-full bg-success/80" />
           <span className="text-sm text-foreground/70">THC</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="inline-block size-3 rounded-full bg-red-400/80" />
+          <span className="inline-block size-3 rounded-full bg-danger/80" />
           <span className="text-sm text-foreground/70">CBN</span>
         </div>
       </div>
 
       {/* Current-point readout */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl border border-blue-400/20 bg-blue-400/10 px-3 py-2 text-center">
-          <div className="text-xs text-blue-300/80">THCA</div>
-          <div className="text-sm font-semibold tabular-nums text-blue-200">
+        <div className="rounded-xl border border-info/20 bg-info/10 px-3 py-2 text-center">
+          <div className="text-xs text-info/80">THCA</div>
+          <div className="text-sm font-semibold tabular-nums text-info">
             {(data[currentIndex]?.thca ?? 0).toFixed(1)}%
           </div>
         </div>
-        <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-center">
-          <div className="text-xs text-emerald-300/80">THC</div>
-          <div className="text-sm font-semibold tabular-nums text-emerald-200">
+        <div className="rounded-xl border border-success/20 bg-success/10 px-3 py-2 text-center">
+          <div className="text-xs text-success/80">THC</div>
+          <div className="text-sm font-semibold tabular-nums text-success">
             {(data[currentIndex]?.thc ?? 0).toFixed(1)}%
           </div>
         </div>
-        <div className="rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-center">
-          <div className="text-xs text-red-300/80">CBN</div>
-          <div className="text-sm font-semibold tabular-nums text-red-200">
+        <div className="rounded-xl border border-danger/20 bg-danger/10 px-3 py-2 text-center">
+          <div className="text-xs text-danger/80">CBN</div>
+          <div className="text-sm font-semibold tabular-nums text-danger/80">
             {(data[currentIndex]?.cbn ?? 0).toFixed(1)}%
           </div>
         </div>
@@ -458,7 +458,7 @@ function Cite({ label, doi }: { label: string; doi: string }) {
 
   return (
     <a
-      className="ml-1 inline text-xs text-sky-700 dark:text-sky-700 dark:text-sky-300/90 underline underline-offset-2 hover:text-sky-200"
+      className="ml-1 inline text-xs text-info dark:text-info dark:text-info/90 underline underline-offset-2 hover:text-info"
       href={`https://doi.org/${doi}`}
       onClick={handleClick}
       rel="noopener noreferrer"
@@ -957,8 +957,8 @@ export function KnowledgeTab() {
             <DonenessCurve />
           </div>
 
-          <div className="mt-4 rounded-lg border border-amber-400/20 bg-amber-100 dark:bg-amber-400/10 px-4 py-3">
-            <p className="text-sm text-amber-700 dark:text-amber-700 dark:text-amber-300/90">
+          <div className="mt-4 rounded-lg border border-warning/20 bg-warning/10 dark:bg-warning/10 px-4 py-3">
+            <p className="text-sm text-warning dark:text-warning dark:text-warning/90">
               <strong>Simulated / Illustrative only:</strong> This curve is
               generated from a simplified kinetic model for educational
               purposes. It is not derived from actual laboratory measurements
@@ -969,14 +969,14 @@ export function KnowledgeTab() {
         </div>
 
         {/* Section 14: Disclaimer */}
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-6 py-5">
+        <div className="rounded-2xl border border-danger/20 bg-danger/10 px-6 py-5">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-500/80" />
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger/80" />
             <div>
-              <h3 className="text-base font-semibold text-red-300">
+              <h3 className="text-base font-semibold text-danger">
                 Medical Disclaimer
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-red-300/80">
+              <p className="mt-2 text-sm leading-relaxed text-danger/80">
                 The content in this Knowledge section is for educational and
                 informational purposes only. It does not constitute medical
                 advice, diagnosis, or treatment. Always consult a qualified

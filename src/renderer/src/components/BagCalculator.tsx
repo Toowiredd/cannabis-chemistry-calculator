@@ -96,12 +96,12 @@ function HeadspaceGauge({ pct }: { pct: number }) {
 
   const barColor =
     status === 'optimal'
-      ? 'bg-emerald-500'
+      ? 'bg-success'
       : status === 'tight'
-        ? 'bg-amber-500'
+        ? 'bg-warning/100'
         : status === 'loose'
-          ? 'bg-amber-500'
-          : 'bg-red-500'
+          ? 'bg-warning/100'
+          : 'bg-danger/100'
 
   const labelText =
     status === 'optimal'
@@ -135,17 +135,14 @@ function HeadspaceGauge({ pct }: { pct: number }) {
       <div className="flex justify-between text-xs text-foreground/70">
         <span>0%</span>
         <span
-          className={cn(
-            'font-semibold',
-            status === 'tight' && 'text-amber-500'
-          )}
+          className={cn('font-semibold', status === 'tight' && 'text-warning')}
         >
           5%
         </span>
         <span
           className={cn(
             'font-semibold',
-            status === 'optimal' && 'text-emerald-500'
+            status === 'optimal' && 'text-success'
           )}
         >
           10%
@@ -153,16 +150,13 @@ function HeadspaceGauge({ pct }: { pct: number }) {
         <span
           className={cn(
             'font-semibold',
-            status === 'optimal' && 'text-emerald-500'
+            status === 'optimal' && 'text-success'
           )}
         >
           25%
         </span>
         <span
-          className={cn(
-            'font-semibold',
-            status === 'loose' && 'text-amber-500'
-          )}
+          className={cn('font-semibold', status === 'loose' && 'text-warning')}
         >
           40%
         </span>
@@ -538,11 +532,11 @@ export function BagCalculator({ tempC }: { tempC: number }) {
 
               {/* Double-bag recommendation */}
               {bagResults.doubleBag && (
-                <div className="rounded-lg border border-amber-400/30 bg-amber-100 dark:bg-amber-400/10 px-3 py-2">
-                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                <div className="rounded-lg border border-warning/30 bg-warning/10 dark:bg-warning/10 px-3 py-2">
+                  <span className="text-xs font-semibold text-warning dark:text-warning">
                     Double-bag recommended
                   </span>
-                  <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-300">
+                  <p className="mt-0.5 text-xs text-warning dark:text-warning">
                     {tempC >= 95
                       ? 'High heat can weaken bags. Double up for safety.'
                       : 'Stems can poke holes. Two bags for peace of mind.'}
@@ -557,7 +551,7 @@ export function BagCalculator({ tempC }: { tempC: number }) {
                 </span>
                 {bagResults.best ? (
                   <div className="flex flex-col gap-1">
-                    <span className="text-sm font-semibold text-emerald-300">
+                    <span className="text-sm font-semibold text-success">
                       {bagResults.best.name}
                     </span>
                     <span className="text-xs text-foreground/70">
@@ -584,7 +578,7 @@ export function BagCalculator({ tempC }: { tempC: number }) {
                     )}
                   </div>
                 ) : (
-                  <span className="text-sm text-red-400">
+                  <span className="text-sm text-danger">
                     No bag can fit this material volume
                   </span>
                 )}

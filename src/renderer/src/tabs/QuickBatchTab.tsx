@@ -325,7 +325,7 @@ export function QuickBatchTab() {
         {label}
       </span>
       {children}
-      {error && <span className="text-xs text-red-500">{error}</span>}
+      {error && <span className="text-xs text-danger">{error}</span>}
     </div>
   )
 
@@ -358,7 +358,7 @@ export function QuickBatchTab() {
               i === step
                 ? 'bg-foreground/15 text-foreground border border-foreground/20'
                 : i < step
-                  ? 'bg-emerald-400/10 text-emerald-300 border border-emerald-400/20'
+                  ? 'bg-success/10 text-success border border-success/20'
                   : 'bg-foreground/5 text-foreground/70 border border-foreground/10'
             )}
             key={s.key}
@@ -379,7 +379,7 @@ export function QuickBatchTab() {
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {inventoryWarning && (
-              <div className="col-span-full flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">
+              <div className="col-span-full flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
                 <AlertTriangle className="size-4 shrink-0" />
                 {inventoryWarning}
               </div>
@@ -519,7 +519,7 @@ export function QuickBatchTab() {
                   className={cn(
                     'flex flex-col gap-2 rounded-xl border p-4 text-left transition-colors',
                     isSelected
-                      ? 'border-amber-400/50 bg-amber-100 dark:bg-amber-400/10'
+                      ? 'border-warning/50 bg-warning/10 dark:bg-warning/10'
                       : 'border-foreground/10 bg-foreground/5 hover:bg-foreground/10'
                   )}
                   key={method.id}
@@ -602,7 +602,7 @@ export function QuickBatchTab() {
                   className={cn(
                     'flex flex-col gap-1 rounded-xl border p-4 text-left transition-colors',
                     isSelected
-                      ? 'border-emerald-400/50 bg-emerald-400/10'
+                      ? 'border-success/50 bg-success/10'
                       : 'border-foreground/10 bg-foreground/5 hover:bg-foreground/10'
                   )}
                   key={fat.id}
@@ -674,7 +674,7 @@ export function QuickBatchTab() {
                   <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                     Concentration
                   </span>
-                  <span className="text-sm font-semibold text-emerald-300">
+                  <span className="text-sm font-semibold text-success">
                     {fmt1(results.mgPerMl)} mg/mL
                   </span>
                 </div>
@@ -782,7 +782,7 @@ export function QuickBatchTab() {
                   </button>
                 </div>
                 {scaleError && (
-                  <span className="text-xs text-red-500">{scaleError}</span>
+                  <span className="text-xs text-danger">{scaleError}</span>
                 )}
               </>
             )}
@@ -802,7 +802,7 @@ export function QuickBatchTab() {
                 <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Classification
                 </span>
-                <span className="text-xl font-bold text-emerald-300">
+                <span className="text-xl font-bold text-success">
                   {results.classification}
                 </span>
               </div>
@@ -900,7 +900,7 @@ export function QuickBatchTab() {
                 <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Classification
                 </span>
-                <span className="text-sm font-semibold text-emerald-300">
+                <span className="text-sm font-semibold text-success">
                   {results.classification}
                 </span>
               </div>
@@ -927,7 +927,7 @@ export function QuickBatchTab() {
               </button>
               <div className="flex items-center gap-2">
                 <button
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-sm font-medium text-emerald-300 transition-colors hover:bg-emerald-400/20"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-success/20 bg-success/10 px-4 py-2 text-sm font-medium text-success transition-colors hover:bg-success/20"
                   onClick={handleSaveBatch}
                   type="button"
                 >
@@ -942,7 +942,7 @@ export function QuickBatchTab() {
 
       {/* Toast */}
       {toast.visible && (
-        <div className="fixed bottom-6 left-1/2 z-[120] -translate-x-1/2 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-300 shadow-xl backdrop-blur-md">
+        <div className="fixed bottom-6 left-1/2 z-[120] -translate-x-1/2 rounded-lg border border-success/30 bg-success/10 px-4 py-2 text-sm text-success shadow-xl backdrop-blur-md">
           {toast.msg}
         </div>
       )}

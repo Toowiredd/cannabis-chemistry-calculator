@@ -71,7 +71,7 @@ const DOSE_ZONES: DoseZone[] = [
     label: 'Sub-Microdose',
     min: 0,
     max: 2.5,
-    color: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300',
+    color: 'bg-success/20 border-success/40 text-success',
     description:
       'Barely there. Good for building tolerance gently, or if you are very sensitive.',
   },
@@ -80,7 +80,7 @@ const DOSE_ZONES: DoseZone[] = [
     label: 'Microdose',
     min: 2.5,
     max: 5,
-    color: 'bg-emerald-400/20 border-emerald-400/40 text-emerald-300',
+    color: 'bg-success/20 border-success/40 text-success',
     description:
       'Very mild. Great starting point if you are new to this or want to stay functional.',
   },
@@ -89,7 +89,7 @@ const DOSE_ZONES: DoseZone[] = [
     label: 'Low Tolerance',
     min: 5,
     max: 10,
-    color: 'bg-teal-400/20 border-teal-400/40 text-teal-300',
+    color: 'bg-success/20 border-success/40 text-success',
     description:
       'Light effects. Good if you have a low tolerance or just want to unwind a little.',
   },
@@ -99,7 +99,7 @@ const DOSE_ZONES: DoseZone[] = [
     min: 10,
     max: 25,
     color:
-      'bg-sky-100 dark:bg-sky-400/20 border-sky-500/40 dark:border-sky-400/40 text-sky-700 dark:text-sky-300',
+      'bg-info/10 dark:bg-info/20 border-info/40 dark:border-info/40 text-info dark:text-info',
     description:
       'For most people this is the sweet spot. Noticeable but not overwhelming.',
   },
@@ -109,7 +109,7 @@ const DOSE_ZONES: DoseZone[] = [
     min: 25,
     max: 50,
     color:
-      'bg-amber-100 dark:bg-amber-400/20 border-amber-500/40 dark:border-amber-400/40 text-amber-700 dark:text-amber-300',
+      'bg-warning/10 dark:bg-warning/20 border-warning/40 dark:border-warning/40 text-warning dark:text-warning',
     description: 'Strong. Only go here if you know your tolerance well.',
   },
   {
@@ -117,7 +117,7 @@ const DOSE_ZONES: DoseZone[] = [
     label: 'Very Strong',
     min: 50,
     max: 100,
-    color: 'bg-orange-400/20 border-orange-400/40 text-orange-300',
+    color: 'bg-warning/20 border-warning/40 text-warning',
     description:
       'Very strong. High-tolerance users only -- this will be too much for most people.',
   },
@@ -126,7 +126,7 @@ const DOSE_ZONES: DoseZone[] = [
     label: 'Extreme',
     min: 100,
     max: null,
-    color: 'bg-red-400/20 border-red-400/40 text-red-300',
+    color: 'bg-danger/20 border-danger/40 text-danger',
     description:
       'Extremely potent. Only for very high tolerance. High risk of a really uncomfortable time.',
   },
@@ -290,7 +290,7 @@ const inputRow = (
       {label}
     </span>
     {children}
-    {error && <span className="text-xs text-red-500">{error}</span>}
+    {error && <span className="text-xs text-danger">{error}</span>}
   </div>
 )
 
@@ -567,7 +567,7 @@ export function DoseTab() {
               <>
                 Total Infused THC
                 {dose.totalThc === lastInfusedThc && lastInfusedThc && (
-                  <span className="inline-flex items-center rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-xs font-medium text-sky-300">
+                  <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-xs font-medium text-info">
                     Auto-filled from Infusion
                   </span>
                 )}
@@ -578,7 +578,7 @@ export function DoseTab() {
                   className={cn(
                     'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                     fieldErrors.totalThc
-                      ? 'border-red-400/60 focus:border-red-400'
+                      ? 'border-danger/60 focus:border-danger'
                       : 'border-foreground/20 focus:border-foreground/40'
                   )}
                   onChange={e => setDose({ totalThc: e.target.value })}
@@ -605,7 +605,7 @@ export function DoseTab() {
                     className={cn(
                       'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                       reverseFieldErrors.desiredMgPerServing
-                        ? 'border-red-400/60 focus:border-red-400'
+                        ? 'border-danger/60 focus:border-danger'
                         : 'border-foreground/20 focus:border-foreground/40'
                     )}
                     onChange={e =>
@@ -627,7 +627,7 @@ export function DoseTab() {
                   Required Material
                 </span>
                 {reverseError ? (
-                  <span className="mt-1 block text-sm text-red-400">
+                  <span className="mt-1 block text-sm text-danger">
                     {reverseError}
                   </span>
                 ) : (
@@ -685,7 +685,7 @@ export function DoseTab() {
               className={cn(
                 'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 fieldErrors.servings
-                  ? 'border-red-400/60 focus:border-red-400'
+                  ? 'border-danger/60 focus:border-danger'
                   : 'border-foreground/20 focus:border-foreground/40'
               )}
               onChange={e => setDose({ servings: e.target.value })}
@@ -754,7 +754,7 @@ export function DoseTab() {
                   </button>
                 </div>
                 {scaleError && (
-                  <span className="text-xs text-red-500">{scaleError}</span>
+                  <span className="text-xs text-danger">{scaleError}</span>
                 )}
               </>
             )}
@@ -793,7 +793,7 @@ export function DoseTab() {
               <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                 Classification
               </span>
-              <span className="mt-1 text-2xl font-bold text-emerald-300">
+              <span className="mt-1 text-2xl font-bold text-success">
                 {results
                   ? displayClassification(results.classification)
                   : '\u2014'}

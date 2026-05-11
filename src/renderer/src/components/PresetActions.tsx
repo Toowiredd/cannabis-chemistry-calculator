@@ -184,7 +184,7 @@ export function PresetActions() {
             />
 
             {saveError && (
-              <p className="mt-2 text-xs text-red-500">{saveError}</p>
+              <p className="mt-2 text-xs text-danger">{saveError}</p>
             )}
 
             <div className="mt-5 flex items-center justify-end gap-2">

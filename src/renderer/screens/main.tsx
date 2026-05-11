@@ -98,7 +98,7 @@ export function MainScreen() {
         {/* Re-access First-Timer Guide link (visible after dismiss) */}
         {firstRunDismissed && (
           <button
-            className="app-region-no-drag ml-auto inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-sky-400/30 bg-sky-400/10 px-3 py-2 text-xs font-medium text-sky-300 transition-colors hover:bg-sky-400/20"
+            className="app-region-no-drag ml-auto inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-xs font-medium text-info transition-colors hover:bg-info/20"
             onClick={() => setFirstTimerOpen(true)}
             type="button"
           >

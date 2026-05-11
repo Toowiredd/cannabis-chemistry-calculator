@@ -331,7 +331,7 @@ export function FirstTimerGuide() {
                     className={cn(
                       'flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left transition-colors',
                       item.checked
-                        ? 'border-emerald-500/30 bg-emerald-500/10'
+                        ? 'border-success/30 bg-success/10'
                         : 'border-foreground/10 bg-foreground/5 hover:bg-foreground/10'
                     )}
                     key={item.name}
@@ -342,7 +342,7 @@ export function FirstTimerGuide() {
                       className={cn(
                         'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors',
                         item.checked
-                          ? 'border-emerald-500 bg-emerald-500'
+                          ? 'border-success bg-success'
                           : 'border-foreground/20'
                       )}
                     >
@@ -355,7 +355,7 @@ export function FirstTimerGuide() {
                         className={cn(
                           'text-sm font-medium',
                           item.checked
-                            ? 'text-emerald-300 line-through'
+                            ? 'text-success line-through'
                             : 'text-foreground/90'
                         )}
                       >
@@ -369,8 +369,8 @@ export function FirstTimerGuide() {
                 ))}
               </div>
 
-              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
-                <p className="text-xs font-medium text-amber-300">
+              <div className="rounded-xl border border-warning/20 bg-warning/10 px-4 py-3">
+                <p className="text-xs font-medium text-warning">
                   The one thing you cannot mess up
                 </p>
                 <p className="mt-1 text-xs text-foreground/70 leading-relaxed">
@@ -403,7 +403,7 @@ export function FirstTimerGuide() {
                     value={grams}
                   />
                   {errors.grams && (
-                    <p className="mt-1 text-xs text-red-400">{errors.grams}</p>
+                    <p className="mt-1 text-xs text-danger">{errors.grams}</p>
                   )}
                 </div>
 
@@ -421,15 +421,13 @@ export function FirstTimerGuide() {
                     value={thcaPct}
                   />
                   {errors.thcaPct && (
-                    <p className="mt-1 text-xs text-red-400">
-                      {errors.thcaPct}
-                    </p>
+                    <p className="mt-1 text-xs text-danger">{errors.thcaPct}</p>
                   )}
                 </div>
               </div>
 
-              <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3">
-                <p className="text-xs text-sky-200/90 leading-relaxed">
+              <div className="rounded-xl border border-info/20 bg-info/10 px-4 py-3">
+                <p className="text-xs text-info/90 leading-relaxed">
                   Do not worry if your numbers are rough. This calculator gives
                   you an estimate, not a lab report. You can always adjust your
                   serving size later.
@@ -487,8 +485,8 @@ export function FirstTimerGuide() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
-                <p className="text-xs font-medium text-amber-300">
+              <div className="rounded-xl border border-warning/20 bg-warning/10 px-4 py-3">
+                <p className="text-xs font-medium text-warning">
                   The one thing you cannot mess up
                 </p>
                 <p className="mt-1 text-xs text-foreground/70 leading-relaxed">
@@ -499,11 +497,11 @@ export function FirstTimerGuide() {
               </div>
 
               {results && (
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
-                  <p className="text-xs text-emerald-200/90">
+                <div className="rounded-xl border border-success/20 bg-success/10 px-4 py-3">
+                  <p className="text-xs text-success/90">
                     With {grams}g at {thcaPct}% THC, after decarbing you will
                     have roughly{' '}
-                    <strong className="font-semibold text-emerald-100">
+                    <strong className="font-semibold text-success">
                       {fmt1(results.decarbed)} mg
                     </strong>{' '}
                     of active THC ready to infuse.
@@ -550,8 +548,8 @@ export function FirstTimerGuide() {
                 </ol>
               </div>
 
-              <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3">
-                <p className="text-xs text-sky-200/90 leading-relaxed">
+              <div className="rounded-xl border border-info/20 bg-info/10 px-4 py-3">
+                <p className="text-xs text-info/90 leading-relaxed">
                   Slow cooker method: combine decarbed cannabis and fat in the
                   slow cooker on Low for 4 to 6 hours. Strain the same way. You
                   cannot really overcook it at Low, so do not stress about the
@@ -560,11 +558,11 @@ export function FirstTimerGuide() {
               </div>
 
               {results && (
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
-                  <p className="text-xs text-emerald-200/90">
+                <div className="rounded-xl border border-success/20 bg-success/10 px-4 py-3">
+                  <p className="text-xs text-success/90">
                     After infusing into coconut oil, you should end up with
                     roughly{' '}
-                    <strong className="font-semibold text-emerald-100">
+                    <strong className="font-semibold text-success">
                       {fmt1(results.infused)} mg
                     </strong>{' '}
                     of THC in your fat.
@@ -597,7 +595,7 @@ export function FirstTimerGuide() {
                     value={servings}
                   />
                   {errors.servings && (
-                    <p className="mt-1 text-xs text-red-400">
+                    <p className="mt-1 text-xs text-danger">
                       {errors.servings}
                     </p>
                   )}
@@ -605,25 +603,25 @@ export function FirstTimerGuide() {
               </div>
 
               {results && (
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 space-y-2">
-                  <p className="text-xs text-emerald-200/90">
+                <div className="rounded-xl border border-success/20 bg-success/10 p-4 space-y-2">
+                  <p className="text-xs text-success/90">
                     Each serving will contain roughly{' '}
-                    <strong className="text-sm font-semibold text-emerald-100">
+                    <strong className="text-sm font-semibold text-success">
                       {fmt1(results.perServing)} mg
                     </strong>{' '}
                     of THC.
                   </p>
-                  <div className="mt-2 inline-block rounded-md border border-emerald-500/30 bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-200">
+                  <div className="mt-2 inline-block rounded-md border border-success/30 bg-success/20 px-3 py-1 text-xs font-semibold text-success">
                     {doseTitle}
                   </div>
-                  <p className="text-xs text-emerald-200/80 leading-relaxed">
+                  <p className="text-xs text-success/80 leading-relaxed">
                     {doseDescription}
                   </p>
                 </div>
               )}
 
-              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
-                <p className="text-xs font-medium text-amber-300">
+              <div className="rounded-xl border border-warning/20 bg-warning/10 px-4 py-3">
+                <p className="text-xs font-medium text-warning">
                   First-timer tip
                 </p>
                 <p className="mt-1 text-xs text-foreground/70 leading-relaxed">
@@ -667,8 +665,8 @@ export function FirstTimerGuide() {
                 </ul>
               </div>
 
-              <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3">
-                <p className="text-xs text-sky-200/90 leading-relaxed">
+              <div className="rounded-xl border border-info/20 bg-info/10 px-4 py-3">
+                <p className="text-xs text-info/90 leading-relaxed">
                   A box of brownie mix typically uses 1/2 cup of oil. If you
                   made 1 cup of infused oil, use 1/2 cup in the brownies and
                   save the rest. Label it clearly so no one accidentally uses it
@@ -676,8 +674,8 @@ export function FirstTimerGuide() {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
-                <p className="text-xs text-emerald-200/90 leading-relaxed">
+              <div className="rounded-xl border border-success/20 bg-success/10 px-4 py-3">
+                <p className="text-xs text-success/90 leading-relaxed">
                   That is the whole process. You now have everything you need to
                   make consistent, dosed edibles at home. When you are ready for
                   more control — different methods, custom fats, detailed

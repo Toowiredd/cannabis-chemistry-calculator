@@ -435,13 +435,13 @@ export function DashboardTab() {
 
       {/* Low-stock alert */}
       {inventoryTotals.lowStock && (
-        <div className="flex items-center gap-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3">
-          <AlertTriangle className="size-5 shrink-0 text-amber-400" />
+        <div className="flex items-center gap-3 rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3">
+          <AlertTriangle className="size-5 shrink-0 text-warning" />
           <div className="flex flex-col">
-            <span className="text-sm font-semibold text-amber-300">
+            <span className="text-sm font-semibold text-warning">
               Low Stock Alert
             </span>
-            <span className="text-xs text-amber-300/70">
+            <span className="text-xs text-warning/70">
               Material on hand ({fmt1(inventoryTotals.onHand)} g) is below the
               threshold of {fmt1(inventoryTotals.threshold)} g.
             </span>
@@ -452,20 +452,20 @@ export function DashboardTab() {
       {/* Summary stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          accentClass="bg-emerald-400/10"
-          icon={<BarChart3 className="size-4 text-emerald-400" />}
+          accentClass="bg-success/10"
+          icon={<BarChart3 className="size-4 text-success" />}
           label="Total Batches"
           value={String(stats.totalBatches)}
         />
         <StatCard
-          accentClass="bg-emerald-400/10"
-          icon={<TrendingUp className="size-4 text-emerald-400" />}
+          accentClass="bg-success/10"
+          icon={<TrendingUp className="size-4 text-success" />}
           label="This Month"
           value={String(stats.monthBatches)}
         />
         <StatCard
-          accentClass="bg-sky-400/10"
-          icon={<TrendingUp className="size-4 text-sky-400" />}
+          accentClass="bg-info/10"
+          icon={<TrendingUp className="size-4 text-info" />}
           label="Avg Potency"
           value={`${fmt1(stats.avgPotency)} mg/serving`}
         />
@@ -479,8 +479,8 @@ export function DashboardTab() {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <StatCard
-          accentClass="bg-amber-400/10"
-          icon={<BarChart3 className="size-4 text-amber-400" />}
+          accentClass="bg-warning/10"
+          icon={<BarChart3 className="size-4 text-warning" />}
           label="Most Used Method"
           value={stats.mostUsedMethod || '-'}
         />
@@ -497,8 +497,8 @@ export function DashboardTab() {
           value={`$${fmt1(stats.totalCost)}`}
         />
         <StatCard
-          accentClass="bg-amber-400/10"
-          icon={<TrendingUp className="size-4 text-amber-400" />}
+          accentClass="bg-warning/10"
+          icon={<TrendingUp className="size-4 text-warning" />}
           label="Cost per mg"
           value={
             stats.totalThc > 0 && stats.totalCost > 0
@@ -517,8 +517,8 @@ export function DashboardTab() {
           }
         />
         <StatCard
-          accentClass="bg-emerald-400/10"
-          icon={<Package className="size-4 text-emerald-400" />}
+          accentClass="bg-success/10"
+          icon={<Package className="size-4 text-success" />}
           label="Material on Hand"
           value={`${fmt1(inventoryTotals.onHand)} g`}
         />
@@ -607,7 +607,7 @@ export function DashboardTab() {
               value={inventory.lowStockThreshold}
             />
             <button
-              className="inline-flex items-center gap-1 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-400/20"
+              className="inline-flex items-center gap-1 rounded-lg border border-success/20 bg-success/10 px-3 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20"
               onClick={() => {
                 setForm(emptyInventoryForm())
                 setShowForm(true)
@@ -707,7 +707,7 @@ export function DashboardTab() {
                 Cancel
               </button>
               <button
-                className="inline-flex items-center gap-1 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-400/20"
+                className="inline-flex items-center gap-1 rounded-lg border border-success/20 bg-success/10 px-3 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20"
                 onClick={handleAddItem}
                 type="button"
               >
@@ -735,7 +735,7 @@ export function DashboardTab() {
                   className={cn(
                     'flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold',
                     item.type === 'purchase'
-                      ? 'bg-emerald-400/15 text-emerald-400'
+                      ? 'bg-success/15 text-success'
                       : 'bg-rose-400/15 text-rose-400'
                   )}
                 >
@@ -757,7 +757,7 @@ export function DashboardTab() {
                   {parseFloat(item.amountGrams).toFixed(1)} g
                 </span>
                 <button
-                  className="inline-flex items-center rounded-lg border border-red-400/20 bg-red-400/10 px-2 py-1 text-xs text-red-400 transition-colors hover:bg-red-400/20"
+                  className="inline-flex items-center rounded-lg border border-danger/20 bg-danger/10 px-2 py-1 text-xs text-danger transition-colors hover:bg-danger/20"
                   onClick={() => {
                     deleteInventoryItem(item.id)
                     showToast('Gone')

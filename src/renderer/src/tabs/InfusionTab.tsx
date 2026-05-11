@@ -85,7 +85,7 @@ function UnitToggle<T extends string>({
 
 function OverrideBadge() {
   return (
-    <span className="ml-2 inline-flex items-center rounded-full border border-amber-500/40 dark:border-amber-400/40 bg-amber-100 dark:bg-amber-400/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+    <span className="ml-2 inline-flex items-center rounded-full border border-warning/40 dark:border-warning/40 bg-warning/10 dark:bg-warning/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-warning dark:text-warning">
       Override
     </span>
   )
@@ -434,7 +434,7 @@ export function InfusionTab() {
         {label}
       </span>
       {children}
-      {error && <span className="text-xs text-red-500">{error}</span>}
+      {error && <span className="text-xs text-danger">{error}</span>}
     </div>
   )
 
@@ -473,7 +473,7 @@ export function InfusionTab() {
               Decarbed THC
               {infusion.decarbedThc === lastDecarbExpected &&
                 lastDecarbExpected && (
-                  <span className="inline-flex items-center rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-xs font-medium text-sky-300">
+                  <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-xs font-medium text-info">
                     Auto-filled from Decarb
                   </span>
                 )}
@@ -484,7 +484,7 @@ export function InfusionTab() {
                 className={cn(
                   'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   fieldErrors.decarbedThc
-                    ? 'border-red-400/60 focus:border-red-400'
+                    ? 'border-danger/60 focus:border-danger'
                     : 'border-foreground/20 focus:border-foreground/40'
                 )}
                 onChange={e => setInfusion({ decarbedThc: e.target.value })}
@@ -540,9 +540,9 @@ export function InfusionTab() {
                 className={cn(
                   'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   isCustom
-                    ? 'border-amber-400/60 focus:border-amber-400'
+                    ? 'border-warning/60 focus:border-warning'
                     : fieldErrors.customEfficiency
-                      ? 'border-red-400/60 focus:border-red-400'
+                      ? 'border-danger/60 focus:border-danger'
                       : 'border-foreground/20 focus:border-foreground/40'
                 )}
                 disabled={!isCustom}
@@ -578,7 +578,7 @@ export function InfusionTab() {
                 className={cn(
                   'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   fieldErrors.volume
-                    ? 'border-red-400/60 focus:border-red-400'
+                    ? 'border-danger/60 focus:border-danger'
                     : 'border-foreground/20 focus:border-foreground/40'
                 )}
                 onChange={e => setInfusion({ volume: e.target.value })}
@@ -613,10 +613,10 @@ export function InfusionTab() {
 
           {/* Warnings */}
           {inlineWarnings.length > 0 && (
-            <div className="flex flex-col gap-1 rounded-lg border border-amber-400/30 bg-amber-100 dark:bg-amber-400/10 px-3 py-2">
+            <div className="flex flex-col gap-1 rounded-lg border border-warning/30 bg-warning/10 dark:bg-warning/10 px-3 py-2">
               {inlineWarnings.map(w => (
                 <span
-                  className="text-xs text-amber-700 dark:text-amber-300"
+                  className="text-xs text-warning dark:text-warning"
                   key={w}
                 >
                   {w}
@@ -649,7 +649,7 @@ export function InfusionTab() {
             <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
               Concentration
             </span>
-            <span className="mt-1 text-2xl font-bold text-emerald-300">
+            <span className="mt-1 text-2xl font-bold text-success">
               {results
                 ? `${fmt1(results.mgPerUnit)} ${results.unitLabel}`
                 : 'Enter your decarbed THC and fat volume above to see results'}

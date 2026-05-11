@@ -387,7 +387,7 @@ export function MethodsTab() {
         {label}
       </span>
       {children}
-      {error && <span className="text-xs text-red-500">{error}</span>}
+      {error && <span className="text-xs text-danger">{error}</span>}
     </div>
   )
 
@@ -418,12 +418,9 @@ export function MethodsTab() {
         </h3>
 
         {inlineWarnings.length > 0 && (
-          <div className="flex flex-col gap-1 rounded-lg border border-amber-400/30 bg-amber-100 dark:bg-amber-400/10 px-3 py-2">
+          <div className="flex flex-col gap-1 rounded-lg border border-warning/30 bg-warning/10 dark:bg-warning/10 px-3 py-2">
             {inlineWarnings.map(w => (
-              <span
-                className="text-xs text-amber-700 dark:text-amber-300"
-                key={w}
-              >
+              <span className="text-xs text-warning dark:text-warning" key={w}>
                 {w}
               </span>
             ))}
@@ -441,7 +438,7 @@ export function MethodsTab() {
                 className={cn(
                   'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   fieldErrors.weight
-                    ? 'border-red-400/60 focus:border-red-400'
+                    ? 'border-danger/60 focus:border-danger'
                     : 'border-foreground/20 focus:border-foreground/40'
                 )}
                 onChange={e => setDecarb({ weight: e.target.value })}
@@ -468,7 +465,7 @@ export function MethodsTab() {
               className={cn(
                 'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 fieldErrors.thcaPct
-                  ? 'border-red-400/60 focus:border-red-400'
+                  ? 'border-danger/60 focus:border-danger'
                   : 'border-foreground/20 focus:border-foreground/40'
               )}
               onChange={e => setDecarb({ thcaPct: e.target.value })}
@@ -489,7 +486,7 @@ export function MethodsTab() {
               className={cn(
                 'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 fieldErrors.thcPct
-                  ? 'border-red-400/60 focus:border-red-400'
+                  ? 'border-danger/60 focus:border-danger'
                   : 'border-foreground/20 focus:border-foreground/40'
               )}
               onChange={e => setDecarb({ thcPct: e.target.value })}
@@ -510,7 +507,7 @@ export function MethodsTab() {
               className={cn(
                 'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 fieldErrors.cbdaPct
-                  ? 'border-red-400/60 focus:border-red-400'
+                  ? 'border-danger/60 focus:border-danger'
                   : 'border-foreground/20 focus:border-foreground/40'
               )}
               onChange={e => setDecarb({ cbdaPct: e.target.value })}
@@ -531,7 +528,7 @@ export function MethodsTab() {
               className={cn(
                 'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 fieldErrors.cbdPct
-                  ? 'border-red-400/60 focus:border-red-400'
+                  ? 'border-danger/60 focus:border-danger'
                   : 'border-foreground/20 focus:border-foreground/40'
               )}
               onChange={e => setDecarb({ cbdPct: e.target.value })}
@@ -569,10 +566,10 @@ export function MethodsTab() {
               className={cn(
                 'glass-strong flex flex-col gap-3 rounded-2xl p-5 transition-colors',
                 isMaxPotency &&
-                  'border-2 border-amber-400/50 bg-amber-100 dark:bg-amber-400/10',
+                  'border-2 border-warning/50 bg-warning/10 dark:bg-warning/10',
                 isMaxTerpene &&
                   !isMaxPotency &&
-                  'border-2 border-teal-400/50 bg-teal-400/10'
+                  'border-2 border-success/50 bg-success/10'
               )}
               key={method.id}
             >
@@ -583,12 +580,12 @@ export function MethodsTab() {
                 </h4>
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   {isMaxPotency && (
-                    <span className="inline-flex items-center rounded-full border border-amber-500/40 dark:border-amber-400/40 bg-amber-100 dark:bg-amber-400/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                    <span className="inline-flex items-center rounded-full border border-warning/40 dark:border-warning/40 bg-warning/10 dark:bg-warning/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-warning dark:text-warning">
                       Highest Potency
                     </span>
                   )}
                   {isMaxTerpene && (
-                    <span className="inline-flex items-center rounded-full border border-teal-400/40 bg-teal-400/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-teal-300">
+                    <span className="inline-flex items-center rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-success">
                       Max Terpene Retention
                     </span>
                   )}
