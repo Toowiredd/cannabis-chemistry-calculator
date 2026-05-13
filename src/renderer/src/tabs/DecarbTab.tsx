@@ -310,6 +310,10 @@ export function DecarbTab() {
       setInventoryWarning(null)
       return
     }
+    if (inventory.items.length === 0) {
+      setInventoryWarning(null)
+      return
+    }
     const weightGrams = units.weightUnit === 'oz' ? ozToG(w) : w
     const onHand = inventory.items.reduce((sum, i) => {
       const g = parseFloat(i.amountGrams) || 0
