@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { INFUSION_FATS, DECARB_METHODS } from 'renderer/src/engine/models'
+import {
+  calculateTheoreticalMaxCbd,
+  calculateDecarbedCbd,
+} from 'renderer/src/engine/cbda'
 import { cn } from 'renderer/lib/utils'
 import { Printer, X, Info, Tag, AlertTriangle, ShieldAlert } from 'lucide-react'
 
@@ -33,6 +37,67 @@ export function LabelGenerator({
 
   const methodPreset = DECARB_METHODS.find(m => m.id === decarb.presetId)
   const methodName = methodPreset?.name ?? decarb.presetId
+
+  /* ---- Derive CBD per serving ---- */
+  const mgCbdPerServing = useMemo(() => {
+    // Concentrate mode: no CBD line
+    if (decarb.materialMode === 'concentrate') return null
+
+    const weight = parseFloat(decarb.weight)
+    const cbda = parseFloat(decarb.cbdaPct)
+    const cbd = parseFloat(decarb.cbdPct)
+
+    if (
+      Number.isNaN(weight) ||
+      Number.isNaN(cbda) ||
+      Number.isNaN(cbd) ||
+      weight <= 0
+    ) {
+      return null
+    }
+
+    // Only show CBD line if user entered any CBDA/CBD data
+    if (cbda <= 0 && cbd <= 0) {
+      return 0
+    }
+
+    try {
+      const theoreticalMaxCbd = calculateTheoreticalMaxCbd(weight, cbda, cbd)
+
+      const effExpected =
+        decarb.effExpectedOverride != null
+          ? parseFloat(decarb.effExpectedOverride)
+          : (methodPreset?.efficiency.expected ?? 0.95)
+
+      const decarbedCbd = calculateDecarbedCbd(
+        theoreticalMaxCbd,
+        Number.isNaN(effExpected) ? 0.95 : effExpected
+      )
+
+      const extractionEff =
+        infusion.fatId === 'custom'
+          ? parseFloat(infusion.customEfficiency)
+          : (fatPreset?.extractionEff ?? 0.82)
+
+      const eff = Number.isNaN(extractionEff) ? 0.82 : extractionEff
+      const infusedCbd = calculateDecarbedCbd(decarbedCbd, eff)
+      return servings > 0 ? infusedCbd / servings : infusedCbd
+    } catch {
+      return null
+    }
+  }, [
+    decarb.weight,
+    decarb.cbdaPct,
+    decarb.cbdPct,
+    decarb.presetId,
+    decarb.effExpectedOverride,
+    decarb.materialMode,
+    infusion.fatId,
+    infusion.customEfficiency,
+    methodPreset,
+    fatPreset,
+    servings,
+  ])
 
   /* Production date: prefer most recent journal entry, then stored label date */
   const productionDate = useMemo(() => {
@@ -282,6 +347,18 @@ export function LabelGenerator({
                   </span>
                 </div>
               </div>
+
+              {/* CBD per serving (when data entered) */}
+              {mgCbdPerServing !== null && (
+                <div className="flex flex-col">
+                  <span className="text-xs uppercase tracking-wider text-gray-600">
+                    CBD per Serving
+                  </span>
+                  <span className="text-base font-bold text-black">
+                    {fmt1(mgCbdPerServing)} mg
+                  </span>
+                </div>
+              )}
 
               {/* Method + Fat */}
               <div className="grid grid-cols-2 gap-2">
