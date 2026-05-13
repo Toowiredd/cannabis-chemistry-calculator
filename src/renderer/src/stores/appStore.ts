@@ -8,7 +8,7 @@ export type TabId =
   | 'infusion'
   | 'dose'
   | 'methods'
-  | 'fats'
+  | 'advanced'
   | 'knowledge'
   | 'journal'
   | 'dashboard'
@@ -148,7 +148,7 @@ const DEFAULT_DECARB: DecarbState = {
   thcPct: '0',
   cbdaPct: '0',
   cbdPct: '0',
-  presetId: 'sv_dry',
+  presetId: 'oven_sealed',
   tempOverride: null,
   timeOverride: null,
   effLowOverride: null,
