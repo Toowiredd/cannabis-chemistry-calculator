@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useAppStore } from 'renderer/src/stores/appStore'
+import { useAppStore, type UnitPreferences } from 'renderer/src/stores/appStore'
 import { DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
 import {
   calculateTheoreticalMax,
@@ -21,6 +21,7 @@ import {
   ArrowLeft,
   BookOpen,
   AlertTriangle,
+  History,
 } from 'lucide-react'
 import { LabelGenerator } from 'renderer/src/components/LabelGenerator'
 
@@ -77,6 +78,7 @@ export function QuickBatchTab() {
   const resetInfusion = useAppStore(s => s.resetInfusion)
   const resetDose = useAppStore(s => s.resetDose)
   const addJournalEntry = useAppStore(s => s.addJournalEntry)
+  const journalEntries = useAppStore(s => s.journalEntries)
 
   const [step, setStep] = useState<number>(0)
   const [toast, setToast] = useState<{ msg: string; visible: boolean }>({
@@ -282,6 +284,38 @@ export function QuickBatchTab() {
     setScaleError('')
   }
 
+  /* Load from last journal entry */
+  const lastEntry = useMemo(() => {
+    if (journalEntries.length === 0) return null
+    const sorted = [...journalEntries].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    )
+    return sorted[0]
+  }, [journalEntries])
+
+  const handleLoadFromLastBatch = () => {
+    if (!lastEntry) return
+    setDecarb({
+      weight: lastEntry.materialWeight,
+      thcaPct: lastEntry.thcaPct,
+      thcPct: lastEntry.thcPct,
+      cbdaPct: lastEntry.cbdaPct,
+      cbdPct: lastEntry.cbdPct,
+      presetId: lastEntry.methodId,
+    })
+    setInfusion({
+      fatId: lastEntry.fatId,
+      volume: lastEntry.volume,
+    })
+    setDose({
+      servings: lastEntry.servings,
+    })
+    setUnits({
+      volumeUnit: lastEntry.volumeUnit as UnitPreferences['volumeUnit'],
+    })
+    showToast('Loaded last batch')
+  }
+
   /* Step helpers */
   const nextStep = () => setStep(s => Math.min(s + 1, STEPS.length - 1))
   const prevStep = () => setStep(s => Math.max(s - 1, 0))
@@ -353,14 +387,26 @@ export function QuickBatchTab() {
             Step {step + 1} of {STEPS.length}
           </span>
         </div>
-        <button
-          className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
-          onClick={handleReset}
-          type="button"
-        >
-          <RotateCcw className="size-3.5" />
-          Reset
-        </button>
+        <div className="flex items-center gap-2">
+          {lastEntry && (
+            <button
+              className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+              onClick={handleLoadFromLastBatch}
+              type="button"
+            >
+              <History className="size-3.5" />
+              Start from last batch
+            </button>
+          )}
+          <button
+            className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            onClick={handleReset}
+            type="button"
+          >
+            <RotateCcw className="size-3.5" />
+            Reset
+          </button>
+        </div>
       </div>
 
       {/* Progress indicator */}
