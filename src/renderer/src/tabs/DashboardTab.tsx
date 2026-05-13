@@ -17,12 +17,11 @@ import {
   TrendingUp,
   Package,
   AlertTriangle,
-  Plus,
-  Trash2,
   ShoppingCart,
   Scissors,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react'
-import { Toast } from 'renderer/src/components/Toast'
 
 function fmt1(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return '0.0'
@@ -42,18 +41,6 @@ function currentMonthKey(): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
   return `${y}-${m}`
-}
-
-interface InventoryForm {
-  type: 'purchase' | 'usage'
-  name: string
-  amountGrams: string
-  cost: string
-  notes: string
-}
-
-function emptyInventoryForm(): InventoryForm {
-  return { type: 'purchase', name: '', amountGrams: '', cost: '', notes: '' }
 }
 
 /* ─── SVG Charts ─── */
@@ -187,8 +174,6 @@ function SparklineSVG({ values }: { values: number[] }) {
     return `${x},${y}`
   })
 
-  const _path = `M ${points.join(' L ')}`
-
   return (
     <svg
       aria-label="Sparkline chart of potency values over time"
@@ -218,20 +203,8 @@ function SparklineSVG({ values }: { values: number[] }) {
 export function DashboardTab() {
   const journalEntries = useAppStore(s => s.journalEntries)
   const inventory = useAppStore(s => s.inventory)
-  const setInventory = useAppStore(s => s.setInventory)
-  const addInventoryItem = useAppStore(s => s.addInventoryItem)
-  const deleteInventoryItem = useAppStore(s => s.deleteInventoryItem)
 
-  const [form, setForm] = useState<InventoryForm>(emptyInventoryForm())
-  const [showForm, setShowForm] = useState(false)
-  const [toast, setToast] = useState<{ msg: string; visible: boolean }>({
-    msg: '',
-    visible: false,
-  })
-  const showToast = (msg: string) => {
-    setToast({ msg, visible: true })
-    setTimeout(() => setToast(t => ({ ...t, visible: false })), 2000)
-  }
+  const [showMoreStats, setShowMoreStats] = useState(false)
 
   const currentMonth = currentMonthKey()
 
@@ -370,30 +343,6 @@ export function DashboardTab() {
     return { onHand, materialUsedMonth, estimatedThcMg, lowStock, threshold }
   }, [inventory.items, inventory.lowStockThreshold, currentMonth])
 
-  const handleAddItem = () => {
-    if (
-      !form.name.trim() ||
-      !form.amountGrams.trim() ||
-      parseFloat(form.amountGrams) <= 0
-    ) {
-      showToast('Give it a name and a positive amount')
-      return
-    }
-    const item = {
-      id: `inv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      date: new Date().toISOString().slice(0, 10),
-      type: form.type,
-      name: form.name.trim(),
-      amountGrams: form.amountGrams.trim(),
-      cost: form.cost.trim() || undefined,
-      notes: form.notes.trim() || undefined,
-    }
-    addInventoryItem(item)
-    setForm(emptyInventoryForm())
-    setShowForm(false)
-    showToast(`${form.type === 'purchase' ? 'Purchase' : 'Usage'} added`)
-  }
-
   const StatCard = ({
     label,
     value,
@@ -449,8 +398,8 @@ export function DashboardTab() {
         </div>
       )}
 
-      {/* Summary stats */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* Primary stats */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <StatCard
           accentClass="bg-success/10"
           icon={<BarChart3 className="size-4 text-success" />}
@@ -475,9 +424,6 @@ export function DashboardTab() {
           label="Total THC"
           value={`${fmt1(stats.totalThc)} mg`}
         />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <StatCard
           accentClass="bg-warning/10"
           icon={<BarChart3 className="size-4 text-warning" />}
@@ -485,56 +431,76 @@ export function DashboardTab() {
           value={stats.mostUsedMethod || '-'}
         />
         <StatCard
-          accentClass="bg-fuchsia-400/10"
-          icon={<Package className="size-4 text-fuchsia-400" />}
-          label="Most Used Fat"
-          value={stats.mostUsedFat || '-'}
-        />
-        <StatCard
-          accentClass="bg-rose-400/10"
-          icon={<ShoppingCart className="size-4 text-rose-400" />}
-          label="Total Cost"
-          value={`$${fmt1(stats.totalCost)}`}
-        />
-        <StatCard
-          accentClass="bg-warning/10"
-          icon={<TrendingUp className="size-4 text-warning" />}
-          label="Cost per mg"
-          value={
-            stats.totalThc > 0 && stats.totalCost > 0
-              ? `$${stats.costPerMg.toFixed(3)}`
-              : 'N/A'
-          }
-        />
-        <StatCard
-          accentClass="bg-fuchsia-400/10"
-          icon={<TrendingUp className="size-4 text-fuchsia-400" />}
-          label="Cost per Batch"
-          value={
-            stats.totalBatches > 0 && stats.totalCost > 0
-              ? `$${stats.costPerBatch.toFixed(2)}`
-              : 'N/A'
-          }
-        />
-        <StatCard
           accentClass="bg-success/10"
           icon={<Package className="size-4 text-success" />}
           label="Material on Hand"
           value={`${fmt1(inventoryTotals.onHand)} g`}
         />
-        <StatCard
-          accentClass="bg-violet-400/10"
-          icon={<Package className="size-4 text-violet-400" />}
-          label="Est. THC Remaining"
-          value={`${fmt1(inventoryTotals.estimatedThcMg)} mg`}
-        />
-        <StatCard
-          accentClass="bg-rose-400/10"
-          icon={<Scissors className="size-4 text-rose-400" />}
-          label="Used This Month"
-          value={`${fmt1(inventoryTotals.materialUsedMonth)} g`}
-        />
       </div>
+
+      {/* More Stats toggle */}
+      <button
+        className="flex w-full items-center justify-between rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+        onClick={() => setShowMoreStats(v => !v)}
+        type="button"
+      >
+        <span>More Stats</span>
+        {showMoreStats ? (
+          <ChevronUp className="size-4" />
+        ) : (
+          <ChevronDown className="size-4" />
+        )}
+      </button>
+
+      {/* Secondary stats */}
+      {showMoreStats && (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <StatCard
+            accentClass="bg-warning/10"
+            icon={<TrendingUp className="size-4 text-warning" />}
+            label="Cost per mg"
+            value={
+              stats.totalThc > 0 && stats.totalCost > 0
+                ? `$${stats.costPerMg.toFixed(3)}`
+                : 'N/A'
+            }
+          />
+          <StatCard
+            accentClass="bg-fuchsia-400/10"
+            icon={<TrendingUp className="size-4 text-fuchsia-400" />}
+            label="Cost per Batch"
+            value={
+              stats.totalBatches > 0 && stats.totalCost > 0
+                ? `$${stats.costPerBatch.toFixed(2)}`
+                : 'N/A'
+            }
+          />
+          <StatCard
+            accentClass="bg-violet-400/10"
+            icon={<Package className="size-4 text-violet-400" />}
+            label="Est. THC Remaining"
+            value={`${fmt1(inventoryTotals.estimatedThcMg)} mg`}
+          />
+          <StatCard
+            accentClass="bg-rose-400/10"
+            icon={<Scissors className="size-4 text-rose-400" />}
+            label="Used This Month"
+            value={`${fmt1(inventoryTotals.materialUsedMonth)} g`}
+          />
+          <StatCard
+            accentClass="bg-fuchsia-400/10"
+            icon={<Package className="size-4 text-fuchsia-400" />}
+            label="Most Used Fat"
+            value={stats.mostUsedFat || '-'}
+          />
+          <StatCard
+            accentClass="bg-rose-400/10"
+            icon={<ShoppingCart className="size-4 text-rose-400" />}
+            label="Total Cost"
+            value={`$${fmt1(stats.totalCost)}`}
+          />
+        </div>
+      )}
 
       {/* Charts */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -587,200 +553,12 @@ export function DashboardTab() {
         </div>
       </div>
 
-      {/* Inventory section */}
-      <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
-            Inventory
-          </h3>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-foreground/70">
-              Low-stock threshold (g)
-            </span>
-            <input
-              className="w-20 rounded-lg border border-foreground/20 bg-foreground/5 px-2 py-1 text-right text-sm text-foreground outline-none focus:border-foreground/40"
-              onChange={e =>
-                setInventory({ lowStockThreshold: e.target.value })
-              }
-              step="0.1"
-              type="number"
-              value={inventory.lowStockThreshold}
-            />
-            <button
-              className="inline-flex items-center gap-1 rounded-lg border border-success/20 bg-success/10 px-3 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20"
-              onClick={() => {
-                setForm(emptyInventoryForm())
-                setShowForm(true)
-              }}
-              type="button"
-            >
-              <Plus className="size-3.5" />
-              Log
-            </button>
-          </div>
-        </div>
-
-        {showForm && (
-          <div className="flex flex-col gap-3 rounded-xl border border-foreground/10 bg-foreground/5 p-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-foreground/70">
-                  Type
-                </span>
-                <select
-                  className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none focus:border-foreground/40"
-                  onChange={e =>
-                    setForm(f => ({
-                      ...f,
-                      type: e.target.value as 'purchase' | 'usage',
-                    }))
-                  }
-                  value={form.type}
-                >
-                  <option className="bg-card text-foreground" value="purchase">
-                    Purchase
-                  </option>
-                  <option className="bg-card text-foreground" value="usage">
-                    Usage
-                  </option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-foreground/70">
-                  Name
-                </span>
-                <input
-                  className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none placeholder:text-foreground/30 focus:border-foreground/40"
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="Strain or product"
-                  type="text"
-                  value={form.name}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-foreground/70">
-                  Amount (g)
-                </span>
-                <input
-                  className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none placeholder:text-foreground/30 focus:border-foreground/40"
-                  onChange={e =>
-                    setForm(f => ({ ...f, amountGrams: e.target.value }))
-                  }
-                  placeholder="0.0"
-                  step="0.1"
-                  type="number"
-                  value={form.amountGrams}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-foreground/70">
-                  Cost ($)
-                </span>
-                <input
-                  className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none placeholder:text-foreground/30 focus:border-foreground/40"
-                  onChange={e => setForm(f => ({ ...f, cost: e.target.value }))}
-                  placeholder="0.00"
-                  step="0.01"
-                  type="number"
-                  value={form.cost}
-                />
-              </div>
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-foreground/70">
-                Notes
-              </span>
-              <input
-                className="w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none placeholder:text-foreground/30 focus:border-foreground/40"
-                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                placeholder="Optional notes..."
-                type="text"
-                value={form.notes}
-              />
-            </div>
-            <div className="flex items-center justify-end gap-2">
-              <button
-                className="inline-flex items-center gap-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
-                onClick={() => setShowForm(false)}
-                type="button"
-              >
-                Cancel
-              </button>
-              <button
-                className="inline-flex items-center gap-1 rounded-lg border border-success/20 bg-success/10 px-3 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20"
-                onClick={handleAddItem}
-                type="button"
-              >
-                <Plus className="size-3.5" />
-                Add Entry
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Inventory list */}
-        <div className="flex flex-col gap-2">
-          {inventory.items.length === 0 && (
-            <div className="text-center text-xs text-foreground/70 py-4">
-              No inventory items yet.
-            </div>
-          )}
-          {inventory.items.map(item => (
-            <div
-              className="flex items-center justify-between gap-3 rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3 transition-colors"
-              key={item.id}
-            >
-              <div className="flex items-center gap-3">
-                <span
-                  className={cn(
-                    'flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold',
-                    item.type === 'purchase'
-                      ? 'bg-success/15 text-success'
-                      : 'bg-rose-400/15 text-rose-400'
-                  )}
-                >
-                  {item.type === 'purchase' ? 'IN' : 'OUT'}
-                </span>
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-foreground">
-                    {item.name}
-                  </span>
-                  <span className="text-xs text-foreground/70">
-                    {item.date}{' '}
-                    {item.cost ? `· $${parseFloat(item.cost).toFixed(2)}` : ''}{' '}
-                    {item.notes ? `· ${item.notes}` : ''}
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold text-foreground">
-                  {parseFloat(item.amountGrams).toFixed(1)} g
-                </span>
-                <button
-                  className="inline-flex items-center rounded-lg border border-danger/20 bg-danger/10 px-2 py-1 text-xs text-danger transition-colors hover:bg-danger/20"
-                  onClick={() => {
-                    deleteInventoryItem(item.id)
-                    showToast('Gone')
-                  }}
-                  title="Delete"
-                  type="button"
-                >
-                  <Trash2 className="size-3" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Disclaimer */}
       <p className="text-center text-xs leading-relaxed text-foreground/70">
         Estimates are heuristic approximations, not laboratory results. Actual
         potency varies with material quality, technique, and measurement
         accuracy.
       </p>
-
-      <Toast message={toast.msg} visible={toast.visible} />
     </div>
   )
 }
