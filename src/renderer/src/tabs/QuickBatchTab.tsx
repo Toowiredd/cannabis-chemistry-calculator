@@ -14,7 +14,6 @@ import { scaleRecipe } from 'renderer/src/engine/recipe'
 import { ozToG, cToF } from 'renderer/src/engine/units'
 import { cn } from 'renderer/lib/utils'
 import {
-  Info,
   RotateCcw,
   Scale,
   ArrowRight,
@@ -24,6 +23,8 @@ import {
   History,
 } from 'lucide-react'
 import { LabelGenerator } from 'renderer/src/components/LabelGenerator'
+import { InputRow } from 'renderer/src/components/InputRow'
+import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
 
 function fmt1(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return ''
@@ -32,28 +33,6 @@ function fmt1(value: number | null | undefined): string {
 
 function round1n(value: number): number {
   return Math.round((value + 1e-9) * 10) / 10
-}
-
-function TooltipIcon({ text }: { text: string }) {
-  const [show, setShow] = useState(false)
-  return (
-    <button
-      className="relative inline-flex"
-      onBlur={() => setShow(false)}
-      onClick={() => setShow(v => !v)}
-      onFocus={() => setShow(true)}
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-      type="button"
-    >
-      <Info className="size-4 shrink-0 cursor-help text-foreground/70 transition-colors hover:text-foreground/80" />
-      {show && (
-        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-foreground/20 bg-card px-3 py-2 text-xs leading-relaxed text-foreground/90 shadow-xl">
-          {text}
-        </div>
-      )}
-    </button>
-  )
 }
 
 const STEPS = [
@@ -363,21 +342,7 @@ export function QuickBatchTab() {
     }
   }, [decarb.weight, units.weightUnit, store.inventory])
 
-  const inputRow = (
-    label: React.ReactNode,
-    children: React.ReactNode,
-    error?: string
-  ) => (
-    <div className="flex flex-col gap-1">
-      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
-        {label}
-      </span>
-      {children}
-      {error && <span className="text-xs text-danger">{error}</span>}
-    </div>
-  )
-
-  return (
+    return (
     <div className="flex flex-col gap-5 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -444,12 +409,11 @@ export function QuickBatchTab() {
                 {inventoryWarning}
               </div>
             )}
-            {inputRow(
-              <>
+                        <InputRow label={<>
                 Material Weight
                 <TooltipIcon text="How much raw material you are starting with." />
-              </>,
-              <div className="flex items-center gap-2">
+              </>}>
+              {<div className="flex items-center gap-2">
                 <input
                   className="flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                   onChange={e => setDecarb({ weight: e.target.value })}
@@ -475,68 +439,64 @@ export function QuickBatchTab() {
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
+              </div>}
+            </InputRow>
 
-            {inputRow(
-              <>
+                        <InputRow label={<>
                 THCA %
                 <TooltipIcon text="Raw cannabis actually contains THCA, not THC. Heat converts it." />
-              </>,
-              <input
+              </>}>
+              {<input
                 className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 onChange={e => setDecarb({ thcaPct: e.target.value })}
                 placeholder="0.0"
                 step="0.1"
                 type="number"
                 value={decarb.thcaPct}
-              />
-            )}
+              />}
+            </InputRow>
 
-            {inputRow(
-              <>
+                        <InputRow label={<>
                 Existing THC %
                 <TooltipIcon text="THC already in your material. Ready to go, no heat needed." />
-              </>,
-              <input
+              </>}>
+              {<input
                 className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 onChange={e => setDecarb({ thcPct: e.target.value })}
                 placeholder="0.0"
                 step="0.1"
                 type="number"
                 value={decarb.thcPct}
-              />
-            )}
+              />}
+            </InputRow>
 
-            {inputRow(
-              <>
+                        <InputRow label={<>
                 CBDA %
                 <TooltipIcon text="Like THCA, raw cannabis contains CBDA instead of CBD. Heat converts it." />
-              </>,
-              <input
+              </>}>
+              {<input
                 className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 onChange={e => setDecarb({ cbdaPct: e.target.value })}
                 placeholder="0.0"
                 step="0.1"
                 type="number"
                 value={decarb.cbdaPct}
-              />
-            )}
+              />}
+            </InputRow>
 
-            {inputRow(
-              <>
+                        <InputRow label={<>
                 Existing CBD %
                 <TooltipIcon text="CBD already in your material. No heat needed." />
-              </>,
-              <input
+              </>}>
+              {<input
                 className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 onChange={e => setDecarb({ cbdPct: e.target.value })}
                 placeholder="0.0"
                 step="0.1"
                 type="number"
                 value={decarb.cbdPct}
-              />
-            )}
+              />}
+            </InputRow>
           </div>
 
           {results.theoreticalMax > 0 && (
@@ -685,12 +645,11 @@ export function QuickBatchTab() {
             })}
           </div>
 
-          {inputRow(
-            <>
+                    <InputRow label={<>
               Fat Volume
               <TooltipIcon text="How much fat you are infusing." />
-            </>,
-            <div className="flex items-center gap-2">
+            </>}>
+            {<div className="flex items-center gap-2">
               <input
                 className="flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 onChange={e => setInfusion({ volume: e.target.value })}
@@ -716,8 +675,8 @@ export function QuickBatchTab() {
                   </button>
                 ))}
               </div>
-            </div>
-          )}
+            </div>}
+          </InputRow>
 
           {results.infusedThc > 0 && (
             <div className="flex flex-col gap-2 rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3">
@@ -770,20 +729,19 @@ export function QuickBatchTab() {
             Servings &amp; Dose
           </h3>
 
-          {inputRow(
-            <>
+                    <InputRow label={<>
               Number of Servings
               <TooltipIcon text="How many pieces or portions you are dividing the batch into." />
-            </>,
-            <input
+            </>}>
+            {<input
               className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
               onChange={e => setDose({ servings: e.target.value })}
               placeholder="0"
               step="1"
               type="number"
               value={dose.servings}
-            />
-          )}
+            />}
+          </InputRow>
 
           {/* Scale Batch */}
           <div className="mt-1 flex flex-col gap-2 rounded-xl border border-foreground/10 bg-foreground/5 p-3">

@@ -20,8 +20,12 @@ import {
   zodIssuesToFieldErrors,
 } from 'renderer/src/engine/schemas'
 import { cn } from 'renderer/lib/utils'
-import { Info, ChevronDown, ChevronUp, RotateCcw, Loader2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, RotateCcw, Loader2 } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
+import { InputRow } from 'renderer/src/components/InputRow'
+import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
+import { UnitToggle } from 'renderer/src/components/UnitToggle'
+import { OverrideBadge } from 'renderer/src/components/OverrideBadge'
 
 /* ------------------------------------------------------------------ */
 /* Small helpers (mirroring DecarbTab patterns)                       */
@@ -34,66 +38,6 @@ function round1n(value: number): number {
 function fmt1(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return ''
   return value.toFixed(1)
-}
-
-function TooltipIcon({ text }: { text: string }) {
-  const [show, setShow] = useState(false)
-  return (
-    <button
-      className="relative inline-flex"
-      onBlur={() => setShow(false)}
-      onClick={() => setShow(v => !v)}
-      onFocus={() => setShow(true)}
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-      type="button"
-    >
-      <Info className="size-4 shrink-0 cursor-help text-foreground/70 transition-colors hover:text-foreground/80" />
-      {show && (
-        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-foreground/20 bg-card px-3 py-2 text-xs leading-relaxed text-foreground/90 shadow-xl">
-          {text}
-        </div>
-      )}
-    </button>
-  )
-}
-
-function UnitToggle<T extends string>({
-  value,
-  options,
-  onChange,
-}: {
-  value: T
-  options: readonly T[]
-  onChange: (v: T) => void
-}) {
-  return (
-    <div className="inline-flex shrink-0 rounded-lg border border-foreground/20 bg-foreground/5 p-0.5">
-      {options.map(opt => (
-        <button
-          className={cn(
-            'rounded-md px-3 py-1 text-xs font-medium transition-colors',
-            value === opt
-              ? 'bg-foreground/15 text-foreground'
-              : 'text-foreground/70 hover:text-foreground/80'
-          )}
-          key={opt}
-          onClick={() => onChange(opt)}
-          type="button"
-        >
-          {opt}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function OverrideBadge() {
-  return (
-    <span className="ml-2 inline-flex items-center rounded-full border border-warning/40 dark:border-warning/40 bg-warning/10 dark:bg-warning/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-warning dark:text-warning">
-      Override
-    </span>
-  )
 }
 
 /* ------------------------------------------------------------------ */
@@ -406,22 +350,7 @@ export function InfusionTab() {
   /* Render helpers                                                   */
   /* ---------------------------------------------------------------- */
 
-  const inputRow = (
-    label: React.ReactNode,
-    children: React.ReactNode,
-    error?: string,
-    extraClass?: string
-  ) => (
-    <div className={cn('flex flex-col gap-1', extraClass)}>
-      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
-        {label}
-      </span>
-      {children}
-      {error && <span className="text-xs text-danger">{error}</span>}
-    </div>
-  )
-
-  /* ---------------------------------------------------------------- */
+    /* ---------------------------------------------------------------- */
   /* Render                                                           */
   /* ---------------------------------------------------------------- */
 
@@ -451,8 +380,7 @@ export function InfusionTab() {
           </h3>
 
           {/* Decarbed THC */}
-          {inputRow(
-            <>
+                    <InputRow label={<>
               Decarbed THC
               {infusion.decarbedThc === lastDecarbExpected &&
                 lastDecarbExpected && (
@@ -461,8 +389,8 @@ export function InfusionTab() {
                   </span>
                 )}
               <TooltipIcon text="Total decarboxylated THC in milligrams. This is the output from the Decarb calculator." />
-            </>,
-            <div className="flex items-center gap-2">
+            </>} error={fieldErrors.decarbedThc}>
+            {<div className="flex items-center gap-2">
               <input
                 className={cn(
                   'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
@@ -477,17 +405,15 @@ export function InfusionTab() {
                 value={infusion.decarbedThc}
               />
               <span className="text-sm text-foreground/70">mg</span>
-            </div>,
-            fieldErrors.decarbedThc
-          )}
+            </div>}
+          </InputRow>
 
           {/* Fat preset */}
-          {inputRow(
-            <>
+                    <InputRow label={<>
               Fat Preset
               <TooltipIcon text="Select a carrier fat. Each fat has a typical extraction efficiency based on its lipid profile and affinity for cannabinoids." />
-            </>,
-            <select
+            </>}>
+            {<select
               className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
               onChange={e => handleFatChange(e.target.value)}
               value={infusion.fatId}
@@ -501,8 +427,8 @@ export function InfusionTab() {
                   {f.name}
                 </option>
               ))}
-            </select>
-          )}
+            </select>}
+          </InputRow>
 
           {/* Preset notes */}
           {preset.notes && (
@@ -512,13 +438,12 @@ export function InfusionTab() {
           )}
 
           {/* Extraction efficiency */}
-          {inputRow(
-            <>
+                    <InputRow label={<>
               Extraction Efficiency
               {isCustom && <OverrideBadge />}
               <TooltipIcon text="The fraction of available THC that transfers into the fat during infusion. 0.82 = 82% transfer." />
-            </>,
-            <div className="flex items-center gap-2">
+            </>} error={fieldErrors.customEfficiency}>
+            {<div className="flex items-center gap-2">
               <input
                 className={cn(
                   'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
@@ -546,17 +471,15 @@ export function InfusionTab() {
               <span className="text-sm text-foreground/70">
                 {isCustom ? 'custom' : 'preset'}
               </span>
-            </div>,
-            fieldErrors.customEfficiency
-          )}
+            </div>}
+          </InputRow>
 
           {/* Fat volume */}
-          {inputRow(
-            <>
+                    <InputRow label={<>
               Fat Volume
               <TooltipIcon text="Total volume of carrier fat used for infusion." />
-            </>,
-            <div className="flex items-center gap-2">
+            </>} error={fieldErrors.volume}>
+            {<div className="flex items-center gap-2">
               <input
                 className={cn(
                   'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
@@ -575,9 +498,8 @@ export function InfusionTab() {
                 options={['mL', 'tsp', 'tbsp', 'cup'] as const}
                 value={units.volumeUnit}
               />
-            </div>,
-            fieldErrors.volume
-          )}
+            </div>}
+          </InputRow>
         </div>
 
         {/* ------------------- RESULTS PANEL ------------------- */}

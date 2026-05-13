@@ -7,8 +7,10 @@ import {
 import { INFUSION_FATS } from 'renderer/src/engine/models'
 import { cupToMl, tbspToMl, tspToMl } from 'renderer/src/engine/units'
 import { cn } from 'renderer/lib/utils'
-import { Info, RotateCcw, Loader2 } from 'lucide-react'
+import { RotateCcw, Loader2 } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
+import { InputRow } from 'renderer/src/components/InputRow'
+import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
 
 /* ------------------------------------------------------------------ */
 /* Small helpers (mirroring DecarbTab / InfusionTab patterns)         */
@@ -17,28 +19,6 @@ import { TabActions } from 'renderer/src/components/TabActions'
 function fmt1(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return ''
   return value.toFixed(1)
-}
-
-function TooltipIcon({ text }: { text: string }) {
-  const [show, setShow] = useState(false)
-  return (
-    <button
-      className="relative inline-flex"
-      onBlur={() => setShow(false)}
-      onClick={() => setShow(v => !v)}
-      onFocus={() => setShow(true)}
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-      type="button"
-    >
-      <Info className="size-4 shrink-0 cursor-help text-foreground/70 transition-colors hover:text-foreground/80" />
-      {show && (
-        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-foreground/20 bg-card px-3 py-2 text-xs leading-relaxed text-foreground/90 shadow-xl">
-          {text}
-        </div>
-      )}
-    </button>
-  )
 }
 
 /* ------------------------------------------------------------------ */
@@ -231,22 +211,7 @@ export function FatsTab() {
   /* Render helpers                                                   */
   /* ---------------------------------------------------------------- */
 
-  const inputRow = (
-    label: React.ReactNode,
-    children: React.ReactNode,
-    error?: string,
-    extraClass?: string
-  ) => (
-    <div className={cn('flex flex-col gap-1', extraClass)}>
-      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
-        {label}
-      </span>
-      {children}
-      {error && <span className="text-xs text-danger">{error}</span>}
-    </div>
-  )
-
-  /* ---------------------------------------------------------------- */
+    /* ---------------------------------------------------------------- */
   /* Render                                                           */
   /* ---------------------------------------------------------------- */
 
@@ -283,12 +248,11 @@ export function FatsTab() {
         </h3>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          {inputRow(
-            <>
+                    <InputRow label={<>
               Decarbed THC
               <TooltipIcon text="Total decarboxylated THC in milligrams available for infusion. Use the output from the Decarb calculator." />
-            </>,
-            <div className="flex items-center gap-2">
+            </>} error={fieldErrors.decarbedThc}>
+            {<div className="flex items-center gap-2">
               <input
                 className={cn(
                   'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
@@ -303,17 +267,15 @@ export function FatsTab() {
                 value={infusion.decarbedThc}
               />
               <span className="text-sm text-foreground/70">mg</span>
-            </div>,
-            fieldErrors.decarbedThc
-          )}
+            </div>}
+          </InputRow>
 
           {/* Custom efficiency in shared panel for easy override */}
-          {inputRow(
-            <>
+                    <InputRow label={<>
               Custom Fat Efficiency
               <TooltipIcon text="Extraction efficiency for the custom fat. Adjust this to compare custom fats against presets." />
-            </>,
-            <div className="flex items-center gap-2">
+            </>} error={fieldErrors.customEfficiency}>
+            {<div className="flex items-center gap-2">
               <input
                 className={cn(
                   'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
@@ -332,9 +294,8 @@ export function FatsTab() {
                 value={infusion.customEfficiency}
               />
               <span className="text-sm text-foreground/70">ratio</span>
-            </div>,
-            fieldErrors.customEfficiency
-          )}
+            </div>}
+          </InputRow>
         </div>
       </div>
 

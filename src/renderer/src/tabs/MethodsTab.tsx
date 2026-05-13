@@ -7,8 +7,12 @@ import {
 import { DECARB_METHODS } from 'renderer/src/engine/models'
 import { gToOz, ozToG } from 'renderer/src/engine/units'
 import { cn } from 'renderer/lib/utils'
-import { Info, RotateCcw } from 'lucide-react'
+import { RotateCcw } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
+import { InputRow } from 'renderer/src/components/InputRow'
+import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
+import { UnitToggle } from 'renderer/src/components/UnitToggle'
+import { OverrideBadge } from 'renderer/src/components/OverrideBadge'
 
 /* ------------------------------------------------------------------ */
 /* Small helpers (mirroring DecarbTab patterns)                       */
@@ -21,58 +25,6 @@ function round1n(value: number): number {
 function fmt1(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return ''
   return value.toFixed(1)
-}
-
-function TooltipIcon({ text }: { text: string }) {
-  const [show, setShow] = useState(false)
-  return (
-    <button
-      className="relative inline-flex"
-      onBlur={() => setShow(false)}
-      onClick={() => setShow(v => !v)}
-      onFocus={() => setShow(true)}
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-      type="button"
-    >
-      <Info className="size-4 shrink-0 cursor-help text-foreground/70 transition-colors hover:text-foreground/80" />
-      {show && (
-        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-foreground/20 bg-card px-3 py-2 text-xs leading-relaxed text-foreground/90 shadow-xl">
-          {text}
-        </div>
-      )}
-    </button>
-  )
-}
-
-function UnitToggle<T extends string>({
-  value,
-  options,
-  onChange,
-}: {
-  value: T
-  options: readonly T[]
-  onChange: (v: T) => void
-}) {
-  return (
-    <div className="inline-flex shrink-0 rounded-lg border border-foreground/20 bg-foreground/5 p-0.5">
-      {options.map(opt => (
-        <button
-          className={cn(
-            'rounded-md px-3 py-1 text-xs font-medium transition-colors',
-            value === opt
-              ? 'bg-foreground/15 text-foreground'
-              : 'text-foreground/70 hover:text-foreground/80'
-          )}
-          key={opt}
-          onClick={() => onChange(opt)}
-          type="button"
-        >
-          {opt}
-        </button>
-      ))}
-    </div>
-  )
 }
 
 /* ------------------------------------------------------------------ */
@@ -328,22 +280,7 @@ export function MethodsTab() {
   /* Render helpers                                                   */
   /* ---------------------------------------------------------------- */
 
-  const inputRow = (
-    label: React.ReactNode,
-    children: React.ReactNode,
-    error?: string,
-    extraClass?: string
-  ) => (
-    <div className={cn('flex flex-col gap-1', extraClass)}>
-      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
-        {label}
-      </span>
-      {children}
-      {error && <span className="text-xs text-danger">{error}</span>}
-    </div>
-  )
-
-  return (
+    return (
     <div className="flex flex-col gap-5 p-5">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -380,12 +317,11 @@ export function MethodsTab() {
         )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {inputRow(
-            <>
+                    <InputRow label={<>
               Material Weight
               <TooltipIcon text="The total weight of raw cannabis material before decarboxylation." />
-            </>,
-            <div className="flex items-center gap-2">
+            </>} error={fieldErrors.weight}>
+            {<div className="flex items-center gap-2">
               <input
                 className={cn(
                   'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
@@ -404,16 +340,14 @@ export function MethodsTab() {
                 options={['g', 'oz'] as const}
                 value={units.weightUnit}
               />
-            </div>,
-            fieldErrors.weight
-          )}
+            </div>}
+          </InputRow>
 
-          {inputRow(
-            <>
+                    <InputRow label={<>
               THCA %
               <TooltipIcon text="Tetrahydrocannabinolic acid -- the non-psychoactive precursor to THC found in raw cannabis." />
-            </>,
-            <input
+            </>} error={fieldErrors.thcaPct}>
+            {<input
               className={cn(
                 'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 fieldErrors.thcaPct
@@ -425,16 +359,14 @@ export function MethodsTab() {
               step="0.1"
               type="number"
               value={decarb.thcaPct}
-            />,
-            fieldErrors.thcaPct
-          )}
+            />}
+          </InputRow>
 
-          {inputRow(
-            <>
+                    <InputRow label={<>
               Existing THC %
               <TooltipIcon text="Delta-9-THC already present in the material. This does not need decarboxylation and contributes directly to total potency." />
-            </>,
-            <input
+            </>} error={fieldErrors.thcPct}>
+            {<input
               className={cn(
                 'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 fieldErrors.thcPct
@@ -446,9 +378,8 @@ export function MethodsTab() {
               step="0.1"
               type="number"
               value={decarb.thcPct}
-            />,
-            fieldErrors.thcPct
-          )}
+            />}
+          </InputRow>
         </div>
       </div>
 

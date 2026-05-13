@@ -10,7 +10,6 @@ import {
 } from 'renderer/src/engine/models'
 import { cn } from 'renderer/lib/utils'
 import {
-  Info,
   ChevronDown,
   ChevronUp,
   RotateCcw,
@@ -20,6 +19,8 @@ import {
 } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
 import { LabelGenerator } from 'renderer/src/components/LabelGenerator'
+import { InputRow } from 'renderer/src/components/InputRow'
+import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
 
 /* ------------------------------------------------------------------ */
 /* Small helpers (mirroring DecarbTab / InfusionTab patterns)         */
@@ -28,28 +29,6 @@ import { LabelGenerator } from 'renderer/src/components/LabelGenerator'
 function fmt1(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return ''
   return value.toFixed(1)
-}
-
-function TooltipIcon({ text }: { text: string }) {
-  const [show, setShow] = useState(false)
-  return (
-    <button
-      className="relative inline-flex"
-      onBlur={() => setShow(false)}
-      onClick={() => setShow(v => !v)}
-      onFocus={() => setShow(true)}
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-      type="button"
-    >
-      <Info className="size-4 shrink-0 cursor-help text-foreground/70 transition-colors hover:text-foreground/80" />
-      {show && (
-        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-foreground/20 bg-card px-3 py-2 text-xs leading-relaxed text-foreground/90 shadow-xl">
-          {text}
-        </div>
-      )}
-    </button>
-  )
 }
 
 /* ------------------------------------------------------------------ */
@@ -274,25 +253,6 @@ function DoseScale({ classification }: { classification: string }) {
     </div>
   )
 }
-
-/* ------------------------------------------------------------------ */
-/* Render helpers                                                       */
-/* ------------------------------------------------------------------ */
-
-const inputRow = (
-  label: React.ReactNode,
-  children: React.ReactNode,
-  error?: string,
-  extraClass?: string
-) => (
-  <div className={cn('flex flex-col gap-1', extraClass)}>
-    <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
-      {label}
-    </span>
-    {children}
-    {error && <span className="text-xs text-danger">{error}</span>}
-  </div>
-)
 
 /* ------------------------------------------------------------------ */
 /* Classification label map                                             */
@@ -562,9 +522,8 @@ export function DoseTab() {
           </h3>
 
           {/* Total infused THC — hidden in reverse mode */}
-          {!isReverse &&
-            inputRow(
-              <>
+          {!isReverse && (
+            <InputRow label={<>
                 Total Infused THC
                 {dose.totalThc === lastInfusedThc && lastInfusedThc && (
                   <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-xs font-medium text-info">
@@ -572,8 +531,8 @@ export function DoseTab() {
                   </span>
                 )}
                 <TooltipIcon text="Total amount of THC in milligrams present in the infused product. Use the output from the Infusion calculator." />
-              </>,
-              <div className="flex items-center gap-2">
+              </>} error={fieldErrors.totalThc}>
+              {<div className="flex items-center gap-2">
                 <input
                   className={cn(
                     'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
@@ -588,19 +547,18 @@ export function DoseTab() {
                   value={dose.totalThc}
                 />
                 <span className="text-sm text-foreground/70">mg</span>
-              </div>,
-              fieldErrors.totalThc
-            )}
+              </div>}
+            </InputRow>
+          )}
 
           {/* Reverse mode inputs */}
           {isReverse && (
             <>
-              {inputRow(
-                <>
+              <InputRow label={<>
                   Desired mg per Serving
                   <TooltipIcon text="How many milligrams of THC you want in each individual serving. The calculator works backward from this number." />
-                </>,
-                <div className="flex items-center gap-2">
+                </>} error={reverseFieldErrors.desiredMgPerServing}>
+                {<div className="flex items-center gap-2">
                   <input
                     className={cn(
                       'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
@@ -617,9 +575,8 @@ export function DoseTab() {
                     value={dose.desiredMgPerServing}
                   />
                   <span className="text-sm text-foreground/70">mg</span>
-                </div>,
-                reverseFieldErrors.desiredMgPerServing
-              )}
+                </div>}
+              </InputRow>
 
               {/* Reverse result card — inline in input panel */}
               <div className="rounded-xl border border-accent/30 bg-accent/10 p-4">
@@ -645,13 +602,12 @@ export function DoseTab() {
           )}
 
           {/* Edible Format — hidden in reverse mode */}
-          {!isReverse &&
-            inputRow(
-              <>
+          {!isReverse && (
+            <InputRow label={<>
                 Edible Format
                 <TooltipIcon text="Select a common edible format to auto-fill the recommended number of servings." />
-              </>,
-              <select
+              </>}>
+              {<select
                 className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
                 onChange={e => {
                   const formatId = e.target.value
@@ -672,16 +628,16 @@ export function DoseTab() {
                     {f.name}
                   </option>
                 ))}
-              </select>
-            )}
+              </select>}
+            </InputRow>
+          )}
 
           {/* Number of servings */}
-          {inputRow(
-            <>
+          <InputRow label={<>
               Number of Servings
               <TooltipIcon text="How many individual servings the total infused product will be divided into." />
-            </>,
-            <input
+            </>} error={fieldErrors.servings}>
+            {<input
               className={cn(
                 'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 fieldErrors.servings
@@ -693,9 +649,8 @@ export function DoseTab() {
               step="1"
               type="number"
               value={dose.servings}
-            />,
-            fieldErrors.servings
-          )}
+            />}
+          </InputRow>
 
           {/* Scale Batch */}
           <div className="mt-1 flex flex-col gap-2 rounded-xl border border-foreground/10 bg-foreground/5 p-3">

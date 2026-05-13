@@ -28,7 +28,6 @@ import {
 } from 'renderer/src/engine/schemas'
 import { cn } from 'renderer/lib/utils'
 import {
-  Info,
   RotateCcw,
   Loader2,
   Beaker,
@@ -39,6 +38,8 @@ import {
   Trash2,
 } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
+import { InputRow } from 'renderer/src/components/InputRow'
+import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
 
 /* ------------------------------------------------------------------ */
 /* Sub-nav types                                                       */
@@ -69,45 +70,6 @@ function fmt2(value: number | null | undefined): string {
 
 function round1n(value: number): number {
   return Math.round((value + 1e-9) * 10) / 10
-}
-
-function TooltipIcon({ text }: { text: string }) {
-  const [show, setShow] = useState(false)
-  return (
-    <button
-      className="relative inline-flex"
-      onBlur={() => setShow(false)}
-      onClick={() => setShow(v => !v)}
-      onFocus={() => setShow(true)}
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-      type="button"
-    >
-      <Info className="size-4 shrink-0 cursor-help text-foreground/70 transition-colors hover:text-foreground/80" />
-      {show && (
-        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-foreground/20 bg-card px-3 py-2 text-xs leading-relaxed text-foreground/90 shadow-xl">
-          {text}
-        </div>
-      )}
-    </button>
-  )
-}
-
-function inputRow(
-  label: React.ReactNode,
-  children: React.ReactNode,
-  error?: string,
-  extraClass?: string
-) {
-  return (
-    <div className={cn('flex flex-col gap-1', extraClass)}>
-      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
-        {label}
-      </span>
-      {children}
-      {error && <span className="text-xs text-danger">{error}</span>}
-    </div>
-  )
 }
 
 /* ------------------------------------------------------------------ */
@@ -239,12 +201,11 @@ function FatsSection() {
           )}
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {inputRow(
-            <>
+                    <InputRow label={<>
               Decarbed THC
               <TooltipIcon text="Total decarboxylated THC in milligrams available for infusion." />
-            </>,
-            <div className="flex items-center gap-2">
+            </>} error={fieldErrors.decarbedThc}>
+            {<div className="flex items-center gap-2">
               <input
                 className={cn(
                   'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
@@ -259,15 +220,13 @@ function FatsSection() {
                 value={infusion.decarbedThc}
               />
               <span className="text-sm text-foreground/70">mg</span>
-            </div>,
-            fieldErrors.decarbedThc
-          )}
-          {inputRow(
-            <>
+            </div>}
+          </InputRow>
+                    <InputRow label={<>
               Custom Fat Efficiency
               <TooltipIcon text="Extraction efficiency for the custom fat." />
-            </>,
-            <div className="flex items-center gap-2">
+            </>} error={fieldErrors.customEfficiency}>
+            {<div className="flex items-center gap-2">
               <input
                 className={cn(
                   'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
@@ -286,9 +245,8 @@ function FatsSection() {
                 value={infusion.customEfficiency}
               />
               <span className="text-sm text-foreground/70">ratio</span>
-            </div>,
-            fieldErrors.customEfficiency
-          )}
+            </div>}
+          </InputRow>
         </div>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -491,12 +449,11 @@ function ConcentrateSection() {
           Concentrate Calculator
         </h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {inputRow(
-            <>
+                    <InputRow label={<>
               Concentrate Type
               <TooltipIcon text="Select your concentrate. Each has different typical potencies and decarb requirements." />
-            </>,
-            <select
+            </>}>
+            {<select
               className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
               onChange={e => {
                 setConcentrateTypeId(e.target.value)
@@ -514,14 +471,13 @@ function ConcentrateSection() {
                   {c.name}
                 </option>
               ))}
-            </select>
-          )}
-          {inputRow(
-            <>
+            </select>}
+          </InputRow>
+                    <InputRow label={<>
               Weight
               <TooltipIcon text="How much concentrate you are working with." />
-            </>,
-            <div className="flex items-center gap-2">
+            </>} error={errors.weight}>
+            {<div className="flex items-center gap-2">
               <input
                 className={cn(
                   'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
@@ -536,9 +492,8 @@ function ConcentrateSection() {
                 value={weight}
               />
               <span className="text-sm text-foreground/70">g</span>
-            </div>,
-            errors.weight
-          )}
+            </div>}
+          </InputRow>
           {cType.needsDecarb ? (
             <div className="flex items-center gap-2">
               <span className="rounded-full border border-warning/40 bg-warning/10 px-2 py-1 text-xs font-semibold uppercase tracking-wider text-warning">
@@ -560,41 +515,38 @@ function ConcentrateSection() {
           )}
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {inputRow(
-            <>
+                    <InputRow label={<>
               THCA % Override
               <TooltipIcon text="Override the typical THCA. Leave blank for preset." />
-            </>,
-            <input
+            </>}>
+            {<input
               className="rounded-lg border border-warning/60 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-warning"
               onChange={e => setThcaOverride(e.target.value)}
               placeholder={`${cType.typicalThcaPct}% (preset)`}
               step="0.1"
               type="number"
               value={thcaOverride}
-            />
-          )}
-          {inputRow(
-            <>
+            />}
+          </InputRow>
+                    <InputRow label={<>
               THC % Override
               <TooltipIcon text="Override the typical THC. Leave blank for preset." />
-            </>,
-            <input
+            </>}>
+            {<input
               className="rounded-lg border border-warning/60 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-warning"
               onChange={e => setThcOverride(e.target.value)}
               placeholder={`${cType.typicalThcPct}% (preset)`}
               step="0.1"
               type="number"
               value={thcOverride}
-            />
-          )}
+            />}
+          </InputRow>
           {cType.needsDecarb &&
-            inputRow(
-              <>
+                        <InputRow label={<>
                 Decarb Efficiency Override
                 <TooltipIcon text="Override the decarb efficiency. Leave blank for preset value." />
-              </>,
-              <input
+              </>}>
+              {<input
                 className="rounded-lg border border-warning/60 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-warning"
                 max={1}
                 min={0}
@@ -603,8 +555,8 @@ function ConcentrateSection() {
                 step="0.01"
                 type="number"
                 value={customEff}
-              />
-            )}
+              />}
+            </InputRow>}
         </div>
       </div>
       {results && (
@@ -788,12 +740,11 @@ function BlendingSection() {
           Target
         </h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {inputRow(
-            <>
+                    <InputRow label={<>
               Total Weight
               <TooltipIcon text="The total combined weight of all strains in grams." />
-            </>,
-            <div className="flex items-center gap-2">
+            </>}>
+            {<div className="flex items-center gap-2">
               <input
                 className="flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 onChange={e => setTargetWeight(e.target.value)}
@@ -803,14 +754,13 @@ function BlendingSection() {
                 value={targetWeight}
               />
               <span className="text-sm text-foreground/70">g</span>
-            </div>
-          )}
-          {inputRow(
-            <>
+            </div>}
+          </InputRow>
+                    <InputRow label={<>
               Target Potency
               <TooltipIcon text="The desired weighted-average potency." />
-            </>,
-            <div className="flex items-center gap-2">
+            </>}>
+            {<div className="flex items-center gap-2">
               <input
                 className="flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 max={100}
@@ -822,8 +772,8 @@ function BlendingSection() {
                 value={targetPotency}
               />
               <span className="text-sm text-foreground/70">%</span>
-            </div>
-          )}
+            </div>}
+          </InputRow>
         </div>
       </div>
       {error && (
@@ -967,40 +917,37 @@ function CostSection() {
           )}
         </div>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {inputRow(
-            <>
+                    <InputRow label={<>
               Material Cost ($)
               <TooltipIcon text="What you paid for the starting material." />
-            </>,
-            <input
+            </>}>
+            {<input
               className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
               onChange={e => setMaterialCost(e.target.value)}
               placeholder="50"
               step="0.01"
               type="number"
               value={materialCost}
-            />
-          )}
-          {inputRow(
-            <>
+            />}
+          </InputRow>
+                    <InputRow label={<>
               Weight (g)
               <TooltipIcon text="How much material in grams." />
-            </>,
-            <input
+            </>}>
+            {<input
               className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
               onChange={e => setWeightG(e.target.value)}
               placeholder="3.5"
               step="0.1"
               type="number"
               value={weightG}
-            />
-          )}
-          {inputRow(
-            <>
+            />}
+          </InputRow>
+                    <InputRow label={<>
               THCA %
               <TooltipIcon text="THCA potency percentage." />
-            </>,
-            <input
+            </>}>
+            {<input
               className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
               max={100}
               min={0}
@@ -1009,14 +956,13 @@ function CostSection() {
               step="0.1"
               type="number"
               value={thcaPct}
-            />
-          )}
-          {inputRow(
-            <>
+            />}
+          </InputRow>
+                    <InputRow label={<>
               Existing THC %
               <TooltipIcon text="Already-active THC percentage." />
-            </>,
-            <input
+            </>}>
+            {<input
               className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
               max={100}
               min={0}
@@ -1025,14 +971,13 @@ function CostSection() {
               step="0.1"
               type="number"
               value={thcPct}
-            />
-          )}
-          {inputRow(
-            <>
+            />}
+          </InputRow>
+                    <InputRow label={<>
               Extraction Efficiency
               <TooltipIcon text="Fat extraction efficiency (0.0-1.0)." />
-            </>,
-            <input
+            </>}>
+            {<input
               className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
               max={1}
               min={0}
@@ -1041,14 +986,13 @@ function CostSection() {
               step="0.01"
               type="number"
               value={extractionEff}
-            />
-          )}
-          {inputRow(
-            <>
+            />}
+          </InputRow>
+                    <InputRow label={<>
               Target mg/Dose
               <TooltipIcon text="How many mg of THC per serving you want." />
-            </>,
-            <input
+            </>}>
+            {<input
               className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
               min={1}
               onChange={e => setTargetDose(e.target.value)}
@@ -1056,22 +1000,21 @@ function CostSection() {
               step="1"
               type="number"
               value={targetDose}
-            />
-          )}
-          {inputRow(
-            <>
+            />}
+          </InputRow>
+                    <InputRow label={<>
               Servings (quick $/dose)
               <TooltipIcon text="Enter batch size for instant cost-per-dose." />
-            </>,
-            <input
+            </>}>
+            {<input
               className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
               onChange={e => setServings(e.target.value)}
               placeholder="Optional"
               step="1"
               type="number"
               value={servings}
-            />
-          )}
+            />}
+          </InputRow>
         </div>
         {costDose != null && (
           <div className="flex items-center gap-3 rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3">

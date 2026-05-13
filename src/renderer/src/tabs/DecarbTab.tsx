@@ -19,7 +19,6 @@ import { cToF, fToC, gToOz, ozToG } from 'renderer/src/engine/units'
 import { minSigFigs, formatWithSigFigs } from 'renderer/src/engine/formatting'
 import { cn } from 'renderer/lib/utils'
 import {
-  Info,
   ChevronDown,
   ChevronUp,
   RotateCcw,
@@ -33,6 +32,10 @@ import { BagCalculator } from 'renderer/src/components/BagCalculator'
 import { TimerWidget } from 'renderer/src/components/Timer'
 import { LabPasteField } from 'renderer/src/components/LabPasteField'
 import { StrainManager } from 'renderer/src/components/StrainManager'
+import { InputRow } from 'renderer/src/components/InputRow'
+import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
+import { UnitToggle } from 'renderer/src/components/UnitToggle'
+import { OverrideBadge } from 'renderer/src/components/OverrideBadge'
 
 /* ------------------------------------------------------------------ */
 /* Small helpers                                                      */
@@ -54,66 +57,6 @@ function fmtSigFigs(
   if (value == null || Number.isNaN(value)) return ''
   const sf = minSigFigs(...inputs)
   return formatWithSigFigs(value, sf)
-}
-
-function TooltipIcon({ text }: { text: string }) {
-  const [show, setShow] = useState(false)
-  return (
-    <button
-      className="relative inline-flex"
-      onBlur={() => setShow(false)}
-      onClick={() => setShow(v => !v)}
-      onFocus={() => setShow(true)}
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-      type="button"
-    >
-      <Info className="size-4 shrink-0 cursor-help text-foreground/70 transition-colors hover:text-foreground/80" />
-      {show && (
-        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-foreground/20 bg-card px-3 py-2 text-xs leading-relaxed text-foreground/90 shadow-xl">
-          {text}
-        </div>
-      )}
-    </button>
-  )
-}
-
-function UnitToggle<T extends string>({
-  value,
-  options,
-  onChange,
-}: {
-  value: T
-  options: readonly T[]
-  onChange: (v: T) => void
-}) {
-  return (
-    <div className="inline-flex shrink-0 rounded-lg border border-foreground/20 bg-foreground/5 p-0.5">
-      {options.map(opt => (
-        <button
-          className={cn(
-            'rounded-md px-3 py-1 text-xs font-medium transition-colors',
-            value === opt
-              ? 'bg-foreground/15 text-foreground'
-              : 'text-foreground/70 hover:text-foreground/80'
-          )}
-          key={opt}
-          onClick={() => onChange(opt)}
-          type="button"
-        >
-          {opt}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function OverrideBadge() {
-  return (
-    <span className="ml-2 inline-flex items-center rounded-full border border-warning/40 dark:border-warning/40 bg-warning/10 dark:bg-warning/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-warning dark:text-warning">
-      Override
-    </span>
-  )
 }
 
 /* ------------------------------------------------------------------ */
@@ -722,22 +665,7 @@ export function DecarbTab() {
   /* Render helpers                                                   */
   /* ---------------------------------------------------------------- */
 
-  const inputRow = (
-    label: React.ReactNode,
-    children: React.ReactNode,
-    error?: string,
-    extraClass?: string
-  ) => (
-    <div className={cn('flex flex-col gap-1', extraClass)}>
-      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
-        {label}
-      </span>
-      {children}
-      {error && <span className="text-xs text-danger">{error}</span>}
-    </div>
-  )
-
-  /* ---------------------------------------------------------------- */
+    /* ---------------------------------------------------------------- */
   /* Sub-components (render helpers)                                    */
   /* ---------------------------------------------------------------- */
 
@@ -899,12 +827,11 @@ export function DecarbTab() {
               {inventoryWarning}
             </div>
           )}
-          {inputRow(
-            <>
+                    <InputRow label={<>
               Material Weight
               <TooltipIcon text="The total weight of raw cannabis material before decarboxylation." />
-            </>,
-            <div className="flex items-center gap-2">
+            </>} error={fieldErrors.weight}>
+            {<div className="flex items-center gap-2">
               <input
                 className={cn(
                   'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
@@ -923,17 +850,15 @@ export function DecarbTab() {
                 options={['g', 'oz'] as const}
                 value={units.weightUnit}
               />
-            </div>,
-            fieldErrors.weight
-          )}
+            </div>}
+          </InputRow>
 
           {/* THCA */}
-          {inputRow(
-            <>
+                    <InputRow label={<>
               THCA %
               <TooltipIcon text="Tetrahydrocannabinolic acid -- the non-psychoactive precursor to THC found in raw cannabis." />
-            </>,
-            <input
+            </>} error={fieldErrors.thcaPct}>
+            {<input
               className={cn(
                 'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 fieldErrors.thcaPct
@@ -945,17 +870,15 @@ export function DecarbTab() {
               step="0.1"
               type="number"
               value={decarb.thcaPct}
-            />,
-            fieldErrors.thcaPct
-          )}
+            />}
+          </InputRow>
 
           {/* THC */}
-          {inputRow(
-            <>
+                    <InputRow label={<>
               Existing THC %
               <TooltipIcon text="Delta-9-THC already present in the material. This does not need decarboxylation and contributes directly to total potency." />
-            </>,
-            <input
+            </>} error={fieldErrors.thcPct}>
+            {<input
               className={cn(
                 'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                 fieldErrors.thcPct
@@ -967,19 +890,17 @@ export function DecarbTab() {
               step="0.1"
               type="number"
               value={decarb.thcPct}
-            />,
-            fieldErrors.thcPct
-          )}
+            />}
+          </InputRow>
 
           {/* CBDA + CBD — advanced fields */}
           {showAdvanced && !isConcentrate && (
             <>
-              {inputRow(
-                <>
+                            <InputRow label={<>
                   CBDA %
                   <TooltipIcon text="Cannabidiolic acid -- the non-psychoactive precursor to CBD found in raw cannabis. Decarboxylates via the same 0.877 factor as THCA because CBDA and THCA are isomers with identical molecular weight." />
-                </>,
-                <input
+                </>} error={fieldErrors.cbdaPct}>
+                {<input
                   className={cn(
                     'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                     fieldErrors.cbdaPct
@@ -991,16 +912,14 @@ export function DecarbTab() {
                   step="0.1"
                   type="number"
                   value={decarb.cbdaPct}
-                />,
-                fieldErrors.cbdaPct
-              )}
+                />}
+              </InputRow>
 
-              {inputRow(
-                <>
+                            <InputRow label={<>
                   Existing CBD %
                   <TooltipIcon text="Cannabidiol already present in the material. This does not need decarboxylation and contributes directly to total CBD potency." />
-                </>,
-                <input
+                </>} error={fieldErrors.cbdPct}>
+                {<input
                   className={cn(
                     'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                     fieldErrors.cbdPct
@@ -1012,20 +931,18 @@ export function DecarbTab() {
                   step="0.1"
                   type="number"
                   value={decarb.cbdPct}
-                />,
-                fieldErrors.cbdPct
-              )}
+                />}
+              </InputRow>
             </>
           )}
 
           {/* Method preset (flower mode only) */}
           {!isConcentrate &&
-            inputRow(
-              <>
+                        <InputRow label={<>
                 Method Preset
                 <TooltipIcon text="Choose a decarboxylation method. Each preset defines recommended temperature, time, and expected efficiency range." />
-              </>,
-              <select
+              </>}>
+              {<select
                 className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
                 onChange={e => handlePresetChange(e.target.value)}
                 value={decarb.presetId}
@@ -1039,8 +956,8 @@ export function DecarbTab() {
                     {m.name}
                   </option>
                 ))}
-              </select>
-            )}
+              </select>}
+            </InputRow>}
 
           {/* Advanced Settings toggle */}
           {!isConcentrate && (
@@ -1063,12 +980,11 @@ export function DecarbTab() {
           {/* Temperature, Time, Efficiency — advanced fields */}
           {showAdvanced && !isConcentrate && (
             <>
-              {inputRow(
-                <>
+                            <InputRow label={<>
                   Temperature
                   {isTempOverride && <OverrideBadge />}
-                </>,
-                <div className="flex items-center gap-2">
+                </>} error={fieldErrors.temperature}>
+                {<div className="flex items-center gap-2">
                   <input
                     className={cn(
                       'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
@@ -1089,17 +1005,15 @@ export function DecarbTab() {
                     options={['C', 'F'] as const}
                     value={units.tempUnit}
                   />
-                </div>,
-                fieldErrors.temperature
-              )}
+                </div>}
+              </InputRow>
 
-              {inputRow(
-                <>
+                            <InputRow label={<>
                   Time (min)
                   {isTimeOverride && <OverrideBadge />}
                   <TooltipIcon text="Duration of decarboxylation. Sous vide methods use longer times at lower temperatures for better terpene retention." />
-                </>,
-                <input
+                </>} error={fieldErrors.time}>
+                {<input
                   className={cn(
                     'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                     isTimeOverride
@@ -1113,9 +1027,8 @@ export function DecarbTab() {
                   step="1"
                   type="number"
                   value={timeValue}
-                />,
-                fieldErrors.time
-              )}
+                />}
+              </InputRow>
 
               <div className="flex flex-col gap-1">
                 <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
@@ -1123,9 +1036,8 @@ export function DecarbTab() {
                   <TooltipIcon text="The percentage of THCA that successfully converts to THC during decarboxylation. 100% efficiency is theoretical maximum; real-world methods typically achieve 70-95%." />
                 </span>
                 <div className="grid grid-cols-3 gap-2">
-                  {inputRow(
-                    <>Low {isEffLowOverride && <OverrideBadge />}</>,
-                    <input
+                                    <InputRow label={<>Low {isEffLowOverride && <OverrideBadge />}</>} error={fieldErrors.effLow}>
+                    {<input
                       className={cn(
                         'w-full rounded-lg border bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                         isEffLowOverride
@@ -1143,12 +1055,10 @@ export function DecarbTab() {
                       step="0.01"
                       type="number"
                       value={effLowValue}
-                    />,
-                    fieldErrors.effLow
-                  )}
-                  {inputRow(
-                    <>Expected {isEffExpectedOverride && <OverrideBadge />}</>,
-                    <input
+                    />}
+                  </InputRow>
+                                    <InputRow label={<>Expected {isEffExpectedOverride && <OverrideBadge />}</>} error={fieldErrors.effExpected}>
+                    {<input
                       className={cn(
                         'w-full rounded-lg border bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                         isEffExpectedOverride
@@ -1166,12 +1076,10 @@ export function DecarbTab() {
                       step="0.01"
                       type="number"
                       value={effExpectedValue}
-                    />,
-                    fieldErrors.effExpected
-                  )}
-                  {inputRow(
-                    <>High {isEffHighOverride && <OverrideBadge />}</>,
-                    <input
+                    />}
+                  </InputRow>
+                                    <InputRow label={<>High {isEffHighOverride && <OverrideBadge />}</>} error={fieldErrors.effHigh}>
+                    {<input
                       className={cn(
                         'w-full rounded-lg border bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                         isEffHighOverride
@@ -1189,9 +1097,8 @@ export function DecarbTab() {
                       step="0.01"
                       type="number"
                       value={effHighValue}
-                    />,
-                    fieldErrors.effHigh
-                  )}
+                    />}
+                  </InputRow>
                 </div>
               </div>
             </>
