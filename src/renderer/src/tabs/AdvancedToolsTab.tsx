@@ -330,11 +330,11 @@ function FatsSection() {
                   Final THC
                 </span>
                 {fatResults ? (
-                  <span className="text-xl font-bold text-foreground">
+                  <span className="text-2xl font-bold text-foreground">
                     {fmt1(fatResults.infusedThc)} mg
                   </span>
                 ) : (
-                  <span className="text-xl font-bold text-foreground/70">
+                  <span className="text-2xl font-bold text-foreground/70">
                     Enter values above to see results
                   </span>
                 )}
@@ -344,11 +344,11 @@ function FatsSection() {
                   Concentration
                 </span>
                 {fatResults && fatResults.mgPerMl != null ? (
-                  <span className="text-xl font-bold text-success">
+                  <span className="text-2xl font-bold text-success">
                     {fmt1(fatResults.mgPerMl)} mg/mL
                   </span>
                 ) : (
-                  <span className="text-xl font-bold text-foreground/70">
+                  <span className="text-2xl font-bold text-foreground/70">
                     Enter values above to see results
                   </span>
                 )}

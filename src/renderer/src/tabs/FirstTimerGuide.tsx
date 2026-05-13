@@ -400,7 +400,7 @@ export function FirstTimerGuide() {
                     How much cannabis do you have? (grams)
                   </label>
                   <input
-                    className="w-full rounded-lg border border-foreground/20 bg-background/50 px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-foreground/40"
+                    className="w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-foreground/40"
                     id="ftg-grams"
                     onChange={e => setGrams(e.target.value)}
                     type="number"
@@ -420,7 +420,7 @@ export function FirstTimerGuide() {
                     a safe guess for decent flower.)
                   </label>
                   <input
-                    className="w-full rounded-lg border border-foreground/20 bg-background/50 px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-foreground/40"
+                    className="w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-foreground/40"
                     id="ftg-thca"
                     max="100"
                     min="1"
@@ -599,7 +599,7 @@ export function FirstTimerGuide() {
                     makes about 16 brownies.)
                   </label>
                   <input
-                    className="w-full rounded-lg border border-foreground/20 bg-background/50 px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-foreground/40"
+                    className="w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-foreground/40"
                     id="ftg-servings"
                     min="1"
                     onChange={e => setServings(e.target.value)}

@@ -854,7 +854,7 @@ export function QuickBatchTab() {
                 <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   mg per Serving
                 </span>
-                <span className="text-2xl font-bold text-foreground">
+                <span className="result-bloom text-2xl font-bold text-foreground">
                   {fmt1(results.mgPerServing)} mg
                 </span>
               </div>
@@ -862,7 +862,7 @@ export function QuickBatchTab() {
                 <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Classification
                 </span>
-                <span className="text-xl font-bold text-success">
+                <span className="text-2xl font-bold text-success">
                   {results.classification}
                 </span>
               </div>

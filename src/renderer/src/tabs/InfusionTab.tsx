@@ -621,7 +621,7 @@ export function InfusionTab() {
               <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                 Total Infused THC
               </span>
-              <span className="inline-flex items-center rounded-full border border-success/40 bg-success/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-success">
+              <span className="inline-flex items-center rounded-full border border-success/40 bg-success/15 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wider text-success">
                 Recommended
               </span>
             </div>
@@ -637,7 +637,7 @@ export function InfusionTab() {
                 ? `${fmt1(results.infusedThc)} mg`
                 : 'Enter your decarbed THC and fat volume above to see results'}
             </span>
-            <span className="mt-1 text-[11px] leading-relaxed text-foreground/70">
+            <span className="mt-1 text-xs leading-relaxed text-foreground/70">
               Uses the extraction efficiency model — recommended value for
               precise dosing.
             </span>
@@ -669,7 +669,7 @@ export function InfusionTab() {
                 <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Simplified Estimate
                 </span>
-                <span className="inline-flex items-center rounded-full border border-foreground/20 bg-foreground/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-foreground/70">
+                <span className="inline-flex items-center rounded-full border border-foreground/20 bg-foreground/10 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wider text-foreground/70">
                   Approximate
                 </span>
               </div>

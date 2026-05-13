@@ -386,11 +386,11 @@ export function FatsTab() {
                   Final THC
                 </span>
                 {fatResults ? (
-                  <span className="text-xl font-bold text-foreground">
+                  <span className="result-bloom text-2xl font-bold text-foreground">
                     {fmt1(fatResults.infusedThc)} mg
                   </span>
                 ) : (
-                  <span className="text-xl font-bold text-foreground/70">
+                  <span className="text-2xl font-bold text-foreground/70">
                     Enter your decarbed THC and fat volume above to see results
                   </span>
                 )}
@@ -402,11 +402,11 @@ export function FatsTab() {
                   Concentration
                 </span>
                 {fatResults && fatResults.mgPerMl != null ? (
-                  <span className="text-xl font-bold text-success">
+                  <span className="result-bloom text-2xl font-bold text-success">
                     {fmt1(fatResults.mgPerMl)} mg/mL
                   </span>
                 ) : (
-                  <span className="text-xl font-bold text-foreground/70">
+                  <span className="text-2xl font-bold text-foreground/70">
                     Enter your decarbed THC and fat volume above to see results
                   </span>
                 )}

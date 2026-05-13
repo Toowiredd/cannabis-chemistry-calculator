@@ -344,7 +344,7 @@ export function MethodsTab() {
   )
 
   return (
-    <div className="flex flex-col gap-5 p-4">
+    <div className="flex flex-col gap-5 p-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-foreground">
@@ -521,7 +521,7 @@ export function MethodsTab() {
                 </span>
                 {methodResults ? (
                   <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-bold text-foreground">
+                    <span className="result-bloom text-2xl font-bold text-foreground">
                       {fmt1(methodResults.expectedThc)} mg
                     </span>
                     <span className="text-xs text-foreground/70">
@@ -530,7 +530,7 @@ export function MethodsTab() {
                     </span>
                   </div>
                 ) : (
-                  <span className="text-xl font-bold text-foreground/70">
+                  <span className="text-2xl font-bold text-foreground/70">
                     {methodResults
                       ? ''
                       : 'Enter your material weight and potency above to see results'}
