@@ -46,7 +46,7 @@ function prng(seed: number): number {
 
 const COLS = 6
 const ROWS = 6
-const HEX_RADIUS = 8.77
+const HEX_RADIUS = 14.0
 
 const CLUSTER_CENTERS: Position[] = [
   { x: 350, y: 280 },
@@ -170,32 +170,32 @@ export function TransformationCanvas() {
     switch (stage) {
       case 'landing':
         return {
-          hex: 'rgba(20,184,166,0.06)',
-          stroke: 'rgba(20,184,166,0.09)',
-          carboxyl: 'rgba(20,184,166,0.07)',
+          hex: 'rgba(20,184,166,0.12)',
+          stroke: 'rgba(20,184,166,0.18)',
+          carboxyl: 'rgba(20,184,166,0.14)',
         }
       case 'decarb':
         return {
-          hex: 'rgba(217,119,6,0.07)',
-          stroke: 'rgba(217,119,6,0.09)',
-          carboxyl: 'rgba(217,119,6,0.05)',
+          hex: 'rgba(217,119,6,0.14)',
+          stroke: 'rgba(217,119,6,0.18)',
+          carboxyl: 'rgba(217,119,6,0.10)',
         }
       case 'infusion':
         return {
-          hex: 'rgba(245,158,11,0.07)',
-          stroke: 'rgba(245,158,11,0.09)',
-          carboxyl: 'rgba(245,158,11,0.04)',
+          hex: 'rgba(245,158,11,0.14)',
+          stroke: 'rgba(245,158,11,0.18)',
+          carboxyl: 'rgba(245,158,11,0.08)',
         }
       default:
         return {
-          hex: 'rgba(16,185,129,0.07)',
-          stroke: 'rgba(16,185,129,0.09)',
-          carboxyl: 'rgba(16,185,129,0.04)',
+          hex: 'rgba(16,185,129,0.14)',
+          stroke: 'rgba(16,185,129,0.18)',
+          carboxyl: 'rgba(16,185,129,0.08)',
         }
     }
   }, [stage])
 
-  const amberAccent = 'rgba(245,158,11,0.06)'
+  const amberAccent = 'rgba(245,158,11,0.12)'
 
   return (
     <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden motion-reduce:hidden">
@@ -243,7 +243,7 @@ export function TransformationCanvas() {
                       fill={fill}
                       href="#chem-hex"
                       stroke={stageColors.stroke}
-                      strokeWidth="0.5"
+                      strokeWidth="0.8"
                     />
 
                     {/* Carboxyl group — hidden in dose, animated away in decarb */}
@@ -252,7 +252,7 @@ export function TransformationCanvas() {
                         cx={CARBOXYL.x}
                         cy={CARBOXYL.y}
                         fill={stageColors.carboxyl}
-                        r="1.5"
+                        r="2.5"
                         style={
                           isDecarb
                             ? {
@@ -272,7 +272,7 @@ export function TransformationCanvas() {
                 <circle
                   cx={pos.x + data.amberXOff}
                   cy={pos.y}
-                  fill="rgba(217,119,6,0.15)"
+                  fill="rgba(217,119,6,0.30)"
                   r={data.amberR}
                   style={{
                     animation: 'chem-amber-rise 3.5s ease-out infinite',
@@ -286,7 +286,7 @@ export function TransformationCanvas() {
                 <circle
                   cx={pos.x + data.dropletXOff}
                   cy={pos.y + data.dropletYOff}
-                  fill="rgba(245,158,11,0.05)"
+                  fill="rgba(245,158,11,0.10)"
                   r={data.dropletR}
                   style={{
                     animation: 'chem-droplet-pulse 2.8s ease-in-out infinite',

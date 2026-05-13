@@ -191,11 +191,11 @@
 
 @layer utilities {
   .glass {
-    background: rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.4);
     border: 1px solid rgba(0, 0, 0, 0.08);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
-    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    backdrop-filter: blur(12px) saturate(160%);
   }
 
   .dark .glass {
@@ -205,11 +205,11 @@
   }
 
   .glass-strong {
-    background: rgba(255, 255, 255, 0.65);
+    background: rgba(255, 255, 255, 0.5);
     border: 1px solid rgba(0, 0, 0, 0.1);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+    backdrop-filter: blur(14px) saturate(180%);
   }
 
   .dark .glass-strong {
