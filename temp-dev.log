@@ -1,0 +1,58 @@
+
+> cannabis-chemistry-calculator@1.0.0 predev C:\Users\LEWIS\ccc\cannabis_chemistry_calculator
+> run-s clean:dev
+
+
+> cannabis-chemistry-calculator@1.0.0 clean:dev C:\Users\LEWIS\ccc\cannabis_chemistry_calculator
+> rimraf ./node_modules/.dev
+
+
+> cannabis-chemistry-calculator@1.0.0 dev C:\Users\LEWIS\ccc\cannabis_chemistry_calculator
+> cross-env NODE_ENV=development electron-vite dev --watch
+
+[36mvite v7.3.2 [32mbuilding ssr environment for es2022...[36m[39m
+[36m
+watching for file changes...[39m
+[36m
+build started...[39m
+transforming...
+[32mΓ£ô[39m 12 modules transformed.
+rendering chunks...
+[2mnode_modules/.dev/main/[22m[36mindex.mjs  [39m[1m[2m11.40 kB[22m[1m[22m
+[36mbuilt in 138ms.[39m
+[32m
+build the electron main process successfully[39m
+[90m
+-----
+[39m
+[36mvite v7.3.2 [32mbuilding ssr environment for es2022...[36m[39m
+[36m
+watching for file changes...[39m
+[36m
+build started...[39m
+transforming...
+[32mΓ£ô[39m 1 modules transformed.
+rendering chunks...
+[2mnode_modules/.dev/preload/[22m[36mindex.js  [39m[1m[2m1.01 kB[22m[1m[22m
+[36mbuilt in 19ms.[39m
+[32m
+build the electron preload files successfully[39m
+[90m
+-----
+[39m
+[32mdev server running for the electron renderer process at:
+[39m
+  [32mΓ₧£[39m  [1mLocal[22m:   [36mhttp://localhost:[1m4927[22m/[39m
+[2m  [32mΓ₧£[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+[32m
+start electron app...
+[39m
+
+
+React Developer Tools loaded!
+
+[152140:0507/202943.686:ERROR:CONSOLE:2] "Electron sandboxed_renderer.bundle.js script failed to run", source: node:electron/js2c/sandbox_bundle (2)
+[152140:0507/202943.686:ERROR:CONSOLE:2] "TypeError: object null is not iterable (cannot read property Symbol(Symbol.iterator))", source: node:electron/js2c/sandbox_bundle (2)
+[152140:0507/202943.766:ERROR:CONSOLE:1] "Request Autofill.enable failed. {"code":-32601,"message":"'Autofill.enable' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+[152140:0507/202943.767:ERROR:CONSOLE:1] "Request Autofill.setAddresses failed. {"code":-32601,"message":"'Autofill.setAddresses' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+ΓÇëELIFECYCLEΓÇë Command failed with exit code 4294967295.

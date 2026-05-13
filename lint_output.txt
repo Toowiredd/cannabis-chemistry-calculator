@@ -1,0 +1,8 @@
+
+> cannabis-chemistry-calculator@1.0.0 lint C:\Users\LEWIS\ccc\cannabis_chemistry_calculator
+> biome check --no-errors-on-unmatched "--max-diagnostics=200"
+
+Checked 91 files in 92ms. No fixes applied.
+Found 2 errors.
+Found 76 warnings.
+ΓÇëELIFECYCLEΓÇë Command failed with exit code 1.

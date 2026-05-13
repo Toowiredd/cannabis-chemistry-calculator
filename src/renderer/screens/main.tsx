@@ -27,7 +27,7 @@ const TAB_ITEMS: {
   { id: 'infusion', label: 'Infusion', group: 'calculator' },
   { id: 'dose', label: 'Dose', group: 'calculator' },
   { id: 'methods', label: 'Methods', group: 'reference' },
-  { id: 'fats', label: 'Fats', group: 'reference' },
+  { id: 'advanced', label: 'Fats', group: 'reference' },
   { id: 'knowledge', label: 'Knowledge', group: 'reference' },
   { id: 'journal', label: 'Journal', group: 'reference' },
 ]
@@ -144,7 +144,7 @@ export function MainScreen() {
           <div className={cn(activeTab === 'methods' ? 'block' : 'hidden')}>
             <MethodsTab />
           </div>
-          <div className={cn(activeTab === 'fats' ? 'block' : 'hidden')}>
+          <div className={cn(activeTab === 'advanced' ? 'block' : 'hidden')}>
             <FatsTab />
           </div>
           <div className={cn(activeTab === 'knowledge' ? 'block' : 'hidden')}>

@@ -1,0 +1,83 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="256" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0F1923"/>
+      <stop offset="100%" stop-color="#1A2A3A"/>
+    </linearGradient>
+    <linearGradient id="hexStroke" x1="128" y1="32" x2="128" y2="224" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00E5FF"/>
+      <stop offset="100%" stop-color="#00C853"/>
+    </linearGradient>
+    <linearGradient id="innerGlow" x1="128" y1="64" x2="128" y2="192" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#00C853" stop-opacity="0.08"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded background -->
+  <rect x="4" y="4" width="248" height="248" rx="48" ry="48" fill="url(#bgGrad)" stroke="#1E2D3D" stroke-width="2"/>
+
+  <!-- Hexagon border -->
+  <polygon
+    points="128,38 212,88 212,168 128,218 44,168 44,88"
+    fill="none"
+    stroke="url(#hexStroke)"
+    stroke-width="3"
+    stroke-linejoin="round"
+    opacity="0.8"
+  />
+
+  <!-- Inner hex glow -->
+  <polygon
+    points="128,58 198,100 198,156 128,198 58,156 58,100"
+    fill="url(#innerGlow)"
+    stroke="none"
+  />
+
+  <!-- Central benzene ring / molecular structure -->
+  <!-- Outer connecting lines (hexagon bonds) -->
+  <polygon
+    points="128,76 186,112 186,144 128,180 70,144 70,112"
+    fill="none"
+    stroke="#00E5FF"
+    stroke-width="2.5"
+    stroke-linejoin="round"
+    opacity="0.9"
+  />
+
+  <!-- Inner circle (delocalized electrons) -->
+  <circle cx="128" cy="128" r="20" fill="none" stroke="#00C853" stroke-width="2" stroke-dasharray="8,6" opacity="0.7"/>
+
+  <!-- Vertical bond lines from ring to hex vertices -->
+  <line x1="128" y1="76" x2="128" y2="58" stroke="#00E5FF" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <line x1="186" y1="112" x2="198" y2="100" stroke="#00C853" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <line x1="186" y1="144" x2="198" y2="156" stroke="#00C853" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <line x1="128" y1="180" x2="128" y2="198" stroke="#00E5FF" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <line x1="70" y1="144" x2="58" y2="156" stroke="#00E5FF" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <line x1="70" y1="112" x2="58" y2="100" stroke="#00E5FF" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- Terminal atoms (small circles at bond ends) -->
+  <circle cx="128" cy="54" r="6" fill="#0F1923" stroke="#00E5FF" stroke-width="2"/>
+  <circle cx="202" cy="96" r="6" fill="#0F1923" stroke="#00C853" stroke-width="2"/>
+  <circle cx="202" cy="160" r="6" fill="#0F1923" stroke="#00C853" stroke-width="2"/>
+  <circle cx="128" cy="202" r="6" fill="#0F1923" stroke="#00E5FF" stroke-width="2"/>
+  <circle cx="54" cy="160" r="6" fill="#0F1923" stroke="#00E5FF" stroke-width="2"/>
+  <circle cx="54" cy="96" r="6" fill="#0F1923" stroke="#00E5FF" stroke-width="2"/>
+
+  <!-- H atom labels -->
+  <text x="128" y="46" text-anchor="middle" fill="#00E5FF" font-family="monospace" font-size="11" font-weight="bold">OH</text>
+  <text x="218" y="92" text-anchor="middle" fill="#00C853" font-family="monospace" font-size="11" font-weight="bold">H</text>
+  <text x="218" y="170" text-anchor="middle" fill="#00C853" font-family="monospace" font-size="11" font-weight="bold">H</text>
+  <text x="128" y="216" text-anchor="middle" fill="#00E5FF" font-family="monospace" font-size="11" font-weight="bold">H</text>
+  <text x="38" y="170" text-anchor="middle" fill="#00E5FF" font-family="monospace" font-size="11" font-weight="bold">H</text>
+  <text x="38" y="92" text-anchor="middle" fill="#00E5FF" font-family="monospace" font-size="11" font-weight="bold">H</text>
+
+  <!-- Calculator/plus-symbol accent at bottom -->
+  <g transform="translate(128, 240)" opacity="0.6">
+    <line x1="-10" y1="0" x2="10" y2="0" stroke="#00E5FF" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="0" y1="-4" x2="0" y2="4" stroke="#00C853" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- CCC text at the very bottom -->
+  <text x="128" y="250" text-anchor="middle" fill="#4A6A8A" font-family="monospace" font-size="9" letter-spacing="3" opacity="0.6">CCC</text>
+</svg>

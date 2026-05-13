@@ -1,0 +1,255 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1100" width="900" height="1100">
+  <defs>
+    <!-- Arrowhead marker -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 L3,5 Z" fill="#475569"/>
+    </marker>
+    <marker id="arrowCyan" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 L3,5 Z" fill="#06b6d4"/>
+    </marker>
+    <marker id="arrowAmber" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 L3,5 Z" fill="#f59e0b"/>
+    </marker>
+    <marker id="arrowEmerald" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 L3,5 Z" fill="#10b981"/>
+    </marker>
+
+    <!-- Drop shadow filter -->
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+    <filter id="shadowLight" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+
+    <!-- Gradient for cyan nodes -->
+    <linearGradient id="cyanGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0891b2"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+
+    <!-- Gradient for emerald output boxes -->
+    <linearGradient id="emeraldGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+
+    <!-- Gradient for amber branch nodes -->
+    <linearGradient id="amberGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+
+    <!-- Gradient for start/end -->
+    <linearGradient id="startGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+
+    <!-- Gradient for end -->
+    <linearGradient id="endGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="1100" fill="#0a0a0f"/>
+
+  <!-- ===== TITLE ===== -->
+  <text x="450" y="32" text-anchor="middle" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="400" letter-spacing="1.5">CANNABIS CHEMISTRY CALCULATOR</text>
+  <text x="450" y="52" text-anchor="middle" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10" letter-spacing="2">CALCULATION PIPELINE</text>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 1: START -->
+  <!-- ============================================================ -->
+
+  <!-- Start node -->
+  <rect x="350" y="70" width="200" height="44" rx="22" fill="url(#startGrad)" filter="url(#shadow)" opacity="0.95"/>
+  <text x="450" y="97" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" letter-spacing="0.5">START</text>
+
+  <!-- Arrow: Start → Material -->
+  <line x1="450" y1="114" x2="450" y2="140" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 2: MATERIAL INPUT -->
+  <!-- ============================================================ -->
+  <rect x="210" y="144" width="480" height="60" rx="12" fill="#0f172a" stroke="#06b6d4" stroke-width="1.5" filter="url(#shadowLight)"/>
+  <text x="450" y="168" text-anchor="middle" fill="#06b6d4" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600">MATERIAL INPUT</text>
+  <text x="450" y="188" text-anchor="middle" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">Weight (g) &nbsp;·&nbsp; THCA % &nbsp;·&nbsp; THC % &nbsp;·&nbsp; CBDA %</text>
+
+  <!-- Arrow: Material → Decarb Method -->
+  <line x1="450" y1="204" x2="450" y2="234" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 3: DECARB METHOD SELECTION -->
+  <!-- ============================================================ -->
+  <rect x="260" y="238" width="380" height="44" rx="12" fill="#0f172a" stroke="#f59e0b" stroke-width="1.5" filter="url(#shadowLight)"/>
+  <text x="450" y="265" text-anchor="middle" fill="#f59e0b" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600">SELECT DECARB METHOD</text>
+
+  <!-- Arrow: Decarb Method → split to branches -->
+  <line x1="450" y1="282" x2="450" y2="304" stroke="#475569" stroke-width="1.5"/>
+  <!-- Horizontal distribution bar -->
+  <line x1="70" y1="304" x2="830" y2="304" stroke="#334155" stroke-width="1"/>
+
+  <!-- 6 method branches: first row: 3, second row: 3 -->
+  <!-- Row 1 -->
+  <rect x="30" y="318" width="155" height="38" rx="10" fill="url(#amberGrad)" filter="url(#shadowLight)" opacity="0.9"/>
+  <text x="107" y="342" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">SV Dry</text>
+
+  <rect x="215" y="318" width="155" height="38" rx="10" fill="url(#amberGrad)" filter="url(#shadowLight)" opacity="0.9"/>
+  <text x="292" y="342" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">SV Combined</text>
+
+  <rect x="400" y="318" width="155" height="38" rx="10" fill="url(#amberGrad)" filter="url(#shadowLight)" opacity="0.9"/>
+  <text x="477" y="342" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">SV Fast</text>
+
+  <!-- Row 2 -->
+  <rect x="122" y="366" width="155" height="38" rx="10" fill="url(#amberGrad)" filter="url(#shadowLight)" opacity="0.9"/>
+  <text x="199" y="390" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">SV Low Temp</text>
+
+  <rect x="307" y="366" width="155" height="38" rx="10" fill="url(#amberGrad)" filter="url(#shadowLight)" opacity="0.9"/>
+  <text x="384" y="390" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">Oven Sealed</text>
+
+  <rect x="492" y="366" width="155" height="38" rx="10" fill="url(#amberGrad)" filter="url(#shadowLight)" opacity="0.9"/>
+  <text x="569" y="390" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">Oven Open</text>
+
+  <!-- Arrows from distribution bar to branches (row 1) -->
+  <line x1="107" y1="304" x2="107" y2="318" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrowAmber)"/>
+  <line x1="292" y1="304" x2="292" y2="318" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrowAmber)"/>
+  <line x1="477" y1="304" x2="477" y2="318" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrowAmber)"/>
+
+  <!-- Arrow to row 2: from method selection downward through bar -->
+  <line x1="450" y1="282" x2="450" y2="304" stroke="#475569" stroke-width="1.5"/>
+
+  <!-- Arrows from distribution bar to branches (row 2) -->
+  <line x1="199" y1="304" x2="199" y2="366" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrowAmber)"/>
+  <line x1="384" y1="304" x2="384" y2="366" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrowAmber)"/>
+  <line x1="569" y1="304" x2="569" y2="366" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrowAmber)"/>
+
+  <!-- Merge arrows from row 1 back to center -->
+  <line x1="107" y1="356" x2="107" y2="416" stroke="#475569" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="292" y1="356" x2="292" y2="416" stroke="#475569" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="477" y1="356" x2="477" y2="416" stroke="#475569" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="199" y1="404" x2="199" y2="416" stroke="#475569" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="384" y1="404" x2="384" y2="416" stroke="#475569" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="569" y1="404" x2="569" y2="416" stroke="#475569" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- Merge at center -->
+  <line x1="107" y1="416" x2="793" y2="416" stroke="#334155" stroke-width="1"/>
+  <line x1="450" y1="416" x2="450" y2="434" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 4: DECARB EFFICIENCY + OUTPUTS -->
+  <!-- ============================================================ -->
+  <rect x="250" y="438" width="400" height="44" rx="12" fill="#0f172a" stroke="#06b6d4" stroke-width="1.5" filter="url(#shadowLight)"/>
+  <text x="450" y="465" text-anchor="middle" fill="#06b6d4" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600">APPLY DECARB EFFICIENCY</text>
+
+  <!-- Arrow from Decarb Efficiency to outputs -->
+  <line x1="450" y1="482" x2="450" y2="504" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Decarb output box 1: Theoretical Max -->
+  <rect x="60" y="508" width="380" height="50" rx="10" fill="#064e3b" stroke="#10b981" stroke-width="1.5" filter="url(#shadowLight)"/>
+  <text x="250" y="528" text-anchor="middle" fill="#10b981" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">THEORETICAL MAX</text>
+  <text x="250" y="546" text-anchor="middle" fill="#6ee7b7" font-family="system-ui, -apple-system, sans-serif" font-size="11">THC: calculated · CBD: calculated</text>
+
+  <!-- Decarb output box 2: Adjusted Range -->
+  <rect x="460" y="508" width="400" height="50" rx="10" fill="#064e3b" stroke="#10b981" stroke-width="1.5" filter="url(#shadowLight)"/>
+  <text x="660" y="528" text-anchor="middle" fill="#10b981" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">DECARB-ADJUSTED RANGE</text>
+  <text x="660" y="546" text-anchor="middle" fill="#6ee7b7" font-family="system-ui, -apple-system, sans-serif" font-size="11">Low · Expected · High</text>
+
+  <!-- Arrow from Decarb outputs down -->
+  <line x1="250" y1="558" x2="250" y2="582" stroke="#475569" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="660" y1="558" x2="660" y2="582" stroke="#475569" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="250" y1="582" x2="660" y2="582" stroke="#334155" stroke-width="1"/>
+  <line x1="450" y1="582" x2="450" y2="604" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 5: CARRIER FAT SELECTION -->
+  <!-- ============================================================ -->
+  <rect x="260" y="608" width="380" height="44" rx="12" fill="#0f172a" stroke="#f59e0b" stroke-width="1.5" filter="url(#shadowLight)"/>
+  <text x="450" y="635" text-anchor="middle" fill="#f59e0b" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600">SELECT CARRIER FAT</text>
+
+  <!-- Arrow: Fat Selection → split to branches -->
+  <line x1="450" y1="652" x2="450" y2="674" stroke="#475569" stroke-width="1.5"/>
+  <line x1="90" y1="674" x2="810" y2="674" stroke="#334155" stroke-width="1"/>
+
+  <!-- 4 fat branches -->
+  <rect x="30" y="688" width="170" height="38" rx="10" fill="url(#amberGrad)" filter="url(#shadowLight)" opacity="0.9"/>
+  <text x="115" y="707" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">Ghee</text>
+  <text x="115" y="720" text-anchor="middle" fill="#fef3c7" font-family="system-ui, -apple-system, sans-serif" font-size="9">Efficiency: 0.85</text>
+
+  <rect x="225" y="688" width="170" height="38" rx="10" fill="url(#amberGrad)" filter="url(#shadowLight)" opacity="0.9"/>
+  <text x="310" y="707" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">Coconut</text>
+  <text x="310" y="720" text-anchor="middle" fill="#fef3c7" font-family="system-ui, -apple-system, sans-serif" font-size="9">Efficiency: 0.82</text>
+
+  <rect x="420" y="688" width="170" height="38" rx="10" fill="url(#amberGrad)" filter="url(#shadowLight)" opacity="0.9"/>
+  <text x="505" y="707" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">MCT</text>
+  <text x="505" y="720" text-anchor="middle" fill="#fef3c7" font-family="system-ui, -apple-system, sans-serif" font-size="9">Efficiency: 0.92</text>
+
+  <rect x="615" y="688" width="170" height="38" rx="10" fill="url(#amberGrad)" filter="url(#shadowLight)" opacity="0.9"/>
+  <text x="700" y="707" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">Custom</text>
+  <text x="700" y="720" text-anchor="middle" fill="#fef3c7" font-family="system-ui, -apple-system, sans-serif" font-size="9">Efficiency: user-defined</text>
+
+  <!-- Arrows to fat branches -->
+  <line x1="115" y1="674" x2="115" y2="688" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrowAmber)"/>
+  <line x1="310" y1="674" x2="310" y2="688" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrowAmber)"/>
+  <line x1="505" y1="674" x2="505" y2="688" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrowAmber)"/>
+  <line x1="700" y1="674" x2="700" y2="688" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrowAmber)"/>
+
+  <!-- Merge arrows from fat branches -->
+  <line x1="115" y1="726" x2="115" y2="754" stroke="#475569" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="310" y1="726" x2="310" y2="754" stroke="#475569" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="505" y1="726" x2="505" y2="754" stroke="#475569" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="700" y1="726" x2="700" y2="754" stroke="#475569" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="115" y1="754" x2="700" y2="754" stroke="#334155" stroke-width="1"/>
+  <line x1="450" y1="754" x2="450" y2="770" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 6: FAT VOLUME → INFUSED OUTPUTS -->
+  <!-- ============================================================ -->
+  <rect x="260" y="774" width="380" height="44" rx="12" fill="#0f172a" stroke="#06b6d4" stroke-width="1.5" filter="url(#shadowLight)"/>
+  <text x="450" y="801" text-anchor="middle" fill="#06b6d4" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600">ENTER FAT VOLUME</text>
+
+  <!-- Arrow to output -->
+  <line x1="450" y1="818" x2="450" y2="840" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Output: Infused THC + concentration -->
+  <rect x="110" y="844" width="680" height="50" rx="10" fill="#064e3b" stroke="#10b981" stroke-width="1.5" filter="url(#shadowLight)"/>
+  <text x="450" y="864" text-anchor="middle" fill="#10b981" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">FAT-INFUSED OUTPUT</text>
+  <text x="450" y="882" text-anchor="middle" fill="#6ee7b7" font-family="system-ui, -apple-system, sans-serif" font-size="11">Final Infused THC (mg) &nbsp;·&nbsp; Concentration: mg/mL</text>
+
+  <!-- Arrow to Servings -->
+  <line x1="450" y1="894" x2="450" y2="918" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 7: SERVINGS → DOSE CLASSIFICATION -->
+  <!-- ============================================================ -->
+  <rect x="280" y="922" width="340" height="44" rx="12" fill="#0f172a" stroke="#06b6d4" stroke-width="1.5" filter="url(#shadowLight)"/>
+  <text x="450" y="949" text-anchor="middle" fill="#06b6d4" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600">ENTER NUMBER OF SERVINGS</text>
+
+  <!-- Arrow to output -->
+  <line x1="450" y1="966" x2="450" y2="988" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Output: mg per serving + classification -->
+  <rect x="110" y="992" width="680" height="50" rx="10" fill="#064e3b" stroke="#10b981" stroke-width="1.5" filter="url(#shadowLight)"/>
+  <text x="450" y="1012" text-anchor="middle" fill="#10b981" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">DOSE PER SERVING</text>
+  <text x="450" y="1030" text-anchor="middle" fill="#6ee7b7" font-family="system-ui, -apple-system, sans-serif" font-size="11">mg per Serving &nbsp;·&nbsp; Classification: Microdose / Low / Moderate / Strong / Very Strong / Extreme</text>
+
+  <!-- Arrow to end -->
+  <line x1="450" y1="1042" x2="450" y2="1058" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 8: END NODES -->
+  <!-- ============================================================ -->
+  <!-- Generate Label -->
+  <rect x="200" y="1062" width="210" height="36" rx="18" fill="url(#endGrad)" filter="url(#shadow)" opacity="0.95"/>
+  <text x="305" y="1085" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" letter-spacing="0.5">GENERATE LABEL</text>
+
+  <!-- Save to Journal -->
+  <rect x="490" y="1062" width="210" height="36" rx="18" fill="url(#endGrad)" filter="url(#shadow)" opacity="0.95"/>
+  <text x="595" y="1085" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" letter-spacing="0.5">SAVE TO JOURNAL</text>
+
+  <!-- Branch arrow to two end nodes -->
+  <line x1="305" y1="1058" x2="305" y2="1062" stroke="#10b981" stroke-width="1.2" marker-end="url(#arrowEmerald)"/>
+  <line x1="595" y1="1058" x2="595" y2="1062" stroke="#10b981" stroke-width="1.2" marker-end="url(#arrowEmerald)"/>
+</svg>

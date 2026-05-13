@@ -1,0 +1,96 @@
+// electron.vite.config.ts
+import { defineConfig, externalizeDepsPlugin } from "electron-vite";
+import { codeInspectorPlugin } from "code-inspector-plugin";
+import { resolve, normalize, dirname } from "node:path";
+import tailwindcss from "@tailwindcss/vite";
+import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
+import tsconfigPathsPlugin from "vite-tsconfig-paths";
+import reactPlugin from "@vitejs/plugin-react";
+
+// src/lib/electron-router-dom.ts
+import { createElectronRouter } from "electron-router-dom";
+var { Router, registerRoute, settings } = createElectronRouter({
+  port: 4927,
+  types: {
+    ids: ["main", "about"]
+  }
+});
+
+// package.json
+var main = "./node_modules/.dev/main/index.mjs";
+var resources = "src/resources";
+
+// electron.vite.config.ts
+var [nodeModules, devFolder] = normalize(dirname(main)).split(/\/|\\/g);
+var devPath = [nodeModules, devFolder].join("/");
+var tsconfigPaths = tsconfigPathsPlugin({
+  projects: [resolve("tsconfig.json")]
+});
+var electron_vite_config_default = defineConfig({
+  main: {
+    mode: "es2022",
+    plugins: [tsconfigPaths, externalizeDepsPlugin()],
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve("src/main/index.ts")
+        },
+        output: {
+          dir: resolve(devPath, "main"),
+          format: "es"
+        }
+      }
+    }
+  },
+  preload: {
+    mode: "es2022",
+    plugins: [tsconfigPaths, externalizeDepsPlugin()],
+    build: {
+      rollupOptions: {
+        output: {
+          dir: resolve(devPath, "preload")
+        }
+      }
+    }
+  },
+  renderer: {
+    define: {
+      "process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
+      "process.platform": JSON.stringify(process.platform)
+    },
+    server: {
+      port: settings.port
+    },
+    plugins: [
+      tsconfigPaths,
+      tailwindcss(),
+      codeInspectorPlugin({
+        bundler: "vite",
+        hotKeys: ["altKey"],
+        hideConsole: true
+      }),
+      reactPlugin()
+    ],
+    publicDir: resolve(resources, "public"),
+    build: {
+      outDir: resolve(devPath, "renderer"),
+      rollupOptions: {
+        plugins: [
+          injectProcessEnvPlugin({
+            NODE_ENV: "production",
+            platform: process.platform
+          })
+        ],
+        input: {
+          index: resolve("src/renderer/index.html")
+        },
+        output: {
+          dir: resolve(devPath, "renderer")
+        }
+      }
+    }
+  }
+});
+export {
+  electron_vite_config_default as default
+};

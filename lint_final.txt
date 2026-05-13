@@ -1,0 +1,313 @@
+
+> cannabis-chemistry-calculator@1.0.0 lint C:\Users\LEWIS\ccc\cannabis_chemistry_calculator
+> biome check --no-errors-on-unmatched
+
+src\renderer\globals.css:168:32 lint/complexity/noImportantStyles  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Avoid the use of the !important style.
+  
+    166 Γöé   *::before,
+    167 Γöé   *::after {
+  > 168 Γöé     animation-duration: 0.01ms !important;
+        Γöé                                ^^^^^^^^^^
+    169 Γöé     animation-iteration-count: 1 !important;
+    170 Γöé     transition-duration: 0.01ms !important;
+  
+  i This style reverses the cascade logic, and precedence is reversed. This could lead to having styles with higher specificity being overridden by styles with lower specificity.
+  
+  i Unsafe fix: Remove the style.
+  
+    168 Γöé ┬╖┬╖┬╖┬╖animation-duration:┬╖0.01ms┬╖!important;
+        Γöé                               ----------- 
+
+src\renderer\globals.css:169:34 lint/complexity/noImportantStyles  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Avoid the use of the !important style.
+  
+    167 Γöé   *::after {
+    168 Γöé     animation-duration: 0.01ms !important;
+  > 169 Γöé     animation-iteration-count: 1 !important;
+        Γöé                                  ^^^^^^^^^^
+    170 Γöé     transition-duration: 0.01ms !important;
+    171 Γöé     scroll-behavior: auto !important;
+  
+  i This style reverses the cascade logic, and precedence is reversed. This could lead to having styles with higher specificity being overridden by styles with lower specificity.
+  
+  i Unsafe fix: Remove the style.
+  
+    169 Γöé ┬╖┬╖┬╖┬╖animation-iteration-count:┬╖1┬╖!important;
+        Γöé                                 ----------- 
+
+src\renderer\globals.css:170:33 lint/complexity/noImportantStyles  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Avoid the use of the !important style.
+  
+    168 Γöé     animation-duration: 0.01ms !important;
+    169 Γöé     animation-iteration-count: 1 !important;
+  > 170 Γöé     transition-duration: 0.01ms !important;
+        Γöé                                 ^^^^^^^^^^
+    171 Γöé     scroll-behavior: auto !important;
+    172 Γöé   }
+  
+  i This style reverses the cascade logic, and precedence is reversed. This could lead to having styles with higher specificity being overridden by styles with lower specificity.
+  
+  i Unsafe fix: Remove the style.
+  
+    170 Γöé ┬╖┬╖┬╖┬╖transition-duration:┬╖0.01ms┬╖!important;
+        Γöé                                ----------- 
+
+src\renderer\globals.css:171:27 lint/complexity/noImportantStyles  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Avoid the use of the !important style.
+  
+    169 Γöé     animation-iteration-count: 1 !important;
+    170 Γöé     transition-duration: 0.01ms !important;
+  > 171 Γöé     scroll-behavior: auto !important;
+        Γöé                           ^^^^^^^^^^
+    172 Γöé   }
+    173 Γöé }
+  
+  i This style reverses the cascade logic, and precedence is reversed. This could lead to having styles with higher specificity being overridden by styles with lower specificity.
+  
+  i Unsafe fix: Remove the style.
+  
+    171 Γöé ┬╖┬╖┬╖┬╖scroll-behavior:┬╖auto┬╖!important;
+        Γöé                          ----------- 
+
+src\renderer\globals.css:242:17 lint/complexity/noImportantStyles  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Avoid the use of the !important style.
+  
+    240 Γöé     width: 3.5in;
+    241 Γöé     margin: 0;
+  > 242 Γöé     color: #000 !important;
+        Γöé                 ^^^^^^^^^^
+    243 Γöé     -webkit-print-color-adjust: exact;
+    244 Γöé     print-color-adjust: exact;
+  
+  i This style reverses the cascade logic, and precedence is reversed. This could lead to having styles with higher specificity being overridden by styles with lower specificity.
+  
+  i Unsafe fix: Remove the style.
+  
+    242 Γöé ┬╖┬╖┬╖┬╖color:┬╖#000┬╖!important;
+        Γöé                ----------- 
+
+src\renderer\globals.css:245:22 lint/complexity/noImportantStyles  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Avoid the use of the !important style.
+  
+    243 Γöé     -webkit-print-color-adjust: exact;
+    244 Γöé     print-color-adjust: exact;
+  > 245 Γöé     background: #fff !important;
+        Γöé                      ^^^^^^^^^^
+    246 Γöé     border: 2px solid #000 !important;
+    247 Γöé     box-shadow: none !important;
+  
+  i This style reverses the cascade logic, and precedence is reversed. This could lead to having styles with higher specificity being overridden by styles with lower specificity.
+  
+  i Unsafe fix: Remove the style.
+  
+    245 Γöé ┬╖┬╖┬╖┬╖background:┬╖#fff┬╖!important;
+        Γöé                     ----------- 
+
+src\renderer\globals.css:246:28 lint/complexity/noImportantStyles  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Avoid the use of the !important style.
+  
+    244 Γöé     print-color-adjust: exact;
+    245 Γöé     background: #fff !important;
+  > 246 Γöé     border: 2px solid #000 !important;
+        Γöé                            ^^^^^^^^^^
+    247 Γöé     box-shadow: none !important;
+    248 Γöé     transform: translate(-50%, -50%);
+  
+  i This style reverses the cascade logic, and precedence is reversed. This could lead to having styles with higher specificity being overridden by styles with lower specificity.
+  
+  i Unsafe fix: Remove the style.
+  
+    246 Γöé ┬╖┬╖┬╖┬╖border:┬╖2px┬╖solid┬╖#000┬╖!important;
+        Γöé                           ----------- 
+
+src\renderer\globals.css:247:22 lint/complexity/noImportantStyles  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Avoid the use of the !important style.
+  
+    245 Γöé     background: #fff !important;
+    246 Γöé     border: 2px solid #000 !important;
+  > 247 Γöé     box-shadow: none !important;
+        Γöé                      ^^^^^^^^^^
+    248 Γöé     transform: translate(-50%, -50%);
+    249 Γöé   }
+  
+  i This style reverses the cascade logic, and precedence is reversed. This could lead to having styles with higher specificity being overridden by styles with lower specificity.
+  
+  i Unsafe fix: Remove the style.
+  
+    247 Γöé ┬╖┬╖┬╖┬╖box-shadow:┬╖none┬╖!important;
+        Γöé                     ----------- 
+
+src\renderer\src\components\StrainManager.tsx:27:10 lint/correctness/noUnusedVariables  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! This function generateId is unused.
+  
+    25 Γöé }
+    26 Γöé 
+  > 27 Γöé function generateId(): string {
+       Γöé          ^^^^^^^^^^
+    28 Γöé   return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+    29 Γöé }
+  
+  i Unused variables are often the result of typos, incomplete refactors, or other sources of bugs.
+  
+  i Unsafe fix: If this is intentional, prepend generateId with an underscore.
+  
+     25  25 Γöé   }
+     26  26 Γöé   
+     27     Γöé - function┬╖generateId():┬╖string┬╖{
+         27 Γöé + function┬╖_generateId():┬╖string┬╖{
+     28  28 Γöé     return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+     29  29 Γöé   }
+  
+
+src\renderer\src\engine\__tests__\blend.test.ts:25:15 lint/style/noNonNullAssertion ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    23 Γöé     expect(result.results).toHaveLength(2)
+    24 Γöé 
+  > 25 Γöé     const a = result.results.find(r => r.name === 'A')!
+       Γöé               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    26 Γöé     const b = result.results.find(r => r.name === 'B')!
+    27 Γöé     expect(a.weightGrams).toBeCloseTo(8.6, 1)
+  
+
+src\renderer\src\engine\__tests__\blend.test.ts:26:15 lint/style/noNonNullAssertion ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    25 Γöé     const a = result.results.find(r => r.name === 'A')!
+  > 26 Γöé     const b = result.results.find(r => r.name === 'B')!
+       Γöé               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    27 Γöé     expect(a.weightGrams).toBeCloseTo(8.6, 1)
+    28 Γöé     expect(b.weightGrams).toBeCloseTo(3.4, 1)
+  
+
+src\renderer\src\engine\__tests__\blend.test.ts:41:19 lint/style/noNonNullAssertion ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    39 Γöé     expect(resultA.isAchievable).toBe(true)
+    40 Γöé     expect(resultA.actualPotency).toBe(15.0)
+  > 41 Γöé     const aOnly = resultA.results.find(r => r.name === 'A')!
+       Γöé                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    42 Γöé     expect(aOnly.weightGrams).toBe(10.0)
+    43 Γöé     const bZero = resultA.results.find(r => r.name === 'B')!
+  
+
+src\renderer\src\engine\__tests__\blend.test.ts:43:19 lint/style/noNonNullAssertion ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    41 Γöé     const aOnly = resultA.results.find(r => r.name === 'A')!
+    42 Γöé     expect(aOnly.weightGrams).toBe(10.0)
+  > 43 Γöé     const bZero = resultA.results.find(r => r.name === 'B')!
+       Γöé                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    44 Γöé     expect(bZero.weightGrams).toBe(0.0)
+    45 Γöé 
+  
+
+src\renderer\src\engine\__tests__\blend.test.ts:50:19 lint/style/noNonNullAssertion ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    48 Γöé     expect(resultB.isAchievable).toBe(true)
+    49 Γöé     expect(resultB.actualPotency).toBe(25.0)
+  > 50 Γöé     const bOnly = resultB.results.find(r => r.name === 'B')!
+       Γöé                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    51 Γöé     expect(bOnly.weightGrams).toBe(10.0)
+    52 Γöé     const aZero = resultB.results.find(r => r.name === 'A')!
+  
+
+src\renderer\src\engine\__tests__\blend.test.ts:52:19 lint/style/noNonNullAssertion ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    50 Γöé     const bOnly = resultB.results.find(r => r.name === 'B')!
+    51 Γöé     expect(bOnly.weightGrams).toBe(10.0)
+  > 52 Γöé     const aZero = resultB.results.find(r => r.name === 'A')!
+       Γöé                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    53 Γöé     expect(aZero.weightGrams).toBe(0.0)
+    54 Γöé   })
+  
+
+src\renderer\src\engine\__tests__\blend.test.ts:64:15 lint/style/noNonNullAssertion ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    62 Γöé     expect(result.isAchievable).toBe(true)
+    63 Γöé     expect(result.actualPotency).toBe(20.0)
+  > 64 Γöé     const a = result.results.find(r => r.name === 'A')!
+       Γöé               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    65 Γöé     const b = result.results.find(r => r.name === 'B')!
+    66 Γöé     expect(a.weightGrams).toBe(5.0)
+  
+
+src\renderer\src\engine\__tests__\blend.test.ts:65:15 lint/style/noNonNullAssertion ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    63 Γöé     expect(result.actualPotency).toBe(20.0)
+    64 Γöé     const a = result.results.find(r => r.name === 'A')!
+  > 65 Γöé     const b = result.results.find(r => r.name === 'B')!
+       Γöé               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    66 Γöé     expect(a.weightGrams).toBe(5.0)
+    67 Γöé     expect(b.weightGrams).toBe(5.0)
+  
+
+src\renderer\src\engine\__tests__\blend.test.ts:82:15 lint/style/noNonNullAssertion ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    80 Γöé     expect(result.actualPotency).toBe(20.0)
+    81 Γöé     expect(result.results).toHaveLength(3)
+  > 82 Γöé     const b = result.results.find(r => r.name === 'B')!
+       Γöé               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    83 Γöé     expect(b.weightGrams).toBe(10.0)
+    84 Γöé     const a = result.results.find(r => r.name === 'A')!
+  
+
+src\renderer\src\engine\__tests__\blend.test.ts:84:15 lint/style/noNonNullAssertion ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    82 Γöé     const b = result.results.find(r => r.name === 'B')!
+    83 Γöé     expect(b.weightGrams).toBe(10.0)
+  > 84 Γöé     const a = result.results.find(r => r.name === 'A')!
+       Γöé               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    85 Γöé     const c = result.results.find(r => r.name === 'C')!
+    86 Γöé     expect(a.weightGrams).toBe(0.0)
+  
+
+src\renderer\src\engine\__tests__\blend.test.ts:85:15 lint/style/noNonNullAssertion ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    83 Γöé     expect(b.weightGrams).toBe(10.0)
+    84 Γöé     const a = result.results.find(r => r.name === 'A')!
+  > 85 Γöé     const c = result.results.find(r => r.name === 'C')!
+       Γöé               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    86 Γöé     expect(a.weightGrams).toBe(0.0)
+    87 Γöé     expect(c.weightGrams).toBe(0.0)
+  
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 53.
+Checked 91 files in 107ms. No fixes applied.
+Found 3 errors.
+Found 70 warnings.
+check ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ├ù Some errors were emitted while running checks.
+  
+
+ΓÇëELIFECYCLEΓÇë Command failed with exit code 1.

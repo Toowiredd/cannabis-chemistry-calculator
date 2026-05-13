@@ -342,7 +342,7 @@ function fatsSummary(
   lines.push('')
 
   const data = {
-    tab: 'fats',
+    tab: 'advanced',
     inputs: {
       decarbedThc: state.decarbedThc,
       fatId: state.fatId,
@@ -443,7 +443,7 @@ export function buildTabCopyText(
       return doseSummary(store.dose).text
     case 'methods':
       return methodsSummary(store.decarb, store.units).text
-    case 'fats':
+    case 'advanced':
       return fatsSummary(store.infusion, store.units).text
     default:
       return 'No data available for this tab.'

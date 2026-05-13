@@ -1,0 +1,351 @@
+src\renderer\globals.css:168:32 lint/complexity/noImportantStyles  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Avoid the use of the !important style.
+  
+    166 Γöé   *::before,
+    167 Γöé   *::after {
+  > 168 Γöé     animation-duration: 0.01ms !important;
+        Γöé                                ^^^^^^^^^^
+    169 Γöé     animation-iteration-count: 1 !important;
+    170 Γöé     transition-duration: 0.01ms !important;
+  
+  i This style reverses the cascade logic, and precedence is reversed. This could lead to having styles with higher specificity being overridden by styles with lower specificity.
+  
+  i Unsafe fix: Remove the style.
+  
+    168 Γöé ┬╖┬╖┬╖┬╖animation-duration:┬╖0.01ms┬╖!important;
+        Γöé                               ----------- 
+
+src\renderer\globals.css:169:34 lint/complexity/noImportantStyles  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Avoid the use of the !important style.
+  
+    167 Γöé   *::after {
+    168 Γöé     animation-duration: 0.01ms !important;
+  > 169 Γöé     animation-iteration-count: 1 !important;
+        Γöé                                  ^^^^^^^^^^
+    170 Γöé     transition-duration: 0.01ms !important;
+    171 Γöé     scroll-behavior: auto !important;
+  
+  i This style reverses the cascade logic, and precedence is reversed. This could lead to having styles with higher specificity being overridden by styles with lower specificity.
+  
+  i Unsafe fix: Remove the style.
+  
+    169 Γöé ┬╖┬╖┬╖┬╖animation-iteration-count:┬╖1┬╖!important;
+        Γöé                                 ----------- 
+
+src\renderer\globals.css:170:33 lint/complexity/noImportantStyles  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Avoid the use of the !important style.
+  
+    168 Γöé     animation-duration: 0.01ms !important;
+    169 Γöé     animation-iteration-count: 1 !important;
+  > 170 Γöé     transition-duration: 0.01ms !important;
+        Γöé                                 ^^^^^^^^^^
+    171 Γöé     scroll-behavior: auto !important;
+    172 Γöé   }
+  
+  i This style reverses the cascade logic, and precedence is reversed. This could lead to having styles with higher specificity being overridden by styles with lower specificity.
+  
+  i Unsafe fix: Remove the style.
+  
+    170 Γöé ┬╖┬╖┬╖┬╖transition-duration:┬╖0.01ms┬╖!important;
+        Γöé                                ----------- 
+
+src\renderer\globals.css:171:27 lint/complexity/noImportantStyles  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Avoid the use of the !important style.
+  
+    169 Γöé     animation-iteration-count: 1 !important;
+    170 Γöé     transition-duration: 0.01ms !important;
+  > 171 Γöé     scroll-behavior: auto !important;
+        Γöé                           ^^^^^^^^^^
+    172 Γöé   }
+    173 Γöé }
+  
+  i This style reverses the cascade logic, and precedence is reversed. This could lead to having styles with higher specificity being overridden by styles with lower specificity.
+  
+  i Unsafe fix: Remove the style.
+  
+    171 Γöé ┬╖┬╖┬╖┬╖scroll-behavior:┬╖auto┬╖!important;
+        Γöé                          ----------- 
+
+src\renderer\globals.css:242:17 lint/complexity/noImportantStyles  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Avoid the use of the !important style.
+  
+    240 Γöé     width: 3.5in;
+    241 Γöé     margin: 0;
+  > 242 Γöé     color: #000 !important;
+        Γöé                 ^^^^^^^^^^
+    243 Γöé     -webkit-print-color-adjust: exact;
+    244 Γöé     print-color-adjust: exact;
+  
+  i This style reverses the cascade logic, and precedence is reversed. This could lead to having styles with higher specificity being overridden by styles with lower specificity.
+  
+  i Unsafe fix: Remove the style.
+  
+    242 Γöé ┬╖┬╖┬╖┬╖color:┬╖#000┬╖!important;
+        Γöé                ----------- 
+
+src\renderer\globals.css:245:22 lint/complexity/noImportantStyles  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Avoid the use of the !important style.
+  
+    243 Γöé     -webkit-print-color-adjust: exact;
+    244 Γöé     print-color-adjust: exact;
+  > 245 Γöé     background: #fff !important;
+        Γöé                      ^^^^^^^^^^
+    246 Γöé     border: 2px solid #000 !important;
+    247 Γöé     box-shadow: none !important;
+  
+  i This style reverses the cascade logic, and precedence is reversed. This could lead to having styles with higher specificity being overridden by styles with lower specificity.
+  
+  i Unsafe fix: Remove the style.
+  
+    245 Γöé ┬╖┬╖┬╖┬╖background:┬╖#fff┬╖!important;
+        Γöé                     ----------- 
+
+src\renderer\globals.css:246:28 lint/complexity/noImportantStyles  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Avoid the use of the !important style.
+  
+    244 Γöé     print-color-adjust: exact;
+    245 Γöé     background: #fff !important;
+  > 246 Γöé     border: 2px solid #000 !important;
+        Γöé                            ^^^^^^^^^^
+    247 Γöé     box-shadow: none !important;
+    248 Γöé     transform: translate(-50%, -50%);
+  
+  i This style reverses the cascade logic, and precedence is reversed. This could lead to having styles with higher specificity being overridden by styles with lower specificity.
+  
+  i Unsafe fix: Remove the style.
+  
+    246 Γöé ┬╖┬╖┬╖┬╖border:┬╖2px┬╖solid┬╖#000┬╖!important;
+        Γöé                           ----------- 
+
+src\renderer\globals.css:247:22 lint/complexity/noImportantStyles  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Avoid the use of the !important style.
+  
+    245 Γöé     background: #fff !important;
+    246 Γöé     border: 2px solid #000 !important;
+  > 247 Γöé     box-shadow: none !important;
+        Γöé                      ^^^^^^^^^^
+    248 Γöé     transform: translate(-50%, -50%);
+    249 Γöé   }
+  
+  i This style reverses the cascade logic, and precedence is reversed. This could lead to having styles with higher specificity being overridden by styles with lower specificity.
+  
+  i Unsafe fix: Remove the style.
+  
+    247 Γöé ┬╖┬╖┬╖┬╖box-shadow:┬╖none┬╖!important;
+        Γöé                     ----------- 
+
+src\renderer\src\engine\__tests__\blend.test.ts:25:15 lint/style/noNonNullAssertion ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    23 Γöé     expect(result.results).toHaveLength(2)
+    24 Γöé 
+  > 25 Γöé     const a = result.results.find(r => r.name === 'A')!
+       Γöé               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    26 Γöé     const b = result.results.find(r => r.name === 'B')!
+    27 Γöé     expect(a.weightGrams).toBeCloseTo(8.6, 1)
+  
+
+src\renderer\src\engine\__tests__\blend.test.ts:26:15 lint/style/noNonNullAssertion ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    25 Γöé     const a = result.results.find(r => r.name === 'A')!
+  > 26 Γöé     const b = result.results.find(r => r.name === 'B')!
+       Γöé               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    27 Γöé     expect(a.weightGrams).toBeCloseTo(8.6, 1)
+    28 Γöé     expect(b.weightGrams).toBeCloseTo(3.4, 1)
+  
+
+src\renderer\src\engine\__tests__\blend.test.ts:41:19 lint/style/noNonNullAssertion ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    39 Γöé     expect(resultA.isAchievable).toBe(true)
+    40 Γöé     expect(resultA.actualPotency).toBe(15.0)
+  > 41 Γöé     const aOnly = resultA.results.find(r => r.name === 'A')!
+       Γöé                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    42 Γöé     expect(aOnly.weightGrams).toBe(10.0)
+    43 Γöé     const bZero = resultA.results.find(r => r.name === 'B')!
+  
+
+src\renderer\src\engine\__tests__\blend.test.ts:43:19 lint/style/noNonNullAssertion ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    41 Γöé     const aOnly = resultA.results.find(r => r.name === 'A')!
+    42 Γöé     expect(aOnly.weightGrams).toBe(10.0)
+  > 43 Γöé     const bZero = resultA.results.find(r => r.name === 'B')!
+       Γöé                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    44 Γöé     expect(bZero.weightGrams).toBe(0.0)
+    45 Γöé 
+  
+
+src\renderer\src\engine\__tests__\blend.test.ts:50:19 lint/style/noNonNullAssertion ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    48 Γöé     expect(resultB.isAchievable).toBe(true)
+    49 Γöé     expect(resultB.actualPotency).toBe(25.0)
+  > 50 Γöé     const bOnly = resultB.results.find(r => r.name === 'B')!
+       Γöé                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    51 Γöé     expect(bOnly.weightGrams).toBe(10.0)
+    52 Γöé     const aZero = resultB.results.find(r => r.name === 'A')!
+  
+
+src\renderer\src\engine\__tests__\blend.test.ts:52:19 lint/style/noNonNullAssertion ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    50 Γöé     const bOnly = resultB.results.find(r => r.name === 'B')!
+    51 Γöé     expect(bOnly.weightGrams).toBe(10.0)
+  > 52 Γöé     const aZero = resultB.results.find(r => r.name === 'A')!
+       Γöé                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    53 Γöé     expect(aZero.weightGrams).toBe(0.0)
+    54 Γöé   })
+  
+
+src\renderer\src\engine\__tests__\degradation.test.ts:24:12 lint/style/noNonNullAssertion  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    22 Γöé     const r = DEGRADATION_RATES.find(d => d.tempC === 4)
+    23 Γöé     expect(r).toBeDefined()
+  > 24 Γöé     expect(r!.ratePerDay).toBeCloseTo(0.00005, 5)
+       Γöé            ^^
+    25 Γöé     expect(r!.label).toBe('Refrigerated')
+    26 Γöé   })
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     22  22 Γöé       const r = DEGRADATION_RATES.find(d => d.tempC === 4)
+     23  23 Γöé       expect(r).toBeDefined()
+     24     Γöé - ┬╖┬╖┬╖┬╖expect(r!.ratePerDay).toBeCloseTo(0.00005,┬╖5)
+         24 Γöé + ┬╖┬╖┬╖┬╖expect(r?.ratePerDay).toBeCloseTo(0.00005,┬╖5)
+     25  25 Γöé       expect(r!.label).toBe('Refrigerated')
+     26  26 Γöé     })
+  
+
+src\renderer\src\engine\__tests__\degradation.test.ts:25:12 lint/style/noNonNullAssertion  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    23 Γöé     expect(r).toBeDefined()
+    24 Γöé     expect(r!.ratePerDay).toBeCloseTo(0.00005, 5)
+  > 25 Γöé     expect(r!.label).toBe('Refrigerated')
+       Γöé            ^^
+    26 Γöé   })
+    27 Γöé 
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     23  23 Γöé       expect(r).toBeDefined()
+     24  24 Γöé       expect(r!.ratePerDay).toBeCloseTo(0.00005, 5)
+     25     Γöé - ┬╖┬╖┬╖┬╖expect(r!.label).toBe('Refrigerated')
+         25 Γöé + ┬╖┬╖┬╖┬╖expect(r?.label).toBe('Refrigerated')
+     26  26 Γöé     })
+     27  27 Γöé   
+  
+
+src\renderer\src\engine\__tests__\degradation.test.ts:31:12 lint/style/noNonNullAssertion  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    29 Γöé     const r = DEGRADATION_RATES.find(d => d.tempC === 25)
+    30 Γöé     expect(r).toBeDefined()
+  > 31 Γöé     expect(r!.ratePerDay).toBeCloseTo(0.0005, 5)
+       Γöé            ^^
+    32 Γöé     expect(r!.label).toBe('Room Temperature')
+    33 Γöé   })
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     29  29 Γöé       const r = DEGRADATION_RATES.find(d => d.tempC === 25)
+     30  30 Γöé       expect(r).toBeDefined()
+     31     Γöé - ┬╖┬╖┬╖┬╖expect(r!.ratePerDay).toBeCloseTo(0.0005,┬╖5)
+         31 Γöé + ┬╖┬╖┬╖┬╖expect(r?.ratePerDay).toBeCloseTo(0.0005,┬╖5)
+     32  32 Γöé       expect(r!.label).toBe('Room Temperature')
+     33  33 Γöé     })
+  
+
+src\renderer\src\engine\__tests__\degradation.test.ts:32:12 lint/style/noNonNullAssertion  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    30 Γöé     expect(r).toBeDefined()
+    31 Γöé     expect(r!.ratePerDay).toBeCloseTo(0.0005, 5)
+  > 32 Γöé     expect(r!.label).toBe('Room Temperature')
+       Γöé            ^^
+    33 Γöé   })
+    34 Γöé 
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     30  30 Γöé       expect(r).toBeDefined()
+     31  31 Γöé       expect(r!.ratePerDay).toBeCloseTo(0.0005, 5)
+     32     Γöé - ┬╖┬╖┬╖┬╖expect(r!.label).toBe('Room┬╖Temperature')
+         32 Γöé + ┬╖┬╖┬╖┬╖expect(r?.label).toBe('Room┬╖Temperature')
+     33  33 Γöé     })
+     34  34 Γöé   
+  
+
+src\renderer\src\engine\__tests__\degradation.test.ts:38:12 lint/style/noNonNullAssertion  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    36 Γöé     const r = DEGRADATION_RATES.find(d => d.tempC === 40)
+    37 Γöé     expect(r).toBeDefined()
+  > 38 Γöé     expect(r!.ratePerDay).toBeCloseTo(0.002, 5)
+       Γöé            ^^
+    39 Γöé     expect(r!.label).toBe('Warm Storage')
+    40 Γöé   })
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     36  36 Γöé       const r = DEGRADATION_RATES.find(d => d.tempC === 40)
+     37  37 Γöé       expect(r).toBeDefined()
+     38     Γöé - ┬╖┬╖┬╖┬╖expect(r!.ratePerDay).toBeCloseTo(0.002,┬╖5)
+         38 Γöé + ┬╖┬╖┬╖┬╖expect(r?.ratePerDay).toBeCloseTo(0.002,┬╖5)
+     39  39 Γöé       expect(r!.label).toBe('Warm Storage')
+     40  40 Γöé     })
+  
+
+src\renderer\src\engine\__tests__\degradation.test.ts:39:12 lint/style/noNonNullAssertion  FIXABLE  ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ! Forbidden non-null assertion.
+  
+    37 Γöé     expect(r).toBeDefined()
+    38 Γöé     expect(r!.ratePerDay).toBeCloseTo(0.002, 5)
+  > 39 Γöé     expect(r!.label).toBe('Warm Storage')
+       Γöé            ^^
+    40 Γöé   })
+    41 Γöé })
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     37  37 Γöé       expect(r).toBeDefined()
+     38  38 Γöé       expect(r!.ratePerDay).toBeCloseTo(0.002, 5)
+     39     Γöé - ┬╖┬╖┬╖┬╖expect(r!.label).toBe('Warm┬╖Storage')
+         39 Γöé + ┬╖┬╖┬╖┬╖expect(r?.label).toBe('Warm┬╖Storage')
+     40  40 Γöé     })
+     41  41 Γöé   })
+  
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 50.
+Checked 91 files in 110ms. No fixes applied.
+Found 1 error.
+Found 69 warnings.
+check ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+  ├ù Some errors were emitted while running checks.
+  
+

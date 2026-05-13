@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a0f"/>
+      <stop offset="100%" stop-color="#12121a"/>
+    </linearGradient>
+    <linearGradient id="panel1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(6,182,212,0.12)"/>
+      <stop offset="100%" stop-color="rgba(6,182,212,0.04)"/>
+    </linearGradient>
+    <linearGradient id="panel2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(6,182,212,0.10)"/>
+      <stop offset="100%" stop-color="rgba(6,182,212,0.03)"/>
+    </linearGradient>
+    <linearGradient id="panel3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(6,182,212,0.08)"/>
+      <stop offset="100%" stop-color="rgba(6,182,212,0.02)"/>
+    </linearGradient>
+    <linearGradient id="panel4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(6,182,212,0.06)"/>
+      <stop offset="100%" stop-color="rgba(6,182,212,0.02)"/>
+    </linearGradient>
+    <linearGradient id="panel5" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(6,182,212,0.05)"/>
+      <stop offset="100%" stop-color="rgba(6,182,212,0.01)"/>
+    </linearGradient>
+    <linearGradient id="arrowGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="boxGlow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="600" fill="url(#bg)"/>
+
+  <!-- Title -->
+  <text x="400" y="28" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, system-ui, sans-serif" font-size="16" font-weight="600" letter-spacing="1.5">
+    CANNABIS CHEMISTRY CALCULATOR
+  </text>
+  <text x="400" y="46" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-family="Segoe UI, system-ui, sans-serif" font-size="10" letter-spacing="1">
+    LAYERED ARCHITECTURE
+  </text>
+
+  <!-- ===== LAYER 1: Electron Shell (y=58 to y=128) ===== -->
+  <rect x="42" y="58" width="716" height="70" rx="6" fill="url(#panel1)" stroke="#06b6d4" stroke-width="1" stroke-opacity="0.6" filter="url(#boxGlow)"/>
+  <text x="58" y="80" fill="#06b6d4" font-family="Segoe UI, system-ui, sans-serif" font-size="13" font-weight="700" letter-spacing="1">ELECTRON SHELL</text>
+  <text x="58" y="98" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="10">Main Process</text>
+  <line x1="160" y1="88" x2="160" y2="104" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+  <text x="170" y="98" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="10">Preload / contextBridge</text>
+  <line x1="350" y1="88" x2="350" y2="104" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+  <text x="360" y="98" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="10">→ React Renderer</text>
+
+  <!-- Arrow 1→2 -->
+  <polygon points="400,130 395,138 405,138" fill="#06b6d4" opacity="0.7"/>
+  <line x1="400" y1="128" x2="400" y2="135" stroke="#06b6d4" stroke-width="1.2" opacity="0.7"/>
+
+  <!-- ===== LAYER 2: React GUI (y=140 to y=240) ===== -->
+  <rect x="42" y="140" width="716" height="100" rx="6" fill="url(#panel2)" stroke="#06b6d4" stroke-width="1" stroke-opacity="0.55" filter="url(#boxGlow)"/>
+  <text x="58" y="164" fill="#06b6d4" font-family="Segoe UI, system-ui, sans-serif" font-size="13" font-weight="700" letter-spacing="1">REACT GUI</text>
+  <text x="58" y="181" fill="rgba(255,255,255,0.45)" font-family="Segoe UI, system-ui, sans-serif" font-size="9.5">9 Tabs</text>
+  <line x1="126" y1="170" x2="126" y2="185" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>
+
+  <!-- Tab pills -->
+  <rect x="136" y="172" width="76" height="18" rx="9" fill="rgba(6,182,212,0.12)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="174" y="184" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">Quick Batch</text>
+  <rect x="218" y="172" width="56" height="18" rx="9" fill="rgba(6,182,212,0.10)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="246" y="184" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">Decarb</text>
+  <rect x="280" y="172" width="56" height="18" rx="9" fill="rgba(6,182,212,0.10)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="308" y="184" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">Infusion</text>
+  <rect x="342" y="172" width="50" height="18" rx="9" fill="rgba(6,182,212,0.10)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="367" y="184" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">Dose</text>
+  <rect x="398" y="172" width="56" height="18" rx="9" fill="rgba(6,182,212,0.10)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="426" y="184" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">Methods</text>
+  <rect x="460" y="172" width="40" height="18" rx="9" fill="rgba(6,182,212,0.10)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="480" y="184" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">Fats</text>
+  <rect x="506" y="172" width="62" height="18" rx="9" fill="rgba(6,182,212,0.10)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="537" y="184" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">Knowledge</text>
+  <rect x="574" y="172" width="52" height="18" rx="9" fill="rgba(6,182,212,0.10)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="600" y="184" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">Journal</text>
+  <rect x="632" y="172" width="62" height="18" rx="9" fill="rgba(6,182,212,0.10)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="663" y="184" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">Dashboard</text>
+
+  <text x="58" y="215" fill="rgba(255,255,255,0.40)" font-family="Segoe UI, system-ui, sans-serif" font-size="9">Tab routing via React state + conditional rendering</text>
+
+  <!-- Arrow 2→3 -->
+  <polygon points="400,242 395,250 405,250" fill="#06b6d4" opacity="0.7"/>
+  <line x1="400" y1="240" x2="400" y2="247" stroke="#06b6d4" stroke-width="1.2" opacity="0.7"/>
+
+  <!-- ===== LAYER 3: Zustand Store (y=252 to y=312) ===== -->
+  <rect x="42" y="252" width="716" height="60" rx="6" fill="url(#panel3)" stroke="#06b6d4" stroke-width="1" stroke-opacity="0.50" filter="url(#boxGlow)"/>
+  <text x="58" y="276" fill="#06b6d4" font-family="Segoe UI, system-ui, sans-serif" font-size="13" font-weight="700" letter-spacing="1">ZUSTAND STORE</text>
+  <text x="58" y="294" fill="rgba(255,255,255,0.50)" font-family="Segoe UI, system-ui, sans-serif" font-size="10">Single immutable store</text>
+  <line x1="216" y1="280" x2="216" y2="299" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>
+  <text x="226" y="294" fill="rgba(255,255,255,0.45)" font-family="Segoe UI, system-ui, sans-serif" font-size="10">Persist middleware:</text>
+  <rect x="346" y="284" width="44" height="16" rx="8" fill="rgba(6,182,212,0.12)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="368" y="295" text-anchor="middle" fill="rgba(255,255,255,0.50)" font-family="Segoe UI, system-ui, sans-serif" font-size="8">units</text>
+  <rect x="396" y="284" width="48" height="16" rx="8" fill="rgba(6,182,212,0.12)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="420" y="295" text-anchor="middle" fill="rgba(255,255,255,0.50)" font-family="Segoe UI, system-ui, sans-serif" font-size="8">theme</text>
+  <rect x="450" y="284" width="60" height="16" rx="8" fill="rgba(6,182,212,0.12)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="480" y="295" text-anchor="middle" fill="rgba(255,255,255,0.50)" font-family="Segoe UI, system-ui, sans-serif" font-size="8">inventory</text>
+
+  <!-- Arrow 3→4 -->
+  <polygon points="400,314 395,322 405,322" fill="#06b6d4" opacity="0.7"/>
+  <line x1="400" y1="312" x2="400" y2="319" stroke="#06b6d4" stroke-width="1.2" opacity="0.7"/>
+
+  <!-- ===== LAYER 4: Engine Layer (y=324 to y=442) ===== -->
+  <rect x="42" y="324" width="716" height="118" rx="6" fill="url(#panel4)" stroke="#06b6d4" stroke-width="1" stroke-opacity="0.45" filter="url(#boxGlow)"/>
+  <text x="58" y="348" fill="#06b6d4" font-family="Segoe UI, system-ui, sans-serif" font-size="13" font-weight="700" letter-spacing="1">ENGINE LAYER</text>
+  <text x="58" y="365" fill="rgba(255,255,255,0.45)" font-family="Segoe UI, system-ui, sans-serif" font-size="9.5">19 Pure-Function Modules</text>
+
+  <!-- Row 1 -->
+  <rect x="58" y="372" width="92" height="20" rx="6" fill="rgba(6,182,212,0.10)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="104" y="386" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">decarb</text>
+  <rect x="156" y="372" width="84" height="20" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="198" y="386" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">infusion</text>
+  <rect x="246" y="372" width="74" height="20" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="283" y="386" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">dosing</text>
+  <rect x="326" y="372" width="56" height="20" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="354" y="386" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">cbda</text>
+  <rect x="388" y="372" width="66" height="20" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="421" y="386" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">reverse</text>
+  <rect x="460" y="372" width="58" height="20" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="489" y="386" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">blend</text>
+  <rect x="524" y="372" width="92" height="20" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="570" y="386" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">concentrate</text>
+  <rect x="622" y="372" width="100" height="20" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="672" y="386" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">costAnalysis</text>
+
+  <!-- Row 2 -->
+  <rect x="58" y="398" width="100" height="20" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="108" y="412" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">degradation</text>
+  <rect x="164" y="398" width="84" height="20" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="206" y="412" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">bagVolume</text>
+  <rect x="254" y="398" width="68" height="20" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="288" y="412" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">recipe</text>
+  <rect x="328" y="398" width="62" height="20" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="359" y="412" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">units</text>
+  <rect x="396" y="398" width="68" height="20" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="430" y="412" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">models</text>
+  <rect x="470" y="398" width="74" height="20" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="507" y="412" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">validation</text>
+  <rect x="550" y="398" width="72" height="20" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="586" y="412" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">strainLib</text>
+  <rect x="628" y="398" width="94" height="20" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="675" y="412" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">labParser</text>
+
+  <!-- Row 3 -->
+  <rect x="58" y="424" width="82" height="20" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="99" y="438" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">formatting</text>
+  <rect x="146" y="424" width="132" height="20" rx="6" fill="rgba(6,182,212,0.10)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.35"/>
+  <text x="212" y="438" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">doneness-simulation</text>
+  <rect x="284" y="424" width="66" height="20" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="317" y="438" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="8.5">terpenes</text>
+
+  <!-- Arrow 4→5 -->
+  <polygon points="400,444 395,452 405,452" fill="#06b6d4" opacity="0.7"/>
+  <line x1="400" y1="442" x2="400" y2="449" stroke="#06b6d4" stroke-width="1.2" opacity="0.7"/>
+
+  <!-- ===== LAYER 5: Preset Data (y=454 to y=520) ===== -->
+  <rect x="42" y="454" width="716" height="66" rx="6" fill="url(#panel5)" stroke="#06b6d4" stroke-width="1" stroke-opacity="0.40" filter="url(#boxGlow)"/>
+  <text x="58" y="478" fill="#06b6d4" font-family="Segoe UI, system-ui, sans-serif" font-size="13" font-weight="700" letter-spacing="1">PRESET DATA</text>
+
+  <rect x="58" y="486" width="150" height="26" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.25"/>
+  <text x="133" y="503" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="9">methods.ts</text>
+  <text x="133" y="498" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-family="Segoe UI, system-ui, sans-serif" font-size="7.5">6 entries</text>
+
+  <rect x="220" y="486" width="138" height="26" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.25"/>
+  <text x="289" y="503" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="9">fats.ts</text>
+  <text x="289" y="498" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-family="Segoe UI, system-ui, sans-serif" font-size="7.5">4 entries</text>
+
+  <rect x="370" y="486" width="150" height="26" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.25"/>
+  <text x="445" y="503" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Segoe UI, system-ui, sans-serif" font-size="9">terpenes.ts</text>
+  <text x="445" y="498" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-family="Segoe UI, system-ui, sans-serif" font-size="7.5">5 entries</text>
+
+  <!-- Data flow labels beside arrows -->
+  <text x="425" y="136" fill="rgba(255,255,255,0.25)" font-family="Segoe UI, system-ui, sans-serif" font-size="8" font-style="italic">IPC calls</text>
+  <text x="425" y="249" fill="rgba(255,255,255,0.25)" font-family="Segoe UI, system-ui, sans-serif" font-size="8" font-style="italic">useStore() hooks</text>
+  <text x="425" y="321" fill="rgba(255,255,255,0.25)" font-family="Segoe UI, system-ui, sans-serif" font-size="8" font-style="italic">engine calls</text>
+  <text x="425" y="451" fill="rgba(255,255,255,0.25)" font-family="Segoe UI, system-ui, sans-serif" font-size="8" font-style="italic">reference data</text>
+
+  <!-- Footer -->
+  <text x="400" y="570" text-anchor="middle" fill="rgba(255,255,255,0.18)" font-family="Segoe UI, system-ui, sans-serif" font-size="8" letter-spacing="1">
+    CANNABIS CHEMISTRY CALCULATOR  ·  LAYERED ARCHITECTURE  ·  V1
+  </text>
+  <line x1="260" y1="578" x2="540" y2="578" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/>
+</svg>

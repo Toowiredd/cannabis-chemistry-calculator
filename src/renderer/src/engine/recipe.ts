@@ -90,7 +90,7 @@ const DEFAULT_DECARB: RecipeDecarb = {
   thcPct: '0',
   cbdaPct: '0',
   cbdPct: '0',
-  presetId: 'sv_dry',
+  presetId: 'oven_sealed',
   tempOverride: null,
   timeOverride: null,
   effLowOverride: null,

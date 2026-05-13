@@ -264,7 +264,7 @@ export function FatsTab() {
               Calculating&hellip;
             </span>
           )}
-          <TabActions tabId="fats" />
+          <TabActions tabId="advanced" />
           <button
             className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
             onClick={handleReset}

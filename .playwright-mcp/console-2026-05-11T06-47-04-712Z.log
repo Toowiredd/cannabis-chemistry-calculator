@@ -1,0 +1,6 @@
+[     123ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:4927/@fs/C:/Users/LEWIS/ccc/cannabis_chemistry_calculator/node_modules/.vite/deps/react-dom_client.js?v=bfa037d3:20102
+[     144ms] [WARNING] <Router basename="/main"> is not able to match the URL "/" because it does not start with the basename, so the <Router> won't render anything. @ http://localhost:4927/index.tsx:26
+[     145ms] [WARNING] <Router basename="/main"> is not able to match the URL "/" because it does not start with the basename, so the <Router> won't render anything. @ http://localhost:4927/index.tsx:26
+[   44744ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:4927/@fs/C:/Users/LEWIS/ccc/cannabis_chemistry_calculator/node_modules/.vite/deps/react-dom_client.js?v=bfa037d3:20102
+[   44768ms] [WARNING] <Router basename="/main"> is not able to match the URL "/" because it does not start with the basename, so the <Router> won't render anything. @ http://localhost:4927/index.tsx:26
+[   44768ms] [WARNING] <Router basename="/main"> is not able to match the URL "/" because it does not start with the basename, so the <Router> won't render anything. @ http://localhost:4927/index.tsx:26
