@@ -483,7 +483,11 @@ function SectionCard({
   children: React.ReactNode
 }) {
   return (
-    <div className={cn('flex flex-col gap-5 rounded-2xl border border-foreground/10 bg-foreground/5 p-6')}>
+    <div
+      className={cn(
+        'flex flex-col gap-5 rounded-2xl border border-foreground/10 bg-foreground/5 p-6'
+      )}
+    >
       <div className="flex items-center gap-3">
         <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-foreground/20 bg-foreground/10">
           {icon}
@@ -934,7 +938,11 @@ export function KnowledgeTab() {
         </SectionCard>
 
         {/* Section 13: Interactive Doneness Curve */}
-        <div className={cn('flex flex-col gap-5 rounded-2xl border border-foreground/10 bg-foreground/5 p-6')}>
+        <div
+          className={cn(
+            'flex flex-col gap-5 rounded-2xl border border-foreground/10 bg-foreground/5 p-6'
+          )}
+        >
           <div className="flex items-center gap-3">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-foreground/20 bg-foreground/10">
               <Flame className="size-5 text-foreground/80" />
