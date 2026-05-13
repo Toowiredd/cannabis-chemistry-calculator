@@ -156,7 +156,7 @@ export function MainScreen() {
         </GlassCard>
       </main>
 
-      <footer className="relative shrink-0 px-4 py-2 text-center">
+      <footer className="relative shrink-0 px-4 py-3 text-center">
         <p className="text-xs text-foreground/70">
           All calculations are heuristic estimates, not laboratory results.
         </p>

@@ -344,7 +344,7 @@ export function MethodsTab() {
   )
 
   return (
-    <div className="flex flex-col gap-4 p-2">
+    <div className="flex flex-col gap-5 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-foreground">
@@ -364,7 +364,7 @@ export function MethodsTab() {
       </div>
 
       {/* Shared Input Panel */}
-      <div className="glass-strong flex flex-col gap-3 rounded-2xl p-5">
+      <div className="flex flex-col gap-5 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
           Shared Inputs
         </h3>
@@ -465,7 +465,7 @@ export function MethodsTab() {
       )}
 
       {/* Method Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         {DECARB_METHODS.map(method => {
           const methodResults = results?.byMethod[method.id]
           const isMaxPotency = results?.maxPotencyId === method.id
@@ -474,7 +474,7 @@ export function MethodsTab() {
           return (
             <div
               className={cn(
-                'glass-strong flex flex-col gap-3 rounded-2xl p-4 transition-colors',
+                'flex flex-col gap-5 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 transition-colors',
                 isMaxPotency &&
                   'border-2 border-warning/50 bg-warning/10 dark:bg-warning/10',
                 isMaxTerpene &&

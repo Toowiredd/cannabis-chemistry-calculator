@@ -378,7 +378,7 @@ export function QuickBatchTab() {
   )
 
   return (
-    <div className="flex flex-col gap-4 p-2">
+    <div className="flex flex-col gap-5 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -432,12 +432,12 @@ export function QuickBatchTab() {
 
       {/* ---- STEP 1: Material & Lab Data ---- */}
       {step === 0 && (
-        <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Material &amp; Lab Data
           </h3>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {inventoryWarning && (
               <div className="col-span-full flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
                 <AlertTriangle className="size-4 shrink-0" />
@@ -566,12 +566,12 @@ export function QuickBatchTab() {
 
       {/* ---- STEP 2: Decarb Method ---- */}
       {step === 1 && (
-        <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Decarb Method
           </h3>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {DECARB_METHODS.map(method => {
               const isSelected = decarb.presetId === method.id
               return (
@@ -649,12 +649,12 @@ export function QuickBatchTab() {
 
       {/* ---- STEP 3: Fat & Volume ---- */}
       {step === 2 && (
-        <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Fat &amp; Volume
           </h3>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             {INFUSION_FATS.map(fat => {
               const isSelected = infusion.fatId === fat.id
               return (
@@ -765,7 +765,7 @@ export function QuickBatchTab() {
 
       {/* ---- STEP 4: Servings & Dose ---- */}
       {step === 3 && (
-        <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Servings &amp; Dose
           </h3>
@@ -892,8 +892,8 @@ export function QuickBatchTab() {
 
       {/* ---- STEP 5: Label & Save ---- */}
       {step === 4 && (
-        <div className="flex flex-col gap-4">
-          <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+        <div className="grid grid-cols-1 gap-5">
+          <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
               Label &amp; Save
             </h3>

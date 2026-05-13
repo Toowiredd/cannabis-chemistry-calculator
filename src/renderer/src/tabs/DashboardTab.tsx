@@ -354,7 +354,7 @@ export function DashboardTab() {
     icon: React.ReactNode
     accentClass?: string
   }) => (
-    <div className="glass-strong flex flex-col gap-2 rounded-2xl p-4">
+    <div className="flex flex-col gap-2 rounded-2xl border border-foreground/10 bg-foreground/5 p-4">
       <div className="flex items-center gap-2">
         <span
           className={cn(
@@ -373,7 +373,7 @@ export function DashboardTab() {
   )
 
   return (
-    <div className="flex flex-col gap-4 p-2">
+    <div className="flex flex-col gap-5 p-4">
       {/* Title */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -399,7 +399,7 @@ export function DashboardTab() {
       )}
 
       {/* Primary stats */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-5 lg:grid-cols-3">
         <StatCard
           accentClass="bg-success/10"
           icon={<BarChart3 className="size-4 text-success" />}
@@ -454,7 +454,7 @@ export function DashboardTab() {
 
       {/* Secondary stats */}
       {showMoreStats && (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-5 lg:grid-cols-3">
           <StatCard
             accentClass="bg-warning/10"
             icon={<TrendingUp className="size-4 text-warning" />}
@@ -503,8 +503,8 @@ export function DashboardTab() {
       )}
 
       {/* Charts */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="glass-strong flex flex-col gap-3 rounded-2xl p-5">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
           <div className="flex items-center gap-2">
             <BarChart3 className="size-4 text-foreground/70" />
             <h3 className="text-sm font-semibold text-foreground/70">
@@ -520,7 +520,7 @@ export function DashboardTab() {
           )}
         </div>
 
-        <div className="glass-strong flex flex-col gap-3 rounded-2xl p-5">
+        <div className="flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
           <div className="flex items-center gap-2">
             <PieChart className="size-4 text-foreground/70" />
             <h3 className="text-sm font-semibold text-foreground/70">
@@ -536,7 +536,7 @@ export function DashboardTab() {
           )}
         </div>
 
-        <div className="glass-strong flex flex-col gap-3 rounded-2xl p-5">
+        <div className="flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
           <div className="flex items-center gap-2">
             <TrendingUp className="size-4 text-foreground/70" />
             <h3 className="text-sm font-semibold text-foreground/70">

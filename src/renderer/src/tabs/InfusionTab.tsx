@@ -426,7 +426,7 @@ export function InfusionTab() {
   /* ---------------------------------------------------------------- */
 
   return (
-    <div className="flex flex-col gap-4 p-2">
+    <div className="flex flex-col gap-5 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-foreground">Fat Infusion</h2>
@@ -443,9 +443,9 @@ export function InfusionTab() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         {/* ------------------- INPUT PANEL ------------------- */}
-        <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Input
           </h3>
@@ -581,7 +581,7 @@ export function InfusionTab() {
         </div>
 
         {/* ------------------- RESULTS PANEL ------------------- */}
-        <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
               Results

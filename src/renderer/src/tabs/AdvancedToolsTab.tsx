@@ -226,7 +226,7 @@ function FatsSection() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+      <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Shared Input
@@ -299,7 +299,7 @@ function FatsSection() {
           return (
             <div
               className={cn(
-                'glass-strong flex flex-col gap-3 rounded-2xl p-5 transition-colors',
+                'flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/5 p-5 transition-colors',
                 isBest && 'border-2 border-success/50 bg-success/10'
               )}
               key={fat.id}
@@ -486,7 +486,7 @@ function ConcentrateSection() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+      <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
           Concentrate Calculator
         </h3>
@@ -608,7 +608,7 @@ function ConcentrateSection() {
         </div>
       </div>
       {results && (
-        <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Results
           </h3>
@@ -735,7 +735,7 @@ function BlendingSection() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+      <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Strains
@@ -783,7 +783,7 @@ function BlendingSection() {
           ))}
         </div>
       </div>
-      <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+      <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
           Target
         </h3>
@@ -832,7 +832,7 @@ function BlendingSection() {
         </div>
       )}
       {results && results.isAchievable && (
-        <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Blend Results
           </h3>
@@ -847,7 +847,7 @@ function BlendingSection() {
               for {fmt1(results.totalWeight)}g total
             </span>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             {results.results
               .filter(r => r.weightGrams > 0)
               .map(r => (
@@ -954,7 +954,7 @@ function CostSection() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+      <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Cost Inputs
@@ -966,7 +966,7 @@ function CostSection() {
             </span>
           )}
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {inputRow(
             <>
               Material Cost ($)
@@ -1154,7 +1154,7 @@ export function AdvancedToolsTab() {
   const [subTab, setSubTab] = useState<SubTab>('fats')
 
   return (
-    <div className="flex flex-col gap-4 p-2">
+    <div className="flex flex-col gap-5 p-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-foreground">
           Advanced Tools

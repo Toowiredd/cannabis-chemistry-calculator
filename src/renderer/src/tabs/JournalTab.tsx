@@ -286,7 +286,7 @@ export function JournalTab() {
   )
 
   return (
-    <div className="flex flex-col gap-4 p-2">
+    <div className="flex flex-col gap-5 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -321,7 +321,7 @@ export function JournalTab() {
 
       {/* Entry Form */}
       {showForm && (
-        <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
               {form.id ? 'Edit Entry' : 'New Entry'}
@@ -336,7 +336,7 @@ export function JournalTab() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {inputRow(
               'Date',
               <input
@@ -560,7 +560,7 @@ export function JournalTab() {
       )}
 
       {/* Search / Filter */}
-      <div className="glass-strong flex flex-col gap-3 rounded-2xl p-5">
+      <div className="flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
           Search &amp; Filter
         </h3>
@@ -599,9 +599,9 @@ export function JournalTab() {
       </div>
 
       {/* Entries list */}
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-5">
         {filtered.length === 0 && (
-          <div className="glass-strong flex flex-col items-center gap-2 rounded-2xl p-8 text-center">
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-foreground/10 bg-foreground/5 p-8 text-center">
             <BookOpen className="size-8 text-foreground/70" />
             <p className="text-sm text-foreground/70">
               No journal entries yet.
@@ -615,7 +615,7 @@ export function JournalTab() {
 
         {filtered.map(entry => (
           <div
-            className="glass-strong flex flex-col gap-3 rounded-2xl p-5 transition-colors"
+            className="flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/5 p-5 transition-colors"
             key={entry.id}
           >
             <div className="flex items-start justify-between gap-2">
@@ -645,7 +645,7 @@ export function JournalTab() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
                 <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Weight

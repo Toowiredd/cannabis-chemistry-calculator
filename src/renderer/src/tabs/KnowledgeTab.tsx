@@ -483,7 +483,7 @@ function SectionCard({
   children: React.ReactNode
 }) {
   return (
-    <div className={cn('glass-strong rounded-2xl p-6')}>
+    <div className={cn('flex flex-col gap-5 rounded-2xl border border-foreground/10 bg-foreground/5 p-6')}>
       <div className="flex items-center gap-3">
         <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-foreground/20 bg-foreground/10">
           {icon}
@@ -503,7 +503,7 @@ function SectionCard({
 
 export function KnowledgeTab() {
   return (
-    <div className="flex flex-col gap-5 p-2">
+    <div className="flex flex-col gap-5 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -512,7 +512,7 @@ export function KnowledgeTab() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-5">
         {/* Section 1: Conversion Pathway */}
         <SectionCard
           icon={<Flame className="size-5 text-foreground/80" />}
@@ -934,7 +934,7 @@ export function KnowledgeTab() {
         </SectionCard>
 
         {/* Section 13: Interactive Doneness Curve */}
-        <div className={cn('glass-strong rounded-2xl p-6')}>
+        <div className={cn('flex flex-col gap-5 rounded-2xl border border-foreground/10 bg-foreground/5 p-6')}>
           <div className="flex items-center gap-3">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-foreground/20 bg-foreground/10">
               <Flame className="size-5 text-foreground/80" />
