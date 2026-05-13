@@ -266,7 +266,7 @@
   }
 
   50% {
-    transform: translateY(-4px);
+    transform: translateY(-10px);
   }
 }
 
@@ -294,7 +294,7 @@
   }
 
   30% {
-    opacity: 0.7;
+    opacity: 0.9;
     transform: translateY(-20px) scale(1);
   }
 
@@ -311,12 +311,12 @@
 @keyframes chem-droplet-pulse {
   0%,
   100% {
-    opacity: 0.3;
+    opacity: 0.6;
     transform: scale(1);
   }
 
   50% {
-    opacity: 0.7;
+    opacity: 0.95;
     transform: scale(1.4);
   }
 }

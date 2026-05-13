@@ -170,32 +170,32 @@ export function TransformationCanvas() {
     switch (stage) {
       case 'landing':
         return {
-          hex: 'rgba(20,184,166,0.12)',
-          stroke: 'rgba(20,184,166,0.18)',
-          carboxyl: 'rgba(20,184,166,0.14)',
+          hex: 'rgba(20,184,166,0.24)',
+          stroke: 'rgba(20,184,166,0.35)',
+          carboxyl: 'rgba(20,184,166,0.28)',
         }
       case 'decarb':
         return {
-          hex: 'rgba(217,119,6,0.14)',
-          stroke: 'rgba(217,119,6,0.18)',
-          carboxyl: 'rgba(217,119,6,0.10)',
+          hex: 'rgba(217,119,6,0.26)',
+          stroke: 'rgba(217,119,6,0.38)',
+          carboxyl: 'rgba(217,119,6,0.22)',
         }
       case 'infusion':
         return {
-          hex: 'rgba(245,158,11,0.14)',
-          stroke: 'rgba(245,158,11,0.18)',
-          carboxyl: 'rgba(245,158,11,0.08)',
+          hex: 'rgba(245,158,11,0.26)',
+          stroke: 'rgba(245,158,11,0.38)',
+          carboxyl: 'rgba(245,158,11,0.20)',
         }
       default:
         return {
-          hex: 'rgba(16,185,129,0.14)',
-          stroke: 'rgba(16,185,129,0.18)',
-          carboxyl: 'rgba(16,185,129,0.08)',
+          hex: 'rgba(16,185,129,0.26)',
+          stroke: 'rgba(16,185,129,0.38)',
+          carboxyl: 'rgba(16,185,129,0.20)',
         }
     }
   }, [stage])
 
-  const amberAccent = 'rgba(245,158,11,0.12)'
+  const amberAccent = 'rgba(245,158,11,0.24)'
 
   return (
     <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden motion-reduce:hidden">
@@ -243,7 +243,7 @@ export function TransformationCanvas() {
                       fill={fill}
                       href="#chem-hex"
                       stroke={stageColors.stroke}
-                      strokeWidth="0.8"
+                      strokeWidth="1.4"
                     />
 
                     {/* Carboxyl group — hidden in dose, animated away in decarb */}
@@ -252,7 +252,7 @@ export function TransformationCanvas() {
                         cx={CARBOXYL.x}
                         cy={CARBOXYL.y}
                         fill={stageColors.carboxyl}
-                        r="2.5"
+                        r="4"
                         style={
                           isDecarb
                             ? {
@@ -272,7 +272,7 @@ export function TransformationCanvas() {
                 <circle
                   cx={pos.x + data.amberXOff}
                   cy={pos.y}
-                  fill="rgba(217,119,6,0.30)"
+                  fill="rgba(217,119,6,0.55)"
                   r={data.amberR}
                   style={{
                     animation: 'chem-amber-rise 3.5s ease-out infinite',
@@ -286,7 +286,7 @@ export function TransformationCanvas() {
                 <circle
                   cx={pos.x + data.dropletXOff}
                   cy={pos.y + data.dropletYOff}
-                  fill="rgba(245,158,11,0.10)"
+                  fill="rgba(245,158,11,0.30)"
                   r={data.dropletR}
                   style={{
                     animation: 'chem-droplet-pulse 2.8s ease-in-out infinite',
