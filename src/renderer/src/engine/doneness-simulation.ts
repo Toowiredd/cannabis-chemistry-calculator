@@ -61,6 +61,15 @@ export function simulateDoneness(
       thc /= total
       cbn /= total
     }
+    if (cbn > 0.10) {
+      cbn = 0.10
+      const remaining = thca + thc
+      if (remaining > 0) {
+        const scale = 0.90 / remaining
+        thca *= scale
+        thc *= scale
+      }
+    }
   }
 
   return result
