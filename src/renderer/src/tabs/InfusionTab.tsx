@@ -14,6 +14,11 @@ import {
   tbspToMl,
   tspToMl,
 } from 'renderer/src/engine/units'
+import {
+  infusionInputSchema,
+  getInfusionWarnings,
+  zodIssuesToFieldErrors,
+} from 'renderer/src/engine/schemas'
 import { cn } from 'renderer/lib/utils'
 import { Info, ChevronDown, ChevronUp, RotateCcw, Loader2 } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
@@ -110,51 +115,28 @@ function validateInfusionFields(
   const errors: FieldErrors = {}
   const warnings: string[] = []
 
-  // Decarbed THC
-  const dStr = decarbedThc.trim()
-  if (dStr === '') {
-    errors.decarbedThc = 'We need your decarbed THC amount'
+  // Validate core fields via schema
+  const schemaResult = infusionInputSchema.safeParse({
+    decarbedThc,
+    volume,
+    customEfficiency: isCustom ? customEfficiency : undefined,
+  })
+
+  if (!schemaResult.success) {
+    const flat = zodIssuesToFieldErrors(schemaResult.error.issues)
+    Object.assign(errors, flat)
   } else {
-    const d = parseFloat(dStr)
-    if (Number.isNaN(d)) errors.decarbedThc = 'That does not look like a number'
-    else if (d < 0) errors.decarbedThc = 'THC cannot be negative'
-  }
-
-  // Volume
-  const vStr = volume.trim()
-  if (vStr === '') {
-    errors.volume = 'Tell us how much fat you are using'
-  } else {
-    const v = parseFloat(vStr)
-    if (Number.isNaN(v)) errors.volume = 'That does not look like a number'
-    else if (v <= 0) errors.volume = 'Volume needs to be a positive number'
-  }
-
-  // Custom efficiency
-  if (isCustom) {
-    const eStr = customEfficiency.trim()
-    if (eStr === '') {
-      errors.customEfficiency = 'Custom fat needs an efficiency value'
-    } else {
-      const e = parseFloat(eStr)
-      if (Number.isNaN(e))
-        errors.customEfficiency = 'That does not look like a number'
-      else if (e < 0)
-        errors.customEfficiency =
-          'Efficiency needs to be between 0 and 1 (like 0.85 for 85%)'
-      else if (e > 1)
-        errors.customEfficiency =
-          'Efficiency needs to be between 0 and 1 (like 0.85 for 85%)'
-    }
-  }
-
-  // Low volume warning (decarbed > 0 and volume < decarbed/20)
-  const d = parseFloat(dStr)
-  const v = parseFloat(vStr)
-  if (!Number.isNaN(d) && !Number.isNaN(v) && d > 0 && v > 0 && v < d / 20) {
     warnings.push(
-      'Not much fat volume here -- may not absorb all the cannabinoids.'
+      ...getInfusionWarnings(
+        schemaResult.data.decarbedThc,
+        schemaResult.data.volume
+      )
     )
+  }
+
+  // Custom efficiency presence check
+  if (isCustom && !customEfficiency.trim()) {
+    errors.customEfficiency = 'Custom fat needs an efficiency value'
   }
 
   return { errors, warnings }
@@ -242,17 +224,17 @@ export function InfusionTab() {
      auto-fill but NOT a manual user edit. */
   const syncedDecarbRef = useRef<string>('')
 
-  /* Reactive auto-fill from upstream decarb result */
+  /* Reactive auto-fill from upstream decarb result.
+     Only fires when the upstream value changes, never on field edits. */
   useEffect(() => {
-    if (lastDecarbExpected) {
-      const current = infusion.decarbedThc.trim()
-      // Fill if empty, or if the field still contains exactly what we last synced
-      if (!current || current === syncedDecarbRef.current) {
-        setInfusion({ decarbedThc: lastDecarbExpected })
-        syncedDecarbRef.current = lastDecarbExpected
-      }
+    if (!lastDecarbExpected) return
+    if (lastDecarbExpected === syncedDecarbRef.current) return
+    const current = infusion.decarbedThc.trim()
+    if (!current || current === syncedDecarbRef.current) {
+      setInfusion({ decarbedThc: lastDecarbExpected })
+      syncedDecarbRef.current = lastDecarbExpected
     }
-  }, [infusion.decarbedThc, lastDecarbExpected, setInfusion])
+  }, [lastDecarbExpected, setInfusion])
 
   /* Preset lookup */
   const preset = useMemo(
@@ -633,11 +615,16 @@ export function InfusionTab() {
             </span>
           </div>
 
-          {/* Total infused THC */}
-          <div className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4">
-            <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
-              Total Infused THC
-            </span>
+          {/* Total infused THC — primary, authoritative result */}
+          <div className="flex flex-col rounded-xl border border-success/30 bg-success/5 dark:bg-success/5 p-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
+                Total Infused THC
+              </span>
+              <span className="inline-flex items-center rounded-full border border-success/40 bg-success/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-success">
+                Recommended
+              </span>
+            </div>
             <span
               className="result-bloom mt-1 text-2xl font-bold text-foreground"
               key={
@@ -649,6 +636,10 @@ export function InfusionTab() {
               {results
                 ? `${fmt1(results.infusedThc)} mg`
                 : 'Enter your decarbed THC and fat volume above to see results'}
+            </span>
+            <span className="mt-1 text-[11px] leading-relaxed text-foreground/70">
+              Uses the extraction efficiency model — recommended value for
+              precise dosing.
             </span>
           </div>
 
@@ -671,19 +662,24 @@ export function InfusionTab() {
             </span>
           </div>
 
-          {/* Simplified multiplier estimate */}
+          {/* Simplified multiplier estimate — secondary, approximate */}
           {!isCustom && (
-            <div className="flex flex-col gap-1 rounded-xl border border-foreground/10 bg-foreground/5 p-4">
-              <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
-                Simplified Estimate
-              </span>
-              <span className="text-lg font-semibold text-foreground">
+            <div className="flex flex-col gap-1 rounded-xl border border-foreground/10 bg-foreground/5 p-4 opacity-80">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
+                  Simplified Estimate
+                </span>
+                <span className="inline-flex items-center rounded-full border border-foreground/20 bg-foreground/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-foreground/70">
+                  Approximate
+                </span>
+              </div>
+              <span className="text-base font-medium text-foreground/80">
                 {results?.simplifiedEstimate != null
                   ? `${fmt1(results.simplifiedEstimate)} mg`
                   : 'Enter your decarbed THC and fat volume above to see results'}
               </span>
               <span className="text-xs text-foreground/70">
-                Approximate total using {preset.simplifiedMultiplier}x
+                Quick approximation using {preset.simplifiedMultiplier}x
                 multiplier (requires weight and THCA% from Decarb tab)
               </span>
             </div>
