@@ -76,23 +76,19 @@ function UnitToggle<T extends string>({
 }
 
 /* ------------------------------------------------------------------ */
-/* Validation                                                         */
+/* Validation */
 /* ------------------------------------------------------------------ */
 
 interface FieldErrors {
   weight?: string
   thcaPct?: string
   thcPct?: string
-  cbdaPct?: string
-  cbdPct?: string
 }
 
 function validateSharedInputs(
   weight: string,
   thcaPct: string,
-  thcPct: string,
-  cbdaPct: string,
-  cbdPct: string
+  thcPct: string
 ): { errors: FieldErrors; warnings: string[] } {
   const errors: FieldErrors = {}
   const warnings: string[] = []
@@ -132,32 +128,6 @@ function validateSharedInputs(
         'THC cannot be above 100% -- that would be quite the plant'
   }
 
-  const cStr = cbdaPct.trim()
-  if (cStr === '') {
-    errors.cbdaPct = 'We need a CBDA percentage'
-  } else {
-    const c = parseFloat(cStr)
-    if (Number.isNaN(c)) errors.cbdaPct = 'That does not look like a number'
-    else if (c < 0)
-      errors.cbdaPct = 'CBDA cannot be negative -- percentages start at zero'
-    else if (c > 100)
-      errors.cbdaPct =
-        'CBDA cannot be above 100% -- that would be quite the plant'
-  }
-
-  const bStr = cbdPct.trim()
-  if (bStr === '') {
-    errors.cbdPct = 'We need an existing CBD percentage'
-  } else {
-    const b = parseFloat(bStr)
-    if (Number.isNaN(b)) errors.cbdPct = 'That does not look like a number'
-    else if (b < 0)
-      errors.cbdPct = 'CBD cannot be negative -- percentages start at zero'
-    else if (b > 100)
-      errors.cbdPct =
-        'CBD cannot be above 100% -- that would be quite the plant'
-  }
-
   if (!errors.thcaPct && !errors.thcPct) {
     const t = parseFloat(thcaPct)
     const h = parseFloat(thcPct)
@@ -169,15 +139,6 @@ function validateSharedInputs(
       warnings.push(
         'High cannabinoid levels -- worth double-checking your lab report'
       )
-    }
-  }
-
-  if (!errors.cbdaPct && !errors.cbdPct) {
-    const c = parseFloat(cbdaPct)
-    const b = parseFloat(cbdPct)
-    if (!Number.isNaN(c) && !Number.isNaN(b) && c + b > 100) {
-      errors.cbdaPct = 'CBDA + CBD cannot exceed 100%'
-      errors.cbdPct = 'CBDA + CBD cannot exceed 100%'
     }
   }
 
@@ -233,14 +194,7 @@ export function MethodsTab() {
   }, [decarb.weight, units.weightUnit])
 
   const hasBlockingErrors = useCallback(
-    (errs: FieldErrors) =>
-      !!(
-        errs.weight ||
-        errs.thcaPct ||
-        errs.thcPct ||
-        errs.cbdaPct ||
-        errs.cbdPct
-      ),
+    (errs: FieldErrors) => !!(errs.weight || errs.thcaPct || errs.thcPct),
     []
   )
 
@@ -253,9 +207,7 @@ export function MethodsTab() {
       const { errors, warnings } = validateSharedInputs(
         decarb.weight,
         decarb.thcaPct,
-        decarb.thcPct,
-        decarb.cbdaPct,
-        decarb.cbdPct
+        decarb.thcPct
       )
 
       setFieldErrors(errors)
@@ -412,7 +364,7 @@ export function MethodsTab() {
       </div>
 
       {/* Shared Input Panel */}
-      <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+      <div className="glass-strong flex flex-col gap-3 rounded-2xl p-5">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
           Shared Inputs
         </h3>
@@ -497,48 +449,6 @@ export function MethodsTab() {
             />,
             fieldErrors.thcPct
           )}
-
-          {inputRow(
-            <>
-              CBDA %
-              <TooltipIcon text="Cannabidiolic acid -- the non-psychoactive precursor to CBD found in raw cannabis." />
-            </>,
-            <input
-              className={cn(
-                'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                fieldErrors.cbdaPct
-                  ? 'border-danger/60 focus:border-danger'
-                  : 'border-foreground/20 focus:border-foreground/40'
-              )}
-              onChange={e => setDecarb({ cbdaPct: e.target.value })}
-              placeholder="0.0"
-              step="0.1"
-              type="number"
-              value={decarb.cbdaPct}
-            />,
-            fieldErrors.cbdaPct
-          )}
-
-          {inputRow(
-            <>
-              Existing CBD %
-              <TooltipIcon text="Cannabidiol already present in the material. This does not need decarboxylation and contributes directly to total CBD potency." />
-            </>,
-            <input
-              className={cn(
-                'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                fieldErrors.cbdPct
-                  ? 'border-danger/60 focus:border-danger'
-                  : 'border-foreground/20 focus:border-foreground/40'
-              )}
-              onChange={e => setDecarb({ cbdPct: e.target.value })}
-              placeholder="0.0"
-              step="0.1"
-              type="number"
-              value={decarb.cbdPct}
-            />,
-            fieldErrors.cbdPct
-          )}
         </div>
       </div>
 
@@ -555,7 +465,7 @@ export function MethodsTab() {
       )}
 
       {/* Method Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {DECARB_METHODS.map(method => {
           const methodResults = results?.byMethod[method.id]
           const isMaxPotency = results?.maxPotencyId === method.id
@@ -564,7 +474,7 @@ export function MethodsTab() {
           return (
             <div
               className={cn(
-                'glass-strong flex flex-col gap-3 rounded-2xl p-5 transition-colors',
+                'glass-strong flex flex-col gap-3 rounded-2xl p-4 transition-colors',
                 isMaxPotency &&
                   'border-2 border-warning/50 bg-warning/10 dark:bg-warning/10',
                 isMaxTerpene &&
@@ -629,31 +539,27 @@ export function MethodsTab() {
               </div>
 
               {/* Qualitative labels */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="flex flex-col items-center rounded-lg border border-foreground/10 bg-foreground/5 px-1 py-2 text-center">
-                  <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
-                    Terpenes
-                  </span>
-                  <span className="mt-0.5 text-xs font-semibold text-foreground">
+              <div className="flex items-center gap-x-3 gap-y-1 flex-wrap">
+                <span className="text-xs text-foreground/60">
+                  Terpenes:{' '}
+                  <span className="font-medium text-foreground/80">
                     {method.terpeneLabel}
                   </span>
-                </div>
-                <div className="flex flex-col items-center rounded-lg border border-foreground/10 bg-foreground/5 px-1 py-2 text-center">
-                  <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
-                    CBN Risk
-                  </span>
-                  <span className="mt-0.5 text-xs font-semibold text-foreground">
+                </span>
+                <span className="text-xs text-foreground/30">·</span>
+                <span className="text-xs text-foreground/60">
+                  CBN:{' '}
+                  <span className="font-medium text-foreground/80">
                     {method.cbnLabel}
                   </span>
-                </div>
-                <div className="flex flex-col items-center rounded-lg border border-foreground/10 bg-foreground/5 px-1 py-2 text-center">
-                  <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
-                    Oxygen
-                  </span>
-                  <span className="mt-0.5 text-xs font-semibold text-foreground">
+                </span>
+                <span className="text-xs text-foreground/30">·</span>
+                <span className="text-xs text-foreground/60">
+                  Oxygen:{' '}
+                  <span className="font-medium text-foreground/80">
                     {method.oxygenLabel}
                   </span>
-                </div>
+                </span>
               </div>
 
               {/* Use This */}
