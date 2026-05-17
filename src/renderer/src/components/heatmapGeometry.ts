@@ -9,6 +9,8 @@ const MIN_TEMP = 73
 const MAX_TEMP = 130
 const RANGE = MAX_TEMP - MIN_TEMP
 
+export { MIN_TEMP, MAX_TEMP }
+
 const GREEN_YELLOW_BOUNDARY = 90
 const YELLOW_RED_BOUNDARY = 116
 
@@ -56,17 +58,22 @@ export function tradeOffSentence(
   let suffix: string
   switch (zone) {
     case 'green':
-      suffix = `${preset.terpeneLabel.toLowerCase()}, ${preset.cbnLabel.toLowerCase()}. Efficiency ${lowPct}–${highPct}%.`
+      suffix = `Maximum terpene retention. Slower decarb but preserves flavor. Efficiency ${lowPct}–${highPct}%.`
       break
     case 'yellow':
-      suffix = `${preset.terpeneLabel.toLowerCase()}, ${preset.cbnLabel.toLowerCase()}. Efficiency ${lowPct}–${highPct}%.`
+      suffix = `Standard decarb balance. Good efficiency with moderate terpene preservation. Efficiency ${lowPct}–${highPct}%.`
       break
     case 'red':
-      suffix = `${preset.terpeneLabel.toLowerCase()}, ${preset.cbnLabel.toLowerCase()}. Efficiency ${lowPct}–${highPct}%.`
+      suffix = `CBN degradation risk increases. Fast decarb but significant terpene loss. Efficiency ${lowPct}–${highPct}%.`
       break
   }
 
   return `${prefix} — ${suffix}`
+}
+
+/** Returns true if the temperature is outside the practical decarb range. */
+export function isOutOfRange(tempC: number): boolean {
+  return tempC < MIN_TEMP || tempC > MAX_TEMP
 }
 
 /** Glow color hex for the needle based on zone. */
@@ -83,7 +90,7 @@ export function needleGlow(zone: HeatmapZone): string {
 
 /** Flex grow ratios for the three zones (must sum to 57). */
 export const ZONE_RATIOS = {
-  green: 17,  // 90 - 73
+  green: 17, // 90 - 73
   yellow: 26, // 116 - 90
-  red: 14,    // 130 - 116
+  red: 14, // 130 - 116
 } as const

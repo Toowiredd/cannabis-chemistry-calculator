@@ -7,7 +7,10 @@ import {
   tradeOffSentence,
   zoneTooltip,
   needleGlow,
+  isOutOfRange,
   ZONE_RATIOS,
+  MIN_TEMP,
+  MAX_TEMP,
   type HeatmapZone,
 } from './heatmapGeometry'
 
@@ -66,10 +69,10 @@ export function DecarbHeatmap() {
   const zone = zoneColor(tempC)
   const sentence = tradeOffSentence(tempC, preset, isOverridden)
   const glow = needleGlow(zone)
-  const tooltip = zoneTooltip(zone)
+  const outOfRange = isOutOfRange(tempC)
 
   return (
-    <div
+    <figure
       aria-label="Temperature heatmap"
       className="glass glass-shine relative flex flex-col gap-3 rounded-2xl p-5 overflow-hidden"
     >
@@ -78,44 +81,53 @@ export function DecarbHeatmap() {
         <span className="text-xs font-semibold uppercase tracking-wider text-foreground/60">
           Temperature Danger Zone
         </span>
-        <span className="text-xs text-foreground/50">
-          {tempC.toFixed(0)}°C
-        </span>
+        <span className="text-xs text-foreground/50">{tempC.toFixed(0)}°C</span>
       </div>
+
+      {/* Out-of-range warning */}
+      {outOfRange && (
+        <div
+          role="alert"
+          className="rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs font-medium text-amber-300"
+        >
+          {tempC < MIN_TEMP
+            ? `Temperature ${tempC.toFixed(0)}°C is below the practical decarb floor (73°C). Decarboxylation will be extremely slow.`
+            : `Temperature ${tempC.toFixed(0)}°C exceeds the safe decarb ceiling (130°C). THC degrades to CBN faster than THCA converts.`}
+        </div>
+      )}
 
       {/* Bar */}
       <div
         aria-label="Temperature bar from 73 to 130 degrees celsius"
         className="relative flex h-5 w-full rounded-full overflow-hidden"
         role="img"
-        title={tooltip}
       >
         {/* Green zone */}
-        <div
-          aria-label="Terpene preserving zone 73 to 90 degrees"
-          className="h-full"
+        <span
+          className="h-full block"
           style={{
             flexGrow: ZONE_RATIOS.green,
             background: ZONE_STYLES.green.bg,
           }}
+          title={zoneTooltip('green')}
         />
         {/* Yellow zone */}
-        <div
-          aria-label="Standard decarb zone 90 to 116 degrees"
-          className="h-full"
+        <span
+          className="h-full block"
           style={{
             flexGrow: ZONE_RATIOS.yellow,
             background: ZONE_STYLES.yellow.bg,
           }}
+          title={zoneTooltip('yellow')}
         />
         {/* Red zone */}
-        <div
-          aria-label="Degradation risk zone 116 to 130 degrees"
-          className="h-full"
+        <span
+          className="h-full block"
           style={{
             flexGrow: ZONE_RATIOS.red,
             background: ZONE_STYLES.red.bg,
           }}
+          title={zoneTooltip('red')}
         />
 
         {/* Boundary markers */}
@@ -132,7 +144,7 @@ export function DecarbHeatmap() {
 
         {/* Needle */}
         <div
-          aria-label="Current temperature indicator"
+          aria-hidden="true"
           className="absolute top-1/2 -translate-y-1/2 motion-reduce:transition-none"
           style={{
             left: `${pos}%`,
@@ -170,6 +182,6 @@ export function DecarbHeatmap() {
       >
         {sentence}
       </p>
-    </div>
+    </figure>
   )
 }
