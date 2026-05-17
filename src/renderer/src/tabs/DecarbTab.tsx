@@ -35,7 +35,9 @@ import { StrainManager } from 'renderer/src/components/StrainManager'
 import { InputRow } from 'renderer/src/components/InputRow'
 import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
 import { UnitToggle } from 'renderer/src/components/UnitToggle'
+import { ReactionCoordinateCanvas } from 'renderer/src/components/ReactionCoordinateCanvas'
 import { OverrideBadge } from 'renderer/src/components/OverrideBadge'
+import { DecarbHeatmap } from 'renderer/src/components/DecarbHeatmap'
 
 /* ------------------------------------------------------------------ */
 /* Small helpers                                                      */
@@ -665,7 +667,7 @@ export function DecarbTab() {
   /* Render helpers                                                   */
   /* ---------------------------------------------------------------- */
 
-    /* ---------------------------------------------------------------- */
+  /* ---------------------------------------------------------------- */
   /* Sub-components (render helpers)                                    */
   /* ---------------------------------------------------------------- */
 
@@ -827,137 +829,179 @@ export function DecarbTab() {
               {inventoryWarning}
             </div>
           )}
-                    <InputRow label={<>
-              Material Weight
-              <TooltipIcon text="The total weight of raw cannabis material before decarboxylation." />
-            </>} error={fieldErrors.weight}>
-            {<div className="flex items-center gap-2">
-              <input
-                className={cn(
-                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                  fieldErrors.weight
-                    ? 'border-danger/60 focus:border-danger'
-                    : 'border-foreground/20 focus:border-foreground/40'
-                )}
-                onChange={e => setDecarb({ weight: e.target.value })}
-                placeholder="0.00"
-                step="0.01"
-                type="number"
-                value={decarb.weight}
-              />
-              <UnitToggle
-                onChange={handleWeightUnitToggle}
-                options={['g', 'oz'] as const}
-                value={units.weightUnit}
-              />
-            </div>}
+          <InputRow
+            error={fieldErrors.weight}
+            label={
+              <>
+                Material Weight
+                <TooltipIcon text="The total weight of raw cannabis material before decarboxylation." />
+              </>
+            }
+          >
+            {
+              <div className="flex items-center gap-2">
+                <input
+                  className={cn(
+                    'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                    fieldErrors.weight
+                      ? 'border-danger/60 focus:border-danger'
+                      : 'border-foreground/20 focus:border-foreground/40'
+                  )}
+                  onChange={e => setDecarb({ weight: e.target.value })}
+                  placeholder="0.00"
+                  step="0.01"
+                  type="number"
+                  value={decarb.weight}
+                />
+                <UnitToggle
+                  onChange={handleWeightUnitToggle}
+                  options={['g', 'oz'] as const}
+                  value={units.weightUnit}
+                />
+              </div>
+            }
           </InputRow>
 
           {/* THCA */}
-                    <InputRow label={<>
-              THCA %
-              <TooltipIcon text="Tetrahydrocannabinolic acid -- the non-psychoactive precursor to THC found in raw cannabis." />
-            </>} error={fieldErrors.thcaPct}>
-            {<input
-              className={cn(
-                'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                fieldErrors.thcaPct
-                  ? 'border-danger/60 focus:border-danger'
-                  : 'border-foreground/20 focus:border-foreground/40'
-              )}
-              onChange={e => setDecarb({ thcaPct: e.target.value })}
-              placeholder="0.0"
-              step="0.1"
-              type="number"
-              value={decarb.thcaPct}
-            />}
+          <InputRow
+            error={fieldErrors.thcaPct}
+            label={
+              <>
+                THCA %
+                <TooltipIcon text="Tetrahydrocannabinolic acid -- the non-psychoactive precursor to THC found in raw cannabis." />
+              </>
+            }
+          >
+            {
+              <input
+                className={cn(
+                  'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                  fieldErrors.thcaPct
+                    ? 'border-danger/60 focus:border-danger'
+                    : 'border-foreground/20 focus:border-foreground/40'
+                )}
+                onChange={e => setDecarb({ thcaPct: e.target.value })}
+                placeholder="0.0"
+                step="0.1"
+                type="number"
+                value={decarb.thcaPct}
+              />
+            }
           </InputRow>
 
           {/* THC */}
-                    <InputRow label={<>
-              Existing THC %
-              <TooltipIcon text="Delta-9-THC already present in the material. This does not need decarboxylation and contributes directly to total potency." />
-            </>} error={fieldErrors.thcPct}>
-            {<input
-              className={cn(
-                'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                fieldErrors.thcPct
-                  ? 'border-danger/60 focus:border-danger'
-                  : 'border-foreground/20 focus:border-foreground/40'
-              )}
-              onChange={e => setDecarb({ thcPct: e.target.value })}
-              placeholder="0.0"
-              step="0.1"
-              type="number"
-              value={decarb.thcPct}
-            />}
+          <InputRow
+            error={fieldErrors.thcPct}
+            label={
+              <>
+                Existing THC %
+                <TooltipIcon text="Delta-9-THC already present in the material. This does not need decarboxylation and contributes directly to total potency." />
+              </>
+            }
+          >
+            {
+              <input
+                className={cn(
+                  'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                  fieldErrors.thcPct
+                    ? 'border-danger/60 focus:border-danger'
+                    : 'border-foreground/20 focus:border-foreground/40'
+                )}
+                onChange={e => setDecarb({ thcPct: e.target.value })}
+                placeholder="0.0"
+                step="0.1"
+                type="number"
+                value={decarb.thcPct}
+              />
+            }
           </InputRow>
 
           {/* CBDA + CBD — advanced fields */}
           {showAdvanced && !isConcentrate && (
             <>
-                            <InputRow label={<>
-                  CBDA %
-                  <TooltipIcon text="Cannabidiolic acid -- the non-psychoactive precursor to CBD found in raw cannabis. Decarboxylates via the same 0.877 factor as THCA because CBDA and THCA are isomers with identical molecular weight." />
-                </>} error={fieldErrors.cbdaPct}>
-                {<input
-                  className={cn(
-                    'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                    fieldErrors.cbdaPct
-                      ? 'border-danger/60 focus:border-danger'
-                      : 'border-foreground/20 focus:border-foreground/40'
-                  )}
-                  onChange={e => setDecarb({ cbdaPct: e.target.value })}
-                  placeholder="0.0"
-                  step="0.1"
-                  type="number"
-                  value={decarb.cbdaPct}
-                />}
+              <InputRow
+                error={fieldErrors.cbdaPct}
+                label={
+                  <>
+                    CBDA %
+                    <TooltipIcon text="Cannabidiolic acid -- the non-psychoactive precursor to CBD found in raw cannabis. Decarboxylates via the same 0.877 factor as THCA because CBDA and THCA are isomers with identical molecular weight." />
+                  </>
+                }
+              >
+                {
+                  <input
+                    className={cn(
+                      'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                      fieldErrors.cbdaPct
+                        ? 'border-danger/60 focus:border-danger'
+                        : 'border-foreground/20 focus:border-foreground/40'
+                    )}
+                    onChange={e => setDecarb({ cbdaPct: e.target.value })}
+                    placeholder="0.0"
+                    step="0.1"
+                    type="number"
+                    value={decarb.cbdaPct}
+                  />
+                }
               </InputRow>
 
-                            <InputRow label={<>
-                  Existing CBD %
-                  <TooltipIcon text="Cannabidiol already present in the material. This does not need decarboxylation and contributes directly to total CBD potency." />
-                </>} error={fieldErrors.cbdPct}>
-                {<input
-                  className={cn(
-                    'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                    fieldErrors.cbdPct
-                      ? 'border-danger/60 focus:border-danger'
-                      : 'border-foreground/20 focus:border-foreground/40'
-                  )}
-                  onChange={e => setDecarb({ cbdPct: e.target.value })}
-                  placeholder="0.0"
-                  step="0.1"
-                  type="number"
-                  value={decarb.cbdPct}
-                />}
+              <InputRow
+                error={fieldErrors.cbdPct}
+                label={
+                  <>
+                    Existing CBD %
+                    <TooltipIcon text="Cannabidiol already present in the material. This does not need decarboxylation and contributes directly to total CBD potency." />
+                  </>
+                }
+              >
+                {
+                  <input
+                    className={cn(
+                      'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                      fieldErrors.cbdPct
+                        ? 'border-danger/60 focus:border-danger'
+                        : 'border-foreground/20 focus:border-foreground/40'
+                    )}
+                    onChange={e => setDecarb({ cbdPct: e.target.value })}
+                    placeholder="0.0"
+                    step="0.1"
+                    type="number"
+                    value={decarb.cbdPct}
+                  />
+                }
               </InputRow>
             </>
           )}
 
           {/* Method preset (flower mode only) */}
-          {!isConcentrate &&
-                        <InputRow label={<>
-                Method Preset
-                <TooltipIcon text="Choose a decarboxylation method. Each preset defines recommended temperature, time, and expected efficiency range." />
-              </>}>
-              {<select
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
-                onChange={e => handlePresetChange(e.target.value)}
-                value={decarb.presetId}
-              >
-                {DECARB_METHODS.map(m => (
-                  <option
-                    className="bg-card text-foreground"
-                    key={m.id}
-                    value={m.id}
-                  >
-                    {m.name}
-                  </option>
-                ))}
-              </select>}
-            </InputRow>}
+          {!isConcentrate && (
+            <InputRow
+              label={
+                <>
+                  Method Preset
+                  <TooltipIcon text="Choose a decarboxylation method. Each preset defines recommended temperature, time, and expected efficiency range." />
+                </>
+              }
+            >
+              {
+                <select
+                  className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                  onChange={e => handlePresetChange(e.target.value)}
+                  value={decarb.presetId}
+                >
+                  {DECARB_METHODS.map(m => (
+                    <option
+                      className="bg-card text-foreground"
+                      key={m.id}
+                      value={m.id}
+                    >
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              }
+            </InputRow>
+          )}
 
           {/* Advanced Settings toggle */}
           {!isConcentrate && (
@@ -980,54 +1024,70 @@ export function DecarbTab() {
           {/* Temperature, Time, Efficiency — advanced fields */}
           {showAdvanced && !isConcentrate && (
             <>
-                            <InputRow label={<>
-                  Temperature
-                  {isTempOverride && <OverrideBadge />}
-                </>} error={fieldErrors.temperature}>
-                {<div className="flex items-center gap-2">
+              <InputRow
+                error={fieldErrors.temperature}
+                label={
+                  <>
+                    Temperature
+                    {isTempOverride && <OverrideBadge />}
+                  </>
+                }
+              >
+                {
+                  <div className="flex items-center gap-2">
+                    <input
+                      className={cn(
+                        'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                        isTempOverride
+                          ? 'border-warning/60 focus:border-warning'
+                          : fieldErrors.temperature
+                            ? 'border-danger/60 focus:border-danger'
+                            : 'border-foreground/20 focus:border-foreground/40'
+                      )}
+                      onChange={e =>
+                        setDecarb({ tempOverride: e.target.value })
+                      }
+                      placeholder={`${presetTempDisplay} ${units.tempUnit}`}
+                      step="0.1"
+                      type="number"
+                      value={tempValue}
+                    />
+                    <UnitToggle
+                      onChange={handleTempUnitToggle}
+                      options={['C', 'F'] as const}
+                      value={units.tempUnit}
+                    />
+                  </div>
+                }
+              </InputRow>
+
+              <InputRow
+                error={fieldErrors.time}
+                label={
+                  <>
+                    Time (min)
+                    {isTimeOverride && <OverrideBadge />}
+                    <TooltipIcon text="Duration of decarboxylation. Sous vide methods use longer times at lower temperatures for better terpene retention." />
+                  </>
+                }
+              >
+                {
                   <input
                     className={cn(
-                      'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                      isTempOverride
+                      'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                      isTimeOverride
                         ? 'border-warning/60 focus:border-warning'
-                        : fieldErrors.temperature
+                        : fieldErrors.time
                           ? 'border-danger/60 focus:border-danger'
                           : 'border-foreground/20 focus:border-foreground/40'
                     )}
-                    onChange={e => setDecarb({ tempOverride: e.target.value })}
-                    placeholder={`${presetTempDisplay} ${units.tempUnit}`}
-                    step="0.1"
+                    onChange={e => setDecarb({ timeOverride: e.target.value })}
+                    placeholder={`${preset.timeMin}-${preset.timeMax} min`}
+                    step="1"
                     type="number"
-                    value={tempValue}
+                    value={timeValue}
                   />
-                  <UnitToggle
-                    onChange={handleTempUnitToggle}
-                    options={['C', 'F'] as const}
-                    value={units.tempUnit}
-                  />
-                </div>}
-              </InputRow>
-
-                            <InputRow label={<>
-                  Time (min)
-                  {isTimeOverride && <OverrideBadge />}
-                  <TooltipIcon text="Duration of decarboxylation. Sous vide methods use longer times at lower temperatures for better terpene retention." />
-                </>} error={fieldErrors.time}>
-                {<input
-                  className={cn(
-                    'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                    isTimeOverride
-                      ? 'border-warning/60 focus:border-warning'
-                      : fieldErrors.time
-                        ? 'border-danger/60 focus:border-danger'
-                        : 'border-foreground/20 focus:border-foreground/40'
-                  )}
-                  onChange={e => setDecarb({ timeOverride: e.target.value })}
-                  placeholder={`${preset.timeMin}-${preset.timeMax} min`}
-                  step="1"
-                  type="number"
-                  value={timeValue}
-                />}
+                }
               </InputRow>
 
               <div className="flex flex-col gap-1">
@@ -1036,68 +1096,85 @@ export function DecarbTab() {
                   <TooltipIcon text="The percentage of THCA that successfully converts to THC during decarboxylation. 100% efficiency is theoretical maximum; real-world methods typically achieve 70-95%." />
                 </span>
                 <div className="grid grid-cols-3 gap-2">
-                                    <InputRow label={<>Low {isEffLowOverride && <OverrideBadge />}</>} error={fieldErrors.effLow}>
-                    {<input
-                      className={cn(
-                        'w-full rounded-lg border bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                        isEffLowOverride
-                          ? 'border-warning/60 focus:border-warning'
-                          : fieldErrors.effLow
-                            ? 'border-danger/60 focus:border-danger'
-                            : 'border-foreground/20 focus:border-foreground/40'
-                      )}
-                      max={1}
-                      min={0}
-                      onChange={e =>
-                        setDecarb({ effLowOverride: e.target.value })
-                      }
-                      placeholder="0.00"
-                      step="0.01"
-                      type="number"
-                      value={effLowValue}
-                    />}
+                  <InputRow
+                    error={fieldErrors.effLow}
+                    label={<>Low {isEffLowOverride && <OverrideBadge />}</>}
+                  >
+                    {
+                      <input
+                        className={cn(
+                          'w-full rounded-lg border bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                          isEffLowOverride
+                            ? 'border-warning/60 focus:border-warning'
+                            : fieldErrors.effLow
+                              ? 'border-danger/60 focus:border-danger'
+                              : 'border-foreground/20 focus:border-foreground/40'
+                        )}
+                        max={1}
+                        min={0}
+                        onChange={e =>
+                          setDecarb({ effLowOverride: e.target.value })
+                        }
+                        placeholder="0.00"
+                        step="0.01"
+                        type="number"
+                        value={effLowValue}
+                      />
+                    }
                   </InputRow>
-                                    <InputRow label={<>Expected {isEffExpectedOverride && <OverrideBadge />}</>} error={fieldErrors.effExpected}>
-                    {<input
-                      className={cn(
-                        'w-full rounded-lg border bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                        isEffExpectedOverride
-                          ? 'border-warning/60 focus:border-warning'
-                          : fieldErrors.effExpected
-                            ? 'border-danger/60 focus:border-danger'
-                            : 'border-foreground/20 focus:border-foreground/40'
-                      )}
-                      max={1}
-                      min={0}
-                      onChange={e =>
-                        setDecarb({ effExpectedOverride: e.target.value })
-                      }
-                      placeholder="0.00"
-                      step="0.01"
-                      type="number"
-                      value={effExpectedValue}
-                    />}
+                  <InputRow
+                    error={fieldErrors.effExpected}
+                    label={
+                      <>Expected {isEffExpectedOverride && <OverrideBadge />}</>
+                    }
+                  >
+                    {
+                      <input
+                        className={cn(
+                          'w-full rounded-lg border bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                          isEffExpectedOverride
+                            ? 'border-warning/60 focus:border-warning'
+                            : fieldErrors.effExpected
+                              ? 'border-danger/60 focus:border-danger'
+                              : 'border-foreground/20 focus:border-foreground/40'
+                        )}
+                        max={1}
+                        min={0}
+                        onChange={e =>
+                          setDecarb({ effExpectedOverride: e.target.value })
+                        }
+                        placeholder="0.00"
+                        step="0.01"
+                        type="number"
+                        value={effExpectedValue}
+                      />
+                    }
                   </InputRow>
-                                    <InputRow label={<>High {isEffHighOverride && <OverrideBadge />}</>} error={fieldErrors.effHigh}>
-                    {<input
-                      className={cn(
-                        'w-full rounded-lg border bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                        isEffHighOverride
-                          ? 'border-warning/60 focus:border-warning'
-                          : fieldErrors.effHigh
-                            ? 'border-danger/60 focus:border-danger'
-                            : 'border-foreground/20 focus:border-foreground/40'
-                      )}
-                      max={1}
-                      min={0}
-                      onChange={e =>
-                        setDecarb({ effHighOverride: e.target.value })
-                      }
-                      placeholder="0.00"
-                      step="0.01"
-                      type="number"
-                      value={effHighValue}
-                    />}
+                  <InputRow
+                    error={fieldErrors.effHigh}
+                    label={<>High {isEffHighOverride && <OverrideBadge />}</>}
+                  >
+                    {
+                      <input
+                        className={cn(
+                          'w-full rounded-lg border bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                          isEffHighOverride
+                            ? 'border-warning/60 focus:border-warning'
+                            : fieldErrors.effHigh
+                              ? 'border-danger/60 focus:border-danger'
+                              : 'border-foreground/20 focus:border-foreground/40'
+                        )}
+                        max={1}
+                        min={0}
+                        onChange={e =>
+                          setDecarb({ effHighOverride: e.target.value })
+                        }
+                        placeholder="0.00"
+                        step="0.01"
+                        type="number"
+                        value={effHighValue}
+                      />
+                    }
                   </InputRow>
                 </div>
               </div>
@@ -1262,6 +1339,9 @@ export function DecarbTab() {
             </div>
           )}
 
+          {/* Temperature Danger Zone Heatmap (flower mode only) */}
+          {!isConcentrate && <DecarbHeatmap />}
+
           {/* CBD Results (only when CBDA or CBD > 0) */}
           {(parseFloat(decarb.cbdaPct) > 0 || parseFloat(decarb.cbdPct) > 0) &&
             cbdResults && (
@@ -1376,6 +1456,9 @@ export function DecarbTab() {
             <BagCalculator tempC={preset.tempC} />
           </div>
         )}
+
+      {/* Reaction Coordinate visualization (chemistry-forward wow moment) */}
+      {!isConcentrate && <ReactionCoordinateCanvas />}
 
       {/* Timer Widget (flower mode only) */}
       {!isConcentrate && <TimerWidget />}
