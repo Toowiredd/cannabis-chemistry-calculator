@@ -10,7 +10,6 @@ import {
   isOutOfRange,
   ZONE_RATIOS,
   MIN_TEMP,
-  MAX_TEMP,
   type HeatmapZone,
 } from './heatmapGeometry'
 
@@ -87,8 +86,8 @@ export function DecarbHeatmap() {
       {/* Out-of-range warning */}
       {outOfRange && (
         <div
-          role="alert"
           className="rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs font-medium text-amber-300"
+          role="alert"
         >
           {tempC < MIN_TEMP
             ? `Temperature ${tempC.toFixed(0)}°C is below the practical decarb floor (73°C). Decarboxylation will be extremely slow.`
