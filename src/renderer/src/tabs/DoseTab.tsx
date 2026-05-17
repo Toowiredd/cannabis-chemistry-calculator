@@ -21,6 +21,7 @@ import { TabActions } from 'renderer/src/components/TabActions'
 import { LabelGenerator } from 'renderer/src/components/LabelGenerator'
 import { InputRow } from 'renderer/src/components/InputRow'
 import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
+import { DoseRadarChart } from 'renderer/src/components/DoseRadarChart'
 
 /* ------------------------------------------------------------------ */
 /* Small helpers (mirroring DecarbTab / InfusionTab patterns)         */
@@ -523,59 +524,73 @@ export function DoseTab() {
 
           {/* Total infused THC — hidden in reverse mode */}
           {!isReverse && (
-            <InputRow label={<>
-                Total Infused THC
-                {dose.totalThc === lastInfusedThc && lastInfusedThc && (
-                  <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-xs font-medium text-info">
-                    Auto-filled from Infusion
-                  </span>
-                )}
-                <TooltipIcon text="Total amount of THC in milligrams present in the infused product. Use the output from the Infusion calculator." />
-              </>} error={fieldErrors.totalThc}>
-              {<div className="flex items-center gap-2">
-                <input
-                  className={cn(
-                    'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                    fieldErrors.totalThc
-                      ? 'border-danger/60 focus:border-danger'
-                      : 'border-foreground/20 focus:border-foreground/40'
+            <InputRow
+              error={fieldErrors.totalThc}
+              label={
+                <>
+                  Total Infused THC
+                  {dose.totalThc === lastInfusedThc && lastInfusedThc && (
+                    <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-xs font-medium text-info">
+                      Auto-filled from Infusion
+                    </span>
                   )}
-                  onChange={e => setDose({ totalThc: e.target.value })}
-                  placeholder="0.0"
-                  step="0.1"
-                  type="number"
-                  value={dose.totalThc}
-                />
-                <span className="text-sm text-foreground/70">mg</span>
-              </div>}
+                  <TooltipIcon text="Total amount of THC in milligrams present in the infused product. Use the output from the Infusion calculator." />
+                </>
+              }
+            >
+              {
+                <div className="flex items-center gap-2">
+                  <input
+                    className={cn(
+                      'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                      fieldErrors.totalThc
+                        ? 'border-danger/60 focus:border-danger'
+                        : 'border-foreground/20 focus:border-foreground/40'
+                    )}
+                    onChange={e => setDose({ totalThc: e.target.value })}
+                    placeholder="0.0"
+                    step="0.1"
+                    type="number"
+                    value={dose.totalThc}
+                  />
+                  <span className="text-sm text-foreground/70">mg</span>
+                </div>
+              }
             </InputRow>
           )}
 
           {/* Reverse mode inputs */}
           {isReverse && (
             <>
-              <InputRow label={<>
-                  Desired mg per Serving
-                  <TooltipIcon text="How many milligrams of THC you want in each individual serving. The calculator works backward from this number." />
-                </>} error={reverseFieldErrors.desiredMgPerServing}>
-                {<div className="flex items-center gap-2">
-                  <input
-                    className={cn(
-                      'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                      reverseFieldErrors.desiredMgPerServing
-                        ? 'border-danger/60 focus:border-danger'
-                        : 'border-foreground/20 focus:border-foreground/40'
-                    )}
-                    onChange={e =>
-                      setDose({ desiredMgPerServing: e.target.value })
-                    }
-                    placeholder="10.0"
-                    step="0.1"
-                    type="number"
-                    value={dose.desiredMgPerServing}
-                  />
-                  <span className="text-sm text-foreground/70">mg</span>
-                </div>}
+              <InputRow
+                error={reverseFieldErrors.desiredMgPerServing}
+                label={
+                  <>
+                    Desired mg per Serving
+                    <TooltipIcon text="How many milligrams of THC you want in each individual serving. The calculator works backward from this number." />
+                  </>
+                }
+              >
+                {
+                  <div className="flex items-center gap-2">
+                    <input
+                      className={cn(
+                        'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                        reverseFieldErrors.desiredMgPerServing
+                          ? 'border-danger/60 focus:border-danger'
+                          : 'border-foreground/20 focus:border-foreground/40'
+                      )}
+                      onChange={e =>
+                        setDose({ desiredMgPerServing: e.target.value })
+                      }
+                      placeholder="10.0"
+                      step="0.1"
+                      type="number"
+                      value={dose.desiredMgPerServing}
+                    />
+                    <span className="text-sm text-foreground/70">mg</span>
+                  </div>
+                }
               </InputRow>
 
               {/* Reverse result card — inline in input panel */}
@@ -603,53 +618,66 @@ export function DoseTab() {
 
           {/* Edible Format — hidden in reverse mode */}
           {!isReverse && (
-            <InputRow label={<>
-                Edible Format
-                <TooltipIcon text="Select a common edible format to auto-fill the recommended number of servings." />
-              </>}>
-              {<select
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
-                onChange={e => {
-                  const formatId = e.target.value
-                  const fmt = EDIBLE_FORMATS.find(f => f.id === formatId)
-                  setDose({
-                    formatId,
-                    servings: String(fmt?.suggestedServings ?? 10),
-                  })
-                }}
-                value={dose.formatId ?? 'custom'}
-              >
-                {EDIBLE_FORMATS.map(f => (
-                  <option
-                    className="bg-card text-foreground"
-                    key={f.id}
-                    value={f.id}
-                  >
-                    {f.name}
-                  </option>
-                ))}
-              </select>}
+            <InputRow
+              label={
+                <>
+                  Edible Format
+                  <TooltipIcon text="Select a common edible format to auto-fill the recommended number of servings." />
+                </>
+              }
+            >
+              {
+                <select
+                  className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                  onChange={e => {
+                    const formatId = e.target.value
+                    const fmt = EDIBLE_FORMATS.find(f => f.id === formatId)
+                    setDose({
+                      formatId,
+                      servings: String(fmt?.suggestedServings ?? 10),
+                    })
+                  }}
+                  value={dose.formatId ?? 'custom'}
+                >
+                  {EDIBLE_FORMATS.map(f => (
+                    <option
+                      className="bg-card text-foreground"
+                      key={f.id}
+                      value={f.id}
+                    >
+                      {f.name}
+                    </option>
+                  ))}
+                </select>
+              }
             </InputRow>
           )}
 
           {/* Number of servings */}
-          <InputRow label={<>
-              Number of Servings
-              <TooltipIcon text="How many individual servings the total infused product will be divided into." />
-            </>} error={fieldErrors.servings}>
-            {<input
-              className={cn(
-                'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                fieldErrors.servings
-                  ? 'border-danger/60 focus:border-danger'
-                  : 'border-foreground/20 focus:border-foreground/40'
-              )}
-              onChange={e => setDose({ servings: e.target.value })}
-              placeholder="0"
-              step="1"
-              type="number"
-              value={dose.servings}
-            />}
+          <InputRow
+            error={fieldErrors.servings}
+            label={
+              <>
+                Number of Servings
+                <TooltipIcon text="How many individual servings the total infused product will be divided into." />
+              </>
+            }
+          >
+            {
+              <input
+                className={cn(
+                  'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                  fieldErrors.servings
+                    ? 'border-danger/60 focus:border-danger'
+                    : 'border-foreground/20 focus:border-foreground/40'
+                )}
+                onChange={e => setDose({ servings: e.target.value })}
+                placeholder="0"
+                step="1"
+                type="number"
+                value={dose.servings}
+              />
+            }
           </InputRow>
 
           {/* Scale Batch */}
@@ -768,6 +796,9 @@ export function DoseTab() {
                   : '\u2014'}
               </span>
             </div>
+
+            {/* Radar Chart */}
+            <DoseRadarChart />
 
             {/* Visual scale */}
             <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-4">
