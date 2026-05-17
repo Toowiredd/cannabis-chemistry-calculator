@@ -6,6 +6,7 @@ import {
   radarPoints,
   polygonPath,
   axisLabelPosition,
+  ringRadii,
   RADAR_AXES,
 } from 'renderer/src/engine/radarScores'
 import { cn } from 'renderer/lib/utils'
@@ -180,13 +181,7 @@ export function DoseRadarChart() {
   }, [compareOpen, selectedEntryId, journalEntries])
 
   /* -- Geometry -- */
-  const rings = useMemo(() => {
-    const count = RING_LABELS.length - 1 // 0→5→10 gives 2 visible rings at 50% and 100%
-    return Array.from({ length: count }, (_, i) => {
-      const frac = (i + 1) / (count + 1)
-      return RADIUS * frac
-    })
-  }, [])
+  const rings = useMemo(() => ringRadii(RING_LABELS, 10, RADIUS), [])
 
   const currentPoints = useMemo(
     () =>
@@ -303,7 +298,7 @@ export function DoseRadarChart() {
 
           {/* Ring value labels */}
           {RING_LABELS.slice(1).map((label, i) => {
-            const r = rings[i]
+            const r = rings[i + 1] // +1 because rings[0] is the radius for label '0'
             return (
               <text
                 className="fill-foreground/40 text-[8px] font-medium tabular-nums"

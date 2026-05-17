@@ -262,6 +262,22 @@ export function radarPoints(
 }
 
 /**
+ * Compute ring radii from score value labels.
+ * Labels are parsed as numbers and scaled proportionally to radius.
+ */
+export function ringRadii(
+  labels: string[],
+  maxScore: number,
+  radius: number
+): number[] {
+  return labels.map((label) => {
+    const value = parseFloat(label)
+    if (!Number.isFinite(value)) return 0
+    return (Math.max(0, Math.min(maxScore, value)) / maxScore) * radius
+  })
+}
+
+/**
  * Build a closed SVG path `d` string from points.
  */
 export function polygonPath(points: RadarPoint[]): string {

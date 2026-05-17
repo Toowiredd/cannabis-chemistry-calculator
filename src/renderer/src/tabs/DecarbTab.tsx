@@ -35,7 +35,6 @@ import { StrainManager } from 'renderer/src/components/StrainManager'
 import { InputRow } from 'renderer/src/components/InputRow'
 import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
 import { UnitToggle } from 'renderer/src/components/UnitToggle'
-import { ReactionCoordinateCanvas } from 'renderer/src/components/ReactionCoordinateCanvas'
 import { OverrideBadge } from 'renderer/src/components/OverrideBadge'
 import { DecarbHeatmap } from 'renderer/src/components/DecarbHeatmap'
 
@@ -1458,7 +1457,7 @@ export function DecarbTab() {
         )}
 
       {/* Reaction Coordinate visualization (chemistry-forward wow moment) */}
-      {!isConcentrate && <ReactionCoordinateCanvas />}
+
 
       {/* Timer Widget (flower mode only) */}
       {!isConcentrate && <TimerWidget />}

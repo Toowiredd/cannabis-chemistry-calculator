@@ -10,6 +10,7 @@ import {
   piecewiseScore,
   polygonPath,
   radarPoints,
+  ringRadii,
   thcDoseScore,
 } from '../radarScores'
 
@@ -292,5 +293,42 @@ describe('axisLabelPosition', () => {
     const pos = axisLabelPosition(3, 6, 100, 100, 80, 12)
     expect(pos.x).toBeCloseTo(100, 5)
     expect(pos.y).toBeCloseTo(100 + 80 + 12, 5)
+  })
+})
+
+describe('ringRadii', () => {
+  it("'0' at center (0 radius)", () => {
+    expect(ringRadii(['0', '5', '10'], 10, 90)).toStrictEqual([0, 45, 90])
+  })
+
+  it("'10' at outermost ring (full radius)", () => {
+    const radii = ringRadii(['0', '5', '10'], 10, 90)
+    expect(radii[2]).toBe(90)
+  })
+
+  it("'5' at middle ring (50% radius)", () => {
+    const radii = ringRadii(['0', '5', '10'], 10, 90)
+    expect(radii[1]).toBe(45)
+  })
+
+  it('scales proportionally with different maxScore', () => {
+    // With maxScore 20, label '10' should be at 50% of radius
+    expect(ringRadii(['0', '5', '10'], 20, 100)).toStrictEqual([0, 25, 50])
+  })
+
+  it('handles labels in descending order correctly', () => {
+    expect(ringRadii(['10', '5', '0'], 10, 90)).toStrictEqual([90, 45, 0])
+  })
+
+  it('clamps out-of-range label values', () => {
+    expect(ringRadii(['0', '15', '10'], 10, 90)).toStrictEqual([0, 90, 90])
+  })
+
+  it('returns empty array for empty labels', () => {
+    expect(ringRadii([], 10, 90)).toStrictEqual([])
+  })
+
+  it('ignores non-numeric labels by mapping to 0', () => {
+    expect(ringRadii(['bad', '5', '10'], 10, 90)).toStrictEqual([0, 45, 90])
   })
 })
