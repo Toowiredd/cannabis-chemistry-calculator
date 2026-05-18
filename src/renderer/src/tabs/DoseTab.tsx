@@ -22,6 +22,7 @@ import { LabelGenerator } from 'renderer/src/components/LabelGenerator'
 import { InputRow } from 'renderer/src/components/InputRow'
 import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
 import { DoseRadarChart } from 'renderer/src/components/DoseRadarChart'
+import { SmartSuggestPanel } from 'renderer/src/components/SmartSuggestPanel'
 
 /* ------------------------------------------------------------------ */
 /* Small helpers (mirroring DecarbTab / InfusionTab patterns)         */
@@ -310,6 +311,10 @@ export function DoseTab() {
     useState<ReverseFieldErrors>({})
   const [reverseGrams, setReverseGrams] = useState<number | null>(null)
   const [reverseError, setReverseError] = useState<string | null>(null)
+
+  /* Refs for SmartSuggest FLIP target */
+  const servingsInputRef = useRef<HTMLInputElement>(null)
+  const formatSelectRef = useRef<HTMLSelectElement>(null)
 
   /* Scale batch local state */
   const [scaleOpen, setScaleOpen] = useState(false)
@@ -637,6 +642,7 @@ export function DoseTab() {
                       servings: String(fmt?.suggestedServings ?? 10),
                     })
                   }}
+                  ref={formatSelectRef}
                   value={dose.formatId ?? 'custom'}
                 >
                   {EDIBLE_FORMATS.map(f => (
@@ -673,6 +679,7 @@ export function DoseTab() {
                 )}
                 onChange={e => setDose({ servings: e.target.value })}
                 placeholder="0"
+                ref={servingsInputRef}
                 step="1"
                 type="number"
                 value={dose.servings}
@@ -877,6 +884,16 @@ export function DoseTab() {
           </div>
         )}
       </div>
+
+      {/* Smart Suggestions */}
+      {!isReverse && results && (
+        <SmartSuggestPanel
+          fatId={infusion.fatId}
+          formatInputRef={formatSelectRef}
+          mgPerServing={results.mgPerServing}
+          servingsInputRef={servingsInputRef}
+        />
+      )}
 
       {/* Disclaimer */}
       <p className="text-center text-xs leading-relaxed text-foreground/70">
