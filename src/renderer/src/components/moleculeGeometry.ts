@@ -116,6 +116,7 @@ export interface MoleculeTransforms {
   bondOpacity: number
   co2LabelOpacity: number
   co2LabelTranslate: Point
+  thcaLabelOpacity: number
   thcLabelOpacity: number
   thcLabelTranslate: Point
   captionOpacity: number
@@ -212,6 +213,13 @@ export function computeTransforms(progress: number): MoleculeTransforms {
     carboxylOpacity = 1 - ct * 0.3 // slight fade as it becomes CO₂
   }
 
+  // THCA label fades gradually (62.5-75%)
+  let thcaLabelOpacity = 1
+  if (p >= 0.625) {
+    const tht = clamp((p - 0.625) / 0.125)
+    thcaLabelOpacity = 1 - easeOutCubic(tht)
+  }
+
   // THC label (75-87.5%)
   let thcLabelOpacity = 0
   let thcLabelTranslate: Point = { x: 0, y: 10 }
@@ -239,6 +247,7 @@ export function computeTransforms(progress: number): MoleculeTransforms {
     bondOpacity,
     co2LabelOpacity,
     co2LabelTranslate,
+    thcaLabelOpacity,
     thcLabelOpacity,
     thcLabelTranslate,
     captionOpacity,

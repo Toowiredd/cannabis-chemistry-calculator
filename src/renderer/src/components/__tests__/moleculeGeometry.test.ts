@@ -173,6 +173,20 @@ describe('moleculeGeometry', () => {
       expect(t.captionOpacity).toBeGreaterThan(0)
     })
 
+    it('shows THCA label at 60%', () => {
+      const t = computeTransforms(0.6)
+      expect(t.thcaLabelOpacity).toBeGreaterThan(0)
+    })
+
+    it('THCA label fades gradually between 62.5% and 75%', () => {
+      const t65 = computeTransforms(0.65)
+      const t70 = computeTransforms(0.7)
+      const t75 = computeTransforms(0.75)
+      expect(t65.thcaLabelOpacity).toBeGreaterThan(t70.thcaLabelOpacity)
+      expect(t70.thcaLabelOpacity).toBeGreaterThan(t75.thcaLabelOpacity)
+      expect(t75.thcaLabelOpacity).toBe(0)
+    })
+
     it('carboxyl floats upward during detachment', () => {
       const t25 = computeTransforms(0.375)
       const t50 = computeTransforms(0.5)

@@ -31,6 +31,26 @@ const SPEEDS = [0.5, 1, 2] as const
 type Speed = (typeof SPEEDS)[number]
 
 /* ------------------------------------------------------------------ */
+/* Hooks                                                              */
+/* ------------------------------------------------------------------ */
+
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  })
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const handler = (e: MediaQueryListEvent) => setReduced(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  return reduced
+}
+
+/* ------------------------------------------------------------------ */
 /* RangeSlider sub-component                                          */
 /* ------------------------------------------------------------------ */
 
@@ -348,7 +368,7 @@ function AnimatedMolecule({ progress }: { progress: number }) {
 
         {/* THCA label */}
         <g
-          opacity={progress < 0.75 ? 1 : 0}
+          opacity={t.thcaLabelOpacity}
           style={{ transition: 'opacity 0.3s ease' }}
         >
           <text
@@ -423,14 +443,15 @@ export function MolecularBuilder() {
   const containerRef = useRef<HTMLDivElement>(null)
   const wasInViewRef = useRef(false)
   const isVisibleRef = useRef(false)
+  const wasPlayingBeforeHidden = useRef(false)
+
+  const reducedMotion = useReducedMotion()
 
   // IntersectionObserver for auto-play on first view
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
-    // reduced-motion check
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    if (mq.matches) return
+    if (reducedMotion) return
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -448,14 +469,26 @@ export function MolecularBuilder() {
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [hasStarted])
+  }, [hasStarted, reducedMotion])
 
-  // Tab switch detection: when not visible, pause
+  // Tab switch detection: when not visible, pause; when visible again, restore
   useEffect(() => {
     const onVis = () => {
       if (document.hidden) {
         setIsPlaying(prev => {
-          if (prev) return false
+          if (prev) {
+            wasPlayingBeforeHidden.current = true
+            return false
+          }
+          wasPlayingBeforeHidden.current = false
+          return prev
+        })
+      } else {
+        setIsPlaying(prev => {
+          if (!prev && wasPlayingBeforeHidden.current) {
+            wasPlayingBeforeHidden.current = false
+            return true
+          }
           return prev
         })
       }
@@ -519,6 +552,8 @@ export function MolecularBuilder() {
     const idx = SPEEDS.indexOf(speed)
     const next = SPEEDS[(idx + 1) % SPEEDS.length]
     setSpeed(next)
+    // Reset lastTimeRef so the next tick doesn't have a stale dt
+    lastTimeRef.current = performance.now()
   }, [speed])
 
   const handleScrub = useCallback(
@@ -546,14 +581,6 @@ export function MolecularBuilder() {
       }
     },
     [handlePlayPause, handleReplay]
-  )
-
-  // Check for reduced motion
-  const reducedMotion = useMemo(
-    () =>
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    []
   )
 
   const percentLabel = `${Math.round(progress * 100)}%`
