@@ -16,6 +16,7 @@ import {
   simulateDoneness,
   timeLabel,
 } from 'renderer/src/engine/doneness-simulation'
+import { MolecularBuilder } from 'renderer/src/components/MolecularBuilder'
 import { TERPENES } from 'renderer/src/engine/terpenes'
 
 /* ------------------------------------------------------------------ */
@@ -543,6 +544,14 @@ export function KnowledgeTab() {
               label="Garcia-Valverde et al. 2022"
             />
           </p>
+        </SectionCard>
+
+        {/* Section 1b: Molecular Builder */}
+        <SectionCard
+          icon={<FlaskConical className="size-5 text-foreground/80" />}
+          title="How Decarboxylation Works"
+        >
+          <MolecularBuilder />
         </SectionCard>
 
         {/* Section 2: The 0.877 Factor */}
