@@ -604,29 +604,11 @@ export function DecarbTab() {
     setShowAdvanced(false)
   }
 
-  /* Escape key resets current tab, or bag calculator if focused */
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        const bagContainer = document.getElementById('bag-calculator-card')
-        const active = document.activeElement
-        if (bagContainer && active && bagContainer.contains(active)) {
-          setDecarb({
-            bagExpanded: true,
-            bagGrindId: 'medium',
-            bagPresetId: 'quart',
-            bagWidthOverride: null,
-            bagLengthOverride: null,
-            bagHasStems: false,
-          })
-        } else {
-          handleReset()
-        }
-      }
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [])
+  /*
+   * Do not bind Escape to handleReset here. Escape is reserved for dismissing
+   * transient UI such as tooltips/dialogs; wiping calculator state must stay an
+   * explicit click on "Reset to Defaults" so keyboard users do not lose work.
+   */
 
   /* ---------------------------------------------------------------- */
   /* Preset display values                                            */
@@ -672,10 +654,10 @@ export function DecarbTab() {
 
   function StrainSelector() {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center">
         {sortedStrains.length > 0 ? (
           <select
-            className="flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+            className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
             onChange={e => {
               if (e.target.value === '__manage__') {
                 setStrainManagerOpen(true)
@@ -700,7 +682,7 @@ export function DecarbTab() {
           </select>
         ) : (
           <button
-            className="flex flex-1 items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            className="flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground min-[420px]:justify-start"
             onClick={() => setStrainManagerOpen(true)}
             type="button"
           >
@@ -713,16 +695,16 @@ export function DecarbTab() {
   }
 
   return (
-    <div className="flex flex-col gap-5 p-4">
+    <div className="flex min-w-0 flex-col gap-5 p-2 sm:p-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-foreground">
           Decarboxylation
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
           <TabActions tabId="decarb" />
           <button
-            className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground sm:flex-none"
             onClick={handleReset}
             type="button"
           >
@@ -734,7 +716,7 @@ export function DecarbTab() {
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         {/* ------------------- INPUT PANEL ------------------- */}
-        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Input
           </h3>
@@ -744,10 +726,10 @@ export function DecarbTab() {
             <span className="text-sm font-medium text-foreground/80">
               Material Type
             </span>
-            <div className="inline-flex rounded-lg border border-foreground/20 bg-foreground/5 p-0.5">
+            <div className="inline-flex w-full rounded-lg border border-foreground/20 bg-foreground/5 p-0.5 min-[420px]:w-auto">
               <button
                 className={cn(
-                  'flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors',
+                  'flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors min-[420px]:flex-none',
                   !isConcentrate
                     ? 'bg-foreground/15 text-foreground'
                     : 'text-foreground/70 hover:text-foreground/80'
@@ -760,7 +742,7 @@ export function DecarbTab() {
               </button>
               <button
                 className={cn(
-                  'flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors',
+                  'flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors min-[420px]:flex-none',
                   isConcentrate
                     ? 'bg-foreground/15 text-foreground'
                     : 'text-foreground/70 hover:text-foreground/80'
@@ -823,7 +805,7 @@ export function DecarbTab() {
 
           {/* Weight */}
           {inventoryWarning && (
-            <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
               <AlertTriangle className="size-4 shrink-0" />
               {inventoryWarning}
             </div>
@@ -838,10 +820,10 @@ export function DecarbTab() {
             }
           >
             {
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center">
                 <input
                   className={cn(
-                    'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                    'min-w-0 flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                     fieldErrors.weight
                       ? 'border-danger/60 focus:border-danger'
                       : 'border-foreground/20 focus:border-foreground/40'
@@ -1033,10 +1015,10 @@ export function DecarbTab() {
                 }
               >
                 {
-                  <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center">
                     <input
                       className={cn(
-                        'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                        'min-w-0 flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                         isTempOverride
                           ? 'border-warning/60 focus:border-warning'
                           : fieldErrors.temperature
@@ -1094,7 +1076,7 @@ export function DecarbTab() {
                   Decarb Efficiency
                   <TooltipIcon text="The percentage of THCA that successfully converts to THC during decarboxylation. 100% efficiency is theoretical maximum; real-world methods typically achieve 70-95%." />
                 </span>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                   <InputRow
                     error={fieldErrors.effLow}
                     label={<>Low {isEffLowOverride && <OverrideBadge />}</>}
@@ -1198,7 +1180,7 @@ export function DecarbTab() {
               <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                 Decarb Efficiency (preset)
               </span>
-              <div className="mt-1 grid grid-cols-3 gap-2 text-center">
+              <div className="mt-1 grid grid-cols-1 gap-2 text-center sm:grid-cols-3">
                 <div>
                   <span className="text-xs text-foreground/70">Low</span>
                   <p className="text-sm font-medium text-foreground">
@@ -1223,8 +1205,8 @@ export function DecarbTab() {
         </div>
 
         {/* ------------------- RESULTS PANEL ------------------- */}
-        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
-          <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
               Results
             </h3>
@@ -1267,7 +1249,7 @@ export function DecarbTab() {
             <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
               Decarb-Adjusted THC
             </span>
-            <div className="mt-1 grid grid-cols-3 gap-2">
+            <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-3">
               <div className="flex flex-col">
                 <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Low
@@ -1310,7 +1292,7 @@ export function DecarbTab() {
 
           {/* Quality Badges (flower mode only) */}
           {!isConcentrate && (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <div className="flex flex-col items-center rounded-xl border border-foreground/10 bg-foreground/5 px-2 py-3 text-center">
                 <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Terpene Retention
@@ -1348,7 +1330,7 @@ export function DecarbTab() {
                 <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Decarb-Adjusted CBD
                 </span>
-                <div className="mt-1 grid grid-cols-3 gap-2">
+                <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-3">
                   <div className="flex flex-col">
                     <span className="text-xs uppercase tracking-wider text-foreground/70">
                       Low
@@ -1457,7 +1439,6 @@ export function DecarbTab() {
         )}
 
       {/* Reaction Coordinate visualization (chemistry-forward wow moment) */}
-
 
       {/* Timer Widget (flower mode only) */}
       {!isConcentrate && <TimerWidget />}

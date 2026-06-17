@@ -14,6 +14,16 @@ export type TabId =
   | 'dashboard'
   | 'quickbatch'
 
+export type StartupIntent =
+  | 'make_batch'
+  | 'resume_repeat'
+  | 'history_learn'
+  | 'manual_calculator'
+
+export type StartupConfidence = 'low' | 'medium' | 'high'
+
+export type AdvancedToolSubTab = 'fats' | 'concentrate' | 'blending' | 'cost'
+
 export type Theme = 'dark' | 'light'
 
 export interface UnitPreferences {
@@ -63,6 +73,51 @@ export interface DoseState {
   reverseMode: boolean
   /** Desired mg per serving (reverse mode) */
   desiredMgPerServing: string
+}
+
+export interface AdvancedConcentrateState {
+  concentrateTypeId: string
+  weight: string
+  thcaOverride: string
+  thcOverride: string
+  customEff: string
+}
+
+export interface AdvancedBlendStrain {
+  name: string
+  potency: number
+}
+
+export interface AdvancedBlendingState {
+  strains: AdvancedBlendStrain[]
+  targetWeight: string
+  targetPotency: string
+}
+
+export interface AdvancedCostState {
+  materialCost: string
+  weightG: string
+  thcaPct: string
+  thcPct: string
+  extractionEff: string
+  targetDose: string
+  servings: string
+}
+
+export interface AdvancedToolsState {
+  subTab: AdvancedToolSubTab
+  concentrate: AdvancedConcentrateState
+  blending: AdvancedBlendingState
+  cost: AdvancedCostState
+}
+
+export interface StartupRoutingState {
+  launchCount: number
+  chooserShownCount: number
+  lastChooserIntent: StartupIntent | null
+  lastSuccessfulIntent: StartupIntent | null
+  lastSuccessfulTab: TabId | null
+  successCounts: Record<StartupIntent, number>
 }
 
 export interface LabelState {
@@ -142,7 +197,7 @@ export interface TimerState {
   methodName: string
 }
 
-const DEFAULT_DECARB: DecarbState = {
+export const DEFAULT_DECARB: DecarbState = {
   weight: '3.5',
   thcaPct: '20',
   thcPct: '0',
@@ -165,14 +220,14 @@ const DEFAULT_DECARB: DecarbState = {
   concentrateTypeId: 'wax',
 }
 
-const DEFAULT_INFUSION: InfusionState = {
+export const DEFAULT_INFUSION: InfusionState = {
   decarbedThc: '',
   volume: '100',
   fatId: 'coconut',
   customEfficiency: '0.82',
 }
 
-const DEFAULT_DOSE: DoseState = {
+export const DEFAULT_DOSE: DoseState = {
   totalThc: '',
   servings: '10',
   formatId: 'custom',
@@ -180,9 +235,58 @@ const DEFAULT_DOSE: DoseState = {
   desiredMgPerServing: '10',
 }
 
+export const DEFAULT_ADVANCED_TOOLS: AdvancedToolsState = {
+  subTab: 'fats',
+  concentrate: {
+    concentrateTypeId: 'wax',
+    weight: '1.0',
+    thcaOverride: '',
+    thcOverride: '',
+    customEff: '',
+  },
+  blending: {
+    strains: [
+      { name: 'Strain A', potency: 18 },
+      { name: 'Strain B', potency: 25 },
+    ],
+    targetWeight: '10',
+    targetPotency: '20',
+  },
+  cost: {
+    materialCost: '50',
+    weightG: '3.5',
+    thcaPct: '20',
+    thcPct: '0',
+    extractionEff: '0.82',
+    targetDose: '10',
+    servings: '',
+  },
+}
+
+export const DEFAULT_STARTUP_ROUTING: StartupRoutingState = {
+  launchCount: 0,
+  chooserShownCount: 0,
+  lastChooserIntent: null,
+  lastSuccessfulIntent: null,
+  lastSuccessfulTab: null,
+  successCounts: {
+    make_batch: 0,
+    resume_repeat: 0,
+    history_learn: 0,
+    manual_calculator: 0,
+  },
+}
+
 interface AppStore {
   activeTab: TabId
   setActiveTab: (tab: TabId) => void
+
+  // Startup routing note:
+  // `activeTab` is not a strong signal for launch routing by itself. The next
+  // startup system should prefer a tiny intent chooser first, then graduate to
+  // a persisted "last successful path" heuristic based on completed outcomes
+  // like saved batches, resumed work, or journal/log actions. Do not treat
+  // "last tab clicked" as equivalent to "best launch destination".
 
   theme: Theme
   setTheme: (theme: Theme) => void
@@ -202,6 +306,19 @@ interface AppStore {
   dose: DoseState
   setDose: (partial: Partial<DoseState>) => void
   resetDose: () => void
+
+  advancedTools: AdvancedToolsState
+  setAdvancedSubTab: (subTab: AdvancedToolSubTab) => void
+  setAdvancedConcentrate: (partial: Partial<AdvancedConcentrateState>) => void
+  setAdvancedBlending: (partial: Partial<AdvancedBlendingState>) => void
+  setAdvancedCost: (partial: Partial<AdvancedCostState>) => void
+  resetAdvancedTools: () => void
+
+  startupRouting: StartupRoutingState
+  recordStartupLaunch: () => void
+  recordStartupChooserShown: () => void
+  recordStartupIntent: (intent: StartupIntent) => void
+  recordSuccessfulPath: (intent: StartupIntent, tab: TabId) => void
 
   label: LabelState
   setLabel: (partial: Partial<LabelState>) => void
@@ -269,6 +386,11 @@ function nullableStringish(value: unknown): string | null {
 export const useAppStore = create<AppStore>()(
   persist(
     set => ({
+      // Temporary default only. Product direction should replace this static
+      // boot target with:
+      // 1. First run -> First-Timer Guide with Quick Batch underneath
+      // 2. Low-confidence return -> tiny startup chooser (Make / Resume / History)
+      // 3. High-confidence return -> persisted last-successful-path routing
       activeTab: 'decarb',
       setActiveTab: tab => set({ activeTab: tab }),
 
@@ -300,6 +422,81 @@ export const useAppStore = create<AppStore>()(
       setDose: partial =>
         set(state => ({ dose: { ...state.dose, ...partial } })),
       resetDose: () => set({ dose: { ...DEFAULT_DOSE } }),
+
+      advancedTools: { ...DEFAULT_ADVANCED_TOOLS },
+      setAdvancedSubTab: subTab =>
+        set(state => ({
+          advancedTools: { ...state.advancedTools, subTab },
+        })),
+      setAdvancedConcentrate: partial =>
+        set(state => ({
+          advancedTools: {
+            ...state.advancedTools,
+            concentrate: {
+              ...state.advancedTools.concentrate,
+              ...partial,
+            },
+          },
+        })),
+      setAdvancedBlending: partial =>
+        set(state => ({
+          advancedTools: {
+            ...state.advancedTools,
+            blending: {
+              ...state.advancedTools.blending,
+              ...partial,
+            },
+          },
+        })),
+      setAdvancedCost: partial =>
+        set(state => ({
+          advancedTools: {
+            ...state.advancedTools,
+            cost: {
+              ...state.advancedTools.cost,
+              ...partial,
+            },
+          },
+        })),
+      resetAdvancedTools: () =>
+        set({
+          advancedTools: { ...DEFAULT_ADVANCED_TOOLS },
+        }),
+
+      startupRouting: { ...DEFAULT_STARTUP_ROUTING },
+      recordStartupLaunch: () =>
+        set(state => ({
+          startupRouting: {
+            ...state.startupRouting,
+            launchCount: state.startupRouting.launchCount + 1,
+          },
+        })),
+      recordStartupChooserShown: () =>
+        set(state => ({
+          startupRouting: {
+            ...state.startupRouting,
+            chooserShownCount: state.startupRouting.chooserShownCount + 1,
+          },
+        })),
+      recordStartupIntent: intent =>
+        set(state => ({
+          startupRouting: {
+            ...state.startupRouting,
+            lastChooserIntent: intent,
+          },
+        })),
+      recordSuccessfulPath: (intent, tab) =>
+        set(state => ({
+          startupRouting: {
+            ...state.startupRouting,
+            lastSuccessfulIntent: intent,
+            lastSuccessfulTab: tab,
+            successCounts: {
+              ...state.startupRouting.successCounts,
+              [intent]: state.startupRouting.successCounts[intent] + 1,
+            },
+          },
+        })),
 
       label: { ...DEFAULT_LABEL },
       setLabel: partial =>
@@ -509,6 +706,16 @@ export const useAppStore = create<AppStore>()(
     {
       name: 'cannabis-chem-units',
       partialize: state => ({
+        // `activeTab` is intentionally not persisted today because raw tab
+        // persistence would replay accidental visits and stale routes. When the
+        // startup heuristic is implemented, persist explicit routing signals
+        // instead: chooser intent, resume target, last successful path, and
+        // confidence metadata.
+        decarb: state.decarb,
+        infusion: state.infusion,
+        dose: state.dose,
+        advancedTools: state.advancedTools,
+        startupRouting: state.startupRouting,
         units: state.units,
         theme: state.theme,
         label: state.label,

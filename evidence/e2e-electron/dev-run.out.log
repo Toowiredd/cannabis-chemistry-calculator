@@ -1,0 +1,127 @@
+
+> cannabis-chemistry-calculator@1.0.0 predev C:\Users\LEWIS\ccc\cannabis_chemistry_calculator
+> run-s clean:dev
+
+
+> cannabis-chemistry-calculator@1.0.0 clean:dev C:\Users\LEWIS\ccc\cannabis_chemistry_calculator
+> rimraf ./node_modules/.dev
+
+
+> cannabis-chemistry-calculator@1.0.0 dev C:\Users\LEWIS\ccc\cannabis_chemistry_calculator
+> cross-env NODE_ENV=development electron-vite dev --watch
+
+[36mvite v7.3.2 [32mbuilding ssr environment for es2022...[36m[39m
+[36m
+watching for file changes...[39m
+[36m
+build started...[39m
+transforming...
+[32m✓[39m 12 modules transformed.
+rendering chunks...
+[2mnode_modules/.dev/main/[22m[36mindex.mjs  [39m[1m[2m12.72 kB[22m[1m[22m
+[36mbuilt in 150ms.[39m
+[32m
+build the electron main process successfully[39m
+[90m
+-----
+[39m
+[36mvite v7.3.2 [32mbuilding ssr environment for es2022...[36m[39m
+[36m
+watching for file changes...[39m
+[36m
+build started...[39m
+transforming...
+[32m✓[39m 1 modules transformed.
+rendering chunks...
+[2mnode_modules/.dev/preload/[22m[36mindex.js  [39m[1m[2m1.15 kB[22m[1m[22m
+[36mbuilt in 12ms.[39m
+[32m
+build the electron preload files successfully[39m
+[90m
+-----
+[39m
+[32mdev server running for the electron renderer process at:
+[39m
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m4927[22m/[39m
+[2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+[32m
+start electron app...
+[39m
+
+
+React Developer Tools loaded!
+
+[2m8:32:37 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mindex.html[22m
+[2m8:32:37 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css[22m
+[2m8:35:19 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/JournalTab.tsx[22m
+[2m8:37:22 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mindex.html[22m
+[2m8:51:37 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/components/InputRow.tsx[22m
+[2m8:51:37 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/components/TooltipIcon.tsx[22m
+[2m8:51:37 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/components/PresetActions.tsx[22m
+[2m8:51:37 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/screens/main.tsx, /globals.css[22m
+[2m8:51:37 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/AdvancedToolsTab.tsx[22m
+[2m8:51:37 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/components/TitleBar.tsx[22m
+[2m8:51:37 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css[22m
+[2m8:53:41 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/screens/main.tsx, /globals.css[22m
+[2m9:00:57 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/QuickBatchTab.tsx[22m
+[2m9:00:57 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/DecarbTab.tsx[22m
+[2m9:00:57 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/InfusionTab.tsx[22m
+[2m9:00:57 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/DoseTab.tsx[22m
+[2m9:02:21 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/components/TabActions.tsx[22m
+[2m9:02:21 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/components/UnitToggle.tsx[22m
+[2m9:02:21 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/DashboardTab.tsx[22m
+[2m9:02:21 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/components/LabelGenerator.tsx[22m
+[2m9:02:21 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/KnowledgeTab.tsx[22m
+[2m9:02:21 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/JournalTab.tsx[22m
+[2m9:02:21 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/MethodsTab.tsx[22m
+[2m9:07:42 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/QuickBatchTab.tsx[22m
+[2m9:08:32 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/DoseTab.tsx[22m
+[2m9:08:40 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/DashboardTab.tsx[22m
+[2m9:08:40 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/MethodsTab.tsx[22m
+[2m9:08:40 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/JournalTab.tsx[22m
+[2m9:08:40 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/KnowledgeTab.tsx[22m
+[2m9:08:40 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/DoseTab.tsx[22m
+[2m9:08:54 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/InfusionTab.tsx[22m
+[2m9:09:13 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/components/TooltipIcon.tsx[22m
+[2m9:09:13 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/components/InputRow.tsx[22m
+[2m9:09:13 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/components/PresetActions.tsx[22m
+[2m9:09:13 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/components/TabActions.tsx[22m
+[2m9:09:13 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/components/UnitToggle.tsx[22m
+[2m9:09:13 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/components/TitleBar.tsx[22m
+[2m9:09:13 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/components/Toast.tsx[22m
+[2m9:09:13 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/components/LabelGenerator.tsx[22m
+[2m9:09:16 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/DecarbTab.tsx[22m
+[2m9:09:46 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/components/SwipeDeck.tsx[22m
+[2m9:09:47 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [33mhmr invalidate [39m[2m/src/components/SwipeDeck.tsx[22m Could not Fast Refresh ("WORKFLOW_LABELS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m9:09:47 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/screens/main.tsx[22m
+[2m9:11:58 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/components/Timer.tsx[22m
+[2m9:13:05 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/QuickBatchTab.tsx[22m
+[2m9:42:06 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/DecarbTab.tsx[22m
+[2m9:42:11 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/InfusionTab.tsx[22m
+[2m9:42:18 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/DoseTab.tsx[22m
+[2m9:42:34 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/globals.css, /src/tabs/JournalTab.tsx[22m
+[2m9:43:37 am[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/TabActions.tsx[22m
+[36m
+build started...[39m
+[36m
+build started...[39m
+[32m✓[39m 0 modules transformed.
+[2mnode_modules/.dev/preload/[22m[36mindex.js  [39m[1m[2m1.15 kB[22m[1m[22m
+[36mbuilt in 303ms.[39m
+[32m
+rebuild the electron preload files successfully[39m
+[36m
+  trigger renderer reload[39m
+[32m✓[39m 1 modules transformed.
+[2mnode_modules/.dev/main/[22m[36mindex.mjs  [39m[1m[2m12.72 kB[22m[1m[22m
+[36mbuilt in 435ms.[39m
+[32m
+rebuild the electron main process successfully[39m
+[36m
+  waiting for electron to exit...[39m
+[32m
+restart electron app...[39m
+
+
+React Developer Tools loaded!
+

@@ -354,29 +354,31 @@ export function DashboardTab() {
     icon: React.ReactNode
     accentClass?: string
   }) => (
-    <div className="flex flex-col gap-2 rounded-2xl border border-foreground/10 bg-foreground/5 p-4">
+    <div className="flex min-w-0 flex-col gap-2 rounded-2xl border border-foreground/10 bg-foreground/5 p-4">
       <div className="flex items-center gap-2">
         <span
           className={cn(
-            'flex h-7 w-7 items-center justify-center rounded-lg',
+            'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
             accentClass || 'bg-foreground/5'
           )}
         >
           {icon}
         </span>
-        <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
+        <span className="min-w-0 text-xs font-medium uppercase tracking-wider text-foreground/70">
           {label}
         </span>
       </div>
-      <span className="text-2xl font-bold text-foreground">{value}</span>
+      <span className="break-words text-2xl font-bold leading-tight text-foreground">
+        {value}
+      </span>
     </div>
   )
 
   return (
-    <div className="flex flex-col gap-5 p-4">
+    <div className="flex min-w-0 flex-col gap-5 p-2 sm:p-4">
       {/* Title */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
           <LayoutDashboard className="size-5 text-foreground/70" />
           <h2 className="text-xl font-semibold text-foreground">Dashboard</h2>
         </div>
@@ -384,13 +386,13 @@ export function DashboardTab() {
 
       {/* Low-stock alert */}
       {inventoryTotals.lowStock && (
-        <div className="flex items-center gap-3 rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3">
+        <div className="flex min-w-0 items-start gap-3 rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 sm:items-center">
           <AlertTriangle className="size-5 shrink-0 text-warning" />
-          <div className="flex flex-col">
+          <div className="flex min-w-0 flex-col">
             <span className="text-sm font-semibold text-warning">
               Low Stock Alert
             </span>
-            <span className="text-xs text-warning/70">
+            <span className="break-words text-xs text-warning/70">
               Material on hand ({fmt1(inventoryTotals.onHand)} g) is below the
               threshold of {fmt1(inventoryTotals.threshold)} g.
             </span>
@@ -399,7 +401,7 @@ export function DashboardTab() {
       )}
 
       {/* Primary stats */}
-      <div className="grid grid-cols-2 gap-5 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
           accentClass="bg-success/10"
           icon={<BarChart3 className="size-4 text-success" />}
@@ -441,6 +443,8 @@ export function DashboardTab() {
       {/* More Stats toggle */}
       <button
         className="flex w-full items-center justify-between rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+        aria-controls="dashboard-secondary-stats"
+        aria-expanded={showMoreStats}
         onClick={() => setShowMoreStats(v => !v)}
         type="button"
       >
@@ -454,7 +458,10 @@ export function DashboardTab() {
 
       {/* Secondary stats */}
       {showMoreStats && (
-        <div className="grid grid-cols-2 gap-5 lg:grid-cols-3">
+        <div
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          id="dashboard-secondary-stats"
+        >
           <StatCard
             accentClass="bg-warning/10"
             icon={<TrendingUp className="size-4 text-warning" />}
@@ -503,8 +510,8 @@ export function DashboardTab() {
       )}
 
       {/* Charts */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div className="flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-3 overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
           <div className="flex items-center gap-2">
             <BarChart3 className="size-4 text-foreground/70" />
             <h3 className="text-sm font-semibold text-foreground/70">
@@ -520,7 +527,7 @@ export function DashboardTab() {
           )}
         </div>
 
-        <div className="flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
+        <div className="flex min-w-0 flex-col gap-3 overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
           <div className="flex items-center gap-2">
             <PieChart className="size-4 text-foreground/70" />
             <h3 className="text-sm font-semibold text-foreground/70">
@@ -536,7 +543,7 @@ export function DashboardTab() {
           )}
         </div>
 
-        <div className="flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
+        <div className="flex min-w-0 flex-col gap-3 overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
           <div className="flex items-center gap-2">
             <TrendingUp className="size-4 text-foreground/70" />
             <h3 className="text-sm font-semibold text-foreground/70">

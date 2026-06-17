@@ -211,7 +211,7 @@ export function FatsTab() {
   /* Render helpers                                                   */
   /* ---------------------------------------------------------------- */
 
-    /* ---------------------------------------------------------------- */
+  /* ---------------------------------------------------------------- */
   /* Render                                                           */
   /* ---------------------------------------------------------------- */
 
@@ -248,53 +248,67 @@ export function FatsTab() {
         </h3>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    <InputRow label={<>
-              Decarbed THC
-              <TooltipIcon text="Total decarboxylated THC in milligrams available for infusion. Use the output from the Decarb calculator." />
-            </>} error={fieldErrors.decarbedThc}>
-            {<div className="flex items-center gap-2">
-              <input
-                className={cn(
-                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                  fieldErrors.decarbedThc
-                    ? 'border-danger/60 focus:border-danger'
-                    : 'border-foreground/20 focus:border-foreground/40'
-                )}
-                onChange={e => setInfusion({ decarbedThc: e.target.value })}
-                placeholder="0.0"
-                step="0.1"
-                type="number"
-                value={infusion.decarbedThc}
-              />
-              <span className="text-sm text-foreground/70">mg</span>
-            </div>}
+          <InputRow
+            error={fieldErrors.decarbedThc}
+            label={
+              <>
+                Decarbed THC
+                <TooltipIcon text="Total decarboxylated THC in milligrams available for infusion. Use the output from the Decarb calculator." />
+              </>
+            }
+          >
+            {
+              <div className="flex items-center gap-2">
+                <input
+                  className={cn(
+                    'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                    fieldErrors.decarbedThc
+                      ? 'border-danger/60 focus:border-danger'
+                      : 'border-foreground/20 focus:border-foreground/40'
+                  )}
+                  onChange={e => setInfusion({ decarbedThc: e.target.value })}
+                  placeholder="0.0"
+                  step="0.1"
+                  type="number"
+                  value={infusion.decarbedThc}
+                />
+                <span className="text-sm text-foreground/70">mg</span>
+              </div>
+            }
           </InputRow>
 
           {/* Custom efficiency in shared panel for easy override */}
-                    <InputRow label={<>
-              Custom Fat Efficiency
-              <TooltipIcon text="Extraction efficiency for the custom fat. Adjust this to compare custom fats against presets." />
-            </>} error={fieldErrors.customEfficiency}>
-            {<div className="flex items-center gap-2">
-              <input
-                className={cn(
-                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                  fieldErrors.customEfficiency
-                    ? 'border-danger/60 focus:border-danger'
-                    : 'border-warning/60 focus:border-warning'
-                )}
-                max={1}
-                min={0}
-                onChange={e =>
-                  setInfusion({ customEfficiency: e.target.value })
-                }
-                placeholder="0.00"
-                step="0.01"
-                type="number"
-                value={infusion.customEfficiency}
-              />
-              <span className="text-sm text-foreground/70">ratio</span>
-            </div>}
+          <InputRow
+            error={fieldErrors.customEfficiency}
+            label={
+              <>
+                Custom Fat Efficiency
+                <TooltipIcon text="Extraction efficiency for the custom fat. Adjust this to compare custom fats against presets." />
+              </>
+            }
+          >
+            {
+              <div className="flex items-center gap-2">
+                <input
+                  className={cn(
+                    'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                    fieldErrors.customEfficiency
+                      ? 'border-danger/60 focus:border-danger'
+                      : 'border-warning/60 focus:border-warning'
+                  )}
+                  max={1}
+                  min={0}
+                  onChange={e =>
+                    setInfusion({ customEfficiency: e.target.value })
+                  }
+                  placeholder="0.00"
+                  step="0.01"
+                  type="number"
+                  value={infusion.customEfficiency}
+                />
+                <span className="text-sm text-foreground/70">ratio</span>
+              </div>
+            }
           </InputRow>
         </div>
       </div>

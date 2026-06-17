@@ -7,15 +7,18 @@ export function GlassCard({
   children,
   className,
   variant = 'glass-strong',
+  hover = false,
 }: {
   children: ReactNode
   className?: string
   variant?: GlassCardVariant
+  hover?: boolean
 }) {
   return (
     <div
       className={cn(
-        'rounded-2xl p-6',
+        'min-w-0 rounded-2xl p-4 sm:p-6',
+        hover && 'card-hover',
         variant === 'glass' && 'glass',
         variant === 'glass-strong' && 'glass-strong',
         variant === 'glass-xl' && 'glass-xl',

@@ -84,6 +84,7 @@ export function SwipeDeck({ children, className }: SwipeDeckProps) {
   const activeIdx = workflowIndex(activeTab)
 
   const [reducedMotion, setReducedMotion] = useState(false)
+  const [compactDeck, setCompactDeck] = useState(false)
   const [wheelAccum, setWheelAccum] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
 
@@ -109,6 +110,15 @@ export function SwipeDeck({ children, className }: SwipeDeckProps) {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
     setReducedMotion(mq.matches)
     const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  /* Avoid clipped 3D previews on phone-width workflow panes. */
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)')
+    setCompactDeck(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setCompactDeck(e.matches)
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
   }, [])
@@ -288,6 +298,18 @@ export function SwipeDeck({ children, className }: SwipeDeckProps) {
       let opacity = 1
       let scale = 1
 
+      if (compactDeck && dist !== 0) {
+        return {
+          transform: `translateX(${dist < 0 ? '-105%' : '105%'}) scale(0.98)`,
+          opacity: 0,
+          zIndex: 10 - absDist,
+          transition: isTransitioning
+            ? `transform ${TRANSITION_DURATION}ms cubic-bezier(0.16, 1, 0.3, 1), opacity ${TRANSITION_DURATION}ms cubic-bezier(0.16, 1, 0.3, 1)`
+            : undefined,
+          pointerEvents: 'none',
+        }
+      }
+
       if (dist < 0) {
         rotateY = 45
         translateZ = -200
@@ -303,7 +325,9 @@ export function SwipeDeck({ children, className }: SwipeDeckProps) {
       }
 
       return {
-        transform: `perspective(1200px) rotateY(${rotateY}deg) translateZ(${translateZ}px) translateX(${translateX}) scale(${scale})`,
+        transform: compactDeck
+          ? 'translateX(0) scale(1)'
+          : `perspective(1200px) rotateY(${rotateY}deg) translateZ(${translateZ}px) translateX(${translateX}) scale(${scale})`,
         opacity,
         zIndex: 10 - absDist,
         transition: isTransitioning
@@ -312,7 +336,7 @@ export function SwipeDeck({ children, className }: SwipeDeckProps) {
         pointerEvents: i === activeIdx ? 'auto' : ('none' as const),
       }
     })
-  }, [children.length, activeIdx, reducedMotion, isTransitioning])
+  }, [children.length, activeIdx, reducedMotion, compactDeck, isTransitioning])
 
   /* ---------------------------------------------------------------- */
   /* Render                                                           */
@@ -364,7 +388,7 @@ export function SwipeDeck({ children, className }: SwipeDeckProps) {
       </div>
 
       {/* Active tab indicator dots */}
-      <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full bg-foreground/5 px-3 py-1.5 backdrop-blur-sm">
+      <div className="absolute bottom-2 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full bg-foreground/5 px-3 py-1.5 backdrop-blur-sm sm:bottom-4">
         {WORKFLOW_TABS.map((tab, i) => (
           <button
             aria-label={WORKFLOW_LABELS[tab]}
@@ -385,7 +409,7 @@ export function SwipeDeck({ children, className }: SwipeDeckProps) {
       </div>
 
       {/* Edge hover zones (ghost previews) */}
-      {!reducedMotion && activeIdx > 0 && (
+      {!reducedMotion && !compactDeck && activeIdx > 0 && (
         <div
           aria-hidden="true"
           className="absolute left-0 top-0 z-10 h-full w-[5%] opacity-0 transition-opacity duration-200 hover:opacity-100"
@@ -399,7 +423,7 @@ export function SwipeDeck({ children, className }: SwipeDeckProps) {
           </div>
         </div>
       )}
-      {!reducedMotion && activeIdx < WORKFLOW_TABS.length - 1 && (
+      {!reducedMotion && !compactDeck && activeIdx < WORKFLOW_TABS.length - 1 && (
         <div
           aria-hidden="true"
           className="absolute right-0 top-0 z-10 h-full w-[5%] opacity-0 transition-opacity duration-200 hover:opacity-100"

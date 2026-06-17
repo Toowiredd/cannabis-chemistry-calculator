@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { Save, FolderOpen } from 'lucide-react'
-import { Toast } from './Toast'
+import { Toast, type ToastVariant } from './Toast'
 
 export function PresetActions() {
-  /* Fine-grained Zustand selectors to avoid unnecessary re-renders */
   const units = useAppStore(s => s.units)
   const decarb = useAppStore(s => s.decarb)
   const infusion = useAppStore(s => s.infusion)
@@ -16,22 +15,39 @@ export function PresetActions() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [toastVisible, setToastVisible] = useState(false)
+  const [toastVariant, setToastVariant] = useState<ToastVariant>('default')
   const saveInputRef = useRef<HTMLInputElement>(null)
 
-  const showToast = useCallback((msg: string) => {
-    setToastMsg(msg)
-    setToastVisible(true)
-    setTimeout(() => setToastVisible(false), 2000)
-  }, [])
+  const showToast = useCallback(
+    (msg: string, variant: ToastVariant = 'default') => {
+      setToastMsg(msg)
+      setToastVariant(variant)
+      setToastVisible(true)
+      setTimeout(() => setToastVisible(false), 2200)
+    },
+    []
+  )
 
-  /* Auto-focus input when save modal opens */
   useEffect(() => {
     if (showSaveModal && saveInputRef.current) {
       saveInputRef.current.focus()
     }
   }, [showSaveModal])
 
-  const buildPresetPayload = useCallback((): Record<string, unknown> => {
+  useEffect(() => {
+    if (!showSaveModal) return
+
+    const handleWindowKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        handleSaveCancel()
+      }
+    }
+
+    window.addEventListener('keydown', handleWindowKeyDown)
+    return () => window.removeEventListener('keydown', handleWindowKeyDown)
+  }, [showSaveModal])
+
+  const buildPresetPayload = useCallback(() => {
     return {
       units: { ...units },
       tabs: {
@@ -77,18 +93,15 @@ export function PresetActions() {
   const handleSaveConfirm = async () => {
     const name = saveName.trim()
     if (!name) return
-
     setSaveError(null)
-
     try {
       const result = await window.App.savePreset({
         name,
         presetData: buildPresetPayload(),
       })
-
       if (result.success) {
         setShowSaveModal(false)
-        showToast(`Preset saved: ${name}`)
+        showToast(`Preset saved: ${name}`, 'success')
       } else {
         setSaveError(result.error || 'Could not save')
       }
@@ -106,22 +119,19 @@ export function PresetActions() {
   const handleLoadClick = async () => {
     try {
       const result = await window.App.loadPresetDialog()
-
       if (result.canceled) return
-
       if (!result.success) {
-        showToast(result.error || 'Could not load')
+        showToast(result.error || 'Could not load', 'danger')
         return
       }
-
       if (result.data) {
         loadFromPreset(result.data)
         const name =
           typeof result.data.name === 'string' ? result.data.name : 'Unnamed'
-        showToast(`Preset loaded: ${name}`)
+        showToast(`Preset loaded: ${name}`, 'success')
       }
     } catch {
-      showToast('Could not load')
+      showToast('Could not load', 'danger')
     }
   }
 
@@ -129,33 +139,43 @@ export function PresetActions() {
 
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         <button
-          className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+          aria-label="Save preset"
+          className="btn-primary"
           onClick={handleSaveClick}
+          title="Save preset"
           type="button"
         >
-          <Save className="size-3.5" />
-          Save Preset
+          <Save aria-hidden="true" className="size-3.5" />
+          <span className="hidden md:inline">Save Preset</span>
         </button>
         <button
-          className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+          aria-label="Load preset"
+          className="btn-secondary"
           onClick={handleLoadClick}
+          title="Load preset"
           type="button"
         >
-          <FolderOpen className="size-3.5" />
-          Load Preset
+          <FolderOpen aria-hidden="true" className="size-3.5" />
+          <span className="hidden md:inline">Load Preset</span>
         </button>
       </div>
 
-      {/* Save Modal */}
       {showSaveModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-foreground/60 backdrop-blur-sm">
-          <div className="glass-strong w-full max-w-sm rounded-2xl border border-foreground/20 p-6 shadow-2xl">
-            <h3 className="mb-4 text-base font-semibold text-foreground">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-foreground/60 p-3 backdrop-blur-sm">
+          <div
+            aria-labelledby="save-preset-title"
+            aria-modal="true"
+            className="glass-strong glass-shine w-full max-w-sm rounded-2xl border border-foreground/20 p-5 shadow-2xl sm:p-6"
+            role="dialog"
+          >
+            <h3
+              className="mb-4 text-base font-semibold text-foreground"
+              id="save-preset-title"
+            >
               Save Preset
             </h3>
-
             <label
               className="mb-1 block text-sm font-medium text-foreground/80"
               htmlFor="preset-name"
@@ -163,6 +183,8 @@ export function PresetActions() {
               Preset Name
             </label>
             <input
+              aria-describedby={saveError ? 'preset-name-error' : undefined}
+              aria-invalid={saveError ? 'true' : undefined}
               className="w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
               id="preset-name"
               onChange={e => {
@@ -182,21 +204,25 @@ export function PresetActions() {
               type="text"
               value={saveName}
             />
-
             {saveError && (
-              <p className="mt-2 text-xs text-danger">{saveError}</p>
+              <p
+                className="mt-2 text-xs text-danger"
+                id="preset-name-error"
+                role="alert"
+              >
+                {saveError}
+              </p>
             )}
-
             <div className="mt-5 flex items-center justify-end gap-2">
               <button
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-4 py-2 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                className="btn-secondary"
                 onClick={handleSaveCancel}
                 type="button"
               >
                 Cancel
               </button>
               <button
-                className="rounded-lg bg-foreground/15 px-4 py-2 text-xs font-medium text-foreground transition-colors hover:bg-foreground/25 disabled:cursor-not-allowed disabled:opacity-40"
+                className="btn-primary"
                 disabled={isSaveDisabled}
                 onClick={handleSaveConfirm}
                 type="button"
@@ -208,7 +234,7 @@ export function PresetActions() {
         </div>
       )}
 
-      <Toast message={toastMsg} visible={toastVisible} />
+      <Toast message={toastMsg} variant={toastVariant} visible={toastVisible} />
     </>
   )
 }

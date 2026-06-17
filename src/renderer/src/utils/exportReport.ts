@@ -1,16 +1,32 @@
 import type {
+  AdvancedToolsState,
   DecarbState,
   InfusionState,
   DoseState,
   UnitPreferences,
 } from 'renderer/src/stores/appStore'
 import { DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
+import {
+  CONCENTRATE_TYPES,
+  calculateConcentrateDecarbedThc,
+  calculateConcentrateTheoreticalMax,
+} from 'renderer/src/engine/concentrate'
+import { calculateBlend } from 'renderer/src/engine/blend'
+import {
+  calculateCostPerDose,
+  compareMethodCosts,
+} from 'renderer/src/engine/costAnalysis'
 import { cToF, ozToG } from 'renderer/src/engine/units'
 import { version as appVersion } from '~/package.json'
 
 function fmt1(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return ''
   return value.toFixed(1)
+}
+
+function fmt2(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return ''
+  return value.toFixed(2)
 }
 
 function displayDate(): string {
@@ -357,6 +373,261 @@ function fatsSummary(
   return { text: lines.join('\n'), data }
 }
 
+function concentrateSummary(state: AdvancedToolsState['concentrate']): {
+  text: string
+  data: Record<string, unknown>
+} {
+  const preset =
+    CONCENTRATE_TYPES.find(c => c.id === state.concentrateTypeId) ??
+    CONCENTRATE_TYPES[0]
+  const thcaPct = state.thcaOverride.trim()
+    ? parseFloat(state.thcaOverride)
+    : preset.typicalThcaPct
+  const thcPct = state.thcOverride.trim()
+    ? parseFloat(state.thcOverride)
+    : preset.typicalThcPct
+  const customEff = state.customEff.trim() ? parseFloat(state.customEff) : null
+
+  let theoreticalMax: number | null = null
+  let decarbed: number | null = null
+  let range: { low: number; expected: number; high: number } | null = null
+  let needsDecarb = preset.needsDecarb
+
+  try {
+    const weight = parseFloat(state.weight)
+    if (!Number.isNaN(weight) && weight > 0) {
+      theoreticalMax = calculateConcentrateTheoreticalMax(
+        weight,
+        thcaPct,
+        thcPct
+      )
+      if (preset.needsDecarb) {
+        const expectedEff = customEff ?? preset.decarbEfficiency.expected
+        decarbed = calculateConcentrateDecarbedThc(theoreticalMax, expectedEff)
+        range = {
+          low: calculateConcentrateDecarbedThc(
+            theoreticalMax,
+            preset.decarbEfficiency.low
+          ),
+          expected: calculateConcentrateDecarbedThc(
+            theoreticalMax,
+            preset.decarbEfficiency.expected
+          ),
+          high: calculateConcentrateDecarbedThc(
+            theoreticalMax,
+            preset.decarbEfficiency.high
+          ),
+        }
+      } else {
+        decarbed = theoreticalMax
+        range = {
+          low: theoreticalMax,
+          expected: theoreticalMax,
+          high: theoreticalMax,
+        }
+      }
+    }
+  } catch {
+    theoreticalMax = null
+    decarbed = null
+    range = null
+    needsDecarb = preset.needsDecarb
+  }
+
+  const lines: string[] = []
+  lines.push('--- Advanced Tools: Concentrates ---')
+  lines.push(`Type: ${preset.name}`)
+  lines.push(`Weight: ${state.weight} g`)
+  lines.push(`THCA: ${fmt1(thcaPct)}%`)
+  lines.push(`Existing THC: ${fmt1(thcPct)}%`)
+  lines.push(
+    `Decarb: ${needsDecarb ? `Required (${preset.decarbGuidance})` : `Not required (${preset.decarbGuidance})`}`
+  )
+  if (customEff != null) {
+    lines.push(`Efficiency Override: ${fmt1(customEff)}`)
+  }
+  if (theoreticalMax != null && decarbed != null && range != null) {
+    lines.push(`Theoretical Maximum: ${fmt1(theoreticalMax)} mg`)
+    lines.push(
+      needsDecarb
+        ? `Post-Decarb THC: ${fmt1(decarbed)} mg (range ${fmt1(range.low)}-${fmt1(range.high)} mg)`
+        : `Active THC: ${fmt1(decarbed)} mg`
+    )
+  } else {
+    lines.push('Theoretical Maximum: --')
+    lines.push('Post-Decarb THC: --')
+  }
+  lines.push('')
+
+  return {
+    text: lines.join('\n'),
+    data: {
+      tab: 'advanced.concentrate',
+      inputs: state,
+      preset: {
+        id: preset.id,
+        name: preset.name,
+        typicalThcaPct: preset.typicalThcaPct,
+        typicalThcPct: preset.typicalThcPct,
+        needsDecarb: preset.needsDecarb,
+        decarbGuidance: preset.decarbGuidance,
+        decarbEfficiency: preset.decarbEfficiency,
+      },
+      outputs: {
+        theoreticalMax,
+        decarbed,
+        range,
+      },
+    },
+  }
+}
+
+function blendingSummary(state: AdvancedToolsState['blending']): {
+  text: string
+  data: Record<string, unknown>
+} {
+  let result: ReturnType<typeof calculateBlend> | null = null
+  let error: string | null = null
+
+  try {
+    const totalWeight = parseFloat(state.targetWeight)
+    const targetPotency = parseFloat(state.targetPotency)
+    if (!Number.isNaN(totalWeight) && totalWeight > 0) {
+      result = calculateBlend(state.strains, totalWeight, targetPotency)
+      if (!result.isAchievable) {
+        const mins = Math.min(...state.strains.map(s => s.potency))
+        const maxs = Math.max(...state.strains.map(s => s.potency))
+        error =
+          `Target ${targetPotency}% is outside range (${mins}%-${maxs}%). ` +
+          `Closest achievable: ${result.actualPotency}%.`
+      }
+    }
+  } catch (err: unknown) {
+    error = err instanceof Error ? err.message : 'Blend failed'
+  }
+
+  const lines: string[] = []
+  lines.push('--- Advanced Tools: Strain Blending ---')
+  lines.push(
+    `Target: ${state.targetWeight} g at ${state.targetPotency}% potency`
+  )
+  lines.push(
+    `Strains: ${state.strains.map(s => `${s.name} (${fmt1(s.potency)}%)`).join(', ')}`
+  )
+  if (result) {
+    lines.push(
+      `Actual Potency: ${fmt1(result.actualPotency)}% for ${fmt1(result.totalWeight)} g`
+    )
+    lines.push(
+      `Blend: ${result.results
+        .filter(entry => entry.weightGrams > 0)
+        .map(entry => `${entry.name} ${fmt1(entry.weightGrams)} g`)
+        .join(', ')}`
+    )
+  } else {
+    lines.push('Actual Potency: --')
+  }
+  if (error) {
+    lines.push(`Note: ${error}`)
+  }
+  lines.push('')
+
+  return {
+    text: lines.join('\n'),
+    data: {
+      tab: 'advanced.blending',
+      inputs: state,
+      outputs: {
+        result,
+        error,
+      },
+    },
+  }
+}
+
+function costSummary(state: AdvancedToolsState['cost']): {
+  text: string
+  data: Record<string, unknown>
+} {
+  const methods = DECARB_METHODS.map(method => ({
+    id: method.id,
+    name: method.name,
+    efficiency: method.efficiency.expected,
+  }))
+
+  let comparison: ReturnType<typeof compareMethodCosts> | null = null
+  let quickCostPerDose: number | null = null
+
+  try {
+    const materialCost = parseFloat(state.materialCost)
+    const weightG = parseFloat(state.weightG)
+    const thcaPct = parseFloat(state.thcaPct)
+    const thcPct = parseFloat(state.thcPct)
+    const extractionEff = parseFloat(state.extractionEff)
+    const targetDose = parseFloat(state.targetDose)
+    if (
+      !Number.isNaN(materialCost) &&
+      !Number.isNaN(weightG) &&
+      !Number.isNaN(thcaPct) &&
+      !Number.isNaN(extractionEff) &&
+      !Number.isNaN(targetDose) &&
+      weightG > 0 &&
+      targetDose > 0
+    ) {
+      comparison = compareMethodCosts(
+        materialCost,
+        weightG,
+        thcaPct,
+        thcPct,
+        methods,
+        extractionEff,
+        targetDose
+      )
+      const servings = parseFloat(state.servings)
+      if (!Number.isNaN(servings) && servings > 0) {
+        quickCostPerDose = calculateCostPerDose(materialCost, servings)
+      }
+    }
+  } catch {
+    comparison = null
+    quickCostPerDose = null
+  }
+
+  const cheapest = comparison?.find(entry => !entry.zeroYield) ?? null
+
+  const lines: string[] = []
+  lines.push('--- Advanced Tools: Cost Analysis ---')
+  lines.push(`Material Cost: $${state.materialCost}`)
+  lines.push(`Weight: ${state.weightG} g`)
+  lines.push(`THCA: ${state.thcaPct}%`)
+  lines.push(`Existing THC: ${state.thcPct}%`)
+  lines.push(`Extraction Efficiency: ${state.extractionEff}`)
+  lines.push(`Target Dose: ${state.targetDose} mg`)
+  if (quickCostPerDose != null) {
+    lines.push(`Quick Cost per Dose: $${fmt2(quickCostPerDose)}`)
+  }
+  if (cheapest) {
+    lines.push(
+      `Cheapest Viable Method: ${cheapest.methodName} at $${fmt2(cheapest.costPerDose)}/dose`
+    )
+  } else {
+    lines.push('Cheapest Viable Method: --')
+  }
+  lines.push('')
+
+  return {
+    text: lines.join('\n'),
+    data: {
+      tab: 'advanced.cost',
+      inputs: state,
+      outputs: {
+        quickCostPerDose,
+        comparison,
+      },
+    },
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Public API                                                         */
 /* ------------------------------------------------------------------ */
@@ -371,6 +642,7 @@ export function buildExportReport(store: {
   decarb: DecarbState
   infusion: InfusionState
   dose: DoseState
+  advancedTools: AdvancedToolsState
   units: UnitPreferences
   activeTab: string
 }): ExportData {
@@ -382,6 +654,9 @@ export function buildExportReport(store: {
   const d = doseSummary(store.dose)
   const m = methodsSummary(store.decarb, store.units)
   const f = fatsSummary(store.infusion, store.units)
+  const concentrate = concentrateSummary(store.advancedTools.concentrate)
+  const blending = blendingSummary(store.advancedTools.blending)
+  const cost = costSummary(store.advancedTools.cost)
 
   const textParts: string[] = []
   textParts.push('============================================================')
@@ -400,6 +675,9 @@ export function buildExportReport(store: {
   textParts.push(d.text)
   textParts.push(m.text)
   textParts.push(f.text)
+  textParts.push(concentrate.text)
+  textParts.push(blending.text)
+  textParts.push(cost.text)
   textParts.push('============================================================')
   textParts.push(' End of Report                                              ')
   textParts.push('============================================================')
@@ -415,6 +693,16 @@ export function buildExportReport(store: {
       dose: d.data,
       methods: m.data,
       fats: f.data,
+      advanced: {
+        tab: 'advanced',
+        activeTool: store.advancedTools.subTab,
+        sections: {
+          fats: f.data,
+          concentrate: concentrate.data,
+          blending: blending.data,
+          cost: cost.data,
+        },
+      },
     },
   }
 
@@ -431,6 +719,7 @@ export function buildTabCopyText(
     decarb: DecarbState
     infusion: InfusionState
     dose: DoseState
+    advancedTools: AdvancedToolsState
     units: UnitPreferences
   }
 ): string {
@@ -443,8 +732,19 @@ export function buildTabCopyText(
       return doseSummary(store.dose).text
     case 'methods':
       return methodsSummary(store.decarb, store.units).text
-    case 'advanced':
-      return fatsSummary(store.infusion, store.units).text
+    case 'advanced': {
+      switch (store.advancedTools.subTab) {
+        case 'fats':
+          return fatsSummary(store.infusion, store.units).text
+        case 'concentrate':
+          return concentrateSummary(store.advancedTools.concentrate).text
+        case 'blending':
+          return blendingSummary(store.advancedTools.blending).text
+        case 'cost':
+          return costSummary(store.advancedTools.cost).text
+      }
+      return 'No data available for this tab.'
+    }
     default:
       return 'No data available for this tab.'
   }

@@ -1,21 +1,29 @@
-import { Fragment, useEffect, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import { cn } from 'renderer/lib/utils'
+import { StartupChooser } from 'renderer/src/components/StartupChooser'
 import { TitleBar } from 'renderer/src/components/TitleBar'
-import { GlassCard } from 'renderer/src/components/GlassCard'
 import { TransformationCanvas } from 'renderer/src/components/TransformationCanvas'
 import { DecarbTab } from 'renderer/src/tabs/DecarbTab'
 import { InfusionTab } from 'renderer/src/tabs/InfusionTab'
 import { DoseTab } from 'renderer/src/tabs/DoseTab'
 import { MethodsTab } from 'renderer/src/tabs/MethodsTab'
-import { FatsTab } from 'renderer/src/tabs/FatsTab'
+import { AdvancedToolsTab } from 'renderer/src/tabs/AdvancedToolsTab'
 import { KnowledgeTab } from 'renderer/src/tabs/KnowledgeTab'
 import { JournalTab } from 'renderer/src/tabs/JournalTab'
 import { DashboardTab } from 'renderer/src/tabs/DashboardTab'
 import { QuickBatchTab } from 'renderer/src/tabs/QuickBatchTab'
 import { FirstTimerGuide } from 'renderer/src/tabs/FirstTimerGuide'
 import { SwipeDeck, WORKFLOW_TABS } from 'renderer/src/components/SwipeDeck'
-import { useAppStore, type TabId } from 'renderer/src/stores/appStore'
-import { BookOpen, Loader2 } from 'lucide-react'
+import {
+  useAppStore,
+  type StartupIntent,
+  type TabId,
+} from 'renderer/src/stores/appStore'
+import {
+  destinationForStartupIntent,
+  evaluateStartupRouting,
+} from 'renderer/src/utils/startupRouting'
+import { BookOpen, Loader2, Route } from 'lucide-react'
 
 const TAB_ITEMS: {
   id: TabId
@@ -28,7 +36,7 @@ const TAB_ITEMS: {
   { id: 'infusion', label: 'Infusion', group: 'calculator' },
   { id: 'dose', label: 'Dose', group: 'calculator' },
   { id: 'methods', label: 'Methods', group: 'reference' },
-  { id: 'advanced', label: 'Fats', group: 'reference' },
+  { id: 'advanced', label: 'Advanced Tools', group: 'reference' },
   { id: 'knowledge', label: 'Knowledge', group: 'reference' },
   { id: 'journal', label: 'Journal', group: 'reference' },
 ]
@@ -97,6 +105,15 @@ export function MainScreen() {
   const activeTab = useAppStore(s => s.activeTab)
   const setActiveTab = useAppStore(s => s.setActiveTab)
   const theme = useAppStore(s => s.theme)
+  const decarb = useAppStore(s => s.decarb)
+  const infusion = useAppStore(s => s.infusion)
+  const dose = useAppStore(s => s.dose)
+  const startupRouting = useAppStore(s => s.startupRouting)
+  const recordStartupLaunch = useAppStore(s => s.recordStartupLaunch)
+  const recordStartupChooserShown = useAppStore(
+    s => s.recordStartupChooserShown
+  )
+  const recordStartupIntent = useAppStore(s => s.recordStartupIntent)
   const firstRunDismissed = useAppStore(s => s.firstRunDismissed)
   const _dismissFirstRun = useAppStore(s => s.dismissFirstRun)
   const _firstTimerOpen = useAppStore(s => s.firstTimerOpen)
@@ -104,6 +121,12 @@ export function MainScreen() {
 
   const [isLoading, setIsLoading] = useState(true)
   const [isExitingLoad, setIsExitingLoad] = useState(false)
+  const [startupChooserOpen, setStartupChooserOpen] = useState(false)
+  const [startupDecision, setStartupDecision] = useState<ReturnType<
+    typeof evaluateStartupRouting
+  > | null>(null)
+  const launchRecordedRef = useRef(false)
+  const startupHandledRef = useRef(false)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -118,6 +141,12 @@ export function MainScreen() {
   }, [theme])
 
   useEffect(() => {
+    if (launchRecordedRef.current) return
+    launchRecordedRef.current = true
+    recordStartupLaunch()
+  }, [recordStartupLaunch])
+
+  useEffect(() => {
     const map: Partial<Record<TabId, string>> = {
       decarb: 'decarb',
       infusion: 'infusion',
@@ -128,42 +157,96 @@ export function MainScreen() {
   }, [activeTab])
 
   useEffect(() => {
+    // Startup routing note:
+    // First-time education is already modal-driven here, but the launch path
+    // underneath is still static. The intended replacement is:
+    // - first run: show First-Timer Guide with Quick Batch as the underlying path
+    // - ambiguous return: show a tiny chooser with 2-3 intents
+    // - confident return: auto-route using persisted last-successful-path logic
+    // Keep this effect focused on first-run education; do not overload it with
+    // tab persistence based only on `activeTab`.
+    if (startupHandledRef.current) return
+
     if (!firstRunDismissed) {
+      startupHandledRef.current = true
+      setActiveTab('quickbatch')
+      setStartupChooserOpen(false)
       setFirstTimerOpen(true)
+      return
     }
-  }, [firstRunDismissed, setFirstTimerOpen])
+
+    // Only intercept the bootstrap default. If some other tab is already
+    // active, treat that as an explicit state rather than a startup mistake.
+    if (activeTab !== 'decarb') {
+      startupHandledRef.current = true
+      return
+    }
+
+    const decision = evaluateStartupRouting({
+      decarb,
+      infusion,
+      dose,
+      startupRouting,
+    })
+
+    startupHandledRef.current = true
+    setStartupDecision(decision)
+
+    if (decision.mode === 'route') {
+      setActiveTab(decision.destinationTab)
+      return
+    }
+
+    setActiveTab(decision.destinationTab)
+    recordStartupChooserShown()
+    setStartupChooserOpen(true)
+  }, [
+    activeTab,
+    decarb,
+    dose,
+    firstRunDismissed,
+    infusion,
+    recordStartupChooserShown,
+    setActiveTab,
+    setFirstTimerOpen,
+    startupRouting,
+  ])
+
+  const openStartupChooser = () => {
+    const decision = evaluateStartupRouting({
+      decarb,
+      infusion,
+      dose,
+      startupRouting,
+    })
+    setStartupDecision(decision)
+    recordStartupChooserShown()
+    setStartupChooserOpen(true)
+  }
+
+  const handleStartupIntent = (intent: StartupIntent) => {
+    recordStartupIntent(intent)
+    setActiveTab(
+      destinationForStartupIntent(intent, {
+        decarb,
+        infusion,
+        dose,
+        startupRouting,
+      })
+    )
+    setStartupChooserOpen(false)
+  }
 
   const isWorkflow: boolean = WORKFLOW_TABS.includes(
     activeTab as (typeof WORKFLOW_TABS)[number]
   )
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-background text-foreground overflow-hidden">
-      <TransformationCanvas />
+    <div className="flex h-screen w-screen min-w-0 flex-col overflow-hidden bg-background text-foreground">
       <TitleBar />
 
-      <FirstTimerGuide />
-
-      {/* Loading overlay with brand mark */}
-      {isLoading && (
-        <div
-          className={cn(
-            'absolute inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-background/95 backdrop-blur-sm transition-all duration-350',
-            isExitingLoad && 'opacity-0'
-          )}
-        >
-          <BrandGlyph className="size-10 text-accent loader-dim" />
-          <div className="flex flex-col items-center gap-2">
-            <Loader2 className="size-6 animate-spin text-foreground/50" />
-            <span className="text-sm font-medium text-foreground/50 tracking-wide">
-              Loading calculations...
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Tab navigation — all tabs via mini-strip */}
-      <nav className="glass glass-shine flex shrink-0 items-center gap-1 overflow-x-auto px-4 py-2 relative">
+      {/* Nav bar - opaque glass, no animation behind it */}
+      <nav className="relative z-[10] flex shrink-0 items-center gap-1 overflow-x-auto px-2 py-2 glass glass-shine sm:px-4">
         {/* Brand glyph left */}
         <div className="app-region-no-drag mr-2 flex items-center gap-2 border-r border-foreground/10 pr-3">
           <BrandGlyph className="size-5 text-accent" />
@@ -180,7 +263,7 @@ export function MainScreen() {
             )}
             <button
               className={cn(
-                'app-region-no-drag whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200',
+                'app-region-no-drag whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 sm:px-4',
                 activeTab === tab.id
                   ? 'bg-foreground/15 text-foreground border border-foreground/20 shadow-sm'
                   : 'text-foreground/70 hover:bg-foreground/5 hover:text-foreground/80'
@@ -200,37 +283,93 @@ export function MainScreen() {
 
         {/* First-Timer Guide link */}
         {firstRunDismissed && (
-          <button
-            className="app-region-no-drag ml-auto inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-xs font-medium text-info transition-all duration-200 hover:bg-info/20 hover:-translate-y-px"
-            onClick={() => setFirstTimerOpen(true)}
-            type="button"
-          >
-            <BookOpen className="size-3.5" />
-            First-Timer Guide
-          </button>
+          <div className="app-region-no-drag ml-auto flex items-center gap-2">
+            <button
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-foreground/20 bg-foreground/5 px-2.5 py-2 text-xs font-medium text-foreground/80 transition-all duration-200 hover:bg-foreground/10 hover:text-foreground xl:px-3"
+              onClick={openStartupChooser}
+              type="button"
+            >
+              <Route className="size-3.5" />
+              <span className="hidden xl:inline">Choose Start</span>
+            </button>
+            <button
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-info/30 bg-info/10 px-2.5 py-2 text-xs font-medium text-info transition-all duration-200 hover:bg-info/20 hover:-translate-y-px xl:px-3"
+              onClick={() => setFirstTimerOpen(true)}
+              type="button"
+            >
+              <BookOpen className="size-3.5" />
+              <span className="hidden xl:inline">First-Timer Guide</span>
+            </button>
+          </div>
         )}
       </nav>
 
-      {/* Main content */}
-      <main className="relative mx-auto flex w-full max-w-[1400px] flex-1 overflow-hidden p-4">
-        <GlassCard className="mx-auto h-full w-full max-w-[1400px] overflow-hidden relative">
-          {isWorkflow ? (
-            <SwipeDeck>
-              <DecarbTab />
-              <InfusionTab />
-              <DoseTab />
-            </SwipeDeck>
-          ) : (
-            <TabPanel _index={0} active={true}>
-              {activeTab === 'dashboard' && <DashboardTab />}
-              {activeTab === 'quickbatch' && <QuickBatchTab />}
-              {activeTab === 'methods' && <MethodsTab />}
-              {activeTab === 'advanced' && <FatsTab />}
-              {activeTab === 'knowledge' && <KnowledgeTab />}
-              {activeTab === 'journal' && <JournalTab />}
-            </TabPanel>
+      <FirstTimerGuide />
+      {startupDecision && (
+        <StartupChooser
+          confidence={startupDecision.confidence}
+          onClose={() => setStartupChooserOpen(false)}
+          onSelect={handleStartupIntent}
+          open={startupChooserOpen}
+          reason={startupDecision.reason}
+          recommendedIntent={startupDecision.recommendedIntent}
+        />
+      )}
+
+      {/* Loading overlay with brand mark */}
+      {isLoading && (
+        <div
+          className={cn(
+            'absolute inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-background/95 backdrop-blur-sm transition-all duration-350',
+            isExitingLoad && 'opacity-0'
           )}
-        </GlassCard>
+        >
+          <BrandGlyph className="size-10 text-accent loader-dim" />
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="size-6 animate-spin text-foreground/50" />
+            <span className="text-sm font-medium text-foreground/50 tracking-wide">
+              Loading calculations...
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Main content */}
+      <main className="relative z-[10] min-h-0 flex-1 overflow-hidden p-2 sm:p-4">
+        <div className="relative mx-auto h-full w-full max-w-[1400px] overflow-hidden rounded-2xl">
+          {/* Layer 0: Background animation filling the panel */}
+          <TransformationCanvas />
+
+          {/* Layer 1: Strong glass surface (GlassCard's glass-strong classes) */}
+          <div className="absolute inset-0 z-[1] glass-strong" />
+
+          {/* Layer 2: Content above glass */}
+          <div className="relative z-[2] h-full min-w-0 p-3 sm:p-6">
+            {/* IA note:
+                The app currently mixes three entry models:
+                1. raw workflow calculators (Decarb / Infusion / Dose)
+                2. guided wizard (Quick Batch)
+                3. reference/history surfaces (Journal / Knowledge / Dashboard)
+                The startup chooser should route into one of those human intents
+                before we render a hardcoded default tab. */}
+            {isWorkflow ? (
+              <SwipeDeck>
+                <DecarbTab />
+                <InfusionTab />
+                <DoseTab />
+              </SwipeDeck>
+            ) : (
+              <TabPanel _index={0} active={true}>
+                {activeTab === 'dashboard' && <DashboardTab />}
+                {activeTab === 'quickbatch' && <QuickBatchTab />}
+                {activeTab === 'methods' && <MethodsTab />}
+                {activeTab === 'advanced' && <AdvancedToolsTab />}
+                {activeTab === 'knowledge' && <KnowledgeTab />}
+                {activeTab === 'journal' && <JournalTab />}
+              </TabPanel>
+            )}
+          </div>
+        </div>
       </main>
 
       <footer className="relative shrink-0 px-4 py-3 text-center">

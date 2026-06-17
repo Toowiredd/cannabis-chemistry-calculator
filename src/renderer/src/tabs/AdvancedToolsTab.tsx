@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useAppStore } from 'renderer/src/stores/appStore'
+import {
+  useAppStore,
+  type AdvancedToolSubTab,
+} from 'renderer/src/stores/appStore'
 import {
   calculateInfusedThc,
   calculateMgPerMl,
@@ -23,7 +26,6 @@ import {
 import { cupToMl, tbspToMl, tspToMl } from 'renderer/src/engine/units'
 import {
   fatCompareInputSchema,
-  costAnalysisInputSchema,
   zodIssuesToFieldErrors,
 } from 'renderer/src/engine/schemas'
 import { cn } from 'renderer/lib/utils'
@@ -45,9 +47,11 @@ import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
 /* Sub-nav types                                                       */
 /* ------------------------------------------------------------------ */
 
-type SubTab = 'fats' | 'concentrate' | 'blending' | 'cost'
-
-const SUB_TABS: { key: SubTab; label: string; icon: typeof Droplets }[] = [
+const SUB_TABS: {
+  key: AdvancedToolSubTab
+  label: string
+  icon: typeof Droplets
+}[] = [
   { key: 'fats', label: 'Fat Comparison', icon: Droplets },
   { key: 'concentrate', label: 'Concentrates', icon: Beaker },
   { key: 'blending', label: 'Strain Blending', icon: Layers },
@@ -68,7 +72,7 @@ function fmt2(value: number | null | undefined): string {
   return value.toFixed(2)
 }
 
-function round1n(value: number): number {
+function _round1n(value: number): number {
   return Math.round((value + 1e-9) * 10) / 10
 }
 
@@ -188,8 +192,8 @@ function FatsSection() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
-        <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Shared Input
           </h3>
@@ -201,51 +205,65 @@ function FatsSection() {
           )}
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <InputRow label={<>
-              Decarbed THC
-              <TooltipIcon text="Total decarboxylated THC in milligrams available for infusion." />
-            </>} error={fieldErrors.decarbedThc}>
-            {<div className="flex items-center gap-2">
-              <input
-                className={cn(
-                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                  fieldErrors.decarbedThc
-                    ? 'border-danger/60 focus:border-danger'
-                    : 'border-foreground/20 focus:border-foreground/40'
-                )}
-                onChange={e => setInfusion({ decarbedThc: e.target.value })}
-                placeholder="0.0"
-                step="0.1"
-                type="number"
-                value={infusion.decarbedThc}
-              />
-              <span className="text-sm text-foreground/70">mg</span>
-            </div>}
+          <InputRow
+            error={fieldErrors.decarbedThc}
+            label={
+              <>
+                Decarbed THC
+                <TooltipIcon text="Total decarboxylated THC in milligrams available for infusion." />
+              </>
+            }
+          >
+            {
+              <div className="flex min-w-0 items-center gap-2">
+                <input
+                  className={cn(
+                    'min-w-0 flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                    fieldErrors.decarbedThc
+                      ? 'border-danger/60 focus:border-danger'
+                      : 'border-foreground/20 focus:border-foreground/40'
+                  )}
+                  onChange={e => setInfusion({ decarbedThc: e.target.value })}
+                  placeholder="0.0"
+                  step="0.1"
+                  type="number"
+                  value={infusion.decarbedThc}
+                />
+                <span className="text-sm text-foreground/70">mg</span>
+              </div>
+            }
           </InputRow>
-                    <InputRow label={<>
-              Custom Fat Efficiency
-              <TooltipIcon text="Extraction efficiency for the custom fat." />
-            </>} error={fieldErrors.customEfficiency}>
-            {<div className="flex items-center gap-2">
-              <input
-                className={cn(
-                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                  fieldErrors.customEfficiency
-                    ? 'border-danger/60 focus:border-danger'
-                    : 'border-warning/60 focus:border-warning'
-                )}
-                max={1}
-                min={0}
-                onChange={e =>
-                  setInfusion({ customEfficiency: e.target.value })
-                }
-                placeholder="0.00"
-                step="0.01"
-                type="number"
-                value={infusion.customEfficiency}
-              />
-              <span className="text-sm text-foreground/70">ratio</span>
-            </div>}
+          <InputRow
+            error={fieldErrors.customEfficiency}
+            label={
+              <>
+                Custom Fat Efficiency
+                <TooltipIcon text="Extraction efficiency for the custom fat." />
+              </>
+            }
+          >
+            {
+              <div className="flex min-w-0 items-center gap-2">
+                <input
+                  className={cn(
+                    'min-w-0 flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                    fieldErrors.customEfficiency
+                      ? 'border-danger/60 focus:border-danger'
+                      : 'border-warning/60 focus:border-warning'
+                  )}
+                  max={1}
+                  min={0}
+                  onChange={e =>
+                    setInfusion({ customEfficiency: e.target.value })
+                  }
+                  placeholder="0.00"
+                  step="0.01"
+                  type="number"
+                  value={infusion.customEfficiency}
+                />
+                <span className="text-sm text-foreground/70">ratio</span>
+              </div>
+            }
           </InputRow>
         </div>
       </div>
@@ -338,12 +356,8 @@ function FatsSection() {
 function ConcentrateSection() {
   const setDecarb = useAppStore(s => s.setDecarb)
   const setActiveTab = useAppStore(s => s.setActiveTab)
-
-  const [concentrateTypeId, setConcentrateTypeId] = useState('wax')
-  const [weight, setWeight] = useState('1.0')
-  const [thcaOverride, setThcaOverride] = useState('')
-  const [thcOverride, setThcOverride] = useState('')
-  const [customEff, setCustomEff] = useState('')
+  const concentrate = useAppStore(s => s.advancedTools.concentrate)
+  const setAdvancedConcentrate = useAppStore(s => s.setAdvancedConcentrate)
   const [results, setResults] = useState<{
     theoreticalMax: number
     decarbed: number
@@ -355,22 +369,22 @@ function ConcentrateSection() {
 
   const cType = useMemo(
     () =>
-      CONCENTRATE_TYPES.find(c => c.id === concentrateTypeId) ??
+      CONCENTRATE_TYPES.find(c => c.id === concentrate.concentrateTypeId) ??
       CONCENTRATE_TYPES[0],
-    [concentrateTypeId]
+    [concentrate.concentrateTypeId]
   )
-  const thcaPct = thcaOverride.trim()
-    ? parseFloat(thcaOverride)
+  const thcaPct = concentrate.thcaOverride.trim()
+    ? parseFloat(concentrate.thcaOverride)
     : cType.typicalThcaPct
-  const thcPct = thcOverride.trim()
-    ? parseFloat(thcOverride)
+  const thcPct = concentrate.thcOverride.trim()
+    ? parseFloat(concentrate.thcOverride)
     : cType.typicalThcPct
-  const isCustomEff = customEff.trim() !== ''
+  const isCustomEff = concentrate.customEff.trim() !== ''
 
   useEffect(() => {
     const timer = setTimeout(() => {
       const errs: typeof errors = {}
-      const wStr = weight.trim()
+      const wStr = concentrate.weight.trim()
       if (!wStr) errs.weight = 'Enter a weight'
       else {
         const w = parseFloat(wStr)
@@ -383,10 +397,10 @@ function ConcentrateSection() {
         return
       }
       try {
-        const g = parseFloat(weight)
+        const g = parseFloat(concentrate.weight)
         const tMax = calculateConcentrateTheoreticalMax(g, thcaPct, thcPct)
         const eff = isCustomEff
-          ? parseFloat(customEff) || cType.decarbEfficiency.expected
+          ? parseFloat(concentrate.customEff) || cType.decarbEfficiency.expected
           : cType.decarbEfficiency.expected
         if (cType.needsDecarb) {
           const decarbed = calculateConcentrateDecarbedThc(tMax, eff)
@@ -425,18 +439,25 @@ function ConcentrateSection() {
       }
     }, 300)
     return () => clearTimeout(timer)
-  }, [weight, thcaPct, thcPct, cType, isCustomEff, customEff])
+  }, [
+    concentrate.weight,
+    thcaPct,
+    thcPct,
+    cType,
+    isCustomEff,
+    concentrate.customEff,
+  ])
 
   const handleUseThis = () => {
     setDecarb({
       materialMode: 'concentrate',
       concentrateTypeId: cType.id,
-      weight,
+      weight: concentrate.weight,
       thcaPct: String(thcaPct),
       thcPct: String(thcPct),
       presetId: cType.needsDecarb ? 'oven_sealed' : 'distillate',
       effExpectedOverride: isCustomEff
-        ? customEff
+        ? concentrate.customEff
         : String(cType.decarbEfficiency.expected),
     })
     setActiveTab('decarb')
@@ -444,55 +465,72 @@ function ConcentrateSection() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
+      <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
           Concentrate Calculator
         </h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <InputRow label={<>
-              Concentrate Type
-              <TooltipIcon text="Select your concentrate. Each has different typical potencies and decarb requirements." />
-            </>}>
-            {<select
-              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
-              onChange={e => {
-                setConcentrateTypeId(e.target.value)
-                setThcaOverride('')
-                setThcOverride('')
-              }}
-              value={concentrateTypeId}
-            >
-              {CONCENTRATE_TYPES.map(c => (
-                <option
-                  className="bg-card text-foreground"
-                  key={c.id}
-                  value={c.id}
-                >
-                  {c.name}
-                </option>
-              ))}
-            </select>}
+          <InputRow
+            label={
+              <>
+                Concentrate Type
+                <TooltipIcon text="Select your concentrate. Each has different typical potencies and decarb requirements." />
+              </>
+            }
+          >
+            {
+              <select
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                onChange={e => {
+                  setAdvancedConcentrate({
+                    concentrateTypeId: e.target.value,
+                    thcaOverride: '',
+                    thcOverride: '',
+                  })
+                }}
+                value={concentrate.concentrateTypeId}
+              >
+                {CONCENTRATE_TYPES.map(c => (
+                  <option
+                    className="bg-card text-foreground"
+                    key={c.id}
+                    value={c.id}
+                  >
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            }
           </InputRow>
-                    <InputRow label={<>
-              Weight
-              <TooltipIcon text="How much concentrate you are working with." />
-            </>} error={errors.weight}>
-            {<div className="flex items-center gap-2">
-              <input
-                className={cn(
-                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                  errors.weight
-                    ? 'border-danger/60 focus:border-danger'
-                    : 'border-foreground/20 focus:border-foreground/40'
-                )}
-                onChange={e => setWeight(e.target.value)}
-                placeholder="1.0"
-                step="0.1"
-                type="number"
-                value={weight}
-              />
-              <span className="text-sm text-foreground/70">g</span>
-            </div>}
+          <InputRow
+            error={errors.weight}
+            label={
+              <>
+                Weight
+                <TooltipIcon text="How much concentrate you are working with." />
+              </>
+            }
+          >
+            {
+              <div className="flex min-w-0 items-center gap-2">
+                <input
+                  className={cn(
+                    'min-w-0 flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                    errors.weight
+                      ? 'border-danger/60 focus:border-danger'
+                      : 'border-foreground/20 focus:border-foreground/40'
+                  )}
+                  onChange={e =>
+                    setAdvancedConcentrate({ weight: e.target.value })
+                  }
+                  placeholder="1.0"
+                  step="0.1"
+                  type="number"
+                  value={concentrate.weight}
+                />
+                <span className="text-sm text-foreground/70">g</span>
+              </div>
+            }
           </InputRow>
           {cType.needsDecarb ? (
             <div className="flex items-center gap-2">
@@ -515,48 +553,73 @@ function ConcentrateSection() {
           )}
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <InputRow label={<>
-              THCA % Override
-              <TooltipIcon text="Override the typical THCA. Leave blank for preset." />
-            </>}>
-            {<input
-              className="rounded-lg border border-warning/60 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-warning"
-              onChange={e => setThcaOverride(e.target.value)}
-              placeholder={`${cType.typicalThcaPct}% (preset)`}
-              step="0.1"
-              type="number"
-              value={thcaOverride}
-            />}
-          </InputRow>
-                    <InputRow label={<>
-              THC % Override
-              <TooltipIcon text="Override the typical THC. Leave blank for preset." />
-            </>}>
-            {<input
-              className="rounded-lg border border-warning/60 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-warning"
-              onChange={e => setThcOverride(e.target.value)}
-              placeholder={`${cType.typicalThcPct}% (preset)`}
-              step="0.1"
-              type="number"
-              value={thcOverride}
-            />}
-          </InputRow>
-          {cType.needsDecarb &&
-                        <InputRow label={<>
-                Decarb Efficiency Override
-                <TooltipIcon text="Override the decarb efficiency. Leave blank for preset value." />
-              </>}>
-              {<input
+          <InputRow
+            label={
+              <>
+                THCA % Override
+                <TooltipIcon text="Override the typical THCA. Leave blank for preset." />
+              </>
+            }
+          >
+            {
+              <input
                 className="rounded-lg border border-warning/60 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-warning"
-                max={1}
-                min={0}
-                onChange={e => setCustomEff(e.target.value)}
-                placeholder={`${cType.decarbEfficiency.expected} (preset)`}
-                step="0.01"
+                onChange={e =>
+                  setAdvancedConcentrate({ thcaOverride: e.target.value })
+                }
+                placeholder={`${cType.typicalThcaPct}% (preset)`}
+                step="0.1"
                 type="number"
-                value={customEff}
-              />}
-            </InputRow>}
+                value={concentrate.thcaOverride}
+              />
+            }
+          </InputRow>
+          <InputRow
+            label={
+              <>
+                THC % Override
+                <TooltipIcon text="Override the typical THC. Leave blank for preset." />
+              </>
+            }
+          >
+            {
+              <input
+                className="rounded-lg border border-warning/60 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-warning"
+                onChange={e =>
+                  setAdvancedConcentrate({ thcOverride: e.target.value })
+                }
+                placeholder={`${cType.typicalThcPct}% (preset)`}
+                step="0.1"
+                type="number"
+                value={concentrate.thcOverride}
+              />
+            }
+          </InputRow>
+          {cType.needsDecarb && (
+            <InputRow
+              label={
+                <>
+                  Decarb Efficiency Override
+                  <TooltipIcon text="Override the decarb efficiency. Leave blank for preset value." />
+                </>
+              }
+            >
+              {
+                <input
+                  className="rounded-lg border border-warning/60 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-warning"
+                  max={1}
+                  min={0}
+                  onChange={e =>
+                    setAdvancedConcentrate({ customEff: e.target.value })
+                  }
+                  placeholder={`${cType.decarbEfficiency.expected} (preset)`}
+                  step="0.01"
+                  type="number"
+                  value={concentrate.customEff}
+                />
+              }
+            </InputRow>
+          )}
         </div>
       </div>
       {results && (
@@ -612,31 +675,31 @@ function ConcentrateSection() {
 /* ================================================================== */
 
 function BlendingSection() {
-  const [strains, setStrains] = useState<BlendStrain[]>([
-    { name: 'Strain A', potency: 18 },
-    { name: 'Strain B', potency: 25 },
-  ])
-  const [targetWeight, setTargetWeight] = useState('10')
-  const [targetPotency, setTargetPotency] = useState('20')
+  const blending = useAppStore(s => s.advancedTools.blending)
+  const setAdvancedBlending = useAppStore(s => s.setAdvancedBlending)
   const [results, setResults] = useState<ReturnType<
     typeof calculateBlend
   > | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const addStrain = () => {
-    const idx = strains.length + 1
-    setStrains([
-      ...strains,
-      {
-        name: `Strain ${String.fromCharCode(64 + idx)}`,
-        potency: 20,
-      },
-    ])
+    const idx = blending.strains.length + 1
+    setAdvancedBlending({
+      strains: [
+        ...blending.strains,
+        {
+          name: `Strain ${String.fromCharCode(64 + idx)}`,
+          potency: 20,
+        },
+      ],
+    })
   }
 
   const removeStrain = (i: number) => {
-    if (strains.length <= 2) return
-    setStrains(strains.filter((_, j) => j !== i))
+    if (blending.strains.length <= 2) return
+    setAdvancedBlending({
+      strains: blending.strains.filter((_, j) => j !== i),
+    })
   }
 
   const updateStrain = (
@@ -644,21 +707,21 @@ function BlendingSection() {
     field: 'name' | 'potency',
     value: string
   ) => {
-    const next = [...strains]
+    const next = [...blending.strains]
     if (field === 'potency') {
       const n = parseFloat(value)
       next[i] = { ...next[i], potency: Number.isNaN(n) ? 0 : n }
     } else {
       next[i] = { ...next[i], name: value }
     }
-    setStrains(next)
+    setAdvancedBlending({ strains: next })
   }
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setError(null)
-      const tw = parseFloat(targetWeight)
-      const tp = parseFloat(targetPotency)
+      const tw = parseFloat(blending.targetWeight)
+      const tp = parseFloat(blending.targetPotency)
       if (Number.isNaN(tw) || tw <= 0) {
         setResults(null)
         return
@@ -668,11 +731,11 @@ function BlendingSection() {
         return
       }
       try {
-        const r = calculateBlend(strains, tw, tp)
+        const r = calculateBlend(blending.strains as BlendStrain[], tw, tp)
         setResults(r)
         if (!r.isAchievable) {
-          const mins = Math.min(...strains.map(s => s.potency))
-          const maxs = Math.max(...strains.map(s => s.potency))
+          const mins = Math.min(...blending.strains.map(s => s.potency))
+          const maxs = Math.max(...blending.strains.map(s => s.potency))
           setError(
             `Target ${tp}% is outside range (${mins}%\u2013${maxs}%). Closest achievable: ${r.actualPotency}%.`
           )
@@ -683,12 +746,12 @@ function BlendingSection() {
       }
     }, 300)
     return () => clearTimeout(timer)
-  }, [strains, targetWeight, targetPotency])
+  }, [blending.strains, blending.targetWeight, blending.targetPotency])
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
-        <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Strains
           </h3>
@@ -702,10 +765,13 @@ function BlendingSection() {
           </button>
         </div>
         <div className="flex flex-col gap-3">
-          {strains.map((strain, i) => (
-            <div className="flex items-center gap-3" key={i}>
+          {blending.strains.map((strain, i) => (
+            <div
+              className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 sm:gap-3"
+              key={`${strain.name}-${strain.potency}`}
+            >
               <input
-                className="flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 onChange={e => updateStrain(i, 'name', e.target.value)}
                 placeholder="Strain name"
                 type="text"
@@ -725,7 +791,7 @@ function BlendingSection() {
               </div>
               <button
                 className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-foreground/20 bg-foreground/5 text-foreground/70 transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-30"
-                disabled={strains.length <= 2}
+                disabled={blending.strains.length <= 2}
                 onClick={() => removeStrain(i)}
                 type="button"
               >
@@ -735,44 +801,60 @@ function BlendingSection() {
           ))}
         </div>
       </div>
-      <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
+      <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
           Target
         </h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <InputRow label={<>
-              Total Weight
-              <TooltipIcon text="The total combined weight of all strains in grams." />
-            </>}>
-            {<div className="flex items-center gap-2">
-              <input
-                className="flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-                onChange={e => setTargetWeight(e.target.value)}
-                placeholder="10"
-                step="0.1"
-                type="number"
-                value={targetWeight}
-              />
-              <span className="text-sm text-foreground/70">g</span>
-            </div>}
+          <InputRow
+            label={
+              <>
+                Total Weight
+                <TooltipIcon text="The total combined weight of all strains in grams." />
+              </>
+            }
+          >
+            {
+              <div className="flex min-w-0 items-center gap-2">
+                <input
+                  className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                  onChange={e =>
+                    setAdvancedBlending({ targetWeight: e.target.value })
+                  }
+                  placeholder="10"
+                  step="0.1"
+                  type="number"
+                  value={blending.targetWeight}
+                />
+                <span className="text-sm text-foreground/70">g</span>
+              </div>
+            }
           </InputRow>
-                    <InputRow label={<>
-              Target Potency
-              <TooltipIcon text="The desired weighted-average potency." />
-            </>}>
-            {<div className="flex items-center gap-2">
-              <input
-                className="flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-                max={100}
-                min={0}
-                onChange={e => setTargetPotency(e.target.value)}
-                placeholder="20"
-                step="0.1"
-                type="number"
-                value={targetPotency}
-              />
-              <span className="text-sm text-foreground/70">%</span>
-            </div>}
+          <InputRow
+            label={
+              <>
+                Target Potency
+                <TooltipIcon text="The desired weighted-average potency." />
+              </>
+            }
+          >
+            {
+              <div className="flex min-w-0 items-center gap-2">
+                <input
+                  className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                  max={100}
+                  min={0}
+                  onChange={e =>
+                    setAdvancedBlending({ targetPotency: e.target.value })
+                  }
+                  placeholder="20"
+                  step="0.1"
+                  type="number"
+                  value={blending.targetPotency}
+                />
+                <span className="text-sm text-foreground/70">%</span>
+              </div>
+            }
           </InputRow>
         </div>
       </div>
@@ -781,12 +863,12 @@ function BlendingSection() {
           {error}
         </div>
       )}
-      {results && results.isAchievable && (
+      {results?.isAchievable && (
         <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Blend Results
           </h3>
-          <div className="flex items-center gap-3 rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3">
             <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
               Actual Potency
             </span>
@@ -802,7 +884,7 @@ function BlendingSection() {
               .filter(r => r.weightGrams > 0)
               .map(r => (
                 <div
-                  className="flex items-center justify-between rounded-lg border border-foreground/10 bg-foreground/5 px-4 py-3"
+                  className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-foreground/10 bg-foreground/5 px-4 py-3"
                   key={r.name}
                 >
                   <span className="text-sm font-medium text-foreground">
@@ -829,13 +911,8 @@ function BlendingSection() {
 /* ================================================================== */
 
 function CostSection() {
-  const [materialCost, setMaterialCost] = useState('50')
-  const [weightG, setWeightG] = useState('3.5')
-  const [thcaPct, setThcaPct] = useState('20')
-  const [thcPct, setThcPct] = useState('0')
-  const [extractionEff, setExtractionEff] = useState('0.82')
-  const [targetDose, setTargetDose] = useState('10')
-  const [servings, setServings] = useState('')
+  const cost = useAppStore(s => s.advancedTools.cost)
+  const setAdvancedCost = useAppStore(s => s.setAdvancedCost)
   const [results, setResults] = useState<ReturnType<
     typeof compareMethodCosts
   > | null>(null)
@@ -855,14 +932,14 @@ function CostSection() {
   useEffect(() => {
     setIsCalculating(true)
     const timer = setTimeout(() => {
-      const cost = parseFloat(materialCost)
-      const g = parseFloat(weightG)
-      const tPct = parseFloat(thcaPct)
-      const hPct = parseFloat(thcPct)
-      const eff = parseFloat(extractionEff)
-      const dose = parseFloat(targetDose)
+      const materialCost = parseFloat(cost.materialCost)
+      const g = parseFloat(cost.weightG)
+      const tPct = parseFloat(cost.thcaPct)
+      const hPct = parseFloat(cost.thcPct)
+      const eff = parseFloat(cost.extractionEff)
+      const dose = parseFloat(cost.targetDose)
       if (
-        Number.isNaN(cost) ||
+        Number.isNaN(materialCost) ||
         Number.isNaN(g) ||
         Number.isNaN(tPct) ||
         Number.isNaN(eff) ||
@@ -876,11 +953,19 @@ function CostSection() {
         return
       }
       try {
-        const r = compareMethodCosts(cost, g, tPct, hPct, methods, eff, dose)
+        const r = compareMethodCosts(
+          materialCost,
+          g,
+          tPct,
+          hPct,
+          methods,
+          eff,
+          dose
+        )
         setResults(r)
-        const sv = parseFloat(servings)
+        const sv = parseFloat(cost.servings)
         if (!Number.isNaN(sv) && sv > 0) {
-          setCostDose(calculateCostPerDose(cost, sv))
+          setCostDose(calculateCostPerDose(materialCost, sv))
         } else {
           setCostDose(null)
         }
@@ -892,20 +977,20 @@ function CostSection() {
     }, 300)
     return () => clearTimeout(timer)
   }, [
-    materialCost,
-    weightG,
-    thcaPct,
-    thcPct,
-    extractionEff,
-    targetDose,
-    servings,
+    cost.materialCost,
+    cost.weightG,
+    cost.thcaPct,
+    cost.thcPct,
+    cost.extractionEff,
+    cost.targetDose,
+    cost.servings,
     methods,
   ])
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
-        <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Cost Inputs
           </h3>
@@ -917,107 +1002,153 @@ function CostSection() {
           )}
         </div>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                    <InputRow label={<>
-              Material Cost ($)
-              <TooltipIcon text="What you paid for the starting material." />
-            </>}>
-            {<input
-              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-              onChange={e => setMaterialCost(e.target.value)}
-              placeholder="50"
-              step="0.01"
-              type="number"
-              value={materialCost}
-            />}
+          <InputRow
+            label={
+              <>
+                Material Cost ($)
+                <TooltipIcon text="What you paid for the starting material." />
+              </>
+            }
+          >
+            {
+              <input
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                onChange={e =>
+                  setAdvancedCost({ materialCost: e.target.value })
+                }
+                placeholder="50"
+                step="0.01"
+                type="number"
+                value={cost.materialCost}
+              />
+            }
           </InputRow>
-                    <InputRow label={<>
-              Weight (g)
-              <TooltipIcon text="How much material in grams." />
-            </>}>
-            {<input
-              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-              onChange={e => setWeightG(e.target.value)}
-              placeholder="3.5"
-              step="0.1"
-              type="number"
-              value={weightG}
-            />}
+          <InputRow
+            label={
+              <>
+                Weight (g)
+                <TooltipIcon text="How much material in grams." />
+              </>
+            }
+          >
+            {
+              <input
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                onChange={e => setAdvancedCost({ weightG: e.target.value })}
+                placeholder="3.5"
+                step="0.1"
+                type="number"
+                value={cost.weightG}
+              />
+            }
           </InputRow>
-                    <InputRow label={<>
-              THCA %
-              <TooltipIcon text="THCA potency percentage." />
-            </>}>
-            {<input
-              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-              max={100}
-              min={0}
-              onChange={e => setThcaPct(e.target.value)}
-              placeholder="20"
-              step="0.1"
-              type="number"
-              value={thcaPct}
-            />}
+          <InputRow
+            label={
+              <>
+                THCA %
+                <TooltipIcon text="THCA potency percentage." />
+              </>
+            }
+          >
+            {
+              <input
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                max={100}
+                min={0}
+                onChange={e => setAdvancedCost({ thcaPct: e.target.value })}
+                placeholder="20"
+                step="0.1"
+                type="number"
+                value={cost.thcaPct}
+              />
+            }
           </InputRow>
-                    <InputRow label={<>
-              Existing THC %
-              <TooltipIcon text="Already-active THC percentage." />
-            </>}>
-            {<input
-              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-              max={100}
-              min={0}
-              onChange={e => setThcPct(e.target.value)}
-              placeholder="0"
-              step="0.1"
-              type="number"
-              value={thcPct}
-            />}
+          <InputRow
+            label={
+              <>
+                Existing THC %
+                <TooltipIcon text="Already-active THC percentage." />
+              </>
+            }
+          >
+            {
+              <input
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                max={100}
+                min={0}
+                onChange={e => setAdvancedCost({ thcPct: e.target.value })}
+                placeholder="0"
+                step="0.1"
+                type="number"
+                value={cost.thcPct}
+              />
+            }
           </InputRow>
-                    <InputRow label={<>
-              Extraction Efficiency
-              <TooltipIcon text="Fat extraction efficiency (0.0-1.0)." />
-            </>}>
-            {<input
-              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-              max={1}
-              min={0}
-              onChange={e => setExtractionEff(e.target.value)}
-              placeholder="0.82"
-              step="0.01"
-              type="number"
-              value={extractionEff}
-            />}
+          <InputRow
+            label={
+              <>
+                Extraction Efficiency
+                <TooltipIcon text="Fat extraction efficiency (0.0-1.0)." />
+              </>
+            }
+          >
+            {
+              <input
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                max={1}
+                min={0}
+                onChange={e =>
+                  setAdvancedCost({ extractionEff: e.target.value })
+                }
+                placeholder="0.82"
+                step="0.01"
+                type="number"
+                value={cost.extractionEff}
+              />
+            }
           </InputRow>
-                    <InputRow label={<>
-              Target mg/Dose
-              <TooltipIcon text="How many mg of THC per serving you want." />
-            </>}>
-            {<input
-              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-              min={1}
-              onChange={e => setTargetDose(e.target.value)}
-              placeholder="10"
-              step="1"
-              type="number"
-              value={targetDose}
-            />}
+          <InputRow
+            label={
+              <>
+                Target mg/Dose
+                <TooltipIcon text="How many mg of THC per serving you want." />
+              </>
+            }
+          >
+            {
+              <input
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                min={1}
+                onChange={e => setAdvancedCost({ targetDose: e.target.value })}
+                placeholder="10"
+                step="1"
+                type="number"
+                value={cost.targetDose}
+              />
+            }
           </InputRow>
-                    <InputRow label={<>
-              Servings (quick $/dose)
-              <TooltipIcon text="Enter batch size for instant cost-per-dose." />
-            </>}>
-            {<input
-              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-              onChange={e => setServings(e.target.value)}
-              placeholder="Optional"
-              step="1"
-              type="number"
-              value={servings}
-            />}
+          <InputRow
+            label={
+              <>
+                Servings (quick $/dose)
+                <TooltipIcon text="Enter batch size for instant cost-per-dose." />
+              </>
+            }
+          >
+            {
+              <input
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                onChange={e => setAdvancedCost({ servings: e.target.value })}
+                placeholder="Optional"
+                step="1"
+                type="number"
+                value={cost.servings}
+              />
+            }
           </InputRow>
         </div>
         {costDose != null && (
-          <div className="flex items-center gap-3 rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3">
             <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
               Quick Cost Per Dose
             </span>
@@ -1033,8 +1164,8 @@ function CostSection() {
             Method Comparison ({results.filter(r => !r.zeroYield).length}{' '}
             viable)
           </h3>
-          <div className="overflow-hidden rounded-xl border border-foreground/10 bg-foreground/5">
-            <table className="w-full text-sm text-foreground/80">
+          <div className="overflow-x-auto rounded-xl border border-foreground/10 bg-foreground/5">
+            <table className="min-w-[640px] w-full text-sm text-foreground/80">
               <thead className="border-b border-foreground/10 bg-foreground/10">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
@@ -1094,19 +1225,21 @@ function CostSection() {
 /* ================================================================== */
 
 export function AdvancedToolsTab() {
-  const [subTab, setSubTab] = useState<SubTab>('fats')
+  const subTab = useAppStore(s => s.advancedTools.subTab)
+  const setAdvancedSubTab = useAppStore(s => s.setAdvancedSubTab)
+  const resetAdvancedTools = useAppStore(s => s.resetAdvancedTools)
 
   return (
-    <div className="flex flex-col gap-5 p-4">
-      <div className="flex items-center justify-between">
+    <div className="flex min-w-0 flex-col gap-5 p-2 sm:p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-foreground">
           Advanced Tools
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <TabActions tabId="advanced" />
           <button
             className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
-            onClick={() => setSubTab('fats')}
+            onClick={resetAdvancedTools}
             type="button"
           >
             <RotateCcw className="size-3.5" />
@@ -1114,21 +1247,21 @@ export function AdvancedToolsTab() {
           </button>
         </div>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="grid grid-cols-2 gap-1 lg:grid-cols-4">
         {SUB_TABS.map(({ key, label, icon: Icon }) => (
           <button
             className={cn(
-              'flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-medium transition-colors',
+              'flex min-w-0 items-center justify-center gap-2 rounded-lg px-2 py-2.5 text-xs font-medium transition-colors',
               key === subTab
                 ? 'bg-foreground/15 text-foreground border border-foreground/20'
                 : 'bg-foreground/5 text-foreground/70 border border-foreground/10 hover:bg-foreground/10 hover:text-foreground/80'
             )}
             key={key}
-            onClick={() => setSubTab(key)}
+            onClick={() => setAdvancedSubTab(key)}
             type="button"
           >
-            <Icon className="size-3.5" />
-            {label}
+            <Icon className="size-3.5 shrink-0" />
+            <span className="truncate">{label}</span>
           </button>
         ))}
       </div>

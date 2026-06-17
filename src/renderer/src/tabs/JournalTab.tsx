@@ -159,6 +159,7 @@ export function JournalTab() {
   const setJournalEntries = useAppStore(s => s.setJournalEntries)
   const addJournalEntry = useAppStore(s => s.addJournalEntry)
   const deleteJournalEntry = useAppStore(s => s.deleteJournalEntry)
+  const recordSuccessfulPath = useAppStore(s => s.recordSuccessfulPath)
   const store = useAppStore.getState()
 
   const [form, setForm] = useState<JournalFormData>(emptyForm)
@@ -167,6 +168,7 @@ export function JournalTab() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [potencyMin, setPotencyMin] = useState('')
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; visible: boolean }>({
     msg: '',
     visible: false,
@@ -179,6 +181,13 @@ export function JournalTab() {
 
   // Load entries on mount
   useEffect(() => {
+    // The Electron preload bridge is required for persisted journal storage.
+    // Browser-only/dev-renderer audits should degrade instead of route-crashing.
+    if (!window.App?.loadJournalEntries) {
+      setJournalEntries([])
+      return
+    }
+
     window.App.loadJournalEntries().then(result => {
       if (result.success && result.entries) {
         const mapped = result.entries.map((e: Record<string, unknown>) => ({
@@ -215,6 +224,11 @@ export function JournalTab() {
   }
 
   const handleSave = async () => {
+    if (!window.App?.saveJournalEntry) {
+      showToast('Journal storage is unavailable in this environment')
+      return
+    }
+
     if (!form.strainName.trim()) {
       showToast('Your batch needs a name')
       return
@@ -235,6 +249,7 @@ export function JournalTab() {
     const result = await window.App.saveJournalEntry(entry)
     if (result.success) {
       addJournalEntry(entry)
+      recordSuccessfulPath('history_learn', 'journal')
       setForm(emptyForm())
       setShowForm(false)
       showToast('Entry saved')
@@ -244,9 +259,18 @@ export function JournalTab() {
   }
 
   const handleDelete = async (id: string) => {
+    if (!window.App?.deleteJournalEntry) {
+      showToast('Journal storage is unavailable in this environment')
+      return
+    }
+
+    // Deleting a journal entry removes persisted batch history. Keep the
+    // confirmation in-flow so it works in Electron and browser QA without
+    // relying on blocking native dialogs.
     const result = await window.App.deleteJournalEntry(id)
     if (result.success) {
       deleteJournalEntry(id)
+      setPendingDeleteId(null)
       showToast('Entry deleted')
     } else {
       showToast(result.error ?? 'Could not delete')
@@ -286,16 +310,17 @@ export function JournalTab() {
   )
 
   return (
-    <div className="flex flex-col gap-5 p-4">
+    <div className="flex min-w-0 flex-col gap-5 p-2 sm:p-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
           <BookOpen className="size-5 text-foreground/70" />
           <h2 className="text-xl font-semibold text-foreground">Journal</h2>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            aria-label="Log current calculator values to the journal"
             onClick={handleAutoPopulate}
             type="button"
           >
@@ -303,7 +328,8 @@ export function JournalTab() {
             Log to Journal
           </button>
           <button
-            className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            aria-label="Create a new journal entry"
             onClick={() => {
               setForm(emptyForm())
               setShowForm(true)
@@ -321,13 +347,14 @@ export function JournalTab() {
 
       {/* Entry Form */}
       {showForm && (
-        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
-          <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
               {form.id ? 'Edit Entry' : 'New Entry'}
             </h3>
             <button
               className="inline-flex items-center gap-1 rounded-lg border border-foreground/20 bg-foreground/5 px-2 py-1 text-xs text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+              aria-expanded={showForm}
               onClick={() => setShowForm(false)}
               type="button"
             >
@@ -340,7 +367,8 @@ export function JournalTab() {
             {inputRow(
               'Date',
               <input
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                aria-label="Entry date"
                 onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
                 type="date"
                 value={form.date}
@@ -349,7 +377,8 @@ export function JournalTab() {
             {inputRow(
               'Strain Name',
               <input
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                aria-label="Strain name"
                 onChange={e =>
                   setForm(f => ({ ...f, strainName: e.target.value }))
                 }
@@ -361,7 +390,8 @@ export function JournalTab() {
             {inputRow(
               'Material Weight (g)',
               <input
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                aria-label="Material weight in grams"
                 onChange={e =>
                   setForm(f => ({ ...f, materialWeight: e.target.value }))
                 }
@@ -374,7 +404,8 @@ export function JournalTab() {
             {inputRow(
               'THCA %',
               <input
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                aria-label="THCA percentage"
                 onChange={e =>
                   setForm(f => ({ ...f, thcaPct: e.target.value }))
                 }
@@ -387,7 +418,8 @@ export function JournalTab() {
             {inputRow(
               'Existing THC %',
               <input
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                aria-label="Existing THC percentage"
                 onChange={e => setForm(f => ({ ...f, thcPct: e.target.value }))}
                 placeholder="0.0"
                 step="0.1"
@@ -398,7 +430,8 @@ export function JournalTab() {
             {inputRow(
               'Method',
               <select
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                aria-label="Decarb method"
                 onChange={e =>
                   setForm(f => ({ ...f, methodId: e.target.value }))
                 }
@@ -421,7 +454,8 @@ export function JournalTab() {
             {inputRow(
               'Fat',
               <select
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                aria-label="Infusion fat"
                 onChange={e => setForm(f => ({ ...f, fatId: e.target.value }))}
                 value={form.fatId}
               >
@@ -442,7 +476,8 @@ export function JournalTab() {
             {inputRow(
               'Servings',
               <input
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                aria-label="Servings"
                 onChange={e =>
                   setForm(f => ({ ...f, servings: e.target.value }))
                 }
@@ -455,7 +490,8 @@ export function JournalTab() {
             {inputRow(
               'mg per Serving',
               <input
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                aria-label="Milligrams per serving"
                 onChange={e =>
                   setForm(f => ({ ...f, mgPerServing: e.target.value }))
                 }
@@ -468,7 +504,8 @@ export function JournalTab() {
             {inputRow(
               'Total Infused THC (mg)',
               <input
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                aria-label="Total infused THC in milligrams"
                 onChange={e =>
                   setForm(f => ({ ...f, totalInfusedThc: e.target.value }))
                 }
@@ -481,7 +518,8 @@ export function JournalTab() {
             {inputRow(
               'Concentration (mg/mL)',
               <input
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                aria-label="Concentration in milligrams per milliliter"
                 onChange={e =>
                   setForm(f => ({ ...f, concentration: e.target.value }))
                 }
@@ -493,9 +531,10 @@ export function JournalTab() {
             )}
             {inputRow(
               'Volume',
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <input
-                  className="flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                  className="min-w-[8rem] flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                  aria-label="Volume amount"
                   onChange={e =>
                     setForm(f => ({ ...f, volume: e.target.value }))
                   }
@@ -506,6 +545,7 @@ export function JournalTab() {
                 />
                 <select
                   className="rounded-lg border border-foreground/20 bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                  aria-label="Volume unit"
                   onChange={e =>
                     setForm(f => ({ ...f, volumeUnit: e.target.value }))
                   }
@@ -532,15 +572,16 @@ export function JournalTab() {
             'Notes',
             <textarea
               className="min-h-[80px] w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+              aria-label="Journal notes"
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
               placeholder="Optional notes about the batch..."
               value={form.notes}
             />
           )}
 
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex flex-col items-stretch justify-end gap-2 sm:flex-row sm:items-center">
             <button
-              className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
               onClick={() => setForm(emptyForm())}
               type="button"
             >
@@ -548,7 +589,7 @@ export function JournalTab() {
               Clear
             </button>
             <button
-              className="inline-flex items-center gap-1.5 rounded-lg border border-success/20 bg-success/10 px-3 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20"
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-success/20 bg-success/10 px-3 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20"
               onClick={handleSave}
               type="button"
             >
@@ -560,15 +601,16 @@ export function JournalTab() {
       )}
 
       {/* Search / Filter */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
+      <div className="flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
           Search &amp; Filter
         </h3>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <Search className="size-4 text-foreground/70" />
             <input
-              className="flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+              className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+              aria-label="Search journal entries"
               onChange={e => setSearch(e.target.value)}
               placeholder="Search strain, method, fat..."
               type="text"
@@ -576,19 +618,22 @@ export function JournalTab() {
             />
           </div>
           <input
-            className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+            className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+            aria-label="Filter entries from date"
             onChange={e => setDateFrom(e.target.value)}
             type="date"
             value={dateFrom}
           />
           <input
-            className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+            className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+            aria-label="Filter entries to date"
             onChange={e => setDateTo(e.target.value)}
             type="date"
             value={dateTo}
           />
           <input
-            className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+            className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+            aria-label="Minimum milligrams per serving"
             onChange={e => setPotencyMin(e.target.value)}
             placeholder="Min mg/serving"
             step="0.1"
@@ -615,37 +660,64 @@ export function JournalTab() {
 
         {filtered.map(entry => (
           <div
-            className="flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/5 p-5 transition-colors"
+            className="flex min-w-0 flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 transition-colors sm:p-5"
             key={entry.id}
           >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex flex-col gap-1">
-                <span className="text-lg font-semibold text-foreground">
+            <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+              <div className="flex min-w-0 flex-col gap-1">
+                <span className="break-words text-lg font-semibold text-foreground">
                   {entry.strainName || 'Unnamed Batch'}
                 </span>
-                <span className="text-xs text-foreground/70">
+                <span className="break-words text-xs text-foreground/70">
                   {entry.date} — {entry.methodName || 'Unknown method'} /{' '}
                   {entry.fatName || 'Unknown fat'}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex max-w-full flex-wrap items-center gap-2">
                 {entry.classification && (
-                  <span className="rounded-full border border-foreground/10 bg-foreground/5 px-2.5 py-1 text-xs font-medium text-foreground/70">
+                  <span className="max-w-full break-words rounded-full border border-foreground/10 bg-foreground/5 px-2.5 py-1 text-xs font-medium text-foreground/70">
                     {entry.classification}
                   </span>
                 )}
-                <button
-                  className="inline-flex items-center rounded-lg border border-danger/20 bg-danger/10 px-2 py-1 text-xs text-danger transition-colors hover:bg-danger/20"
-                  onClick={() => handleDelete(entry.id)}
-                  title="Delete entry"
-                  type="button"
-                >
-                  <Trash2 className="size-3" />
-                </button>
+                {pendingDeleteId === entry.id ? (
+                  <div
+                    aria-label={`Confirm delete journal entry ${entry.strainName || 'Unnamed Batch'}`}
+                    className="flex flex-wrap items-center gap-1 rounded-lg border border-danger/20 bg-danger/10 p-1"
+                    role="group"
+                  >
+                    <span className="px-1 text-xs font-medium text-danger">
+                      Delete?
+                    </span>
+                    <button
+                      className="rounded-md border border-foreground/20 bg-foreground/5 px-2 py-1 text-xs text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                      onClick={() => setPendingDeleteId(null)}
+                      type="button"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="rounded-md border border-danger/30 bg-danger/20 px-2 py-1 text-xs font-semibold text-danger transition-colors hover:bg-danger/30"
+                      onClick={() => handleDelete(entry.id)}
+                      type="button"
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className="inline-flex items-center rounded-lg border border-danger/20 bg-danger/10 px-2 py-1 text-xs text-danger transition-colors hover:bg-danger/20"
+                    aria-label={`Delete journal entry ${entry.strainName || 'Unnamed Batch'}`}
+                    onClick={() => setPendingDeleteId(entry.id)}
+                    title="Delete entry"
+                    type="button"
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
+                )}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
                 <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Weight

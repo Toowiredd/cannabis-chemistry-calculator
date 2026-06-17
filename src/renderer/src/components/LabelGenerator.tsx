@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { INFUSION_FATS, DECARB_METHODS } from 'renderer/src/engine/models'
 import {
@@ -148,6 +148,19 @@ export function LabelGenerator({
     setShowPrintable(false)
   }
 
+  useEffect(() => {
+    if (!showPrintable) return
+
+    const handleWindowKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        handleClose()
+      }
+    }
+
+    window.addEventListener('keydown', handleWindowKeyDown)
+    return () => window.removeEventListener('keydown', handleWindowKeyDown)
+  }, [showPrintable])
+
   const handlePrint = () => {
     window.print()
   }
@@ -155,7 +168,7 @@ export function LabelGenerator({
   return (
     <div className="flex flex-col gap-4">
       {/* Configuration panel */}
-      <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+      <div className="glass-strong flex min-w-0 flex-col gap-4 rounded-2xl p-4 sm:p-5">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
           Label Configuration
         </h3>
@@ -167,6 +180,7 @@ export function LabelGenerator({
             Product Name
           </span>
           <input
+            aria-label="Product name"
             className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
             onChange={e => setLabel({ productName: e.target.value })}
             placeholder="e.g. Golden Infused Ghee"
@@ -182,6 +196,7 @@ export function LabelGenerator({
             Ingredients
           </span>
           <textarea
+            aria-label="Ingredients"
             className="min-h-[3.5rem] rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
             onChange={e => setLabel({ ingredients: e.target.value })}
             placeholder="e.g. Cannabis-infused ghee, lecithin"
@@ -195,6 +210,7 @@ export function LabelGenerator({
             Storage Instructions
           </span>
           <textarea
+            aria-label="Storage instructions"
             className="min-h-[3.5rem] rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
             onChange={e => setLabel({ storage: e.target.value })}
             placeholder="Store in a cool, dark place..."
@@ -237,7 +253,7 @@ export function LabelGenerator({
         </div>
 
         {/* Current batch number */}
-        <div className="flex items-center justify-between rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
           <span className="text-sm font-medium text-foreground/80">
             Next Batch Number
           </span>
@@ -268,27 +284,37 @@ export function LabelGenerator({
 
       {/* Printable modal */}
       {showPrintable && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-foreground/70 backdrop-blur-sm print:hidden">
-          <div className="flex max-h-[90vh] w-full max-w-lg flex-col gap-4 rounded-2xl border border-foreground/20 bg-background p-6 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-foreground">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center overflow-y-auto bg-foreground/70 p-3 backdrop-blur-sm print:hidden">
+          <div
+            aria-labelledby="printable-label-title"
+            aria-modal="true"
+            className="flex max-h-[90vh] w-full max-w-lg min-w-0 flex-col gap-4 overflow-y-auto rounded-2xl border border-foreground/20 bg-background p-4 shadow-2xl sm:p-6"
+            role="dialog"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3
+                className="text-lg font-semibold text-foreground"
+                id="printable-label-title"
+              >
                 Printable Label
               </h3>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
+                  aria-label="Print label"
                   className="inline-flex items-center gap-1.5 rounded-lg bg-foreground/15 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-foreground/25"
                   onClick={handlePrint}
                   type="button"
                 >
-                  <Printer className="size-3.5" />
+                  <Printer aria-hidden="true" className="size-3.5" />
                   Print
                 </button>
                 <button
+                  aria-label="Close printable label"
                   className="inline-flex items-center justify-center rounded-lg border border-foreground/20 bg-foreground/5 p-1.5 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
                   onClick={handleClose}
                   type="button"
                 >
-                  <X className="size-4" />
+                  <X aria-hidden="true" className="size-4" />
                 </button>
               </div>
             </div>
@@ -296,12 +322,12 @@ export function LabelGenerator({
             {/* The actual label card */}
             <div
               className={cn(
-                'label-card flex flex-col gap-3 rounded-xl border-2 border-foreground/80 bg-white p-5 text-black print:shadow-none',
+                'label-card flex min-w-0 flex-col gap-3 rounded-xl border-2 border-foreground/80 bg-white p-4 text-black print:shadow-none sm:p-5',
                 'shadow-lg'
               )}
             >
               {/* Header: product name + batch */}
-              <div className="flex items-start justify-between border-b-2 border-black pb-2">
+              <div className="flex flex-wrap items-start justify-between gap-2 border-b-2 border-black pb-2">
                 <div className="flex flex-col">
                   <span className="text-xs uppercase tracking-wider text-gray-600">
                     Product
@@ -321,7 +347,7 @@ export function LabelGenerator({
               </div>
 
               {/* THC / servings row */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <div className="flex flex-col">
                   <span className="text-xs uppercase tracking-wider text-gray-600">
                     THC per Serving
@@ -361,7 +387,7 @@ export function LabelGenerator({
               )}
 
               {/* Method + Fat */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div className="flex flex-col">
                   <span className="text-xs uppercase tracking-wider text-gray-600">
                     Decarb Method

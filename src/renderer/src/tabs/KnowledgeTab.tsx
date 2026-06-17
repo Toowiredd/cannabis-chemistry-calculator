@@ -53,6 +53,7 @@ function RangeSlider({
       <div className="relative h-6 flex items-center">
         <input
           className="absolute inset-0 z-10 w-full cursor-pointer opacity-0"
+          aria-label={label}
           max={max}
           min={min}
           onChange={e => onChange(parseFloat(e.target.value))}
@@ -176,7 +177,7 @@ function DonenessCurve() {
   const cursorCbn = yFor(data[currentIndex]?.cbn ?? 0)
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-5">
       <div className="flex flex-col gap-4 sm:flex-row">
         <div className="flex-1">
           <RangeSlider
@@ -204,7 +205,7 @@ function DonenessCurve() {
 
       <svg
         aria-label="Simulated decarboxylation chart showing THCA, THC, and CBN progression over time"
-        className="w-full"
+        className="w-full max-w-full"
         role="img"
         viewBox={`0 0 ${w} ${h}`}
       >
@@ -405,7 +406,7 @@ function DonenessCurve() {
       </div>
 
       {/* Current-point readout */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-info/20 bg-info/10 px-3 py-2 text-center">
           <div className="text-xs text-info/80">THCA</div>
           <div className="text-sm font-semibold tabular-nums text-info">
@@ -426,9 +427,9 @@ function DonenessCurve() {
         </div>
       </div>
       {/* Apply + Reset controls */}
-      <div className="flex flex-wrap items-center justify-center gap-3">
+      <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <button
-          className="inline-flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/20 focus-visible:ring-2 focus-visible:ring-accent/50"
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/20 focus-visible:ring-2 focus-visible:ring-accent/50"
           onClick={handleApplyToDecarb}
           type="button"
         >
@@ -436,7 +437,7 @@ function DonenessCurve() {
           <ArrowRight className="size-4" />
         </button>
         <button
-          className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/30"
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/30"
           onClick={handleReset}
           type="button"
         >
@@ -460,6 +461,7 @@ function Cite({ label, doi }: { label: string; doi: string }) {
   return (
     <a
       className="ml-1 inline text-xs text-info dark:text-info dark:text-info/90 underline underline-offset-2 hover:text-info"
+      aria-label={`Open DOI reference for ${label}`}
       href={`https://doi.org/${doi}`}
       onClick={handleClick}
       rel="noopener noreferrer"
@@ -486,16 +488,18 @@ function SectionCard({
   return (
     <div
       className={cn(
-        'flex flex-col gap-5 rounded-2xl border border-foreground/10 bg-foreground/5 p-6'
+        'flex min-w-0 flex-col gap-5 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-6'
       )}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-foreground/20 bg-foreground/10">
           {icon}
         </div>
-        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+        <h3 className="min-w-0 break-words text-lg font-semibold text-foreground">
+          {title}
+        </h3>
       </div>
-      <div className="mt-4 text-sm leading-relaxed text-foreground/80">
+      <div className="mt-2 min-w-0 text-sm leading-relaxed text-foreground/80 sm:mt-4">
         {children}
       </div>
     </div>
@@ -508,16 +512,16 @@ function SectionCard({
 
 export function KnowledgeTab() {
   return (
-    <div className="flex flex-col gap-5 p-4">
+    <div className="flex min-w-0 flex-col gap-5 p-2 sm:p-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
           <BookOpen className="size-5 text-foreground/70" />
           <h2 className="text-xl font-semibold text-foreground">Knowledge</h2>
         </div>
       </div>
 
-      <div className="flex flex-col gap-5">
+      <div className="flex min-w-0 flex-col gap-5">
         {/* Section 1: Conversion Pathway */}
         <SectionCard
           icon={<Flame className="size-5 text-foreground/80" />}
@@ -844,8 +848,8 @@ export function KnowledgeTab() {
             <Cite doi="10.1089/can.2021.0173" label="Eyal et al. 2023" />
           </p>
 
-          <div className="mt-4 overflow-hidden rounded-xl border border-foreground/10 bg-foreground/5">
-            <table className="w-full text-sm text-foreground/80">
+          <div className="mt-4 min-w-0 overflow-x-auto rounded-xl border border-foreground/10 bg-foreground/5">
+            <table className="min-w-[640px] w-full text-sm text-foreground/80">
               <thead className="border-b border-foreground/10 bg-foreground/10">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
@@ -949,14 +953,14 @@ export function KnowledgeTab() {
         {/* Section 13: Interactive Doneness Curve */}
         <div
           className={cn(
-            'flex flex-col gap-5 rounded-2xl border border-foreground/10 bg-foreground/5 p-6'
+            'flex min-w-0 flex-col gap-5 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-6'
           )}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-foreground/20 bg-foreground/10">
               <Flame className="size-5 text-foreground/80" />
             </div>
-            <h3 className="text-lg font-semibold text-foreground">
+            <h3 className="min-w-0 break-words text-lg font-semibold text-foreground">
               Interactive Decarboxylation Curve
             </h3>
           </div>
@@ -970,7 +974,7 @@ export function KnowledgeTab() {
             you will feel the tradeoffs faster than you can read about them.
           </p>
 
-          <div className="mt-6">
+          <div className="mt-4 min-w-0 sm:mt-6">
             <DonenessCurve />
           </div>
 
@@ -986,7 +990,7 @@ export function KnowledgeTab() {
         </div>
 
         {/* Section 14: Disclaimer */}
-        <div className="rounded-2xl border border-danger/20 bg-danger/10 px-6 py-5">
+        <div className="min-w-0 rounded-2xl border border-danger/20 bg-danger/10 px-4 py-5 sm:px-6">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger/80" />
             <div>

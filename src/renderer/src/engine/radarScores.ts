@@ -270,7 +270,7 @@ export function ringRadii(
   maxScore: number,
   radius: number
 ): number[] {
-  return labels.map((label) => {
+  return labels.map(label => {
     const value = parseFloat(label)
     if (!Number.isFinite(value)) return 0
     return (Math.max(0, Math.min(maxScore, value)) / maxScore) * radius

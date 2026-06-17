@@ -1,0 +1,531 @@
+{
+  "generatedAt": "2026-06-17T22:26:35.138Z",
+  "method": "playwright-electron via bundled runtime",
+  "root": "C:/Users/LEWIS/ccc/cannabis_chemistry_calculator",
+  "screenshots": [
+    {
+      "name": "launch",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\01-launch.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "tab-Dashboard",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\02-tab-Dashboard.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "tab-QuickBatch",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\03-tab-QuickBatch.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "tab-Decarb",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\04-tab-Decarb.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "tab-Infusion",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\05-tab-Infusion.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "tab-Dose",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\06-tab-Dose.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "tab-Methods",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\07-tab-Methods.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "tab-Advanced",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\08-tab-Advanced.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "tab-Knowledge",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\09-tab-Knowledge.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "tab-Journal",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\10-tab-Journal.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "advanced-home",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\11-advanced-home.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "advanced-concentrates",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\12-advanced-concentrates.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "advanced-blending",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\13-advanced-blending.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "advanced-cost",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\14-advanced-cost.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "advanced-fat-comparison",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\15-advanced-fat-comparison.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "quickbatch-start",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\16-quickbatch-start.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "quickbatch-infusion-step",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\17-quickbatch-infusion-step.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "quickbatch-dose-step",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\18-quickbatch-dose-step.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "quickbatch-label-step",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\19-quickbatch-label-step.png",
+      "title": "",
+      "text": ""
+    },
+    {
+      "name": "journal-review",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\20-journal-review.png",
+      "title": "",
+      "text": ""
+    }
+  ],
+  "events": [
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:25:04.715Z",
+      "name": "launch",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\01-launch.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "startup-chooser",
+      "ts": "2026-06-17T22:25:04.716Z",
+      "visible": false
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:25:09.723Z",
+      "label": "Dashboard",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Dashboard', { exact: true }).first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:25:09.814Z",
+      "name": "tab-Dashboard",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\02-tab-Dashboard.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:25:14.817Z",
+      "label": "Quick Batch",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Quick Batch', { exact: true }).first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:25:14.910Z",
+      "name": "tab-QuickBatch",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\03-tab-QuickBatch.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:25:19.921Z",
+      "label": "Decarb",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Decarb', { exact: true }).first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:25:20.008Z",
+      "name": "tab-Decarb",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\04-tab-Decarb.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:25:25.010Z",
+      "label": "Infusion",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Infusion', { exact: true }).first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:25:25.099Z",
+      "name": "tab-Infusion",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\05-tab-Infusion.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:25:30.100Z",
+      "label": "Dose",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Dose', { exact: true }).first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:25:30.188Z",
+      "name": "tab-Dose",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\06-tab-Dose.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:25:35.195Z",
+      "label": "Methods",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Methods', { exact: true }).first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:25:35.282Z",
+      "name": "tab-Methods",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\07-tab-Methods.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:25:40.286Z",
+      "label": "Advanced",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Advanced', { exact: true }).first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:25:40.369Z",
+      "name": "tab-Advanced",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\08-tab-Advanced.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:25:45.370Z",
+      "label": "Knowledge",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Knowledge', { exact: true }).first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:25:45.457Z",
+      "name": "tab-Knowledge",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\09-tab-Knowledge.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:25:50.460Z",
+      "label": "Journal",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Journal', { exact: true }).first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:25:50.546Z",
+      "name": "tab-Journal",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\10-tab-Journal.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:25:54.557Z",
+      "label": "Advanced",
+      "error": "locator.waitFor: Timeout 4000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Advanced', { exact: true }).first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:25:54.648Z",
+      "name": "advanced-home",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\11-advanced-home.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:25:59.658Z",
+      "label": "Concentrates",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Concentrates').first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:25:59.742Z",
+      "name": "advanced-concentrates",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\12-advanced-concentrates.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:26:04.755Z",
+      "label": "Strain Blending",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Strain Blending').first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:26:04.841Z",
+      "name": "advanced-blending",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\13-advanced-blending.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:26:09.847Z",
+      "label": "Cost Analysis",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Cost Analysis').first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:26:09.926Z",
+      "name": "advanced-cost",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\14-advanced-cost.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:26:14.941Z",
+      "label": "Fat Comparison",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Fat Comparison').first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:26:15.023Z",
+      "name": "advanced-fat-comparison",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\15-advanced-fat-comparison.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:26:19.024Z",
+      "label": "Quick Batch",
+      "error": "locator.waitFor: Timeout 4000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Quick Batch', { exact: true }).first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:26:19.104Z",
+      "name": "quickbatch-start",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\16-quickbatch-start.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:26:21.619Z",
+      "label": "Next: Infusion",
+      "error": "locator.waitFor: Timeout 2500ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Next: Infusion').first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:26:21.704Z",
+      "name": "quickbatch-infusion-step",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\17-quickbatch-infusion-step.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:26:24.212Z",
+      "label": "Next: Dose",
+      "error": "locator.waitFor: Timeout 2500ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Next: Dose').first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:26:24.279Z",
+      "name": "quickbatch-dose-step",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\18-quickbatch-dose-step.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:26:26.783Z",
+      "label": "Next: Label",
+      "error": "locator.waitFor: Timeout 2500ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Next: Label').first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:26:26.865Z",
+      "name": "quickbatch-label-step",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\19-quickbatch-label-step.png",
+      "title": "",
+      "textPreview": ""
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:26:30.874Z",
+      "label": "Decarb",
+      "error": "locator.waitFor: Timeout 4000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Decarb', { exact: true }).first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "input-count-decarb",
+      "ts": "2026-06-17T22:26:30.876Z",
+      "inputCount": 0
+    },
+    {
+      "type": "click-miss",
+      "ts": "2026-06-17T22:26:34.881Z",
+      "label": "Journal",
+      "error": "locator.waitFor: Timeout 4000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Journal', { exact: true }).first() to be visible\u001b[22m\n"
+    },
+    {
+      "type": "screenshot",
+      "ts": "2026-06-17T22:26:34.973Z",
+      "name": "journal-review",
+      "file": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\evidence\\e2e-electron\\20-journal-review.png",
+      "title": "",
+      "textPreview": ""
+    }
+  ],
+  "findings": [
+    {
+      "severity": "high",
+      "area": "navigation",
+      "text": "Could not click nav target Dashboard.",
+      "evidence": {
+        "label": "Dashboard"
+      }
+    },
+    {
+      "severity": "high",
+      "area": "navigation",
+      "text": "Could not click nav target Quick Batch.",
+      "evidence": {
+        "label": "Quick Batch"
+      }
+    },
+    {
+      "severity": "high",
+      "area": "navigation",
+      "text": "Could not click nav target Decarb.",
+      "evidence": {
+        "label": "Decarb"
+      }
+    },
+    {
+      "severity": "high",
+      "area": "navigation",
+      "text": "Could not click nav target Infusion.",
+      "evidence": {
+        "label": "Infusion"
+      }
+    },
+    {
+      "severity": "high",
+      "area": "navigation",
+      "text": "Could not click nav target Dose.",
+      "evidence": {
+        "label": "Dose"
+      }
+    },
+    {
+      "severity": "high",
+      "area": "navigation",
+      "text": "Could not click nav target Methods.",
+      "evidence": {
+        "label": "Methods"
+      }
+    },
+    {
+      "severity": "high",
+      "area": "navigation",
+      "text": "Could not click nav target Advanced.",
+      "evidence": {
+        "label": "Advanced"
+      }
+    },
+    {
+      "severity": "high",
+      "area": "navigation",
+      "text": "Could not click nav target Knowledge.",
+      "evidence": {
+        "label": "Knowledge"
+      }
+    },
+    {
+      "severity": "high",
+      "area": "navigation",
+      "text": "Could not click nav target Journal.",
+      "evidence": {
+        "label": "Journal"
+      }
+    },
+    {
+      "severity": "critical",
+      "area": "advanced-tools",
+      "text": "Advanced tool is not reachable by visible label: Concentrates.",
+      "evidence": {
+        "label": "Concentrates"
+      }
+    },
+    {
+      "severity": "critical",
+      "area": "advanced-tools",
+      "text": "Advanced tool is not reachable by visible label: Strain Blending.",
+      "evidence": {
+        "label": "Strain Blending"
+      }
+    },
+    {
+      "severity": "critical",
+      "area": "advanced-tools",
+      "text": "Advanced tool is not reachable by visible label: Cost Analysis.",
+      "evidence": {
+        "label": "Cost Analysis"
+      }
+    },
+    {
+      "severity": "critical",
+      "area": "advanced-tools",
+      "text": "Advanced tool is not reachable by visible label: Fat Comparison.",
+      "evidence": {
+        "label": "Fat Comparison"
+      }
+    }
+  ],
+  "consoleMessages": [
+    {
+      "type": "warning",
+      "text": "%cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security\n  Policy set or a policy with \"unsafe-eval\" enabled. This exposes users of\n  this app to unnecessary security risks.\n\nFor more information and help, consult\nhttps://electronjs.org/docs/tutorial/security.\nThis warning will not show up\nonce the app is packaged."
+    }
+  ]
+}

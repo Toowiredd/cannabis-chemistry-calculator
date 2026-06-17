@@ -58,6 +58,7 @@ export function QuickBatchTab() {
   const resetDose = useAppStore(s => s.resetDose)
   const addJournalEntry = useAppStore(s => s.addJournalEntry)
   const journalEntries = useAppStore(s => s.journalEntries)
+  const recordSuccessfulPath = useAppStore(s => s.recordSuccessfulPath)
 
   const [step, setStep] = useState<number>(0)
   const [toast, setToast] = useState<{ msg: string; visible: boolean }>({
@@ -241,6 +242,7 @@ export function QuickBatchTab() {
       const result = await window.App.saveJournalEntry(entry)
       if (result.success) {
         addJournalEntry(entry)
+        recordSuccessfulPath('make_batch', 'quickbatch')
         showToast('Batch saved to Journal')
       } else {
         showToast(result.error ?? 'Save failed')
@@ -248,6 +250,7 @@ export function QuickBatchTab() {
     } catch {
       // Fallback: just add to local store if IPC fails
       addJournalEntry(entry)
+      recordSuccessfulPath('make_batch', 'quickbatch')
       showToast('Batch saved to Journal (local)')
     }
   }
@@ -292,12 +295,17 @@ export function QuickBatchTab() {
     setUnits({
       volumeUnit: lastEntry.volumeUnit as UnitPreferences['volumeUnit'],
     })
+    // Loading a prior batch is a deliberate repeat/resume action and is a
+    // stronger startup signal than merely clicking into the tab.
+    recordSuccessfulPath('resume_repeat', 'quickbatch')
     showToast('Loaded last batch')
   }
 
   /* Step helpers */
   const nextStep = () => setStep(s => Math.min(s + 1, STEPS.length - 1))
   const prevStep = () => setStep(s => Math.max(s - 1, 0))
+  const nextStepLabel =
+    step < STEPS.length - 1 ? `Next: ${STEPS[step + 1].label}` : 'Next'
 
   /* Temp override display */
   const _tempDisplay = useMemo(() => {
@@ -314,6 +322,7 @@ export function QuickBatchTab() {
     parseFloat(decarb.weight) > 0 &&
     !Number.isNaN(parseFloat(decarb.thcaPct)) &&
     parseFloat(decarb.thcaPct) >= 0
+  const progressPct = ((step + 1) / STEPS.length) * 100
 
   // Inventory warning for weight
   const [inventoryWarning, setInventoryWarning] = useState<string | null>(null)
@@ -342,20 +351,20 @@ export function QuickBatchTab() {
     }
   }, [decarb.weight, units.weightUnit, store.inventory])
 
-    return (
-    <div className="flex flex-col gap-5 p-4">
+  return (
+    <div className="flex min-w-0 flex-col gap-5 p-2 sm:p-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <h2 className="text-xl font-semibold text-foreground">Quick Batch</h2>
           <span className="rounded-full border border-foreground/10 bg-foreground/5 px-2 py-0.5 text-xs text-foreground/70">
             Step {step + 1} of {STEPS.length}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
           {lastEntry && (
             <button
-              className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+              className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground sm:flex-none"
               onClick={handleLoadFromLastBatch}
               type="button"
             >
@@ -364,7 +373,7 @@ export function QuickBatchTab() {
             </button>
           )}
           <button
-            className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground sm:flex-none"
             onClick={handleReset}
             type="button"
           >
@@ -375,29 +384,38 @@ export function QuickBatchTab() {
       </div>
 
       {/* Progress indicator */}
-      <div className="flex items-center gap-1">
-        {STEPS.map((s, i) => (
-          <button
-            className={cn(
-              'flex-1 rounded-lg py-2 text-xs font-medium transition-colors',
-              i === step
-                ? 'bg-foreground/15 text-foreground border border-foreground/20'
-                : i < step
-                  ? 'bg-success/10 text-success border border-success/20'
-                  : 'bg-foreground/5 text-foreground/70 border border-foreground/10'
-            )}
-            key={s.key}
-            onClick={() => setStep(i)}
-            type="button"
-          >
-            {s.label}
-          </button>
-        ))}
+      <div className="flex min-w-0 flex-col gap-2">
+        <div className="h-1.5 overflow-hidden rounded-full bg-foreground/10">
+          <div
+            className="h-full rounded-full bg-success transition-all duration-300"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+        <div className="grid grid-cols-1 gap-1 min-[380px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          {STEPS.map((s, i) => (
+            <button
+              aria-current={i === step ? 'step' : undefined}
+              className={cn(
+                'min-h-10 min-w-0 rounded-lg px-2 py-2 text-xs font-medium transition-colors',
+                i === step
+                  ? 'bg-foreground/15 text-foreground border border-foreground/20'
+                  : i < step
+                    ? 'bg-success/10 text-success border border-success/20'
+                    : 'bg-foreground/5 text-foreground/70 border border-foreground/10'
+              )}
+              key={s.key}
+              onClick={() => setStep(i)}
+              type="button"
+            >
+              <span className="block truncate">{s.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ---- STEP 1: Material & Lab Data ---- */}
       {step === 0 && (
-        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Material &amp; Lab Data
           </h3>
@@ -409,98 +427,128 @@ export function QuickBatchTab() {
                 {inventoryWarning}
               </div>
             )}
-                        <InputRow label={<>
-                Material Weight
-                <TooltipIcon text="How much raw material you are starting with." />
-              </>}>
-              {<div className="flex items-center gap-2">
+            <InputRow
+              label={
+                <>
+                  Material Weight
+                  <TooltipIcon text="How much raw material you are starting with." />
+                </>
+              }
+            >
+              {
+                <div className="flex min-w-0 flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center">
+                  <input
+                    className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                    onChange={e => setDecarb({ weight: e.target.value })}
+                    placeholder="0.0"
+                    step="0.1"
+                    type="number"
+                    value={decarb.weight}
+                  />
+                  <div className="inline-flex w-full shrink-0 rounded-lg border border-foreground/20 bg-foreground/5 p-0.5 min-[420px]:w-auto">
+                    {(['g', 'oz'] as const).map(u => (
+                      <button
+                        className={cn(
+                          'flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors min-[420px]:flex-none',
+                          units.weightUnit === u
+                            ? 'bg-foreground/15 text-foreground'
+                            : 'text-foreground/70 hover:text-foreground/80'
+                        )}
+                        key={u}
+                        onClick={() => setUnits({ weightUnit: u })}
+                        type="button"
+                      >
+                        {u}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              }
+            </InputRow>
+
+            <InputRow
+              label={
+                <>
+                  THCA %
+                  <TooltipIcon text="Raw cannabis actually contains THCA, not THC. Heat converts it." />
+                </>
+              }
+            >
+              {
                 <input
-                  className="flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-                  onChange={e => setDecarb({ weight: e.target.value })}
+                  className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                  onChange={e => setDecarb({ thcaPct: e.target.value })}
                   placeholder="0.0"
                   step="0.1"
                   type="number"
-                  value={decarb.weight}
+                  value={decarb.thcaPct}
                 />
-                <div className="inline-flex shrink-0 rounded-lg border border-foreground/20 bg-foreground/5 p-0.5">
-                  {(['g', 'oz'] as const).map(u => (
-                    <button
-                      className={cn(
-                        'rounded-md px-3 py-1 text-xs font-medium transition-colors',
-                        units.weightUnit === u
-                          ? 'bg-foreground/15 text-foreground'
-                          : 'text-foreground/70 hover:text-foreground/80'
-                      )}
-                      key={u}
-                      onClick={() => setUnits({ weightUnit: u })}
-                      type="button"
-                    >
-                      {u}
-                    </button>
-                  ))}
-                </div>
-              </div>}
+              }
             </InputRow>
 
-                        <InputRow label={<>
-                THCA %
-                <TooltipIcon text="Raw cannabis actually contains THCA, not THC. Heat converts it." />
-              </>}>
-              {<input
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-                onChange={e => setDecarb({ thcaPct: e.target.value })}
-                placeholder="0.0"
-                step="0.1"
-                type="number"
-                value={decarb.thcaPct}
-              />}
+            <InputRow
+              label={
+                <>
+                  Existing THC %
+                  <TooltipIcon text="THC already in your material. Ready to go, no heat needed." />
+                </>
+              }
+            >
+              {
+                <input
+                  className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                  onChange={e => setDecarb({ thcPct: e.target.value })}
+                  placeholder="0.0"
+                  step="0.1"
+                  type="number"
+                  value={decarb.thcPct}
+                />
+              }
             </InputRow>
 
-                        <InputRow label={<>
-                Existing THC %
-                <TooltipIcon text="THC already in your material. Ready to go, no heat needed." />
-              </>}>
-              {<input
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-                onChange={e => setDecarb({ thcPct: e.target.value })}
-                placeholder="0.0"
-                step="0.1"
-                type="number"
-                value={decarb.thcPct}
-              />}
+            <InputRow
+              label={
+                <>
+                  CBDA %
+                  <TooltipIcon text="Like THCA, raw cannabis contains CBDA instead of CBD. Heat converts it." />
+                </>
+              }
+            >
+              {
+                <input
+                  className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                  onChange={e => setDecarb({ cbdaPct: e.target.value })}
+                  placeholder="0.0"
+                  step="0.1"
+                  type="number"
+                  value={decarb.cbdaPct}
+                />
+              }
             </InputRow>
 
-                        <InputRow label={<>
-                CBDA %
-                <TooltipIcon text="Like THCA, raw cannabis contains CBDA instead of CBD. Heat converts it." />
-              </>}>
-              {<input
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-                onChange={e => setDecarb({ cbdaPct: e.target.value })}
-                placeholder="0.0"
-                step="0.1"
-                type="number"
-                value={decarb.cbdaPct}
-              />}
-            </InputRow>
-
-                        <InputRow label={<>
-                Existing CBD %
-                <TooltipIcon text="CBD already in your material. No heat needed." />
-              </>}>
-              {<input
-                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-                onChange={e => setDecarb({ cbdPct: e.target.value })}
-                placeholder="0.0"
-                step="0.1"
-                type="number"
-                value={decarb.cbdPct}
-              />}
+            <InputRow
+              label={
+                <>
+                  Existing CBD %
+                  <TooltipIcon text="CBD already in your material. No heat needed." />
+                </>
+              }
+            >
+              {
+                <input
+                  className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                  onChange={e => setDecarb({ cbdPct: e.target.value })}
+                  placeholder="0.0"
+                  step="0.1"
+                  type="number"
+                  value={decarb.cbdPct}
+                />
+              }
             </InputRow>
           </div>
 
           {results.theoreticalMax > 0 && (
-            <div className="flex items-center gap-3 rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3">
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3">
               <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                 Theoretical Maximum THC
               </span>
@@ -512,12 +560,12 @@ export function QuickBatchTab() {
 
           <div className="flex justify-end">
             <button
-              className="inline-flex items-center gap-1.5 rounded-lg bg-foreground/15 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-foreground/25 disabled:opacity-50"
+              className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-foreground/15 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-foreground/25 disabled:opacity-50 sm:w-auto"
               disabled={!materialValid}
               onClick={nextStep}
               type="button"
             >
-              Next
+              {nextStepLabel}
               <ArrowRight className="size-4" />
             </button>
           </div>
@@ -526,7 +574,7 @@ export function QuickBatchTab() {
 
       {/* ---- STEP 2: Decarb Method ---- */}
       {step === 1 && (
-        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Decarb Method
           </h3>
@@ -573,7 +621,7 @@ export function QuickBatchTab() {
           </div>
 
           {results.decarbedExpected > 0 && (
-            <div className="flex items-center gap-3 rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3">
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3">
               <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                 Decarb Expected THC
               </span>
@@ -586,9 +634,9 @@ export function QuickBatchTab() {
             </div>
           )}
 
-          <div className="flex justify-between">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
             <button
-              className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
               onClick={prevStep}
               type="button"
             >
@@ -596,11 +644,11 @@ export function QuickBatchTab() {
               Back
             </button>
             <button
-              className="inline-flex items-center gap-1.5 rounded-lg bg-foreground/15 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-foreground/25"
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-foreground/15 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-foreground/25"
               onClick={nextStep}
               type="button"
             >
-              Next
+              {nextStepLabel}
               <ArrowRight className="size-4" />
             </button>
           </div>
@@ -609,7 +657,7 @@ export function QuickBatchTab() {
 
       {/* ---- STEP 3: Fat & Volume ---- */}
       {step === 2 && (
-        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Fat &amp; Volume
           </h3>
@@ -645,42 +693,48 @@ export function QuickBatchTab() {
             })}
           </div>
 
-                    <InputRow label={<>
-              Fat Volume
-              <TooltipIcon text="How much fat you are infusing." />
-            </>}>
-            {<div className="flex items-center gap-2">
-              <input
-                className="flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-                onChange={e => setInfusion({ volume: e.target.value })}
-                placeholder="0.0"
-                step="0.1"
-                type="number"
-                value={infusion.volume}
-              />
-              <div className="inline-flex shrink-0 rounded-lg border border-foreground/20 bg-foreground/5 p-0.5">
-                {(['mL', 'tsp', 'tbsp', 'cup'] as const).map(u => (
-                  <button
-                    className={cn(
-                      'rounded-md px-3 py-1 text-xs font-medium transition-colors',
-                      units.volumeUnit === u
-                        ? 'bg-foreground/15 text-foreground'
-                        : 'text-foreground/70 hover:text-foreground/80'
-                    )}
-                    key={u}
-                    onClick={() => setUnits({ volumeUnit: u })}
-                    type="button"
-                  >
-                    {u}
-                  </button>
-                ))}
+          <InputRow
+            label={
+              <>
+                Fat Volume
+                <TooltipIcon text="How much fat you are infusing." />
+              </>
+            }
+          >
+            {
+              <div className="flex min-w-0 flex-col gap-2 min-[460px]:flex-row min-[460px]:items-center">
+                <input
+                  className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                  onChange={e => setInfusion({ volume: e.target.value })}
+                  placeholder="0.0"
+                  step="0.1"
+                  type="number"
+                  value={infusion.volume}
+                />
+                <div className="inline-flex w-full shrink-0 rounded-lg border border-foreground/20 bg-foreground/5 p-0.5 min-[460px]:w-auto">
+                  {(['mL', 'tsp', 'tbsp', 'cup'] as const).map(u => (
+                    <button
+                      className={cn(
+                        'flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors min-[460px]:flex-none min-[460px]:px-3',
+                        units.volumeUnit === u
+                          ? 'bg-foreground/15 text-foreground'
+                          : 'text-foreground/70 hover:text-foreground/80'
+                      )}
+                      key={u}
+                      onClick={() => setUnits({ volumeUnit: u })}
+                      type="button"
+                    >
+                      {u}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>}
+            }
           </InputRow>
 
           {results.infusedThc > 0 && (
             <div className="flex flex-col gap-2 rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Total Infused THC
                 </span>
@@ -689,7 +743,7 @@ export function QuickBatchTab() {
                 </span>
               </div>
               {results.mgPerMl > 0 && (
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                     Concentration
                   </span>
@@ -701,9 +755,9 @@ export function QuickBatchTab() {
             </div>
           )}
 
-          <div className="flex justify-between">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
             <button
-              className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
               onClick={prevStep}
               type="button"
             >
@@ -711,11 +765,11 @@ export function QuickBatchTab() {
               Back
             </button>
             <button
-              className="inline-flex items-center gap-1.5 rounded-lg bg-foreground/15 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-foreground/25"
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-foreground/15 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-foreground/25"
               onClick={nextStep}
               type="button"
             >
-              Next
+              {nextStepLabel}
               <ArrowRight className="size-4" />
             </button>
           </div>
@@ -724,28 +778,34 @@ export function QuickBatchTab() {
 
       {/* ---- STEP 4: Servings & Dose ---- */}
       {step === 3 && (
-        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Servings &amp; Dose
           </h3>
 
-                    <InputRow label={<>
-              Number of Servings
-              <TooltipIcon text="How many pieces or portions you are dividing the batch into." />
-            </>}>
-            {<input
-              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-              onChange={e => setDose({ servings: e.target.value })}
-              placeholder="0"
-              step="1"
-              type="number"
-              value={dose.servings}
-            />}
+          <InputRow
+            label={
+              <>
+                Number of Servings
+                <TooltipIcon text="How many pieces or portions you are dividing the batch into." />
+              </>
+            }
+          >
+            {
+              <input
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                onChange={e => setDose({ servings: e.target.value })}
+                placeholder="0"
+                step="1"
+                type="number"
+                value={dose.servings}
+              />
+            }
           </InputRow>
 
           {/* Scale Batch */}
           <div className="mt-1 flex flex-col gap-2 rounded-xl border border-foreground/10 bg-foreground/5 p-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-foreground/70">
                 <Scale className="size-3.5" />
                 Scale Batch
@@ -760,10 +820,10 @@ export function QuickBatchTab() {
             </div>
             {scaleOpen && (
               <>
-                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-3">
                   {([0.5, 2, 4] as const).map(factor => (
                     <button
-                      className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-foreground/20 bg-foreground/5 px-2 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                      className="inline-flex min-h-10 flex-1 items-center justify-center gap-1 rounded-lg border border-foreground/20 bg-foreground/5 px-2 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
                       key={factor}
                       onClick={() => handleScale(factor)}
                       type="button"
@@ -772,9 +832,9 @@ export function QuickBatchTab() {
                     </button>
                   ))}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center">
                   <input
-                    className="flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                    className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                     onChange={e => {
                       setCustomScale(e.target.value)
                       setScaleError('')
@@ -785,7 +845,7 @@ export function QuickBatchTab() {
                     value={customScale}
                   />
                   <button
-                    className="inline-flex items-center rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                    className="inline-flex min-h-10 items-center justify-center rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
                     onClick={() => {
                       const n = parseFloat(customScale)
                       if (!Number.isNaN(n) && n > 0) {
@@ -808,7 +868,7 @@ export function QuickBatchTab() {
 
           {results.mgPerServing > 0 && (
             <div className="flex flex-col gap-3 rounded-xl border border-foreground/10 bg-foreground/5 p-4">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   mg per Serving
                 </span>
@@ -816,7 +876,7 @@ export function QuickBatchTab() {
                   {fmt1(results.mgPerServing)} mg
                 </span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Classification
                 </span>
@@ -827,9 +887,9 @@ export function QuickBatchTab() {
             </div>
           )}
 
-          <div className="flex justify-between">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
             <button
-              className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
               onClick={prevStep}
               type="button"
             >
@@ -837,11 +897,11 @@ export function QuickBatchTab() {
               Back
             </button>
             <button
-              className="inline-flex items-center gap-1.5 rounded-lg bg-foreground/15 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-foreground/25"
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-foreground/15 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-foreground/25"
               onClick={nextStep}
               type="button"
             >
-              Next
+              {nextStepLabel}
               <ArrowRight className="size-4" />
             </button>
           </div>
@@ -851,13 +911,13 @@ export function QuickBatchTab() {
       {/* ---- STEP 5: Label & Save ---- */}
       {step === 4 && (
         <div className="grid grid-cols-1 gap-5">
-          <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
+          <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
               Label &amp; Save
             </h3>
 
             {/* Summary */}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
                 <span className="text-xs uppercase tracking-wider text-foreground/70">
                   Material
@@ -934,18 +994,18 @@ export function QuickBatchTab() {
             )}
 
             {/* Actions */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
               <button
-                className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
                 onClick={prevStep}
                 type="button"
               >
                 <ArrowLeft className="size-4" />
                 Back
               </button>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-success/20 bg-success/10 px-4 py-2 text-sm font-medium text-success transition-colors hover:bg-success/20"
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-success/20 bg-success/10 px-4 py-2 text-sm font-medium text-success transition-colors hover:bg-success/20 sm:w-auto"
                   onClick={handleSaveBatch}
                   type="button"
                 >

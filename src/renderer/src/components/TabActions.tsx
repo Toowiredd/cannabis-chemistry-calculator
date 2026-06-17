@@ -5,23 +5,26 @@ import {
   buildTabCopyText,
 } from 'renderer/src/utils/exportReport'
 import { FileDown, ClipboardCopy, Check } from 'lucide-react'
-import { Toast } from './Toast'
+import { Toast, type ToastVariant } from './Toast'
 
 export function TabActions({ tabId }: { tabId: string }) {
   const decarb = useAppStore(s => s.decarb)
   const infusion = useAppStore(s => s.infusion)
   const dose = useAppStore(s => s.dose)
+  const advancedTools = useAppStore(s => s.advancedTools)
   const units = useAppStore(s => s.units)
   const activeTab = useAppStore(s => s.activeTab)
 
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [toastVisible, setToastVisible] = useState(false)
+  const [toastVariant, setToastVariant] = useState<ToastVariant>('default')
   const [copied, setCopied] = useState(false)
 
-  const showToast = (msg: string) => {
+  const showToast = (msg: string, variant: ToastVariant = 'default') => {
     setToastMsg(msg)
+    setToastVariant(variant)
     setToastVisible(true)
-    setTimeout(() => setToastVisible(false), 2000)
+    setTimeout(() => setToastVisible(false), 2200)
   }
 
   const handleExport = async () => {
@@ -29,6 +32,7 @@ export function TabActions({ tabId }: { tabId: string }) {
       decarb,
       infusion,
       dose,
+      advancedTools,
       units,
       activeTab,
     })
@@ -39,50 +43,62 @@ export function TabActions({ tabId }: { tabId: string }) {
         jsonContent: exportData.jsonContent,
       })
       if (result && !result.canceled) {
-        showToast('Saved')
+        showToast('Report saved', 'success')
       }
     } catch {
-      showToast('Could not export')
+      showToast('Could not export', 'danger')
     }
   }
 
   const handleCopy = async () => {
-    const text = buildTabCopyText(tabId, { decarb, infusion, dose, units })
+    const text = buildTabCopyText(tabId, {
+      decarb,
+      infusion,
+      dose,
+      advancedTools,
+      units,
+    })
     try {
       await window.App.copyToClipboard(text)
       setCopied(true)
-      showToast('Copied')
+      showToast('Copied to clipboard', 'success')
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      showToast('Could not copy')
+      showToast('Could not copy', 'danger')
     }
   }
 
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
         <button
-          className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+          aria-label="Export report"
+          className="btn-primary"
           onClick={handleExport}
+          title="Export report"
           type="button"
         >
-          <FileDown className="size-3.5" />
-          Export Report
+          <FileDown aria-hidden="true" className="size-3.5" />
+          <span className="hidden md:inline">Export Report</span>
         </button>
         <button
-          className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+          aria-label={copied ? 'Copied summary' : 'Copy summary'}
+          className={copied ? 'btn-secondary' : 'btn-ghost'}
           onClick={handleCopy}
+          title={copied ? 'Copied summary' : 'Copy summary'}
           type="button"
         >
           {copied ? (
-            <Check className="size-3.5" />
+            <Check aria-hidden="true" className="size-3.5" />
           ) : (
-            <ClipboardCopy className="size-3.5" />
+            <ClipboardCopy aria-hidden="true" className="size-3.5" />
           )}
-          {copied ? 'Copied' : 'Copy Summary'}
+          <span className="hidden md:inline">
+            {copied ? 'Copied' : 'Copy Summary'}
+          </span>
         </button>
       </div>
-      <Toast message={toastMsg} visible={toastVisible} />
+      <Toast message={toastMsg} variant={toastVariant} visible={toastVisible} />
     </>
   )
 }

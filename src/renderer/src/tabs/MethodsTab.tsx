@@ -12,7 +12,6 @@ import { TabActions } from 'renderer/src/components/TabActions'
 import { InputRow } from 'renderer/src/components/InputRow'
 import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
 import { UnitToggle } from 'renderer/src/components/UnitToggle'
-import { OverrideBadge } from 'renderer/src/components/OverrideBadge'
 
 /* ------------------------------------------------------------------ */
 /* Small helpers (mirroring DecarbTab patterns)                       */
@@ -280,17 +279,18 @@ export function MethodsTab() {
   /* Render helpers                                                   */
   /* ---------------------------------------------------------------- */
 
-    return (
-    <div className="flex flex-col gap-5 p-5">
+  return (
+    <div className="flex min-w-0 flex-col gap-5 p-2 sm:p-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-foreground">
           Method Comparison
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <TabActions tabId="methods" />
           <button
-            className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            aria-label="Reset method comparison inputs to defaults"
             onClick={handleReset}
             type="button"
           >
@@ -301,7 +301,7 @@ export function MethodsTab() {
       </div>
 
       {/* Shared Input Panel */}
-      <div className="flex flex-col gap-5 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
+      <div className="flex flex-col gap-5 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
           Shared Inputs
         </h3>
@@ -317,79 +317,103 @@ export function MethodsTab() {
         )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <InputRow label={<>
-              Material Weight
-              <TooltipIcon text="The total weight of raw cannabis material before decarboxylation." />
-            </>} error={fieldErrors.weight}>
-            {<div className="flex items-center gap-2">
+          <InputRow
+            error={fieldErrors.weight}
+            label={
+              <>
+                Material Weight
+                <TooltipIcon text="The total weight of raw cannabis material before decarboxylation." />
+              </>
+            }
+          >
+            {
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <input
+                  className={cn(
+                    'min-w-[8rem] flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                    fieldErrors.weight
+                      ? 'border-danger/60 focus:border-danger'
+                      : 'border-foreground/20 focus:border-foreground/40'
+                  )}
+                  aria-label="Material weight"
+                  onChange={e => setDecarb({ weight: e.target.value })}
+                  placeholder="0.00"
+                  step="0.01"
+                  type="number"
+                  value={decarb.weight}
+                />
+                <UnitToggle
+                  onChange={handleWeightUnitToggle}
+                  options={['g', 'oz'] as const}
+                  value={units.weightUnit}
+                />
+              </div>
+            }
+          </InputRow>
+
+          <InputRow
+            error={fieldErrors.thcaPct}
+            label={
+              <>
+                THCA %
+                <TooltipIcon text="Tetrahydrocannabinolic acid -- the non-psychoactive precursor to THC found in raw cannabis." />
+              </>
+            }
+          >
+            {
               <input
                 className={cn(
-                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                  fieldErrors.weight
+                  'min-w-0 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                  fieldErrors.thcaPct
                     ? 'border-danger/60 focus:border-danger'
                     : 'border-foreground/20 focus:border-foreground/40'
                 )}
-                onChange={e => setDecarb({ weight: e.target.value })}
-                placeholder="0.00"
-                step="0.01"
+                aria-label="THCA percentage"
+                onChange={e => setDecarb({ thcaPct: e.target.value })}
+                placeholder="0.0"
+                step="0.1"
                 type="number"
-                value={decarb.weight}
+                value={decarb.thcaPct}
               />
-              <UnitToggle
-                onChange={handleWeightUnitToggle}
-                options={['g', 'oz'] as const}
-                value={units.weightUnit}
-              />
-            </div>}
+            }
           </InputRow>
 
-                    <InputRow label={<>
-              THCA %
-              <TooltipIcon text="Tetrahydrocannabinolic acid -- the non-psychoactive precursor to THC found in raw cannabis." />
-            </>} error={fieldErrors.thcaPct}>
-            {<input
-              className={cn(
-                'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                fieldErrors.thcaPct
-                  ? 'border-danger/60 focus:border-danger'
-                  : 'border-foreground/20 focus:border-foreground/40'
-              )}
-              onChange={e => setDecarb({ thcaPct: e.target.value })}
-              placeholder="0.0"
-              step="0.1"
-              type="number"
-              value={decarb.thcaPct}
-            />}
-          </InputRow>
-
-                    <InputRow label={<>
-              Existing THC %
-              <TooltipIcon text="Delta-9-THC already present in the material. This does not need decarboxylation and contributes directly to total potency." />
-            </>} error={fieldErrors.thcPct}>
-            {<input
-              className={cn(
-                'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                fieldErrors.thcPct
-                  ? 'border-danger/60 focus:border-danger'
-                  : 'border-foreground/20 focus:border-foreground/40'
-              )}
-              onChange={e => setDecarb({ thcPct: e.target.value })}
-              placeholder="0.0"
-              step="0.1"
-              type="number"
-              value={decarb.thcPct}
-            />}
+          <InputRow
+            error={fieldErrors.thcPct}
+            label={
+              <>
+                Existing THC %
+                <TooltipIcon text="Delta-9-THC already present in the material. This does not need decarboxylation and contributes directly to total potency." />
+              </>
+            }
+          >
+            {
+              <input
+                className={cn(
+                  'min-w-0 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                  fieldErrors.thcPct
+                    ? 'border-danger/60 focus:border-danger'
+                    : 'border-foreground/20 focus:border-foreground/40'
+                )}
+                aria-label="Existing THC percentage"
+                onChange={e => setDecarb({ thcPct: e.target.value })}
+                placeholder="0.0"
+                step="0.1"
+                type="number"
+                value={decarb.thcPct}
+              />
+            }
           </InputRow>
         </div>
       </div>
 
       {/* Theoretical Max (shared) */}
       {results && (
-        <div className="flex items-center gap-3 rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3 sm:gap-3">
           <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
             Theoretical Maximum THC
           </span>
-          <span className="text-lg font-bold text-foreground">
+          <span className="break-words text-lg font-bold text-foreground">
             {fmt1(results.theoreticalMax)} mg
           </span>
         </div>
@@ -405,7 +429,7 @@ export function MethodsTab() {
           return (
             <div
               className={cn(
-                'flex flex-col gap-5 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 transition-colors',
+                'flex min-w-0 flex-col gap-5 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 transition-colors',
                 isMaxPotency &&
                   'border-2 border-warning/50 bg-warning/10 dark:bg-warning/10',
                 isMaxTerpene &&
@@ -415,18 +439,18 @@ export function MethodsTab() {
               key={method.id}
             >
               {/* Header row with badges */}
-              <div className="flex items-start justify-between gap-2">
-                <h4 className="text-base font-semibold text-foreground">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <h4 className="min-w-0 break-words text-base font-semibold text-foreground">
                   {method.name}
                 </h4>
-                <div className="flex shrink-0 flex-col items-end gap-1">
+                <div className="flex max-w-full shrink-0 flex-col items-start gap-1 sm:items-end">
                   {isMaxPotency && (
-                    <span className="inline-flex items-center rounded-full border border-warning/40 dark:border-warning/40 bg-warning/10 dark:bg-warning/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-warning dark:text-warning">
+                    <span className="inline-flex max-w-full items-center rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-warning dark:border-warning/40 dark:bg-warning/10 dark:text-warning">
                       Highest Potency
                     </span>
                   )}
                   {isMaxTerpene && (
-                    <span className="inline-flex items-center rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-success">
+                    <span className="inline-flex max-w-full items-center rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-success">
                       Max Terpene Retention
                     </span>
                   )}
@@ -451,7 +475,7 @@ export function MethodsTab() {
                   Resulting THC
                 </span>
                 {methodResults ? (
-                  <div className="flex items-baseline gap-2">
+                  <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
                     <span className="result-bloom text-2xl font-bold text-foreground">
                       {fmt1(methodResults.expectedThc)} mg
                     </span>
@@ -496,6 +520,7 @@ export function MethodsTab() {
               {/* Use This */}
               <button
                 className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                aria-label={`Use ${method.name} in the decarb calculator`}
                 onClick={() => handleUseThis(method.id)}
                 type="button"
               >

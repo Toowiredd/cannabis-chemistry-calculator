@@ -335,34 +335,29 @@ export function InfusionTab() {
     setShowFormula(false)
   }
 
-  /* Escape key resets current tab */
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleReset()
-      }
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [])
+  /*
+   * Escape must not reset the infusion calculator. Keep destructive state
+   * changes behind the visible Reset button so resizing/keyboard navigation
+   * cannot accidentally erase the user's current recipe.
+   */
 
   /* ---------------------------------------------------------------- */
   /* Render helpers                                                   */
   /* ---------------------------------------------------------------- */
 
-    /* ---------------------------------------------------------------- */
+  /* ---------------------------------------------------------------- */
   /* Render                                                           */
   /* ---------------------------------------------------------------- */
 
   return (
-    <div className="flex flex-col gap-5 p-4">
+    <div className="flex min-w-0 flex-col gap-5 p-2 sm:p-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-foreground">Fat Infusion</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
           <TabActions tabId="infusion" />
           <button
-            className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground sm:flex-none"
             onClick={handleReset}
             type="button"
           >
@@ -374,60 +369,73 @@ export function InfusionTab() {
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         {/* ------------------- INPUT PANEL ------------------- */}
-        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Input
           </h3>
 
           {/* Decarbed THC */}
-                    <InputRow label={<>
-              Decarbed THC
-              {infusion.decarbedThc === lastDecarbExpected &&
-                lastDecarbExpected && (
-                  <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-xs font-medium text-info">
-                    Auto-filled from Decarb
-                  </span>
-                )}
-              <TooltipIcon text="Total decarboxylated THC in milligrams. This is the output from the Decarb calculator." />
-            </>} error={fieldErrors.decarbedThc}>
-            {<div className="flex items-center gap-2">
-              <input
-                className={cn(
-                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                  fieldErrors.decarbedThc
-                    ? 'border-danger/60 focus:border-danger'
-                    : 'border-foreground/20 focus:border-foreground/40'
-                )}
-                onChange={e => setInfusion({ decarbedThc: e.target.value })}
-                placeholder="0.0"
-                step="0.1"
-                type="number"
-                value={infusion.decarbedThc}
-              />
-              <span className="text-sm text-foreground/70">mg</span>
-            </div>}
+          <InputRow
+            error={fieldErrors.decarbedThc}
+            label={
+              <>
+                Decarbed THC
+                {infusion.decarbedThc === lastDecarbExpected &&
+                  lastDecarbExpected && (
+                    <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-xs font-medium text-info">
+                      Auto-filled from Decarb
+                    </span>
+                  )}
+                <TooltipIcon text="Total decarboxylated THC in milligrams. This is the output from the Decarb calculator." />
+              </>
+            }
+          >
+            {
+              <div className="flex min-w-0 flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center">
+                <input
+                  className={cn(
+                    'min-w-0 flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                    fieldErrors.decarbedThc
+                      ? 'border-danger/60 focus:border-danger'
+                      : 'border-foreground/20 focus:border-foreground/40'
+                  )}
+                  onChange={e => setInfusion({ decarbedThc: e.target.value })}
+                  placeholder="0.0"
+                  step="0.1"
+                  type="number"
+                  value={infusion.decarbedThc}
+                />
+                <span className="text-sm text-foreground/70">mg</span>
+              </div>
+            }
           </InputRow>
 
           {/* Fat preset */}
-                    <InputRow label={<>
-              Fat Preset
-              <TooltipIcon text="Select a carrier fat. Each fat has a typical extraction efficiency based on its lipid profile and affinity for cannabinoids." />
-            </>}>
-            {<select
-              className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
-              onChange={e => handleFatChange(e.target.value)}
-              value={infusion.fatId}
-            >
-              {INFUSION_FATS.map(f => (
-                <option
-                  className="bg-card text-foreground"
-                  key={f.id}
-                  value={f.id}
-                >
-                  {f.name}
-                </option>
-              ))}
-            </select>}
+          <InputRow
+            label={
+              <>
+                Fat Preset
+                <TooltipIcon text="Select a carrier fat. Each fat has a typical extraction efficiency based on its lipid profile and affinity for cannabinoids." />
+              </>
+            }
+          >
+            {
+              <select
+                className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                onChange={e => handleFatChange(e.target.value)}
+                value={infusion.fatId}
+              >
+                {INFUSION_FATS.map(f => (
+                  <option
+                    className="bg-card text-foreground"
+                    key={f.id}
+                    value={f.id}
+                  >
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            }
           </InputRow>
 
           {/* Preset notes */}
@@ -438,73 +446,87 @@ export function InfusionTab() {
           )}
 
           {/* Extraction efficiency */}
-                    <InputRow label={<>
-              Extraction Efficiency
-              {isCustom && <OverrideBadge />}
-              <TooltipIcon text="The fraction of available THC that transfers into the fat during infusion. 0.82 = 82% transfer." />
-            </>} error={fieldErrors.customEfficiency}>
-            {<div className="flex items-center gap-2">
-              <input
-                className={cn(
-                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                  isCustom
-                    ? 'border-warning/60 focus:border-warning'
-                    : fieldErrors.customEfficiency
-                      ? 'border-danger/60 focus:border-danger'
-                      : 'border-foreground/20 focus:border-foreground/40'
-                )}
-                disabled={!isCustom}
-                max={1}
-                min={0}
-                onChange={e =>
-                  setInfusion({ customEfficiency: e.target.value })
-                }
-                placeholder={isCustom ? '0.00' : String(preset.extractionEff)}
-                step="0.01"
-                type="number"
-                value={
-                  isCustom
-                    ? infusion.customEfficiency
-                    : String(preset.extractionEff)
-                }
-              />
-              <span className="text-sm text-foreground/70">
-                {isCustom ? 'custom' : 'preset'}
-              </span>
-            </div>}
+          <InputRow
+            error={fieldErrors.customEfficiency}
+            label={
+              <>
+                Extraction Efficiency
+                {isCustom && <OverrideBadge />}
+                <TooltipIcon text="The fraction of available THC that transfers into the fat during infusion. 0.82 = 82% transfer." />
+              </>
+            }
+          >
+            {
+              <div className="flex min-w-0 flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center">
+                <input
+                  className={cn(
+                    'min-w-0 flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                    isCustom
+                      ? 'border-warning/60 focus:border-warning'
+                      : fieldErrors.customEfficiency
+                        ? 'border-danger/60 focus:border-danger'
+                        : 'border-foreground/20 focus:border-foreground/40'
+                  )}
+                  disabled={!isCustom}
+                  max={1}
+                  min={0}
+                  onChange={e =>
+                    setInfusion({ customEfficiency: e.target.value })
+                  }
+                  placeholder={isCustom ? '0.00' : String(preset.extractionEff)}
+                  step="0.01"
+                  type="number"
+                  value={
+                    isCustom
+                      ? infusion.customEfficiency
+                      : String(preset.extractionEff)
+                  }
+                />
+                <span className="text-sm text-foreground/70">
+                  {isCustom ? 'custom' : 'preset'}
+                </span>
+              </div>
+            }
           </InputRow>
 
           {/* Fat volume */}
-                    <InputRow label={<>
-              Fat Volume
-              <TooltipIcon text="Total volume of carrier fat used for infusion." />
-            </>} error={fieldErrors.volume}>
-            {<div className="flex items-center gap-2">
-              <input
-                className={cn(
-                  'flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                  fieldErrors.volume
-                    ? 'border-danger/60 focus:border-danger'
-                    : 'border-foreground/20 focus:border-foreground/40'
-                )}
-                onChange={e => setInfusion({ volume: e.target.value })}
-                placeholder="0.0"
-                step="0.1"
-                type="number"
-                value={infusion.volume}
-              />
-              <UnitToggle
-                onChange={handleVolumeUnitToggle}
-                options={['mL', 'tsp', 'tbsp', 'cup'] as const}
-                value={units.volumeUnit}
-              />
-            </div>}
+          <InputRow
+            error={fieldErrors.volume}
+            label={
+              <>
+                Fat Volume
+                <TooltipIcon text="Total volume of carrier fat used for infusion." />
+              </>
+            }
+          >
+            {
+              <div className="flex min-w-0 flex-col gap-2 min-[460px]:flex-row min-[460px]:items-center">
+                <input
+                  className={cn(
+                    'min-w-0 flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                    fieldErrors.volume
+                      ? 'border-danger/60 focus:border-danger'
+                      : 'border-foreground/20 focus:border-foreground/40'
+                  )}
+                  onChange={e => setInfusion({ volume: e.target.value })}
+                  placeholder="0.0"
+                  step="0.1"
+                  type="number"
+                  value={infusion.volume}
+                />
+                <UnitToggle
+                  onChange={handleVolumeUnitToggle}
+                  options={['mL', 'tsp', 'tbsp', 'cup'] as const}
+                  value={units.volumeUnit}
+                />
+              </div>
+            }
           </InputRow>
         </div>
 
         {/* ------------------- RESULTS PANEL ------------------- */}
-        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-5">
-          <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
               Results
             </h3>
@@ -531,7 +553,7 @@ export function InfusionTab() {
           )}
 
           {/* Fat name badge */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full border border-foreground/10 bg-foreground/5 px-2.5 py-1 text-xs font-medium text-foreground/70">
               {results?.fatName ?? preset.name}
             </span>
@@ -539,7 +561,7 @@ export function InfusionTab() {
 
           {/* Total infused THC — primary, authoritative result */}
           <div className="flex flex-col rounded-xl border border-success/30 bg-success/5 dark:bg-success/5 p-4">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                 Total Infused THC
               </span>
@@ -587,7 +609,7 @@ export function InfusionTab() {
           {/* Simplified multiplier estimate — secondary, approximate */}
           {!isCustom && (
             <div className="flex flex-col gap-1 rounded-xl border border-foreground/10 bg-foreground/5 p-4 opacity-80">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Simplified Estimate
                 </span>

@@ -22,7 +22,7 @@ const asNumber = (val: unknown) => {
 
 const isValidNumber = (n: number) => !Number.isNaN(n)
 
-const percentageMessage = (field: string) => ({
+const _percentageMessage = (field: string) => ({
   invalid: () => `That does not look like a number`,
   negative: () => `${field} cannot be negative -- percentages start at zero`,
   over100: () =>

@@ -198,7 +198,7 @@ export function TransformationCanvas() {
   const amberAccent = 'rgba(245,158,11,0.24)'
 
   return (
-    <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden motion-reduce:hidden">
+    <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden motion-reduce:hidden">
       <svg
         aria-hidden="true"
         className="h-full w-full"

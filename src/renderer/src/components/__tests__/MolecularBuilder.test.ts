@@ -26,13 +26,13 @@ function shouldResumeAfterVisibility(
   if (!isCurrentlyPlaying && playingBeforeHidden) {
     return { isPlaying: true, wasPlayingBeforeHidden: false }
   }
-  return { isPlaying: isCurrentlyPlaying, wasPlayingBeforeHidden: playingBeforeHidden }
+  return {
+    isPlaying: isCurrentlyPlaying,
+    wasPlayingBeforeHidden: playingBeforeHidden,
+  }
 }
 
-function computeDt(
-  lastTimeRef: number,
-  currentTime: number
-): number {
+function computeDt(lastTimeRef: number, currentTime: number): number {
   if (!lastTimeRef) return 0
   return currentTime - lastTimeRef
 }

@@ -107,9 +107,9 @@ export function TimerWidget() {
           'border-2 border-warning/50 bg-warning/10 dark:bg-warning/10'
       )}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <TimerIcon className="size-4 text-foreground/70" />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <TimerIcon aria-hidden="true" className="size-4 text-foreground/70" />
           <span className="text-sm font-semibold text-foreground">
             {timer.active
               ? `Timer -- ${timer.methodName}`
@@ -118,27 +118,32 @@ export function TimerWidget() {
                 : 'Timer'}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {timer.active && (
             <span className="text-lg font-bold tabular-nums text-foreground">
               {formatTime(remaining)}
             </span>
           )}
           {alertVisible && (
-            <span className="flex items-center gap-1 text-sm font-bold text-warning dark:text-warning">
-              <Bell className="size-4" />
+            <span
+              className="flex items-center gap-1 text-sm font-bold text-warning dark:text-warning"
+              role="status"
+            >
+              <Bell aria-hidden="true" className="size-4" />
               Done
             </span>
           )}
           <button
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? 'Show timer controls' : 'Hide timer controls'}
             className="inline-flex items-center rounded-lg border border-foreground/20 bg-foreground/5 px-2 py-1 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
             onClick={() => setCollapsed(v => !v)}
             type="button"
           >
             {collapsed ? (
-              <ChevronDown className="size-3.5" />
+              <ChevronDown aria-hidden="true" className="size-3.5" />
             ) : (
-              <ChevronUp className="size-3.5" />
+              <ChevronUp aria-hidden="true" className="size-3.5" />
             )}
           </button>
         </div>
@@ -155,7 +160,7 @@ export function TimerWidget() {
                 onClick={() => handlePresetStart(method.id)}
                 type="button"
               >
-                <Play className="size-3" />
+                <Play aria-hidden="true" className="size-3" />
                 {method.name}
                 <span className="text-foreground/70">({method.timeMax}m)</span>
               </button>
@@ -163,9 +168,10 @@ export function TimerWidget() {
           </div>
 
           {/* Custom timer */}
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <input
-              className="flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+              aria-label="Custom timer minutes"
+              className="min-w-[8rem] flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
               onChange={e => setCustomMinutes(e.target.value)}
               placeholder="Custom minutes"
               step="1"
@@ -177,7 +183,7 @@ export function TimerWidget() {
               onClick={handleCustomStart}
               type="button"
             >
-              <Play className="size-3" />
+              <Play aria-hidden="true" className="size-3" />
               Start
             </button>
           </div>
@@ -189,7 +195,7 @@ export function TimerWidget() {
               onClick={stopTimer}
               type="button"
             >
-              <Square className="size-3" />
+              <Square aria-hidden="true" className="size-3" />
               Stop / Reset
             </button>
           )}

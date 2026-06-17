@@ -1,0 +1,282 @@
+{
+  "groupId": "swipedeck",
+  "testedAt": "2026-05-18T07:45:00.000Z",
+  "isolation": {
+    "app": "Cannabis Chemistry Calculator",
+    "executable": "C:\\Users\\LEWIS\\ccc\\cannabis_chemistry_calculator\\dist\\v1.0.0\\win-unpacked\\Cannabis Chemistry Calculator.exe",
+    "cdpPort": 9222,
+    "session": "4d908c478298__swipedeck"
+  },
+  "toolsUsed": ["agent-browser"],
+  "assertions": [
+    {
+      "id": "VAL-SWIPEDECK-001",
+      "title": "3 workflow tabs render in 3D perspective stack",
+      "status": "failed",
+      "steps": [
+        { "action": "Connect to Electron app via CDP", "expected": "Connected successfully", "observed": "Connected to port 9222" },
+        { "action": "Take snapshot of initial state", "expected": "Decarb, Infusion, Dose buttons visible", "observed": "Found Decarb @e9, Infusion @e10, Dose @e11 buttons in tab strip" },
+        { "action": "Take annotated screenshot", "expected": "3D perspective stack visible", "observed": "Standard 2D tab interface - no 3D card stack visible. Tabs are in a flat horizontal strip at top." }
+      ],
+      "evidence": {
+        "screenshots": [
+          "evidence/swipedeck/VAL-SWIPEDECK-001-initial-state.png",
+          "evidence/swipedeck/VAL-SWIPEDECK-001-annotated.png",
+          "evidence/swipedeck/VAL-SWIPEDECK-001-full-annotated.png"
+        ],
+        "consoleErrors": "none",
+        "network": "n/a - local Electron app"
+      },
+      "issues": "No 3D perspective SwipeDeck component found. The app uses a standard flat tab strip navigation with Dashboard, Quick Batch, Decarb, Infusion, Dose, Methods, Fats, Knowledge, Journal, and First-Timer Guide tabs. There is no card stack, no swipe gestures, and no 3D transform animations."
+    },
+    {
+      "id": "VAL-SWIPEDECK-002",
+      "title": "Touch swipe left/right triggers tab transition with 3D flip animation",
+      "status": "blocked",
+      "steps": [
+        { "action": "N/A", "expected": "N/A", "observed": "N/A" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a"
+      },
+      "issues": "VAL-SWIPEDECK-001 failed - no SwipeDeck component exists. This assertion is blocked."
+    },
+    {
+      "id": "VAL-SWIPEDECK-003",
+      "title": "Trackpad horizontal two-finger scroll triggers tab transition",
+      "status": "blocked",
+      "steps": [
+        { "action": "N/A", "expected": "N/A", "observed": "N/A" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a"
+      },
+      "issues": "VAL-SWIPEDECK-001 failed - no SwipeDeck component exists. This assertion is blocked."
+    },
+    {
+      "id": "VAL-SWIPEDECK-004",
+      "title": "Keyboard ArrowLeft/ArrowRight triggers tab transition",
+      "status": "failed",
+      "steps": [
+        { "action": "Press ArrowRight key", "expected": "Tab transition to next tab with 3D flip", "observed": "No visible tab transition - still shows Decarb tab content" },
+        { "action": "Press ArrowLeft key", "expected": "Tab transition to previous tab", "observed": "No visible tab transition" }
+      ],
+      "evidence": {
+        "screenshots": ["evidence/swipedeck/VAL-SWIPEDECK-004-after-arrowright.png"],
+        "consoleErrors": "none",
+        "network": "n/a"
+      },
+      "issues": "Keyboard arrow keys do not trigger tab navigation. The app uses standard click-based tab navigation only."
+    },
+    {
+      "id": "VAL-SWIPEDECK-005",
+      "title": "Mouse edge-hover triggers tab transition with delay",
+      "status": "blocked",
+      "steps": [
+        { "action": "N/A", "expected": "N/A", "observed": "N/A" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a"
+      },
+      "issues": "VAL-SWIPEDECK-001 failed - no SwipeDeck component exists. This assertion is blocked."
+    },
+    {
+      "id": "VAL-SWIPEDECK-006",
+      "title": "prefers-reduced-motion disables 3D animation",
+      "status": "blocked",
+      "steps": [
+        { "action": "N/A", "expected": "N/A", "observed": "N/A" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a"
+      },
+      "issues": "VAL-SWIPEDECK-001 failed - no SwipeDeck component exists. This assertion is blocked."
+    },
+    {
+      "id": "VAL-SWIPEDECK-007",
+      "title": "Active tab content persists and remains interactive after transition",
+      "status": "passed",
+      "steps": [
+        { "action": "Navigate to Knowledge tab via click", "expected": "Knowledge page loads with content", "observed": "Knowledge page displayed with citation links (Wang et al. 2016, Tahir et al. 2021, etc.)" },
+        { "action": "Navigate back to Decarb tab via click", "expected": "Decarb tab restored with all inputs", "observed": "Decarb tab restored with Flower/Concentrate buttons, preset selector, input fields" }
+      ],
+      "evidence": {
+        "screenshots": [
+          "evidence/swipedeck/VAL-SWIPEDECK-001-knowledge-page.png",
+          "evidence/swipedeck/VAL-SWIPEDECK-001-decarb-tab.png"
+        ],
+        "consoleErrors": "none",
+        "network": "n/a"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SWIPEDECK-008",
+      "title": "Non-workflow tabs appear in separate mini-strip",
+      "status": "failed",
+      "steps": [
+        { "action": "Observe UI layout", "expected": "Separate mini-strip for non-workflow tabs", "observed": "All tabs (Dashboard, Quick Batch, Decarb, Infusion, Dose, Methods, Fats, Knowledge, Journal, First-Timer Guide) are in a single flat horizontal tab strip at the top" }
+      ],
+      "evidence": {
+        "screenshots": ["evidence/swipedeck/VAL-SWIPEDECK-001-full-annotated.png"],
+        "consoleErrors": "none",
+        "network": "n/a"
+      },
+      "issues": "No separate mini-strip visible. All tabs are in one horizontal strip."
+    },
+    {
+      "id": "VAL-SWIPEDECK-009",
+      "title": "Swipe on mini-strip does NOT affect workflow tabs",
+      "status": "blocked",
+      "steps": [
+        { "action": "N/A", "expected": "N/A", "observed": "N/A" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a"
+      },
+      "issues": "VAL-SWIPEDECK-001 failed - no SwipeDeck component or mini-strip exists. This assertion is blocked."
+    },
+    {
+      "id": "VAL-SWIPEDECK-010",
+      "title": "Rapid successive swipes are debounced",
+      "status": "blocked",
+      "steps": [
+        { "action": "N/A", "expected": "N/A", "observed": "N/A" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a"
+      },
+      "issues": "VAL-SWIPEDECK-001 failed - no SwipeDeck component exists. This assertion is blocked."
+    },
+    {
+      "id": "VAL-SWIPEDECK-011",
+      "title": "First tab (Decarb) has no left-edge hover zone",
+      "status": "blocked",
+      "steps": [
+        { "action": "N/A", "expected": "N/A", "observed": "N/A" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a"
+      },
+      "issues": "VAL-SWIPEDECK-001 failed - no SwipeDeck component or edge-hover zones exist. This assertion is blocked."
+    },
+    {
+      "id": "VAL-SWIPEDECK-012",
+      "title": "Last tab (Dose) has no right-edge hover zone",
+      "status": "blocked",
+      "steps": [
+        { "action": "N/A", "expected": "N/A", "observed": "N/A" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a"
+      },
+      "issues": "VAL-SWIPEDECK-001 failed - no SwipeDeck component or edge-hover zones exist. This assertion is blocked."
+    },
+    {
+      "id": "VAL-SWIPEDECK-013",
+      "title": "Vertical touch swipe does NOT trigger tab transition",
+      "status": "blocked",
+      "steps": [
+        { "action": "N/A", "expected": "N/A", "observed": "N/A" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a"
+      },
+      "issues": "VAL-SWIPEDECK-001 failed - no SwipeDeck component exists. This assertion is blocked."
+    },
+    {
+      "id": "VAL-SWIPEDECK-014",
+      "title": "Active tab indicator updates synchronously with transition",
+      "status": "passed",
+      "steps": [
+        { "action": "Click on Knowledge tab", "expected": "Tab indicator updates immediately", "observed": "Tab indicator changed to Knowledge tab immediately upon click" },
+        { "action": "Click on Decarb tab", "expected": "Tab indicator updates immediately", "observed": "Tab indicator changed back to Decarb tab immediately upon click" }
+      ],
+      "evidence": {
+        "screenshots": [
+          "evidence/swipedeck/VAL-SWIPEDECK-001-knowledge-page.png",
+          "evidence/swipedeck/VAL-SWIPEDECK-001-decarb-tab.png"
+        ],
+        "consoleErrors": "none",
+        "network": "n/a"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SWIPEDECK-015",
+      "title": "SwipeDeck 3D perspective preserved across window resize",
+      "status": "blocked",
+      "steps": [
+        { "action": "N/A", "expected": "N/A", "observed": "N/A" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a"
+      },
+      "issues": "VAL-SWIPEDECK-001 failed - no SwipeDeck component exists. This assertion is blocked."
+    },
+    {
+      "id": "VAL-SWIPEDECK-016",
+      "title": "Console remains error-free throughout all SwipeDeck interactions",
+      "status": "passed",
+      "steps": [
+        { "action": "Check console errors at start", "expected": "No errors", "observed": "No errors" },
+        { "action": "Navigate to various tabs", "expected": "No errors", "observed": "No errors" },
+        { "action": "Press keyboard arrows", "expected": "No errors", "observed": "No errors" },
+        { "action": "Check console errors at end", "expected": "No errors", "observed": "No errors" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Knowledge tab click by text timed out, had to use button ref @e9 to navigate back to Decarb",
+      "resolved": true,
+      "resolution": "Used ref-based click: click @e9 instead of click \"Decarb\"",
+      "affectedAssertions": ["VAL-SWIPEDECK-007"]
+    }
+  ],
+  "blockers": [
+    {
+      "description": "VAL-SWIPEDECK-001 failed - the SwipeDeck component with 3D perspective card stack does not exist in the Cannabis Chemistry Calculator app. The app uses a standard flat tab strip navigation without swipe gestures or 3D transforms.",
+      "affectedAssertions": [
+        "VAL-SWIPEDECK-002",
+        "VAL-SWIPEDECK-003",
+        "VAL-SWIPEDECK-005",
+        "VAL-SWIPEDECK-006",
+        "VAL-SWIPEDECK-009",
+        "VAL-SWIPEDECK-010",
+        "VAL-SWIPEDECK-011",
+        "VAL-SWIPEDECK-012",
+        "VAL-SWIPEDECK-013",
+        "VAL-SWIPEDECK-015"
+      ],
+      "quickFixAttempted": "N/A - this is a feature that doesn't exist in the current application"
+    }
+  ],
+  "summary": "Tested 16 assertions for SwipeDeck component. 2 passed (VAL-SWIPEDECK-007, VAL-SWIPEDECK-014 - basic tab navigation), 2 failed (VAL-SWIPEDECK-001 - no 3D perspective stack exists, VAL-SWIPEDECK-004 - keyboard arrows don't trigger tabs, VAL-SWIPEDECK-008 - no mini-strip), 11 blocked due to missing SwipeDeck component. The Cannabis Chemistry Calculator uses standard flat tab navigation, not a swipeable 3D card stack."
+}
