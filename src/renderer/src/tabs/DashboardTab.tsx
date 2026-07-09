@@ -442,9 +442,9 @@ export function DashboardTab() {
 
       {/* More Stats toggle */}
       <button
-        className="flex w-full items-center justify-between rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
         aria-controls="dashboard-secondary-stats"
         aria-expanded={showMoreStats}
+        className="flex w-full items-center justify-between rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
         onClick={() => setShowMoreStats(v => !v)}
         type="button"
       >

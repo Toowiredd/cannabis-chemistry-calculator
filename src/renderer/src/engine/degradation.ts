@@ -1,12 +1,20 @@
 /**
  * THC degradation engine for the Cannabis Chemistry Calculator.
  * First-order kinetics model for THC -> CBN conversion at different temperatures.
- * Rate constants based on Jaidee 2022 data.
  *
  * Formula (first-order): C(t) = C0 * e^(-k * t)
  *   where C0 = initial concentration, k = rate constant, t = time in days
  *
- * All outputs are labeled as estimates.
+ * Source attribution and drift notes (see research/academic-references.md
+ * Audit Table rows 9–11):
+ *   - Jaidee 2022 (#7) measured Δ9-THC degradation rate constants only in
+ *     dried resin at 50–80 °C and in pH 2 solution at 40–70 °C.
+ *   - The 4 °C, 25 °C, and 40 °C rate constants below are extrapolations below
+ *     the measured window. They are corroborated by Trofin 2012 (#15) and
+ *     Lindholst 2010 (#16) for long-term ambient storage, and are conservative
+ *     (engine rate is ~2× slower than Zamengo's reported 3–4 %/month at 22 °C).
+ *   - All outputs are labeled as `isEstimate: true`. Do not use for shelf-life
+ *     claims without independent lab validation.
  */
 import { ValidationError } from './errors'
 
@@ -49,6 +57,9 @@ export interface DegradationResult {
 // Rate presets -- Jaidee 2022 temperature-dependent kinetics
 // ---------------------------------------------------------------------------
 
+// TODO(citation): rate constants below are extrapolations below the 50–80 °C
+// window measured in Jaidee 2022 (#7). See header doc-block above and audit
+// table rows 9–11 in research/academic-references.md.
 export const DEGRADATION_RATES: readonly DegradationRate[] = [
   { tempC: 4, ratePerDay: 0.00005, label: 'Refrigerated' },
   { tempC: 25, ratePerDay: 0.0005, label: 'Room Temperature' },

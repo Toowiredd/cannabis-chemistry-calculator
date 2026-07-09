@@ -135,7 +135,9 @@ export function TimerWidget() {
           )}
           <button
             aria-expanded={!collapsed}
-            aria-label={collapsed ? 'Show timer controls' : 'Hide timer controls'}
+            aria-label={
+              collapsed ? 'Show timer controls' : 'Hide timer controls'
+            }
             className="inline-flex items-center rounded-lg border border-foreground/20 bg-foreground/5 px-2 py-1 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
             onClick={() => setCollapsed(v => !v)}
             type="button"

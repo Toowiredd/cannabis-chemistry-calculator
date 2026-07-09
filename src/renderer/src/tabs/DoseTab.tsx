@@ -601,9 +601,9 @@ export function DoseTab() {
                 }
               >
                 {
-                <div className="flex min-w-0 flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center">
-                  <input
-                    className={cn(
+                  <div className="flex min-w-0 flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center">
+                    <input
+                      className={cn(
                         'min-w-0 flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                         reverseFieldErrors.desiredMgPerServing
                           ? 'border-danger/60 focus:border-danger'

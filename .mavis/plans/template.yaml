@@ -1,0 +1,75 @@
+# Mavis Team Plan — Cannabis Chemistry Calculator Reusable Template
+#
+# Usage:
+#   1. Copy this file to a new path under .mavis/plans/
+#   2. Replace every <PLACEHOLDER> with concrete values
+#   3. Launch: mavis team plan run ".mavis/plans\<your-plan>.yaml"
+#
+# Rein full-names (already mounted):
+#   c-users-lewis-ccc-cannabis-chemistry-calculator--<short-name>
+# See .mavis/plans/README.md for the routing cheat-sheet.
+
+version: 1
+plan:
+  name: "<plan name (English or Chinese matching user language)>"
+  max_concurrency: 4
+  max_consecutive_failures: 2
+  max_cycles: 6
+  auto_reject_retries: 1
+  verifier_config:
+    default_verifiers:
+      - c-users-lewis-ccc-cannabis-chemistry-calculator--qa-e2e
+    audit_sample_rate: 0.0
+
+tasks:
+  # ---- Producer track 1 (usually chem-engine or state-routing) ------------
+  - id: "<track-1-id>"
+    title: "<short title>"
+    prompt: |
+      <Self-contained producer spec for track 1.>
+
+      Files expected:
+        - <path1>
+        - <path2>
+
+      Stop when:
+        - <runnable command>
+        - <observable success state>
+
+      Coordinate with:
+        - <other track or rein> — <handoff contract>
+    assigned_to: c-users-lewis-ccc-cannabis-chemistry-calculator--<rein>
+    verified_by: c-users-lewis-ccc-cannabis-chemistry-calculator--qa-e2e
+    verify_prompt: |
+      VERDICT: PASS|FAIL|RETRY — <one-line reason>
+
+      <Independent re-derivation steps and PASS/FAIL standard.>
+      - Inspect <specific file or output>
+      - Run <specific command>
+      - Confirm <specific assertion with file paths + line numbers>
+    max_retries: 2
+
+  # ---- Producer track 2 (usually ui-tabs / rich-features) -----------------
+  - id: "<track-2-id>"
+    title: "<short title>"
+    prompt: |
+      <Self-contained producer spec for track 2.>
+    assigned_to: c-users-lewis-ccc-cannabis-chemistry-calculator--<rein>
+    verified_by: c-users-lewis-ccc-cannabis-chemistry-calculator--qa-e2e
+    verify_prompt: |
+      VERDICT: PASS|FAIL|RETRY — <one-line reason>
+    max_retries: 2
+
+  # ---- Optional final integration gate ------------------------------------
+  - id: "<final-gate-id>"
+    title: "<integration check>"
+    role: verify-as-task
+    prompt: |
+      VERDICT: PASS|FAIL — <reason>
+
+      <Run end-to-end check across producer tracks.>
+    assigned_to: c-users-lewis-ccc-cannabis-chemistry-calculator--qa-e2e
+    depends_on:
+      - <track-1-id>
+      - <track-2-id>
+    max_retries: 1

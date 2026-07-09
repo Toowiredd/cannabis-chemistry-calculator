@@ -5,6 +5,7 @@
  */
 import { ValidationError } from './errors'
 
+/** Molecular weight ratio: THC / THCA ≈ 0.877 — Filer 2022 (#1, see research/academic-references.md). */
 const THCA_TO_THC_FACTOR = 0.877
 
 /** Round to 2 decimal places with epsilon compensation for floating-point error */

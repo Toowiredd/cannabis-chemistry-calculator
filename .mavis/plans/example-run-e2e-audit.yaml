@@ -1,0 +1,44 @@
+# Concrete working example:
+# Standalone qa-e2e audit pass on an already-shipped feature.
+# Useful when adding coverage after the fact (no producer track — this is
+# pure verification work) or when the user wants a regression sweep.
+
+version: 1
+plan:
+  name: "qa-e2e audit sweep — <tab>"
+  max_concurrency: 1
+  max_consecutive_failures: 2
+  max_cycles: 4
+  auto_reject_retries: 0
+  verifier_config:
+    default_verifiers:
+      - c-users-lewis-ccc-cannabis-chemistry-calculator--qa-e2e
+    audit_sample_rate: 0.0
+
+tasks:
+  - id: e2e-audit-<tab-slug>
+    title: "Audit the <TabName> tab per touchpoint topology"
+    role: verify-as-task
+    prompt: |
+      VERDICT: PASS|FAIL — <one-line reason>
+
+      Drive the live Electron app via Playwright MCP (CDP on port 9222)
+      and run the per-interaction matrix for the <TabName> tab, mirroring
+      validation_report.md and the touchpoint list in
+      docs/ui-ux-touchpoint-topology-2026-06-18.json.
+
+      Per touchpoint, assert:
+        - Selectable / reachable from the UI
+        - Console-clean (no error-level entries)
+        - Renders the expected text or visual element
+        - Honors prefers-reduced-motion: reduce
+
+      Save artifacts:
+        - screenshots/<tab>_<touchpoint>_<state>.png
+        - docs/e2e-electron-ux-audit-<YYYY-MM-DD>.md (full matrix + verdicts)
+        - evidence/e2e-electron/<tab-slug>/<touchpoint>.json (raw output)
+
+      Report back with VERDICT-first format; list every FAIL with repro
+      one-liner (file path + selector + expected + observed).
+    assigned_to: c-users-lewis-ccc-cannabis-chemistry-calculator--qa-e2e
+    max_retries: 1

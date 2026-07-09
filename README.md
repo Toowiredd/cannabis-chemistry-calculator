@@ -88,7 +88,7 @@ Run the full engine unit test suite:
 pnpm test
 ```
 
-Expect **166 tests** across six test files:
+Expect **601 tests** across 23 test files:
 
 - `decarb.test.ts` — Theoretical max, decarb-adjusted ranges, error handling
 - `infusion.test.ts` — Infused THC, mg/mL concentration, simplified estimates
@@ -175,7 +175,7 @@ cannabis-chemistry-calculator/
 |   |       |   |-- validation.ts    # Zod validation schemas
 |   |       |   |-- models.ts        # Domain types + preset data
 |   |       |   |-- errors.ts        # ValidationError class
-|   |       |   |-- __tests__/       # 166 vitest tests
+|           |       |   |-- __tests__/       # 601 vitest tests
 |   |       |-- stores/
 |   |       |   |-- appStore.ts      # Zustand store (tab state, units, persist)
 |   |       |-- utils/

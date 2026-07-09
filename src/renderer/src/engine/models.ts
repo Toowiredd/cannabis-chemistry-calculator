@@ -163,6 +163,8 @@ export interface EdibleFormat {
   suggestedServings: number
 }
 
+// TODO(citation): serving counts are recipe/packaging conventions; not from a
+// peer-reviewed source. See research/academic-references.md audit row #22.
 export const EDIBLE_FORMATS: readonly EdibleFormat[] = [
   {
     id: 'brownie_9x13',
@@ -223,6 +225,10 @@ export interface Strain {
 // Method Preset Data -- exactly 6 entries
 // ---------------------------------------------------------------------------
 
+// TODO(citation): temperatures and efficiency ranges below are engineering
+// estimates anchored to DESIGN.md rationale ("73 °C floor", "116 °C ceiling"),
+// but the specific efficiency bracketed ranges are not directly tabulated in
+// any cited source. See research/academic-references.md audit row #19.
 export const DECARB_METHODS: readonly PresetMethod[] = [
   {
     id: 'sv_dry',
@@ -296,6 +302,12 @@ export const DECARB_METHODS: readonly PresetMethod[] = [
 // Fat Preset Data -- exactly 4 entries
 // ---------------------------------------------------------------------------
 
+// TODO(citation): fat extraction efficiencies (ghee 0.85, coconut 0.82,
+// MCT 0.92) and simplified multipliers are engineering estimates. DESIGN.md
+// cites Ramella 2020 (#8) and Romano & Hazekamp 2013 (#13) for the general
+// "MCT > ghee > coconut" ranking, but neither paper lists the exact 0.85 /
+// 0.82 / 0.92 percentages used here. See research/academic-references.md
+// audit row #18.
 export const INFUSION_FATS: readonly PresetFat[] = [
   {
     id: 'ghee',
@@ -333,6 +345,10 @@ export const INFUSION_FATS: readonly PresetFat[] = [
 // Grind Level Data -- exactly 3 entries
 // ---------------------------------------------------------------------------
 
+// TODO(citation): bulk-density factors (6.0 / 3.5 / 2.2 cm³/g for
+// coarse/medium/fine) are sous-vide bag-sizing heuristics; no published bulk-
+// density reference for cannabis at varying grinds. See
+// research/academic-references.md audit row #20.
 export const GRIND_LEVELS: readonly GrindLevel[] = [
   { id: 'coarse', name: 'Coarse', cm3PerGram: 6.0 },
   { id: 'medium', name: 'Medium', cm3PerGram: 3.5 },
@@ -343,6 +359,9 @@ export const GRIND_LEVELS: readonly GrindLevel[] = [
 // Bag Preset Data -- 5 sizes + custom
 // ---------------------------------------------------------------------------
 
+// TODO(citation): bag dimensions are manufacturer product specs (Ziploc /
+// FoodSaver-class sizes), not from a peer-reviewed source. See
+// research/academic-references.md audit row #21.
 export const BAG_PRESETS: readonly PresetBag[] = [
   {
     id: 'quart',

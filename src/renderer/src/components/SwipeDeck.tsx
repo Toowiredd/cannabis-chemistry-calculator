@@ -423,20 +423,22 @@ export function SwipeDeck({ children, className }: SwipeDeckProps) {
           </div>
         </div>
       )}
-      {!reducedMotion && !compactDeck && activeIdx < WORKFLOW_TABS.length - 1 && (
-        <div
-          aria-hidden="true"
-          className="absolute right-0 top-0 z-10 h-full w-[5%] opacity-0 transition-opacity duration-200 hover:opacity-100"
-          style={{
-            background:
-              'linear-gradient(270deg, rgba(20,184,166,0.08), transparent)',
-          }}
-        >
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-foreground/40">
-            &#8250;
+      {!reducedMotion &&
+        !compactDeck &&
+        activeIdx < WORKFLOW_TABS.length - 1 && (
+          <div
+            aria-hidden="true"
+            className="absolute right-0 top-0 z-10 h-full w-[5%] opacity-0 transition-opacity duration-200 hover:opacity-100"
+            style={{
+              background:
+                'linear-gradient(270deg, rgba(20,184,166,0.08), transparent)',
+            }}
+          >
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-foreground/40">
+              &#8250;
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </section>
   )
 }

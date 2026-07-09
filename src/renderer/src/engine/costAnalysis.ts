@@ -22,6 +22,7 @@ function round1(value: number): number {
   return Math.round((value + 1e-9) * 10) / 10
 }
 
+/** Molecular weight ratio: THC / THCA ≈ 0.877 — Filer 2022 (#1, see research/academic-references.md). */
 const THCA_TO_THC_FACTOR = 0.877
 
 /**

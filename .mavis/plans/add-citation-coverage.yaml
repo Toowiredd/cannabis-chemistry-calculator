@@ -1,0 +1,99 @@
+version: 1
+plan:
+  name: "chem-engine: citation coverage audit on engine/*.ts"
+  max_concurrency: 1
+  max_consecutive_failures: 2
+  max_cycles: 4
+  auto_reject_retries: 1
+  verifier_config:
+    default_verifiers: [qa-e2e]
+    audit_sample_rate: 0.0
+
+tasks:
+  - id: chem-engine-citation-audit
+    title: "Audit every engine constant against research citations"
+    prompt: |
+      Walk every numeric / qualitative constant in `src/renderer/src/engine/*.ts` and check it
+      against `research/academic-references.md`. For each constant in scope:
+
+        1. Cited today: keep it. Verify the citation says what the constant claims
+           (open the source if URL provided).
+        2. NOT cited today and the constant came from a published source:
+           add a real citation (peer-reviewed paper, government agency, or industry
+           reference). Include URL / DOI when available.
+        3. NOT cited today and the constant is internal-rationale / engineering
+           default: flag it with a `// TODO(citation): <why no source>` comment in
+           the source AND add a row in the new audit table.
+        4. Cited but constant has drifted outside the source's range: flag in the
+           audit table (don't silently overwrite).
+
+      Anti-fabrication (binding):
+        - Do NOT invent papers, authors, years, or DOIs.
+        - If you cannot find a real source, do NOT cite — flag with `// TODO(citation)`
+          and document in the audit table instead.
+        - The existing `research/academic-references.md` is the only authoritative cite
+          file. Do not introduce a parallel file.
+
+      What goes in the audit table:
+        - Constant (file:line)
+        - Cited today? (yes / no)
+        - Action taken (kept / added / flagged TODO)
+        - Source (if added) — paper title, authors, year, URL/DOI
+        - Verifier note (any drift observation)
+
+      Stop when:
+        - Every engine constant in scope has either a real citation or an explicit
+          `// TODO(citation)` comment + audit-table row
+        - `pnpm vitest run src/renderer/src/engine` is green
+        - `pnpm typecheck` is clean
+        - `pnpm lint` reports no new errors in `engine/**`
+
+      Workspace: `C:\Users\LEWIS\ccc\cannabis_chemistry_calculator`
+      (this is also the project root; engine sources live under
+      `src/renderer/src/engine/`).
+
+      Output (report-back):
+      - Path of the updated `research/academic-references.md`
+      - Path of any newly TODO-flagged engine files
+      - One-line summary: N constants audited, M citations added, K TODO-flagged
+    assigned_to: chem-engine
+    verified_by: qa-e2e
+    max_retries: 2
+    verify_prompt: |
+      VERDICT: PASS|FAIL — <one-line reason>
+
+      You are auditing the citation-coverage pass on `src/renderer/src/engine/*.ts`.
+
+      ## Carry-forward scan (REQUIRED — sibling artifact drift)
+      Sibling artifacts:
+        - `DESIGN.md` (rationale refs citations)
+        - `validation_report.md` (workspace root — claims that imply numeric constants)
+        - `docs/e2e-electron-ux-audit-2026-06-18.md` (asserts specific zone boundaries)
+      Carry-forward checks:
+        - Every numeric constant asserted in `validation_report.md` (e.g. zone
+          boundaries, temperature bands) traces to a citation or a TODO flag
+          in the engine source.
+        - Every claim in `DESIGN.md` "Chemistry Model Rationale" with a numeric
+          value traces to a citation or a TODO flag.
+      Report GREEN/RED per check.
+
+      ## Side-effect audit (REQUIRED)
+        - `research/academic-references.md` was extended (file modified, length grew)
+        - Every newly added citation corresponds to a real, retrievable source
+          (spot-check the URL/DOI by reading the reference text — don't fetch,
+          just confirm shape)
+        - `git diff --stat` of engine source files matches the report
+        - `pnpm vitest run src/renderer/src/engine` exits 0
+        - `pnpm typecheck` exits 0
+
+      ## Scope discipline
+      Verify ONLY this task. Any adjacent gaps (UI / docs) are carry-forward, not new work.
+
+      ## Judgment calls
+      If the producer added a citation that you can't verify against the constant,
+      fail with the exact discrepancy. If the producer flagged a TODO but the
+      constant clearly HAS a canonical source, flag a carry-forward item, don't
+      auto-fix.
+
+      ## Report back
+      First line MUST be `VERDICT: PASS|FAIL|RETRY` with one-line reason.

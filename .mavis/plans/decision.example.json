@@ -1,0 +1,12 @@
+{
+  "last_cycle": [
+    {
+      "task_id": "<task-id>",
+      "verdict": "accept",
+      "reason": "<why this is good — concrete evidence: file path, line number, command output>"
+    }
+  ],
+  "next_cycle": [],
+  "plan_complete": true,
+  "message_to_user": "<short user-language closeout note>"
+}

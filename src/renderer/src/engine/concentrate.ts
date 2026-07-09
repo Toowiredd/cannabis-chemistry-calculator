@@ -9,7 +9,7 @@
 import { ValidationError } from './errors'
 import type { EfficiencyRange } from './models'
 
-/** Molecular weight ratio: THC / THCA ≈ 0.877 */
+/** Molecular weight ratio: THC / THCA ≈ 0.877 — Filer 2022 (#1, see research/academic-references.md). */
 const THCA_TO_THC_FACTOR = 0.877
 
 /** Round to at most 1 decimal place with epsilon compensation for floating-point error */
@@ -42,6 +42,11 @@ export interface ConcentrateType {
 // Concentrate-type presets -- exactly 6 entries
 // ---------------------------------------------------------------------------
 
+// TODO(citation): typical THCA / THC percentages and decarb temperature
+// guidance (95–105 °C for wax/shatter, 110–115 °C for hash/kief/RSO) are
+// industry averages anchored to Garcia-Valverde 2022 (#11) for the
+// THCA→THC→CBN cascade direction, but the specific ranges are not tabulated
+// in any cited source. See research/academic-references.md audit row #23.
 export const CONCENTRATE_TYPES: readonly ConcentrateType[] = [
   {
     id: 'wax',

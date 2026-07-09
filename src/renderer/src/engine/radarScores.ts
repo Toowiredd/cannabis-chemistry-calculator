@@ -37,6 +37,9 @@ export interface RadarPoint {
  * Piecewise linear interpolation through anchor points.
  * Anchors must be sorted ascending by x.
  */
+// TODO(citation): piecewise anchor thresholds (0, 2.5, 5, 10, 25, 50, 100)
+// reuse the dosing classification boundaries (see dosing.ts) — internal UI
+// taxonomy. See research/academic-references.md audit row #28.
 export function piecewiseScore(
   value: number,
   anchors: [number, number][]
@@ -91,6 +94,7 @@ export function cbdDoseScore(
     servings <= 0
   )
     return 0
+  // 0.877 MW ratio per Filer 2022 (#1, see research/academic-references.md).
   const cbdTheoreticalMax =
     weight * ((cbdaPct / 100) * 0.877 + cbdPct / 100) * 1000
   const cbdMgPerServing = (cbdTheoreticalMax * extractionEff) / servings
@@ -101,6 +105,11 @@ export function cbdDoseScore(
 /**
  * Onset speed score (higher = faster onset).
  * MCT oil absorbs fastest; high doses slow absorption.
+ *
+ * TODO(citation): base scores `{mct:9, ghee:7, coconut:6, custom:5}` and the
+ * `mgPerServing / 25` penalty divisor are engineering heuristics; no peer-
+ * reviewed source maps specific carrier fats to these numeric onset scores.
+ * See research/academic-references.md audit row #29.
  */
 export function onsetSpeedScore(mgPerServing: number, fatId: string): number {
   const base: Record<string, number> = {
@@ -118,6 +127,11 @@ export function onsetSpeedScore(mgPerServing: number, fatId: string): number {
 /**
  * Duration score (higher = longer lasting).
  * Saturated fats (ghee, coconut) prolong effects; higher dose = longer.
+ *
+ * TODO(citation): base scores `{mct:5, ghee:9, coconut:8.5, custom:6}` and the
+ * `mgPerServing / 50` bonus divisor are engineering heuristics; no peer-
+ * reviewed source maps specific carrier fats to these numeric duration
+ * scores. See research/academic-references.md audit row #30.
  */
 export function durationScore(mgPerServing: number, fatId: string): number {
   const base: Record<string, number> = {
@@ -135,6 +149,10 @@ export function durationScore(mgPerServing: number, fatId: string): number {
 /**
  * Body load score.
  * Driven primarily by THC dose; CBD adds a small physical-relaxation component.
+ *
+ * TODO(citation): the 0.5 CBD contribution factor and 0.9 / 0.2 thc/cbd
+ * weighting are engineering heuristics; no peer-reviewed source.
+ * See research/academic-references.md audit row #32.
  */
 export function bodyLoadScore(
   mgPerServing: number,
@@ -149,6 +167,11 @@ export function bodyLoadScore(
  * Head load score.
  * Driven by THC dose; reduced by CBD (anxiolytic).
  * Decarb method modulates terpene-driven headiness.
+ *
+ * TODO(citation): `methodMod` map (1.05 / 1.02 / 1.08 / 0.98 / 0.92),
+ * `cbdReduction = min(3, cbdMgPerServing * 0.3)`, and the multiplication
+ * structure are engineering heuristics; no peer-reviewed source.
+ * See research/academic-references.md audit row #31.
  */
 export function headLoadScore(
   mgPerServing: number,
@@ -203,6 +226,7 @@ export function computeRadarScores(params: {
   const cbdDose = cbdDoseScore(weight, cbdaPct, cbdPct, extractionEff, servings)
 
   // Estimate CBD mg/serving for body/head load calculations
+  // 0.877 MW ratio per Filer 2022 (#1, see research/academic-references.md).
   const cbdTheoreticalMax =
     weight > 0 && servings > 0
       ? weight * ((cbdaPct / 100) * 0.877 + cbdPct / 100) * 1000

@@ -5,7 +5,8 @@
 import { ValidationError } from './errors'
 import type { EfficiencyRange } from './models'
 
-/** Molecular weight ratio: THC / THCA ≈ 0.877 */
+/** Molecular weight ratio: THC / THCA ≈ 0.877 (314.45 / 358.47).
+ *  Source: Filer 2022 (#1, see research/academic-references.md). */
 const THCA_TO_THC_FACTOR = 0.877
 
 /** Round to at most 1 decimal place with epsilon compensation for floating-point error */
