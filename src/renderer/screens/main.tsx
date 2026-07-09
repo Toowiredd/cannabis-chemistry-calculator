@@ -117,7 +117,8 @@ export function MainScreen() {
   const firstRunDismissed = useAppStore(s => s.firstRunDismissed)
   const _dismissFirstRun = useAppStore(s => s.dismissFirstRun)
   const _firstTimerOpen = useAppStore(s => s.firstTimerOpen)
-  const setFirstTimerOpen = useAppStore(s => s.setFirstTimerOpen)
+  const wizardDismissed = useAppStore(s => s.wizard.dismissed)
+  const setWizardActive = useAppStore(s => s.setWizardActive)
 
   const [isLoading, setIsLoading] = useState(true)
   const [isExitingLoad, setIsExitingLoad] = useState(false)
@@ -158,20 +159,33 @@ export function MainScreen() {
 
   useEffect(() => {
     // Startup routing note:
-    // First-time education is already modal-driven here, but the launch path
-    // underneath is still static. The intended replacement is:
-    // - first run: show First-Timer Guide with Quick Batch as the underlying path
-    // - ambiguous return: show a tiny chooser with 2-3 intents
-    // - confident return: auto-route using persisted last-successful-path logic
-    // Keep this effect focused on first-run education; do not overload it with
-    // tab persistence based only on `activeTab`.
+    // First-time education is now driven by the multi-select wizard slice
+    // (see `stores/appStore.ts` — `wizard: { active, dismissed, stepIndex,
+    // selections }`). The boot path underneath the wizard is still static
+    // for now; the planned rollout per `docs/startup-routing-master.md` is:
+    //   - Phase 1 (this effect): first launch opens the wizard and pins the
+    //     underlying shell to `Quick Batch`. The wizard's `dismissed` flag
+    //     is the user-level dismiss — once true, we never re-prompt.
+    //   - Phase 2: ambiguous return states open a tiny chooser with 2-3
+    //     intents (Make / Resume / History) above the same shell.
+    //   - Phase 3: confident return auto-routes using the persisted
+    //     `startupRouting` heuristic.
+    // Keep this effect focused on first-run education + wizard boot; do
+    // not overload it with tab persistence based only on `activeTab`.
     if (startupHandledRef.current) return
 
-    if (!firstRunDismissed) {
+    // Wizard boot gate: open the wizard ONLY when the bootstrap flag
+    // (`firstRunDismissed === false`) says this is a first launch AND the
+    // user has not already dismissed the wizard explicitly
+    // (`wizard.dismissed !== true`). This is the "never re-prompt a user who
+    // already opted out" guarantee. If `wizard.dismissed` is undefined
+    // (returning user on first ever launch), the hydration-time default
+    // is `false`, so the wizard will open — preserving the first-launch UX.
+    if (!firstRunDismissed && wizardDismissed !== true) {
       startupHandledRef.current = true
       setActiveTab('quickbatch')
       setStartupChooserOpen(false)
-      setFirstTimerOpen(true)
+      setWizardActive(true)
       return
     }
 
@@ -208,8 +222,9 @@ export function MainScreen() {
     infusion,
     recordStartupChooserShown,
     setActiveTab,
-    setFirstTimerOpen,
+    setWizardActive,
     startupRouting,
+    wizardDismissed,
   ])
 
   const openStartupChooser = () => {
@@ -294,7 +309,7 @@ export function MainScreen() {
             </button>
             <button
               className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-info/30 bg-info/10 px-2.5 py-2 text-xs font-medium text-info transition-all duration-200 hover:bg-info/20 hover:-translate-y-px xl:px-3"
-              onClick={() => setFirstTimerOpen(true)}
+              onClick={() => setWizardActive(true)}
               type="button"
             >
               <BookOpen className="size-3.5" />

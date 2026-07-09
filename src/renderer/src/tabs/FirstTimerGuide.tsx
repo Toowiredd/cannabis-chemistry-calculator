@@ -1,4 +1,59 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+/**
+ * FirstTimerGuide — multi-select kit-configurator wizard.
+ *
+ * Six steps. Each step lets the user check one, many, or zero options
+ * (true multi-select throughout) and surfaces running math previews as
+ * they toggle, so the user can compare decarb methods, fats, and
+ * recipe formats without leaving the wizard.
+ *
+ * Wiring:
+ * - Reads `wizard.active / stepIndex / selections` from `useAppStore`.
+ * - Writes via the wizard slice setters
+ *   (`toggleWizardSelection`, `setWizardNumberField`, `setWizardStep`,
+ *   `dismissWizard`).
+ * - Pulls curated option sets from `engine/wizardPresets.ts`
+ *   (METHOD_OPTIONS, FAT_OPTIONS, FORMAT_OPTIONS — alias shim of the
+ *   underlying `engine/wizardPresets.ts` re-exports).
+ * - Live math runs through `engine/decarb` + `engine/infusion`
+ *   + `engine/dosing` — no hardcoded constants in this file.
+ *
+ * UX choice (documented per task brief):
+ *   Steps 3, 4, 5 (decarb methods, fats, formats) require at least one
+ *   selection to enable the Next button — the matrix in step 6 is the
+ *   whole point of the wizard, and "0 of 0" picks produce no useful
+ *   output. Step 1 (equipment) is intentionally permissive: an empty
+ *   selection means "I don't have any of this yet" which is a legitimate
+ *   state for a first-timer, so Next is always enabled there. Step 2
+ *   (material) gates on valid positive numerics.
+ */
+import { useCallback, useId, useMemo, type ReactNode } from 'react'
+import {
+  Beaker,
+  Carrot,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Cookie,
+  Copy,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  Flame,
+  FlaskConical,
+  Layers,
+  ListChecks,
+  Pill,
+  Salad,
+  Scale,
+  Thermometer,
+  UtensilsCrossed,
+  Wand2,
+  X,
+  type LucideIcon,
+} from 'lucide-react'
+
+import { MultiSelectGroup } from 'renderer/components/MultiSelectGroup'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import {
   calculateTheoreticalMax,
@@ -6,24 +61,160 @@ import {
 } from 'renderer/src/engine/decarb'
 import { calculateInfusedThc } from 'renderer/src/engine/infusion'
 import { calculateMgPerServing, classifyDose } from 'renderer/src/engine/dosing'
-import { cn } from 'renderer/lib/utils'
 import {
-  Check,
-  ChevronRight,
-  ChevronLeft,
-  X,
-  ChefHat,
-  FlaskConical,
-  UtensilsCrossed,
-  Scale,
-  Clock,
-  Thermometer,
-  ArrowRight,
-  Sparkles,
-} from 'lucide-react'
+  METHOD_OPTIONS,
+  FAT_OPTIONS,
+  FORMAT_OPTIONS,
+} from 'renderer/src/engine/wizardOptions'
+import { cn } from 'renderer/lib/utils'
+
+import { useReducedMotion } from '../hooks/useReducedMotion'
 
 /* ------------------------------------------------------------------ */
-/* Helpers                                                            */
+/* Step model                                                         */
+/* ------------------------------------------------------------------ */
+
+interface StepDef {
+  id: 'equipment' | 'material' | 'decarb' | 'fats' | 'formats' | 'review'
+  label: string
+  Icon: LucideIcon
+  /** Short helper shown under the header on each step. */
+  description: string
+}
+
+/**
+ * `description` is the header copy the brief asked for on every picker
+ * step. Steps 2 and 6 carry prose instead of helper text because they
+ * are not picker steps.
+ */
+const STEPS: readonly StepDef[] = [
+  {
+    id: 'equipment',
+    label: 'Equipment',
+    Icon: UtensilsCrossed,
+    description:
+      "Tick what you have on hand. Anything you don't own yet has a substitution in the row's subtitle.",
+  },
+  {
+    id: 'material',
+    label: 'Your material',
+    Icon: Scale,
+    description: 'Two numbers and a one-click shortcut from your Decarb tab.',
+  },
+  {
+    id: 'decarb',
+    label: 'Decarb methods',
+    Icon: Thermometer,
+    description:
+      "Check every method you're willing to try. We'll show numbers for each below.",
+  },
+  {
+    id: 'fats',
+    label: 'Fats on hand',
+    Icon: FlaskConical,
+    description:
+      'Tick the carrier fats you actually own — one preview line per fat.',
+  },
+  {
+    id: 'formats',
+    label: 'Recipe formats',
+    Icon: Cookie,
+    description:
+      'Pick the formats you want to make. We sum their serving counts at the bottom.',
+  },
+  {
+    id: 'review',
+    label: 'Your numbers',
+    Icon: ListChecks,
+    description:
+      'Every (method × fat × format) combination with a live calculation.',
+  },
+] as const
+
+/* ------------------------------------------------------------------ */
+/* Equipment options (curated, ~8-10 real kitchen items)              */
+/* ------------------------------------------------------------------ */
+
+interface EquipmentOption {
+  id: string
+  label: string
+  /** Friendly substitution when the user does not own the item. */
+  subtitle: string
+  Icon: LucideIcon
+}
+
+const EQUIPMENT_OPTIONS: readonly EquipmentOption[] = [
+  {
+    id: 'flower',
+    label: 'Cannabis flower',
+    subtitle: 'Any amount works. Quality matters more than quantity.',
+    Icon: Salad,
+  },
+  {
+    id: 'glass_dish',
+    label: 'Glass baking dish',
+    subtitle: 'A ceramic casserole dish or a pie plate works fine.',
+    Icon: Layers,
+  },
+  {
+    id: 'foil',
+    label: 'Aluminum foil',
+    subtitle:
+      'An oven-safe lid or a tight layer of parchment plus foil will do.',
+    Icon: Layers,
+  },
+  {
+    id: 'fat',
+    label: 'Butter or coconut oil',
+    subtitle: 'Ghee or any oil with some fat content works. Avoid watery oils.',
+    Icon: Carrot,
+  },
+  {
+    id: 'oven',
+    label: 'An oven',
+    subtitle: 'A toaster oven with a temperature dial works too.',
+    Icon: Flame,
+  },
+  {
+    id: 'heat_source',
+    label: 'A stove or slow cooker',
+    subtitle:
+      'A double boiler or even a very low oven holds the right temperature.',
+    Icon: Flame,
+  },
+  {
+    id: 'strainer',
+    label: 'A strainer or cheesecloth',
+    subtitle:
+      'A clean kitchen towel, fine-mesh sieve, or nut-milk bag will do.',
+    Icon: Beaker,
+  },
+  {
+    id: 'bake_vehicle',
+    label: 'Something to bake with',
+    subtitle:
+      'Brownie mix, cookie dough, cake mix, gummies, whatever you like.',
+    Icon: Cookie,
+  },
+  {
+    id: 'kitchen_scale',
+    label: 'A digital kitchen scale',
+    subtitle:
+      'A postal scale or even ½-gram resolution jewellery scales work in a pinch.',
+    Icon: Scale,
+  },
+]
+
+/* ------------------------------------------------------------------ */
+/* Equipment icon lookup                                              */
+/* ------------------------------------------------------------------ */
+
+function _equipmentIconFor(id: string): LucideIcon {
+  return EQUIPMENT_OPTIONS.find(o => o.id === id)?.Icon ?? UtensilsCrossed
+}
+
+/* ------------------------------------------------------------------ */
+/* Small formatters                                                   */
 /* ------------------------------------------------------------------ */
 
 function _round1(value: number): number {
@@ -31,254 +222,368 @@ function _round1(value: number): number {
   return Math.round((value + 1e-9) * 10) / 10
 }
 
-function fmt1(value: number | null | undefined): string {
+function _fmt1(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return '0.0'
-  return value.toFixed(1)
+  return _round1(value).toFixed(1)
 }
 
-const OVEN_SEALED_EFF = 0.93 // expected efficiency for oven_sealed
-const COCONUT_EFF = 0.82 // extraction efficiency for coconut oil
-const DEFAULT_SERVINGS = 16
-
-const STEPS = [
-  {
-    id: 'checklist',
-    label: 'What you need',
-    icon: UtensilsCrossed,
-  },
-  {
-    id: 'prepare',
-    label: 'Prepare your material',
-    icon: Scale,
-  },
-  {
-    id: 'decarb',
-    label: 'Decarb',
-    icon: Thermometer,
-  },
-  {
-    id: 'infuse',
-    label: 'Infuse',
-    icon: FlaskConical,
-  },
-  {
-    id: 'dose',
-    label: 'Figure out your dose',
-    icon: Sparkles,
-  },
-  {
-    id: 'make',
-    label: 'Make your edibles',
-    icon: ChefHat,
-  },
-]
-
-interface EquipmentItem {
-  name: string
-  substitution: string
-  checked: boolean
+function _fmtInt(value: number): string {
+  if (value == null || Number.isNaN(value)) return '0'
+  return Math.round(value).toString()
 }
 
-const DEFAULT_EQUIPMENT: EquipmentItem[] = [
-  {
-    name: 'Cannabis flower',
-    substitution: 'Any amount works. Quality matters more than quantity.',
-    checked: false,
-  },
-  {
-    name: 'Glass baking dish',
-    substitution: 'A ceramic casserole dish or even a pie plate works fine.',
-    checked: false,
-  },
-  {
-    name: 'Aluminum foil',
-    substitution: 'An oven-safe lid or tight layer of parchment plus foil.',
-    checked: false,
-  },
-  {
-    name: 'Butter or coconut oil',
-    substitution:
-      'Ghee or any oil with some fat content works. Avoid watery oils.',
-    checked: false,
-  },
-  {
-    name: 'An oven',
-    substitution: 'A toaster oven with a temperature dial works too.',
-    checked: false,
-  },
-  {
-    name: 'A stove or slow cooker',
-    substitution: 'A double boiler or even a very low oven works in a pinch.',
-    checked: false,
-  },
-  {
-    name: 'A strainer or cheesecloth',
-    substitution: 'A clean kitchen towel, fine mesh sieve, or nut-milk bag.',
-    checked: false,
-  },
-  {
-    name: 'Something to bake',
-    substitution:
-      'Brownie mix, cookie dough, cake mix, gummies, whatever you like.',
-    checked: false,
-  },
-]
+/* ------------------------------------------------------------------ */
+/* Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Try the engine math and return null if inputs are unusable.
+ * Centralizes the "is this preview safe to show?" check across steps.
+ */
+function _safeRun<T>(fn: () => T): T | null {
+  try {
+    return fn()
+  } catch {
+    return null
+  }
+}
 
 /* ------------------------------------------------------------------ */
 /* Component                                                          */
 /* ------------------------------------------------------------------ */
 
-export function FirstTimerGuide() {
-  const firstTimerOpen = useAppStore(s => s.firstTimerOpen)
-  const setFirstTimerOpen = useAppStore(s => s.setFirstTimerOpen)
-  const dismissFirstRun = useAppStore(s => s.dismissFirstRun)
-  const _firstRunDismissed = useAppStore(s => s.firstRunDismissed)
+export function FirstTimerGuide(): ReactNode {
+  /* ---- store wiring ---- */
+  const active = useAppStore(s => s.wizard.active)
+  const stepIndex = useAppStore(s => s.wizard.stepIndex)
+  const selections = useAppStore(s => s.wizard.selections)
+  const setWizardStep = useAppStore(s => s.setWizardStep)
+  const toggleWizardSelection = useAppStore(s => s.toggleWizardSelection)
+  const setWizardNumberField = useAppStore(s => s.setWizardNumberField)
+  const dismissWizard = useAppStore(s => s.dismissWizard)
+  const setActiveTab = useAppStore(s => s.setActiveTab)
+  const addJournalEntry = useAppStore(s => s.addJournalEntry)
+  const decarbDefaults = useAppStore(s => s.decarb)
 
-  const [stepIndex, setStepIndex] = useState(0)
-  const [equipment, setEquipment] = useState<EquipmentItem[]>([
-    ...DEFAULT_EQUIPMENT,
-  ])
+  const reducedMotion = useReducedMotion()
 
-  const [grams, setGrams] = useState('3.5')
-  const [thcaPct, setThcaPct] = useState('20')
-  const [servings, setServings] = useState(String(DEFAULT_SERVINGS))
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  /* ---- local derived state ---- */
+  const step = STEPS[stepIndex] ?? STEPS[0]
+  const isFirstStep = stepIndex === 0
+  const isLastStep = stepIndex === STEPS.length - 1
+  const wizardTitleId = useId()
 
-  const step = STEPS[stepIndex]
+  const grams = selections.grams ?? 0
+  const thcaPct = selections.thcaPct ?? 0
+  const servingsPerFormat = selections.servings
 
-  /* ---- auto-calculation ---- */
-  const results = useMemo(() => {
-    const g = parseFloat(grams)
-    const p = parseFloat(thcaPct)
-    const s = parseFloat(servings)
+  /* ---- selection sets ---- */
+  const equipmentSet = useMemo(
+    () => new Set(selections.equipment),
+    [selections.equipment]
+  )
+  const methodSet = useMemo(
+    () => new Set(selections.decarbMethodIds),
+    [selections.decarbMethodIds]
+  )
+  const fatSet = useMemo(() => new Set(selections.fatIds), [selections.fatIds])
+  const formatSet = useMemo(
+    () => new Set(selections.formatIds),
+    [selections.formatIds]
+  )
 
-    if (
-      Number.isNaN(g) ||
-      Number.isNaN(p) ||
-      Number.isNaN(s) ||
-      g <= 0 ||
-      p <= 0 ||
-      p > 100 ||
-      s <= 0
-    ) {
-      return null
-    }
+  /* ---- live math (used by steps 3, 4, 5, 6) ---- */
+  const theoretical = useMemo(
+    () =>
+      grams > 0 && thcaPct > 0 && thcaPct <= 100
+        ? (_safeRun(() => calculateTheoreticalMax(grams, thcaPct, 0)) ?? 0)
+        : 0,
+    [grams, thcaPct]
+  )
 
-    try {
-      const theoretical = calculateTheoreticalMax(g, p, 0)
-      const decarbed = calculateDecarbedThc(theoretical, OVEN_SEALED_EFF)
-      const infused = calculateInfusedThc(decarbed, COCONUT_EFF)
-      const perServing = calculateMgPerServing(infused, s)
-      const classification = classifyDose(perServing)
-
-      return {
-        theoretical,
-        decarbed,
-        infused,
-        perServing,
-        classification,
-      }
-    } catch {
-      return null
-    }
-  }, [grams, thcaPct, servings])
-
-  /* ---- validation ---- */
-  useEffect(() => {
-    const next: Record<string, string> = {}
-    const g = parseFloat(grams)
-    const p = parseFloat(thcaPct)
-    const s = parseFloat(servings)
-
-    if (grams.trim() === '' || Number.isNaN(g) || g <= 0) {
-      next.grams = 'Enter a positive amount in grams'
-    }
-    if (thcaPct.trim() === '' || Number.isNaN(p) || p <= 0 || p > 100) {
-      next.thcaPct = 'Enter a percentage between 1 and 100'
-    }
-    if (servings.trim() === '' || Number.isNaN(s) || s <= 0) {
-      next.servings = 'Enter a positive number of servings'
-    }
-
-    setErrors(next)
-  }, [grams, thcaPct, servings])
-
-  const handleDismiss = useCallback(() => {
-    dismissFirstRun()
-    setFirstTimerOpen(false)
-  }, [dismissFirstRun, setFirstTimerOpen])
-
-  const toggleEquip = useCallback((i: number) => {
-    setEquipment(prev =>
-      prev.map((item, idx) =>
-        idx === i ? { ...item, checked: !item.checked } : item
+  /* ---- per-method preview ---- */
+  const perMethodPreview = useMemo(() => {
+    if (theoretical <= 0) return []
+    return METHOD_OPTIONS.filter(m => methodSet.has(m.id)).map(m => {
+      const decarbed = _safeRun(() =>
+        calculateDecarbedThc(theoretical, m.efficiency.expected)
       )
+      return {
+        id: m.id,
+        label: m.label,
+        tempC: m.tempC,
+        timeMin: m.timeMin,
+        timeMax: m.timeMax,
+        efficiency: m.efficiency.expected,
+        decarbed: decarbed ?? 0,
+      }
+    })
+  }, [theoretical, methodSet])
+
+  /* ---- per-fat preview ---- */
+  const perFatPreview = useMemo(() => {
+    if (perMethodPreview.length === 0) return []
+    // Use the "expected" decarbed THC across all selected methods, then
+    // average — gives the user a single anchor per fat. Falls back to
+    // the highest-selected if average is muddled (custom default).
+    const avgDecarbed =
+      perMethodPreview.reduce((s, m) => s + m.decarbed, 0) /
+      perMethodPreview.length
+    return FAT_OPTIONS.filter(f => fatSet.has(f.id)).map(f => {
+      const infused =
+        _safeRun(() => calculateInfusedThc(avgDecarbed, f.extractionEff)) ?? 0
+      return {
+        id: f.id,
+        label: f.label,
+        extractionEff: f.extractionEff,
+        infused,
+      }
+    })
+  }, [perMethodPreview, fatSet])
+
+  /* ---- format summary ---- */
+  const totalServings = useMemo(
+    () =>
+      FORMAT_OPTIONS.filter(r => formatSet.has(r.id)).reduce(
+        (s, r) => s + r.suggestedServings,
+        0
+      ),
+    [formatSet]
+  )
+
+  /* ---- matrix (used by step 6) ---- */
+  const matrix = useMemo(() => {
+    if (
+      selections.decarbMethodIds.length === 0 ||
+      selections.fatIds.length === 0 ||
+      selections.formatIds.length === 0
+    ) {
+      return []
+    }
+    const methods = METHOD_OPTIONS.filter(m => methodSet.has(m.id))
+    const fats = FAT_OPTIONS.filter(f => fatSet.has(f.id))
+    const formats = FORMAT_OPTIONS.filter(r => formatSet.has(r.id))
+    const combos: Array<{
+      key: string
+      method: string
+      fat: string
+      format: string
+      theoretical: number
+      decarbed: number
+      infused: number
+      servings: number
+      perServing: number
+      classification: string
+    }> = []
+    for (const m of methods) {
+      const decarbed =
+        _safeRun(() =>
+          calculateDecarbedThc(theoretical, m.efficiency.expected)
+        ) ?? 0
+      for (const f of fats) {
+        const infused =
+          _safeRun(() => calculateInfusedThc(decarbed, f.extractionEff)) ?? 0
+        for (const r of formats) {
+          const servings = servingsPerFormat ?? r.suggestedServings
+          const perServing =
+            _safeRun(() => calculateMgPerServing(infused, servings)) ?? 0
+          const classification = _safeRun(() => classifyDose(perServing)) ?? ''
+          combos.push({
+            key: `${m.id}+${f.id}+${r.id}`,
+            method: m.label,
+            fat: f.label,
+            format: r.label,
+            theoretical,
+            decarbed,
+            infused,
+            servings,
+            perServing,
+            classification,
+          })
+        }
+      }
+    }
+    return combos
+  }, [methodSet, fatSet, formatSet, theoretical, servingsPerFormat])
+
+  /* ---- CTA: save to journal ---- */
+  const handleSaveToJournal = useCallback(() => {
+    const top = matrix[0]
+    if (!top) return
+    const entry = {
+      id: `entry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      date: new Date().toISOString().split('T')[0],
+      strainName: '',
+      strainId: null,
+      materialWeight: grams.toString(),
+      thcaPct: thcaPct.toString(),
+      thcPct: '0',
+      cbdaPct: '0',
+      cbdPct: '0',
+      methodId: METHOD_OPTIONS.find(m => m.label === top.method)?.id ?? '',
+      methodName: top.method,
+      fatId: FAT_OPTIONS.find(f => f.label === top.fat)?.id ?? '',
+      fatName: top.fat,
+      servings: top.servings.toString(),
+      mgPerServing: _fmt1(top.perServing),
+      classification: top.classification,
+      totalInfusedThc: _fmt1(top.infused),
+      concentration: '0',
+      volume: '0',
+      volumeUnit: 'mL',
+      notes: `Saved from First-Timer Guide. ${matrix.length} combo(s) computed; saved top recommendation.`,
+    }
+    addJournalEntry(entry)
+    void window.App?.saveJournalEntry?.(entry).catch(() => {
+      // No-op: addJournalEntry already updated the local store. The IPC
+      // failure does not need to crash the wizard — it just means the
+      // entry is local-only this session.
+    })
+    setActiveTab('journal')
+    dismissWizard()
+  }, [matrix, grams, thcaPct, addJournalEntry, setActiveTab, dismissWizard])
+
+  /* ---- CTA: open in Quick Batch ---- */
+  const handleOpenQuickBatch = useCallback(() => {
+    setActiveTab('quickbatch')
+    dismissWizard()
+  }, [setActiveTab, dismissWizard])
+
+  /* ---- dismiss ---- */
+  const handleDismiss = useCallback(() => {
+    dismissWizard()
+  }, [dismissWizard])
+
+  /* ---- nav ---- */
+  const canGoNext = useMemo(() => {
+    switch (step.id) {
+      case 'equipment':
+        // Permissive — empty is legitimate (first-timer might own nothing).
+        return true
+      case 'material':
+        return (
+          grams > 0 &&
+          Number.isFinite(grams) &&
+          thcaPct > 0 &&
+          thcaPct <= 100 &&
+          Number.isFinite(thcaPct)
+        )
+      case 'decarb':
+        return selections.decarbMethodIds.length > 0
+      case 'fats':
+        return selections.fatIds.length > 0
+      case 'formats':
+        return selections.formatIds.length > 0 && (servingsPerFormat ?? 0) > 0
+      case 'review':
+        return false
+      default:
+        return true
+    }
+  }, [step.id, grams, thcaPct, servingsPerFormat, selections])
+
+  const goNext = useCallback(() => {
+    if (!canGoNext) return
+    if (isLastStep) return
+    setWizardStep(stepIndex + 1)
+  }, [canGoNext, isLastStep, stepIndex, setWizardStep])
+
+  const goBack = useCallback(() => {
+    if (isFirstStep) return
+    setWizardStep(stepIndex - 1)
+  }, [isFirstStep, stepIndex, setWizardStep])
+
+  /* ---- jump-to-step via header pills (within completed set) ---- */
+  const gotoStep = useCallback(
+    (i: number) => {
+      // Don't allow jumping forward past the current step — that would
+      // skip required validation. Jumping back is always allowed.
+      if (i <= stepIndex) setWizardStep(i)
+      else if (canGoNext) setWizardStep(i)
+    },
+    [stepIndex, canGoNext, setWizardStep]
+  )
+
+  /* ---- "Use values from Decarb" shortcut ---- */
+  const handleUseDecarbShortcut = useCallback(() => {
+    const w = parseFloat(decarbDefaults.weight)
+    const p = parseFloat(decarbDefaults.thcaPct)
+    setWizardNumberField('grams', Number.isFinite(w) && w > 0 ? w : undefined)
+    setWizardNumberField(
+      'thcaPct',
+      Number.isFinite(p) && p > 0 && p <= 100 ? p : undefined
     )
-  }, [])
+  }, [decarbDefaults.weight, decarbDefaults.thcaPct, setWizardNumberField])
 
-  /* ---- dose classification plain text ---- */
-  const doseDescription = useMemo(() => {
-    if (!results) return ''
-    const c = results.classification
-    const map: Record<string, string> = {
-      'sub-microdose':
-        "That's a sub-microdose — barely perceptual. Great if you are very sensitive or want a very gentle introduction.",
-      microdose:
-        "That's a microdose — very mild. You'll likely feel relaxed but stay fully functional.",
-      low: "That's a low dose — noticeable but still manageable for most people. Good for casual use.",
-      moderate:
-        "That's a moderate dose — the standard range for most users. Expect a solid, pleasant experience.",
-      strong:
-        "That's a strong dose — intense effects. Make sure you have no plans and a comfortable setting.",
-      'very strong':
-        "That's a very strong dose — for experienced users only. Start lower if you are unsure.",
-      extreme:
-        "That's an extreme dose — medical or very high-tolerance territory. Proceed with caution.",
-    }
-    return map[c] || ''
-  }, [results])
+  /* ---- material numeric inputs ---- */
+  const handleGramsChange = useCallback(
+    (raw: string) => {
+      const v = parseFloat(raw)
+      setWizardNumberField('grams', Number.isFinite(v) && v > 0 ? v : undefined)
+    },
+    [setWizardNumberField]
+  )
+  const handleThcaChange = useCallback(
+    (raw: string) => {
+      const v = parseFloat(raw)
+      setWizardNumberField(
+        'thcaPct',
+        Number.isFinite(v) && v > 0 && v <= 100 ? v : undefined
+      )
+    },
+    [setWizardNumberField]
+  )
+  const handleServingsChange = useCallback(
+    (raw: string) => {
+      const v = parseFloat(raw)
+      setWizardNumberField(
+        'servings',
+        Number.isFinite(v) && v > 0 ? v : undefined
+      )
+    },
+    [setWizardNumberField]
+  )
 
-  const doseTitle = useMemo(() => {
-    if (!results) return ''
-    const c = results.classification
-    const map: Record<string, string> = {
-      'sub-microdose': 'Sub-Microdose',
-      microdose: 'Microdose',
-      low: 'Low Tolerance',
-      moderate: 'Moderate',
-      strong: 'Strong',
-      'very strong': 'Very Strong',
-      extreme: 'Extreme',
-    }
-    return map[c] || c
-  }, [results])
+  /* ---- render gating ---- */
+  if (!active) return null
 
-  if (!firstTimerOpen) return null
-
+  /* ---------------------------------------------------------------- */
+  /* JSX                                                              */
+  /* ---------------------------------------------------------------- */
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="glass-strong relative flex h-full max-h-[900px] w-full max-w-[720px] flex-col overflow-hidden rounded-2xl border border-foreground/10 shadow-2xl">
+    <div
+      aria-labelledby={wizardTitleId}
+      aria-modal="true"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      role="dialog"
+    >
+      <div className="glass-strong relative flex h-full max-h-[920px] w-full max-w-[780px] flex-col overflow-hidden rounded-2xl border border-foreground/10 shadow-2xl">
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-foreground/10 px-6 py-4">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground/90">
+          <div className="min-w-0">
+            <h2
+              className="text-lg font-semibold text-foreground/90"
+              id={wizardTitleId}
+            >
               First-Timer Guide
             </h2>
             <p className="text-xs text-foreground/60">
               Your foolproof walkthrough from flower to edible
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <button
-              className="rounded-md px-3 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+              className="rounded-md px-3 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              data-testid="wizard-skip"
               onClick={handleDismiss}
               type="button"
             >
-              I know what I am doing — take me to the full app
+              Skip — take me to the full app
             </button>
             <button
-              className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/60 transition-colors hover:bg-foreground/10 hover:text-foreground"
-              onClick={() => setFirstTimerOpen(false)}
+              aria-label="Close guide"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/60 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              data-testid="wizard-close"
+              onClick={handleDismiss}
               title="Close guide"
               type="button"
             >
@@ -287,446 +592,126 @@ export function FirstTimerGuide() {
           </div>
         </div>
 
-        {/* Step indicator */}
-        <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-foreground/10 px-6 py-3">
-          {STEPS.map((s, i) => {
-            const Icon = s.icon
-            const active = i === stepIndex
-            const past = i < stepIndex
-            return (
-              <button
-                className={cn(
-                  'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-                  active
-                    ? 'bg-foreground/15 text-foreground border border-foreground/20'
-                    : past
-                      ? 'text-foreground/60 hover:bg-foreground/5'
-                      : 'text-foreground/40 hover:bg-foreground/5'
-                )}
-                key={s.id}
-                onClick={() => setStepIndex(i)}
-                type="button"
-              >
-                <Icon className="size-3.5" />
-                {s.label}
-              </button>
-            )
-          })}
-        </div>
+        {/* Step indicator + description */}
+        <nav
+          aria-label="Wizard steps"
+          className="flex shrink-0 flex-col gap-2 border-b border-foreground/10 px-6 py-3"
+        >
+          <div className="flex items-center gap-1 overflow-x-auto">
+            {STEPS.map((s, i) => {
+              const StepIcon = s.Icon
+              const isActive = i === stepIndex
+              const isPast = i < stepIndex
+              return (
+                <button
+                  aria-current={isActive ? 'step' : undefined}
+                  className={cn(
+                    'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+                    isActive
+                      ? 'bg-foreground/15 text-foreground border border-foreground/20'
+                      : 'text-foreground/60 hover:bg-foreground/5',
+                    !isActive && !isPast && 'opacity-60'
+                  )}
+                  data-testid={`wizard-pill-${s.id}`}
+                  disabled={!isPast && !isActive}
+                  key={s.id}
+                  onClick={() => gotoStep(i)}
+                  type="button"
+                >
+                  <StepIcon className="size-3.5" />
+                  {s.label}
+                </button>
+              )
+            })}
+          </div>
+          <p
+            className={cn(
+              'text-xs text-foreground/65',
+              reducedMotion ? '' : 'transition-opacity duration-200'
+            )}
+            data-testid="wizard-step-description"
+          >
+            {step.description}
+          </p>
+        </nav>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
-          {/* ---------- Step 1: Equipment ---------- */}
-          {step.id === 'checklist' && (
-            <div className="space-y-4">
-              <p className="text-sm leading-relaxed text-foreground/80">
-                Do not worry if you do not have everything on this list. Most
-                items have easy substitutions, and the one thing you cannot mess
-                up is the temperature.
-              </p>
-
-              <div className="space-y-2">
-                {equipment.map((item, i) => (
-                  <button
-                    className={cn(
-                      'flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left transition-colors',
-                      item.checked
-                        ? 'border-success/30 bg-success/10'
-                        : 'border-foreground/10 bg-foreground/5 hover:bg-foreground/10'
-                    )}
-                    key={item.name}
-                    onClick={() => toggleEquip(i)}
-                    type="button"
-                  >
-                    <div
-                      className={cn(
-                        'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors',
-                        item.checked
-                          ? 'border-success bg-success'
-                          : 'border-foreground/20'
-                      )}
-                    >
-                      {item.checked && (
-                        <Check className="size-3.5 text-white" />
-                      )}
-                    </div>
-                    <div>
-                      <p
-                        className={cn(
-                          'text-sm font-medium',
-                          item.checked
-                            ? 'text-success line-through'
-                            : 'text-foreground/90'
-                        )}
-                      >
-                        {item.name}
-                      </p>
-                      <p className="mt-0.5 text-xs text-foreground/60 leading-relaxed">
-                        {item.substitution}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              <div className="rounded-xl border border-warning/20 bg-warning/10 px-4 py-3">
-                <p className="text-xs font-medium text-warning">
-                  The one thing you cannot mess up
-                </p>
-                <p className="mt-1 text-xs text-foreground/70 leading-relaxed">
-                  Keep the oven at 235°F (113°C) and do not open the door during
-                  the first hour. Opening the door drops the temperature and
-                  lets out the good stuff.
-                </p>
-              </div>
-            </div>
+          {step.id === 'equipment' && (
+            <StepEquipment
+              onToggle={id => toggleWizardSelection('equipment', id)}
+              selectedIds={Array.from(equipmentSet)}
+            />
           )}
 
-          {/* ---------- Step 2: Prepare ---------- */}
-          {step.id === 'prepare' && (
-            <div className="space-y-5">
-              <p className="text-sm leading-relaxed text-foreground/80">
-                Here is the trick: you do not need to be precise to the
-                milligram. A kitchen scale and a rough idea of your percentage
-                is plenty to get started.
-              </p>
-
-              <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-4 space-y-4">
-                <div>
-                  <label
-                    className="mb-1.5 block text-xs font-medium text-foreground/80"
-                    htmlFor="ftg-grams"
-                  >
-                    How much cannabis do you have? (grams)
-                  </label>
-                  <input
-                    className="w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-foreground/40"
-                    id="ftg-grams"
-                    onChange={e => setGrams(e.target.value)}
-                    type="number"
-                    value={grams}
-                  />
-                  {errors.grams && (
-                    <p className="mt-1 text-xs text-danger">{errors.grams}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label
-                    className="mb-1.5 block text-xs font-medium text-foreground/80"
-                    htmlFor="ftg-thca"
-                  >
-                    Roughly what percent THC? (If you do not know, 15% to 20% is
-                    a safe guess for decent flower.)
-                  </label>
-                  <input
-                    className="w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-foreground/40"
-                    id="ftg-thca"
-                    max="100"
-                    min="1"
-                    onChange={e => setThcaPct(e.target.value)}
-                    type="number"
-                    value={thcaPct}
-                  />
-                  {errors.thcaPct && (
-                    <p className="mt-1 text-xs text-danger">{errors.thcaPct}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-info/20 bg-info/10 px-4 py-3">
-                <p className="text-xs text-info/90 leading-relaxed">
-                  Do not worry if your numbers are rough. This calculator gives
-                  you an estimate, not a lab report. You can always adjust your
-                  serving size later.
-                </p>
-              </div>
-            </div>
+          {step.id === 'material' && (
+            <StepMaterial
+              grams={grams}
+              onGramsChange={handleGramsChange}
+              onShortcut={handleUseDecarbShortcut}
+              onThcaChange={handleThcaChange}
+              thcaPct={thcaPct}
+            />
           )}
 
-          {/* ---------- Step 3: Decarb ---------- */}
           {step.id === 'decarb' && (
-            <div className="space-y-5">
-              <p className="text-sm leading-relaxed text-foreground/80">
-                Decarbing is just a fancy word for "heat it up so it becomes
-                active." Put your ground cannabis in a glass baking dish, cover
-                it tight with foil, and bake at 235°F for an hour. That is it —
-                you just decarbed.
-              </p>
-
-              <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-foreground/10">
-                    <Thermometer className="size-4 text-foreground/80" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground/90">
-                      Temperature
-                    </p>
-                    <p className="text-xs text-foreground/60">113°C / 235°F</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-foreground/10">
-                    <Clock className="size-4 text-foreground/80" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground/90">
-                      Time
-                    </p>
-                    <p className="text-xs text-foreground/60">60 minutes</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-foreground/10">
-                    <FlaskConical className="size-4 text-foreground/80" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground/90">
-                      Container
-                    </p>
-                    <p className="text-xs text-foreground/60">
-                      Glass dish + tight foil cover. No airflow = no lost
-                      potency.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-warning/20 bg-warning/10 px-4 py-3">
-                <p className="text-xs font-medium text-warning">
-                  The one thing you cannot mess up
-                </p>
-                <p className="mt-1 text-xs text-foreground/70 leading-relaxed">
-                  Do not go hotter than 250°F (121°C). Above that, you start
-                  burning off the good stuff faster than you convert it. 235°F
-                  is the sweet spot.
-                </p>
-              </div>
-
-              {results && (
-                <div className="rounded-xl border border-success/20 bg-success/10 px-4 py-3">
-                  <p className="text-xs text-success/90">
-                    With {grams}g at {thcaPct}% THC, after decarbing you will
-                    have roughly{' '}
-                    <strong className="font-semibold text-success">
-                      {fmt1(results.decarbed)} mg
-                    </strong>{' '}
-                    of active THC ready to infuse.
-                  </p>
-                </div>
-              )}
-            </div>
+            <StepDecarb
+              onToggle={id => toggleWizardSelection('decarbMethodIds', id)}
+              perMethodPreview={perMethodPreview}
+              selectedIds={Array.from(methodSet)}
+            />
           )}
 
-          {/* ---------- Step 4: Infuse ---------- */}
-          {step.id === 'infuse' && (
-            <div className="space-y-5">
-              <p className="text-sm leading-relaxed text-foreground/80">
-                Now you pull the THC out of the plant and into the fat. Butter
-                and coconut oil work best because THC loves fat. Here is the
-                easiest way.
-              </p>
-
-              <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-4 space-y-3">
-                <h3 className="text-sm font-medium text-foreground/90">
-                  Stovetop method (simplest)
-                </h3>
-                <ol className="list-decimal space-y-2 pl-4 text-xs text-foreground/70 leading-relaxed">
-                  <li>
-                    Melt 1/2 to 1 cup of butter or coconut oil in a saucepan on
-                    the lowest possible heat.
-                  </li>
-                  <li>
-                    Add your decarbed cannabis. Stir so it is fully coated.
-                  </li>
-                  <li>
-                    Keep it barely simmering — tiny bubbles, no rolling boil —
-                    for 2 to 3 hours. Stir every 20 minutes or so.
-                  </li>
-                  <li>
-                    Strain through cheesecloth or a fine sieve. Squeeze gently.
-                    Do not wring it like a towel — that pushes plant bits
-                    through.
-                  </li>
-                  <li>
-                    Let it cool, then store in the fridge. That is your infused
-                    fat.
-                  </li>
-                </ol>
-              </div>
-
-              <div className="rounded-xl border border-info/20 bg-info/10 px-4 py-3">
-                <p className="text-xs text-info/90 leading-relaxed">
-                  Slow cooker method: combine decarbed cannabis and fat in the
-                  slow cooker on Low for 4 to 6 hours. Strain the same way. You
-                  cannot really overcook it at Low, so do not stress about the
-                  exact time.
-                </p>
-              </div>
-
-              {results && (
-                <div className="rounded-xl border border-success/20 bg-success/10 px-4 py-3">
-                  <p className="text-xs text-success/90">
-                    After infusing into coconut oil, you should end up with
-                    roughly{' '}
-                    <strong className="font-semibold text-success">
-                      {fmt1(results.infused)} mg
-                    </strong>{' '}
-                    of THC in your fat.
-                  </p>
-                </div>
-              )}
-            </div>
+          {step.id === 'fats' && (
+            <StepFats
+              onToggle={id => toggleWizardSelection('fatIds', id)}
+              perFatPreview={perFatPreview}
+              selectedIds={Array.from(fatSet)}
+            />
           )}
 
-          {/* ---------- Step 5: Dose ---------- */}
-          {step.id === 'dose' && (
-            <div className="space-y-5">
-              <p className="text-sm leading-relaxed text-foreground/80">
-                This is the part everyone worries about. The good news: with the
-                numbers you already entered, the math is done. Just decide how
-                many pieces you are making.
-              </p>
-
-              <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-4 space-y-4">
-                <div>
-                  <label
-                    className="mb-1.5 block text-xs font-medium text-foreground/80"
-                    htmlFor="ftg-servings"
-                  >
-                    How many servings are you making? (A standard brownie mix
-                    makes about 16 brownies.)
-                  </label>
-                  <input
-                    className="w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-foreground/40"
-                    id="ftg-servings"
-                    min="1"
-                    onChange={e => setServings(e.target.value)}
-                    type="number"
-                    value={servings}
-                  />
-                  {errors.servings && (
-                    <p className="mt-1 text-xs text-danger">
-                      {errors.servings}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {results && (
-                <div className="rounded-xl border border-success/20 bg-success/10 p-4 space-y-2">
-                  <p className="text-xs text-success/90">
-                    Each serving will contain roughly{' '}
-                    <strong className="text-sm font-semibold text-success">
-                      {fmt1(results.perServing)} mg
-                    </strong>{' '}
-                    of THC.
-                  </p>
-                  <div className="mt-2 inline-block rounded-md border border-success/30 bg-success/20 px-3 py-1 text-xs font-semibold text-success">
-                    {doseTitle}
-                  </div>
-                  <p className="text-xs text-success/80 leading-relaxed">
-                    {doseDescription}
-                  </p>
-                </div>
-              )}
-
-              <div className="rounded-xl border border-warning/20 bg-warning/10 px-4 py-3">
-                <p className="text-xs font-medium text-warning">
-                  First-timer tip
-                </p>
-                <p className="mt-1 text-xs text-foreground/70 leading-relaxed">
-                  If the dose looks strong, just cut each brownie in half. You
-                  can always eat more, but you cannot un-eat one. Start low and
-                  wait at least 90 minutes before taking more.
-                </p>
-              </div>
-            </div>
+          {step.id === 'formats' && (
+            <StepFormats
+              onServingsChange={handleServingsChange}
+              selectedIds={Array.from(formatSet)}
+              servingsPerFormat={servingsPerFormat ?? 0}
+              setSelectedIds={id => toggleWizardSelection('formatIds', id)}
+              totalServings={totalServings}
+            />
           )}
 
-          {/* ---------- Step 6: Make ---------- */}
-          {step.id === 'make' && (
-            <div className="space-y-5">
-              <p className="text-sm leading-relaxed text-foreground/80">
-                You have decarbed, infused, and calculated your dose. Now just
-                substitute your infused fat for regular butter or oil in any
-                recipe. Brownies, cookies, gummies — whatever sounds good.
-              </p>
-
-              <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-4 space-y-3">
-                <h3 className="text-sm font-medium text-foreground/90">
-                  Quick substitution rules
-                </h3>
-                <ul className="list-disc space-y-2 pl-4 text-xs text-foreground/70 leading-relaxed">
-                  <li>
-                    If the recipe calls for butter, use your infused butter
-                    1-for-1.
-                  </li>
-                  <li>
-                    If it calls for oil, use your infused coconut oil 1-for-1.
-                  </li>
-                  <li>
-                    If the recipe needs both, split it however you like. The
-                    total fat amount is what matters.
-                  </li>
-                  <li>
-                    Mix thoroughly. Uneven mixing means some pieces will be
-                    stronger than others.
-                  </li>
-                </ul>
-              </div>
-
-              <div className="rounded-xl border border-info/20 bg-info/10 px-4 py-3">
-                <p className="text-xs text-info/90 leading-relaxed">
-                  A box of brownie mix typically uses 1/2 cup of oil. If you
-                  made 1 cup of infused oil, use 1/2 cup in the brownies and
-                  save the rest. Label it clearly so no one accidentally uses it
-                  for regular cooking.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-success/20 bg-success/10 px-4 py-3">
-                <p className="text-xs text-success/90 leading-relaxed">
-                  That is the whole process. You now have everything you need to
-                  make consistent, dosed edibles at home. When you are ready for
-                  more control — different methods, custom fats, detailed
-                  comparisons — the full calculator tabs are always here for
-                  you.
-                </p>
-              </div>
-
-              <button
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-foreground/10 px-4 py-3 text-sm font-medium text-foreground/90 transition-colors hover:bg-foreground/15"
-                onClick={handleDismiss}
-                type="button"
-              >
-                <ArrowRight className="size-4" />
-                Go to the full calculator
-              </button>
-            </div>
+          {step.id === 'review' && (
+            <StepReview
+              grams={grams}
+              matrix={matrix}
+              onOpenQuickBatch={handleOpenQuickBatch}
+              onSave={handleSaveToJournal}
+              thcaPct={thcaPct}
+            />
           )}
         </div>
 
         {/* Footer nav */}
         <div className="flex shrink-0 items-center justify-between border-t border-foreground/10 px-6 py-4">
           <button
+            aria-label="Previous step"
             className={cn(
-              'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-              stepIndex > 0
+              'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+              !isFirstStep
                 ? 'text-foreground/80 hover:bg-foreground/10'
-                : 'invisible'
+                : 'cursor-not-allowed text-foreground/30'
             )}
-            disabled={stepIndex === 0}
-            onClick={() => setStepIndex(i => i - 1)}
+            data-testid="wizard-back"
+            disabled={isFirstStep}
+            onClick={goBack}
             type="button"
           >
             <ChevronLeft className="size-4" />
             Back
           </button>
 
-          <div className="flex items-center gap-1.5">
-            {STEPS.map((_, i) => (
+          <div aria-hidden="true" className="flex items-center gap-1.5">
+            {STEPS.map((s, i) => (
               <div
                 className={cn(
                   'h-1.5 w-1.5 rounded-full transition-colors',
@@ -736,26 +721,555 @@ export function FirstTimerGuide() {
                       ? 'bg-foreground/40'
                       : 'bg-foreground/15'
                 )}
-                key={i}
+                data-testid={`wizard-dot-${s.id}`}
+                key={s.id}
               />
             ))}
           </div>
 
           <button
+            aria-label="Next step"
             className={cn(
-              'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-              stepIndex < STEPS.length - 1
+              'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+              canGoNext && !isLastStep
                 ? 'bg-foreground/15 text-foreground hover:bg-foreground/20'
-                : 'invisible'
+                : 'cursor-not-allowed text-foreground/30'
             )}
-            disabled={stepIndex === STEPS.length - 1}
-            onClick={() => setStepIndex(i => i + 1)}
+            data-testid="wizard-next"
+            disabled={!canGoNext || isLastStep}
+            onClick={goNext}
             type="button"
           >
             Next
             <ChevronRight className="size-4" />
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+/* ================================================================== */
+/* Per-step components                                                 */
+/* ================================================================== */
+
+/* ------------------------------------------------------------------ */
+/* Step 1 — Equipment                                                 */
+/* ------------------------------------------------------------------ */
+
+interface StepEquipmentProps {
+  selectedIds: string[]
+  onToggle: (id: string) => void
+}
+
+function StepEquipment({
+  selectedIds,
+  onToggle,
+}: StepEquipmentProps): ReactNode {
+  const options = EQUIPMENT_OPTIONS.map(o => ({
+    id: o.id,
+    label: o.label,
+    subtitle: o.subtitle,
+    selected: selectedIds.includes(o.id),
+    icon: o.Icon,
+    onToggle: () => onToggle(o.id),
+  }))
+
+  return (
+    <div className="space-y-4">
+      <MultiSelectGroup
+        counterLabel={`${selectedIds.length} checked`}
+        hint="No judgement — every kitchen is different. Check what you have, leave what you don't."
+        label="What you have on hand"
+        options={options}
+      />
+
+      <div className="flex items-start gap-3 rounded-xl border border-foreground/10 bg-foreground/5 p-3">
+        <Wand2
+          aria-hidden="true"
+          className="mt-0.5 size-4 shrink-0 text-foreground/70"
+        />
+        <p className="text-xs leading-relaxed text-foreground/70">
+          The one thing you cannot mess up: keep the oven at 235°F (113°C) and
+          do not open the door during the first hour. Opening drops the
+          temperature and lets out the good stuff.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Step 2 — Material                                                  */
+/* ------------------------------------------------------------------ */
+
+interface StepMaterialProps {
+  grams: number
+  thcaPct: number
+  onGramsChange: (raw: string) => void
+  onThcaChange: (raw: string) => void
+  onShortcut: () => void
+}
+
+function StepMaterial({
+  grams,
+  thcaPct,
+  onGramsChange,
+  onThcaChange,
+  onShortcut,
+}: StepMaterialProps): ReactNode {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm leading-relaxed text-foreground/80">
+        Two numbers and you are set. If you have run the Decarb tab already, the
+        button below pulls those values in for you.
+      </p>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          className="inline-flex items-center gap-1.5 rounded-md border border-foreground/20 bg-foreground/5 px-2.5 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          data-testid="wizard-use-decarb"
+          onClick={onShortcut}
+          type="button"
+        >
+          <Copy className="size-3.5" />
+          Use values from Decarb
+        </button>
+        <span className="text-xs text-foreground/55">
+          Grabs whatever you already entered on the Decarb tab.
+        </span>
+      </div>
+
+      <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-4 space-y-4">
+        <div>
+          <label
+            className="mb-1.5 block text-xs font-medium text-foreground/80"
+            htmlFor="ftg-grams"
+          >
+            How much cannabis do you have? (grams)
+          </label>
+          <input
+            className="w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-foreground/40"
+            data-testid="wizard-grams"
+            id="ftg-grams"
+            onChange={e => onGramsChange(e.target.value)}
+            step="0.1"
+            type="number"
+            value={grams > 0 ? grams : ''}
+          />
+        </div>
+
+        <div>
+          <label
+            className="mb-1.5 block text-xs font-medium text-foreground/80"
+            htmlFor="ftg-thca"
+          >
+            Roughly what percent THCA? (15–20% is a safe guess for decent
+            flower.)
+          </label>
+          <input
+            className="w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-foreground/40"
+            data-testid="wizard-thca"
+            id="ftg-thca"
+            max="100"
+            min="0"
+            onChange={e => onThcaChange(e.target.value)}
+            step="0.1"
+            type="number"
+            value={thcaPct > 0 ? thcaPct : ''}
+          />
+        </div>
+      </div>
+
+      <div
+        className="rounded-xl border border-foreground/10 bg-foreground/5 p-3"
+        data-testid="wizard-material-preview"
+      >
+        <p className="text-xs text-foreground/70">
+          {grams > 0 && thcaPct > 0 && thcaPct <= 100 ? (
+            <>
+              Theoretical max with{' '}
+              <strong className="font-semibold">{_fmt1(grams)} g</strong> at{' '}
+              <strong className="font-semibold">{_fmt1(thcaPct)}%</strong> is{' '}
+              <strong className="font-semibold">
+                {_fmt1(
+                  _safeRun(() => calculateTheoreticalMax(grams, thcaPct, 0)) ??
+                    0
+                )}{' '}
+                mg
+              </strong>{' '}
+              of decarboxylated THC if everything converted perfectly.
+            </>
+          ) : (
+            <>Enter both numbers to see the live theoretical-max estimate.</>
+          )}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Step 3 — Decarb methods                                            */
+/* ------------------------------------------------------------------ */
+
+interface MethodPreviewRow {
+  id: string
+  label: string
+  tempC: number
+  timeMin: number
+  timeMax: number
+  efficiency: number
+  decarbed: number
+}
+
+interface StepDecarbProps {
+  selectedIds: string[]
+  onToggle: (id: string) => void
+  perMethodPreview: MethodPreviewRow[]
+}
+
+function StepDecarb({
+  selectedIds,
+  onToggle,
+  perMethodPreview,
+}: StepDecarbProps): ReactNode {
+  const options = METHOD_OPTIONS.map(m => ({
+    id: m.id,
+    label: m.label,
+    subtitle: m.humanNote,
+    meta: `${m.tempC}°C · ${m.timeMin}–${m.timeMax} min`,
+    selected: selectedIds.includes(m.id),
+    onToggle: () => onToggle(m.id),
+  }))
+
+  const counter =
+    selectedIds.length === 1 ? '1 selected' : `${selectedIds.length} selected`
+
+  return (
+    <div className="space-y-4">
+      {perMethodPreview.length > 0 && (
+        <section
+          aria-label="Decarb method previews"
+          className="space-y-2"
+          data-testid="wizard-decarb-previews"
+        >
+          <p className="text-xs font-medium text-foreground/70">
+            Live previews
+          </p>
+          {perMethodPreview.map(p => (
+            <div
+              className="flex items-start gap-3 rounded-lg border border-foreground/10 bg-foreground/5 p-3"
+              data-testid={`wizard-decarb-preview-${p.id}`}
+              key={p.id}
+            >
+              <CheckCircle2
+                aria-hidden="true"
+                className="mt-0.5 size-4 shrink-0 text-foreground/70"
+              />
+              <div className="min-w-0 text-xs leading-relaxed text-foreground/80">
+                <p className="font-medium text-foreground/90">{p.label}</p>
+                <p>
+                  After decarb:{' '}
+                  <strong className="font-semibold">
+                    {_fmt1(p.decarbed)} mg
+                  </strong>{' '}
+                  of active THC
+                  <span className="text-foreground/55">
+                    {' '}
+                    ({p.tempC}°C · {p.timeMin}–{p.timeMax} min · efficiency{' '}
+                    {(p.efficiency * 100).toFixed(0)}%)
+                  </span>
+                </p>
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      <MultiSelectGroup
+        counterLabel={counter}
+        label="Decarb methods to consider"
+        options={options}
+      />
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Step 4 — Fats                                                      */
+/* ------------------------------------------------------------------ */
+
+interface FatPreviewRow {
+  id: string
+  label: string
+  extractionEff: number
+  infused: number
+}
+
+interface StepFatsProps {
+  selectedIds: string[]
+  onToggle: (id: string) => void
+  perFatPreview: FatPreviewRow[]
+}
+
+function StepFats({
+  selectedIds,
+  onToggle,
+  perFatPreview,
+}: StepFatsProps): ReactNode {
+  const options = FAT_OPTIONS.map(f => ({
+    id: f.id,
+    label: f.label,
+    subtitle: f.humanNote,
+    meta: `${(f.extractionEff * 100).toFixed(0)}% extraction`,
+    selected: selectedIds.includes(f.id),
+    onToggle: () => onToggle(f.id),
+  }))
+
+  return (
+    <div className="space-y-4">
+      {perFatPreview.length > 0 && (
+        <section
+          aria-label="Fat infusion previews"
+          className="space-y-2"
+          data-testid="wizard-fat-previews"
+        >
+          <p className="text-xs font-medium text-foreground/70">
+            Live previews
+          </p>
+          {perFatPreview.map(p => (
+            <div
+              className="flex items-start gap-3 rounded-lg border border-foreground/10 bg-foreground/5 p-3"
+              data-testid={`wizard-fat-preview-${p.id}`}
+              key={p.id}
+            >
+              <Pill
+                aria-hidden="true"
+                className="mt-0.5 size-4 shrink-0 text-foreground/70"
+              />
+              <div className="min-w-0 text-xs leading-relaxed text-foreground/80">
+                <p className="font-medium text-foreground/90">{p.label}</p>
+                <p>
+                  After infusing with this fat:{' '}
+                  <strong className="font-semibold">
+                    {_fmt1(p.infused)} mg
+                  </strong>{' '}
+                  total THC
+                  <span className="text-foreground/55">
+                    {' '}
+                    (extraction {(p.extractionEff * 100).toFixed(0)}%)
+                  </span>
+                </p>
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      <MultiSelectGroup label="Fats on hand" options={options} />
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Step 5 — Recipe formats                                            */
+/* ------------------------------------------------------------------ */
+
+interface StepFormatsProps {
+  selectedIds: string[]
+  setSelectedIds: (id: string) => void
+  totalServings: number
+  servingsPerFormat: number
+  onServingsChange: (raw: string) => void
+}
+
+function StepFormats({
+  selectedIds,
+  setSelectedIds,
+  totalServings,
+  servingsPerFormat,
+  onServingsChange,
+}: StepFormatsProps): ReactNode {
+  const options = FORMAT_OPTIONS.map(r => ({
+    id: r.id,
+    label: r.label,
+    subtitle: r.humanRecipe,
+    meta: `${r.suggestedServings} typical servings`,
+    selected: selectedIds.includes(r.id),
+    onToggle: () => setSelectedIds(r.id),
+  }))
+
+  return (
+    <div className="space-y-4">
+      <MultiSelectGroup label="Recipe formats" options={options} />
+
+      <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-3">
+        <p
+          className="text-xs text-foreground/70"
+          data-testid="wizard-total-servings"
+        >
+          If you make all of these, you'd produce{' '}
+          <strong className="font-semibold">{_fmtInt(totalServings)}</strong>{' '}
+          servings total.
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+        <label
+          className="mb-1.5 block text-xs font-medium text-foreground/80"
+          htmlFor="ftg-servings"
+        >
+          Per-format servings (override per piece)
+        </label>
+        <input
+          className="w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-foreground/40"
+          data-testid="wizard-servings"
+          id="ftg-servings"
+          min="1"
+          onChange={e => onServingsChange(e.target.value)}
+          step="1"
+          type="number"
+          value={servingsPerFormat > 0 ? servingsPerFormat : ''}
+        />
+        <p className="mt-1 text-xs text-foreground/55">
+          Default for the first selected format is shown. Adjust to match what
+          you are actually making.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Step 6 — Review / matrix                                           */
+/* ------------------------------------------------------------------ */
+
+interface MatrixRow {
+  key: string
+  method: string
+  fat: string
+  format: string
+  theoretical: number
+  decarbed: number
+  infused: number
+  servings: number
+  perServing: number
+  classification: string
+}
+
+interface StepReviewProps {
+  matrix: MatrixRow[]
+  grams: number
+  thcaPct: number
+  onSave: () => void
+  onOpenQuickBatch: () => void
+}
+
+function StepReview({
+  matrix,
+  grams,
+  thcaPct,
+  onSave,
+  onOpenQuickBatch,
+}: StepReviewProps): ReactNode {
+  if (matrix.length === 0) {
+    return (
+      <div className="space-y-4">
+        <EyeOff
+          aria-hidden="true"
+          className="mx-auto size-8 text-foreground/40"
+        />
+        <p
+          className="text-center text-sm text-foreground/70"
+          data-testid="wizard-no-matrix"
+        >
+          Pick at least one decarb method, one fat, and one recipe format to see
+          combinations. Go back and fill in any empty step.
+        </p>
+        <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-3">
+          <p className="text-xs text-foreground/60">
+            If you have skip-step habits, the matrix is also your safety net —
+            it lets you compare real numbers side by side instead of guessing.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <section
+        aria-label="Combination matrix"
+        className="space-y-2"
+        data-testid="wizard-matrix"
+      >
+        <p className="text-xs font-medium text-foreground/70">
+          {matrix.length} combination{matrix.length === 1 ? '' : 's'} ·{' '}
+          {_fmt1(grams)} g @ {_fmt1(thcaPct)}% THCA
+        </p>
+        {matrix.map(row => (
+          <div
+            className="rounded-lg border border-foreground/10 bg-foreground/5 p-3"
+            data-testid={`wizard-matrix-row-${row.key}`}
+            key={row.key}
+          >
+            <p className="text-xs font-medium text-foreground/90">
+              {row.method} + {row.fat} + {row.format}
+            </p>
+            <p className="mt-1 text-xs text-foreground/70 leading-relaxed">
+              {_fmt1(grams)} g @ {_fmt1(thcaPct)}% THCA →{' '}
+              <strong className="font-semibold">
+                {_fmt1(row.decarbed)} mg
+              </strong>{' '}
+              decarbed →{' '}
+              <strong className="font-semibold">{_fmt1(row.infused)} mg</strong>{' '}
+              infused → {row.servings} servings →{' '}
+              <strong className="font-semibold">
+                {_fmt1(row.perServing)} mg/serving
+              </strong>{' '}
+              <span className="text-foreground/55">
+                ({row.classification || 'n/a'})
+              </span>
+            </p>
+          </div>
+        ))}
+      </section>
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <button
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-foreground/10 px-4 py-3 text-sm font-medium text-foreground/90 transition-colors hover:bg-foreground/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+          data-testid="wizard-save-journal"
+          disabled={matrix.length === 0}
+          onClick={onSave}
+          type="button"
+        >
+          <ClipboardList className="size-4" />
+          Save to Journal
+        </button>
+        <button
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-foreground/5 px-4 py-3 text-sm font-medium text-foreground/90 transition-colors hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          data-testid="wizard-open-quickbatch"
+          onClick={onOpenQuickBatch}
+          type="button"
+        >
+          <ExternalLink className="size-4" />
+          Open in Quick Batch
+        </button>
+      </div>
+
+      <p className="text-xs text-foreground/60">
+        Save to Journal writes the top recommendation as a single entry — quick
+        and reversible. Open in Quick Batch hands you the full calculator with
+        your numbers pre-filled.
+      </p>
+
+      <div
+        aria-hidden="true"
+        className="flex items-center gap-2 text-xs text-foreground/55"
+      >
+        <Eye className="size-3.5" />
+        Numbers are estimates, not lab reports. Adjust the batch any time.
       </div>
     </div>
   )

@@ -131,6 +131,73 @@ export interface LabelState {
   productionDate: string
 }
 
+/**
+ * Wizard (multi-select kit configurator) state.
+ *
+ * The wizard is intentionally multi-select: every checkbox field is an array
+ * and may contain zero, one, or many entries. The store treats empty arrays
+ * as the default / "no selection yet" state — that is the correct semantics
+ * for check-all-that-apply pickers.
+ *
+ * Persistence rules (see partialize below):
+ * - `dismissed` and `selections` survive reload.
+ * - `active` and `stepIndex` are session-only. Reload always lands on a
+ *   closed wizard at step 0; the boot effect in `screens/main.tsx` decides
+ *   whether to reopen based on `firstRunDismissed` and `wizard.dismissed`.
+ */
+export type WizardSelectionField =
+  | 'equipment'
+  | 'decarbMethodIds'
+  | 'fatIds'
+  | 'formatIds'
+
+export type WizardNumberField = 'grams' | 'thcaPct' | 'servings'
+
+export interface WizardSelections {
+  /** Checked equipment names (free-form string ids). */
+  equipment: string[]
+  /** Material weight in grams. */
+  grams?: number
+  /** THCA percentage (1-100). */
+  thcaPct?: number
+  /** Check-all-that-apply: decarb method ids. */
+  decarbMethodIds: string[]
+  /** Check-all-that-apply: fat ids. */
+  fatIds: string[]
+  /** Check-all-that-apply: dose format ids. */
+  formatIds: string[]
+  /** Number of servings. */
+  servings?: number
+}
+
+export interface WizardState {
+  /** True while the wizard modal is open in the current session. */
+  active: boolean
+  /**
+   * Persistent user-level dismiss. Once true, the wizard should never
+   * re-prompt automatically — only an explicit "Show guide" / "?" action
+   * can reopen it.
+   */
+  dismissed: boolean
+  /** Current step (0..5). Session-only. */
+  stepIndex: number
+  selections: WizardSelections
+}
+
+export const DEFAULT_WIZARD_SELECTIONS: WizardSelections = {
+  equipment: [],
+  decarbMethodIds: [],
+  fatIds: [],
+  formatIds: [],
+}
+
+export const DEFAULT_WIZARD_STATE: WizardState = {
+  active: false,
+  dismissed: false,
+  stepIndex: 0,
+  selections: DEFAULT_WIZARD_SELECTIONS,
+}
+
 function todayIso(): string {
   const d = new Date()
   return d.toISOString().split('T')[0]
@@ -364,6 +431,46 @@ interface AppStore {
 
   firstTimerOpen: boolean
   setFirstTimerOpen: (open: boolean) => void
+
+  /**
+   * Multi-select wizard (kit configurator) slice. See `WizardState` for
+   * field-level semantics. `firstTimerOpen` is kept in sync with
+   * `wizard.active` as a transient alias so legacy readers
+   * (`FirstTimerGuide.tsx`) keep working during the migration.
+   */
+  wizard: WizardState
+  /** Open or close the wizard modal. Runtime only; not persisted. */
+  setWizardActive: (active: boolean) => void
+  /** Jump to a specific wizard step (0..5). Runtime only; not persisted. */
+  setWizardStep: (stepIndex: number) => void
+  /**
+   * Multi-select primitive. If `id` is already in `selections[field]`,
+   * removes it; otherwise appends it. Field must be one of the array-typed
+   * selection keys (`equipment`, `decarbMethodIds`, `fatIds`, `formatIds`).
+   * Persisted.
+   */
+  toggleWizardSelection: (field: WizardSelectionField, id: string) => void
+  /**
+   * Set / clear a numeric selection field (`grams` | `thcaPct` | `servings`).
+   * Pass `undefined` to remove the field. Persisted.
+   */
+  setWizardNumberField: (
+    field: WizardNumberField,
+    value: number | undefined
+  ) => void
+  /**
+   * Reset every wizard selection back to the empty-array default. Keeps
+   * `dismissed`, `active`, and `stepIndex` as-is so the user can be shown
+   * a fresh wizard without losing their "never re-prompt" preference.
+   */
+  clearWizardSelections: () => void
+  /**
+   * User-level dismiss: sets `wizard.dismissed = true` and closes the modal
+   * in the current session. Persistent — once dismissed, the wizard never
+   * re-prompts automatically. Only an explicit "Show guide" / "?" action
+   * can reopen it.
+   */
+  dismissWizard: () => void
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -570,10 +677,91 @@ export const useAppStore = create<AppStore>()(
 
       firstRunDismissed: false,
       dismissFirstRun: () =>
-        set({ firstRunDismissed: true, firstTimerOpen: false }),
+        set(state => ({
+          firstRunDismissed: true,
+          firstTimerOpen: false,
+          wizard: { ...state.wizard, active: false },
+        })),
 
       firstTimerOpen: false,
-      setFirstTimerOpen: open => set({ firstTimerOpen: open }),
+      setFirstTimerOpen: open =>
+        set(state => ({
+          firstTimerOpen: open,
+          wizard: { ...state.wizard, active: open },
+        })),
+
+      wizard: {
+        ...DEFAULT_WIZARD_STATE,
+        selections: { ...DEFAULT_WIZARD_SELECTIONS },
+      },
+      setWizardActive: active =>
+        set(state => ({
+          wizard: { ...state.wizard, active },
+          firstTimerOpen: active,
+        })),
+      setWizardStep: stepIndex =>
+        set(state => {
+          const safeIndex = stepIndex < 0 ? 0 : Math.floor(stepIndex)
+          if (state.wizard.stepIndex === safeIndex) return {}
+          return { wizard: { ...state.wizard, stepIndex: safeIndex } }
+        }),
+      toggleWizardSelection: (field, id) =>
+        set(state => {
+          const current = state.wizard.selections[field]
+          if (!Array.isArray(current)) {
+            // Defensive: migration + defaults always seed `[]`. If somehow
+            // missing (corrupted localStorage), treat as empty and append.
+            return {
+              wizard: {
+                ...state.wizard,
+                selections: {
+                  ...state.wizard.selections,
+                  [field]: [id],
+                },
+              },
+            }
+          }
+          const next = current.includes(id)
+            ? current.filter(x => x !== id)
+            : [...current, id]
+          return {
+            wizard: {
+              ...state.wizard,
+              selections: {
+                ...state.wizard.selections,
+                [field]: next,
+              },
+            },
+          }
+        }),
+      setWizardNumberField: (field, value) =>
+        set(state => {
+          const nextSelections = { ...state.wizard.selections }
+          if (value === undefined) {
+            delete nextSelections[field]
+          } else {
+            nextSelections[field] = value
+          }
+          return {
+            wizard: { ...state.wizard, selections: nextSelections },
+          }
+        }),
+      clearWizardSelections: () =>
+        set(state => ({
+          wizard: {
+            ...state.wizard,
+            selections: { ...DEFAULT_WIZARD_SELECTIONS },
+          },
+        })),
+      dismissWizard: () =>
+        set(state => ({
+          wizard: {
+            ...state.wizard,
+            active: false,
+            dismissed: true,
+          },
+          firstTimerOpen: false,
+        })),
 
       loadFromPreset: (preset: unknown) => {
         if (!isRecord(preset)) return
@@ -705,6 +893,113 @@ export const useAppStore = create<AppStore>()(
     }),
     {
       name: 'cannabis-chem-units',
+      // Bumped to v1 when the multi-select wizard slice was added. Older v0
+      // snapshots have no wizard fields at all; the migration backfills
+      // missing array keys with `[]` so `toggleWizardSelection` never has
+      // to defend against `undefined`. Partializing only `dismissed` +
+      // `selections` keeps the on-disk shape minimal and the runtime fields
+      // (`active`, `stepIndex`) reset to defaults on every reload.
+      version: 1,
+      migrate: (persistedState: unknown, version: number): unknown => {
+        if (!isRecord(persistedState)) return persistedState
+
+        // v0 -> v1: the wizard slice is new. Backfill any missing array
+        // keys with `[]` so consumers see a consistent shape regardless of
+        // which version the user originally installed.
+        if (version < 1) {
+          const existingWizard = isRecord(persistedState.wizard)
+            ? persistedState.wizard
+            : {}
+          const existingSelections = isRecord(existingWizard.selections)
+            ? existingWizard.selections
+            : {}
+
+          const backfilledSelections: Record<string, unknown> = {
+            equipment: Array.isArray(existingSelections.equipment)
+              ? existingSelections.equipment
+              : [],
+            decarbMethodIds: Array.isArray(existingSelections.decarbMethodIds)
+              ? existingSelections.decarbMethodIds
+              : [],
+            fatIds: Array.isArray(existingSelections.fatIds)
+              ? existingSelections.fatIds
+              : [],
+            formatIds: Array.isArray(existingSelections.formatIds)
+              ? existingSelections.formatIds
+              : [],
+          }
+
+          // Numeric selection fields are optional. Carry them over only if
+          // they were already defined as finite numbers (defensive against
+          // accidental string-coercion from older builds).
+          for (const numField of ['grams', 'thcaPct', 'servings'] as const) {
+            const raw = existingSelections[numField]
+            if (typeof raw === 'number' && Number.isFinite(raw)) {
+              backfilledSelections[numField] = raw
+            }
+          }
+
+          return {
+            ...persistedState,
+            wizard: {
+              dismissed:
+                typeof existingWizard.dismissed === 'boolean'
+                  ? existingWizard.dismissed
+                  : false,
+              selections: backfilledSelections,
+            },
+          }
+        }
+
+        return persistedState
+      },
+      // Custom merge: shallow per-top-level key, BUT the `wizard` slice gets
+      // a deep-merge that always re-applies the runtime defaults
+      // (`active: false`, `stepIndex: 0`) and the empty-array selection
+      // defaults. This guarantees the modal never re-opens itself after a
+      // reload and that every array-typed selection key is present even if
+      // the persisted snapshot pre-dates this field.
+      merge: (persistedState, currentState): AppStore => {
+        const base = {
+          ...(currentState as object),
+          ...(persistedState as object),
+        } as AppStore
+        if (isRecord(persistedState) && isRecord(persistedState.wizard)) {
+          // Persisted wizard only has `dismissed` + `selections`; runtime
+          // fields must always reset to defaults on reload, and any
+          // missing array keys must be filled in with `[]`.
+          const persistedWizard = persistedState.wizard as Partial<WizardState>
+          const persistedSelections = isRecord(persistedWizard.selections)
+            ? (persistedWizard.selections as Partial<WizardSelections>)
+            : {}
+
+          const mergedSelections: WizardSelections = {
+            ...DEFAULT_WIZARD_SELECTIONS,
+            ...persistedSelections,
+            equipment: Array.isArray(persistedSelections.equipment)
+              ? (persistedSelections.equipment as string[])
+              : [],
+            decarbMethodIds: Array.isArray(persistedSelections.decarbMethodIds)
+              ? (persistedSelections.decarbMethodIds as string[])
+              : [],
+            fatIds: Array.isArray(persistedSelections.fatIds)
+              ? (persistedSelections.fatIds as string[])
+              : [],
+            formatIds: Array.isArray(persistedSelections.formatIds)
+              ? (persistedSelections.formatIds as string[])
+              : [],
+          }
+
+          base.wizard = {
+            ...DEFAULT_WIZARD_STATE,
+            ...persistedWizard,
+            selections: mergedSelections,
+            active: false,
+            stepIndex: 0,
+          }
+        }
+        return base
+      },
       partialize: state => ({
         // `activeTab` is intentionally not persisted today because raw tab
         // persistence would replay accidental visits and stale routes. When the
@@ -721,6 +1016,13 @@ export const useAppStore = create<AppStore>()(
         label: state.label,
         inventory: state.inventory,
         firstRunDismissed: state.firstRunDismissed,
+        // Wizard: only `dismissed` and `selections` are persisted.
+        // `active` and `stepIndex` are runtime-only — they must reset to
+        // `false` / `0` on every reload so the modal never opens itself.
+        wizard: {
+          dismissed: state.wizard.dismissed,
+          selections: state.wizard.selections,
+        },
       }),
     }
   )
