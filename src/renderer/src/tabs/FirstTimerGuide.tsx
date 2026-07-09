@@ -26,7 +26,7 @@
  *   state for a first-timer, so Next is always enabled there. Step 2
  *   (material) gates on valid positive numerics.
  */
-import { useCallback, useEffect, useId, useMemo, useRef, type ReactNode } from 'react'
+import { useCallback, useId, useMemo, type ReactNode } from 'react'
 import {
   Beaker,
   Carrot,
@@ -70,6 +70,7 @@ import { FIRST_TIMER_DECARB_EFF } from 'renderer/src/engine/wizardPresets'
 import { cn } from 'renderer/lib/utils'
 
 import { useReducedMotion } from '../hooks/useReducedMotion'
+import { useModalA11y } from '../hooks/useModalA11y'
 
 /* ------------------------------------------------------------------ */
 /* Step model                                                         */
@@ -574,70 +575,7 @@ export function FirstTimerGuide(): ReactNode {
   )
 
   /* ---- modal accessibility: focus, scroll lock, escape ---- */
-  const modalRef = useRef<HTMLDivElement | null>(null)
-  const triggerRef = useRef<HTMLElement | null>(null)
-
-  // Capture the trigger element on open so we can return focus on close.
-  useEffect(() => {
-    if (active) {
-      triggerRef.current = (document.activeElement as HTMLElement) ?? null
-    } else if (triggerRef.current) {
-      triggerRef.current.focus()
-      triggerRef.current = null
-    }
-  }, [active])
-
-  // Lock body scroll while the modal is open so the underlying page cannot
-  // scroll behind it.
-  useEffect(() => {
-    if (!active) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = prev
-    }
-  }, [active])
-
-  // Escape closes the modal; Tab/Shift+Tab cycle inside the modal panel.
-  useEffect(() => {
-    if (!active) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        dismissWizard()
-        return
-      }
-      if (e.key !== 'Tab' || !modalRef.current) return
-      const focusables = Array.from(
-        modalRef.current.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        )
-      ).filter(el => !el.hasAttribute('aria-hidden'))
-      if (focusables.length === 0) return
-      const first = focusables[0]
-      const last = focusables[focusables.length - 1]
-      const active = document.activeElement
-      if (e.shiftKey && active === first) {
-        e.preventDefault()
-        last.focus()
-      } else if (!e.shiftKey && active === last) {
-        e.preventDefault()
-        first.focus()
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [active, dismissWizard])
-
-  // Move initial focus into the modal panel so keyboard users land somewhere
-  // sensible. Prefer the first focusable element (the dismiss X / Skip).
-  useEffect(() => {
-    if (!active || !modalRef.current) return
-    const focusables = modalRef.current.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    )
-    ;(focusables[0] as HTMLElement | undefined)?.focus()
-  }, [active])
+  const modalRef = useModalA11y(active, handleDismiss)
 
   /* ---- render gating ---- */
   if (!active) return null

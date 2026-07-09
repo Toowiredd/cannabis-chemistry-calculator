@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { INFUSION_FATS, DECARB_METHODS } from 'renderer/src/engine/models'
 import {
@@ -6,6 +6,7 @@ import {
   calculateDecarbedCbd,
 } from 'renderer/src/engine/cbda'
 import { cn } from 'renderer/lib/utils'
+import { useModalA11y } from '../hooks/useModalA11y'
 import { Printer, X, Info, Tag, AlertTriangle, ShieldAlert } from 'lucide-react'
 
 function fmt1(value: number | null | undefined): string {
@@ -148,18 +149,7 @@ export function LabelGenerator({
     setShowPrintable(false)
   }
 
-  useEffect(() => {
-    if (!showPrintable) return
-
-    const handleWindowKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        handleClose()
-      }
-    }
-
-    window.addEventListener('keydown', handleWindowKeyDown)
-    return () => window.removeEventListener('keydown', handleWindowKeyDown)
-  }, [showPrintable])
+  const modalRef = useModalA11y(showPrintable, handleClose)
 
   const handlePrint = () => {
     window.print()
