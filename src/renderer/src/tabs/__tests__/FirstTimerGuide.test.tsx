@@ -16,7 +16,7 @@
  *   `transition-all` when `prefers-reduced-motion: reduce` is set.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 
 import { FirstTimerGuide } from '../FirstTimerGuide'
 import { DEFAULT_WIZARD_STATE, useAppStore } from '../../stores/appStore'
@@ -442,7 +442,7 @@ describe('FirstTimerGuide — step 6 matrix', () => {
     expect(screen.queryByTestId('wizard-matrix')).toBeNull()
   })
 
-  it('Save to Journal appends one entry to journalEntries and dismisses the wizard', () => {
+  it('Save to Journal appends one entry to journalEntries and dismisses the wizard', async () => {
     openWizard({
       stepIndex: 5,
       selections: {
@@ -457,8 +457,13 @@ describe('FirstTimerGuide — step 6 matrix', () => {
     })
     render(<FirstTimerGuide />)
     fireEvent.click(screen.getByTestId('wizard-save-journal'))
+    // handleSaveToJournal is async: it awaits the disk-write IPC for each
+    // matrix row before adding to the local store, so the assertion below
+    // has to wait for the mock IPC promise to resolve.
+    await waitFor(() => {
+      expect(useAppStore.getState().journalEntries.length).toBe(1)
+    })
     const state = useAppStore.getState()
-    expect(state.journalEntries.length).toBe(1)
     expect(state.journalEntries[0].methodId).toBe('oven_sealed')
     expect(state.journalEntries[0].fatId).toBe('coconut')
     expect(state.wizard.dismissed).toBe(true)
