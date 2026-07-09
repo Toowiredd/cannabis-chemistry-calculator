@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useModalA11y } from '../hooks/useModalA11y'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { Save, FolderOpen } from 'lucide-react'
 import { Toast, type ToastVariant } from './Toast'
@@ -28,24 +29,19 @@ export function PresetActions() {
     []
   )
 
+  const handleSaveCancel = () => {
+    setShowSaveModal(false)
+    setSaveName('')
+    setSaveError(null)
+  }
+
   useEffect(() => {
     if (showSaveModal && saveInputRef.current) {
       saveInputRef.current.focus()
     }
   }, [showSaveModal])
 
-  useEffect(() => {
-    if (!showSaveModal) return
-
-    const handleWindowKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        handleSaveCancel()
-      }
-    }
-
-    window.addEventListener('keydown', handleWindowKeyDown)
-    return () => window.removeEventListener('keydown', handleWindowKeyDown)
-  }, [showSaveModal])
+  const saveModalRef = useModalA11y(showSaveModal, handleSaveCancel)
 
   const buildPresetPayload = useCallback(() => {
     return {
@@ -110,12 +106,6 @@ export function PresetActions() {
     }
   }
 
-  const handleSaveCancel = () => {
-    setShowSaveModal(false)
-    setSaveName('')
-    setSaveError(null)
-  }
-
   const handleLoadClick = async () => {
     try {
       const result = await window.App.loadPresetDialog()
@@ -163,11 +153,12 @@ export function PresetActions() {
       </div>
 
       {showSaveModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-foreground/60 p-3 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-foreground/60 p-3 backdrop-blur-sm" role="presentation">
           <div
             aria-labelledby="save-preset-title"
             aria-modal="true"
             className="glass-strong glass-shine w-full max-w-sm rounded-2xl border border-foreground/20 p-5 shadow-2xl sm:p-6"
+            ref={saveModalRef}
             role="dialog"
           >
             <h3

@@ -4,6 +4,7 @@ import type {
   StartupConfidence,
   StartupIntent,
 } from 'renderer/src/stores/appStore'
+import { useModalA11y } from '../hooks/useModalA11y'
 
 interface StartupChooserProps {
   confidence: StartupConfidence
@@ -57,18 +58,26 @@ export function StartupChooser({
   reason,
   recommendedIntent,
 }: StartupChooserProps) {
+  const modalRef = useModalA11y(open, onClose)
+
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
-      <div className="glass-strong flex w-full max-w-[760px] flex-col gap-5 rounded-2xl border border-foreground/10 p-6 shadow-2xl">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm" role="presentation">
+      <div
+        aria-labelledby="startup-chooser-title"
+        aria-modal="true"
+        className="glass-strong flex w-full max-w-[760px] flex-col gap-5 rounded-2xl border border-foreground/10 p-6 shadow-2xl"
+        ref={modalRef}
+        role="dialog"
+      >
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-2">
             <span className="inline-flex w-fit items-center rounded-full border border-info/30 bg-info/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-info">
               {confidenceLabel(confidence)}
             </span>
             <div>
-              <h2 className="text-xl font-semibold text-foreground">
+              <h2 className="text-xl font-semibold text-foreground" id="startup-chooser-title">
                 Choose where to start
               </h2>
               <p className="mt-1 max-w-[56ch] text-sm leading-relaxed text-foreground/70">

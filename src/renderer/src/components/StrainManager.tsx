@@ -3,6 +3,7 @@ import { useAppStore } from 'renderer/src/stores/appStore'
 import type { Strain } from 'renderer/src/engine/models'
 import { globalStrainLibrary } from 'renderer/src/engine/strainLib'
 import { Leaf, Save, X, Pencil, Trash2 } from 'lucide-react'
+import { useModalA11y } from '../hooks/useModalA11y'
 
 interface StrainFormData {
   name: string
@@ -193,14 +194,24 @@ export function StrainManager({
     a.name.localeCompare(b.name)
   )
 
+  const modalRef = useModalA11y(open, onClose)
+
+  if (!open) return null
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="glass-strong flex w-full max-w-lg flex-col rounded-2xl shadow-2xl">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" role="presentation">
+      <div
+        aria-labelledby="strain-manager-title"
+        aria-modal="true"
+        className="glass-strong flex w-full max-w-lg flex-col rounded-2xl shadow-2xl"
+        ref={modalRef}
+        role="dialog"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-foreground/10 px-5 py-4">
           <div className="flex items-center gap-2">
             <Leaf className="size-5 text-success" />
-            <h2 className="text-lg font-semibold text-foreground">
+            <h2 className="text-lg font-semibold text-foreground" id="strain-manager-title">
               Strain Library
             </h2>
           </div>
