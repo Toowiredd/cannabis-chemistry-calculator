@@ -66,6 +66,7 @@ import {
   FAT_OPTIONS,
   FORMAT_OPTIONS,
 } from 'renderer/src/engine/wizardOptions'
+import { FIRST_TIMER_DECARB_EFF } from 'renderer/src/engine/wizardPresets'
 import { cn } from 'renderer/lib/utils'
 
 import { useReducedMotion } from '../hooks/useReducedMotion'
@@ -264,6 +265,7 @@ export function FirstTimerGuide(): ReactNode {
   const setActiveTab = useAppStore(s => s.setActiveTab)
   const addJournalEntry = useAppStore(s => s.addJournalEntry)
   const decarbDefaults = useAppStore(s => s.decarb)
+  const infusionDefaults = useAppStore(s => s.infusion)
 
   const reducedMotion = useReducedMotion()
 
@@ -322,13 +324,18 @@ export function FirstTimerGuide(): ReactNode {
 
   /* ---- per-fat preview ---- */
   const perFatPreview = useMemo(() => {
-    if (perMethodPreview.length === 0) return []
-    // Use the "expected" decarbed THC across all selected methods, then
-    // average — gives the user a single anchor per fat. Falls back to
-    // the highest-selected if average is muddled (custom default).
+    if (theoretical <= 0) return []
+    // Anchor: average decarbed THC across selected methods, or fall back to
+    // a sensible default (oven_sealed's expected efficiency, lifted to
+    // wizardPresets.ts as FIRST_TIMER_DECARB_EFF) so the fat previews still
+    // render when the user lands on the fats step before picking methods.
     const avgDecarbed =
-      perMethodPreview.reduce((s, m) => s + m.decarbed, 0) /
-      perMethodPreview.length
+      perMethodPreview.length > 0
+        ? perMethodPreview.reduce((s, m) => s + m.decarbed, 0) /
+          perMethodPreview.length
+        : (_safeRun(() =>
+            calculateDecarbedThc(theoretical, FIRST_TIMER_DECARB_EFF)
+          ) ?? 0)
     return FAT_OPTIONS.filter(f => fatSet.has(f.id)).map(f => {
       const infused =
         _safeRun(() => calculateInfusedThc(avgDecarbed, f.extractionEff)) ?? 0
@@ -339,16 +346,20 @@ export function FirstTimerGuide(): ReactNode {
         infused,
       }
     })
-  }, [perMethodPreview, fatSet])
+  }, [theoretical, perMethodPreview, fatSet])
 
   /* ---- format summary ---- */
   const totalServings = useMemo(
     () =>
       FORMAT_OPTIONS.filter(r => formatSet.has(r.id)).reduce(
-        (s, r) => s + r.suggestedServings,
+        (s, r) =>
+          s +
+          (servingsPerFormat && servingsPerFormat > 0
+            ? servingsPerFormat
+            : r.suggestedServings),
         0
       ),
-    [formatSet]
+    [formatSet, servingsPerFormat]
   )
 
   /* ---- matrix (used by step 6) ---- */
@@ -429,7 +440,12 @@ export function FirstTimerGuide(): ReactNode {
       classification: top.classification,
       totalInfusedThc: _fmt1(top.infused),
       concentration: '0',
-      volume: '0',
+      volume:
+        infusionDefaults.volume &&
+        Number.isFinite(parseFloat(infusionDefaults.volume)) &&
+        parseFloat(infusionDefaults.volume) > 0
+          ? infusionDefaults.volume
+          : '0',
       volumeUnit: 'mL',
       notes: `Saved from First-Timer Guide. ${matrix.length} combo(s) computed; saved top recommendation.`,
     }
@@ -441,7 +457,7 @@ export function FirstTimerGuide(): ReactNode {
     })
     setActiveTab('journal')
     dismissWizard()
-  }, [matrix, grams, thcaPct, addJournalEntry, setActiveTab, dismissWizard])
+  }, [matrix, grams, thcaPct, infusionDefaults.volume, addJournalEntry, setActiveTab, dismissWizard])
 
   /* ---- CTA: open in Quick Batch ---- */
   const handleOpenQuickBatch = useCallback(() => {
@@ -556,9 +572,9 @@ export function FirstTimerGuide(): ReactNode {
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
       role="dialog"
     >
-      <div className="glass-strong relative flex h-full max-h-[920px] w-full max-w-[780px] flex-col overflow-hidden rounded-2xl border border-foreground/10 shadow-2xl">
+      <div className="glass-strong relative flex h-full max-h-[min(880px,calc(100dvh-2rem))] w-full max-w-[min(960px,calc(100dvw-2rem))] flex-col overflow-hidden rounded-2xl border border-foreground/10 shadow-2xl">
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-foreground/10 px-6 py-4">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-foreground/10 px-4 py-3 sm:px-6 sm:py-4">
           <div className="min-w-0">
             <h2
               className="text-lg font-semibold text-foreground/90"
@@ -595,9 +611,9 @@ export function FirstTimerGuide(): ReactNode {
         {/* Step indicator + description */}
         <nav
           aria-label="Wizard steps"
-          className="flex shrink-0 flex-col gap-2 border-b border-foreground/10 px-6 py-3"
+          className="flex shrink-0 flex-col gap-2 border-b border-foreground/10 px-4 py-3 sm:px-6"
         >
-          <div className="flex items-center gap-1 overflow-x-auto">
+          <div className="flex flex-wrap items-center gap-1">
             {STEPS.map((s, i) => {
               const StepIcon = s.Icon
               const isActive = i === stepIndex
@@ -636,7 +652,7 @@ export function FirstTimerGuide(): ReactNode {
         </nav>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {step.id === 'equipment' && (
             <StepEquipment
               onToggle={id => toggleWizardSelection('equipment', id)}
@@ -692,7 +708,7 @@ export function FirstTimerGuide(): ReactNode {
         </div>
 
         {/* Footer nav */}
-        <div className="flex shrink-0 items-center justify-between border-t border-foreground/10 px-6 py-4">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-foreground/10 px-4 py-3 sm:px-6 sm:py-4">
           <button
             aria-label="Previous step"
             className={cn(
