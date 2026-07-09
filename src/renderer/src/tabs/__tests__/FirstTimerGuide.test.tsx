@@ -229,7 +229,7 @@ describe('FirstTimerGuide — step navigation', () => {
     ).toBe(true)
     fireEvent.click(
       document.querySelector(
-        '[data-option-row-id="oven_sealed"]'
+        '[data-testid="wizard-decarb-card-oven_sealed"]'
       ) as HTMLElement
     )
     expect(
@@ -254,7 +254,7 @@ describe('FirstTimerGuide — step navigation', () => {
       (screen.getByTestId('wizard-next') as HTMLButtonElement).disabled
     ).toBe(true)
     fireEvent.click(
-      document.querySelector('[data-option-row-id="coconut"]') as HTMLElement
+      document.querySelector('[data-testid="wizard-fat-card-coconut"]') as HTMLElement
     )
     expect(
       (screen.getByTestId('wizard-next') as HTMLButtonElement).disabled
@@ -279,7 +279,7 @@ describe('FirstTimerGuide — step navigation', () => {
     ).toBe(true)
     fireEvent.click(
       document.querySelector(
-        '[data-option-row-id="brownie_9x13"]'
+        '[data-testid="wizard-format-card-brownie_9x13"]'
       ) as HTMLElement
     )
     // A format is picked — Next is now enabled even without an override

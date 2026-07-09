@@ -71,6 +71,27 @@ import packTight from 'renderer/src/assets/wizard/pack-tight.png'
 // rendered as three different visuals — AI image-to-image couldn't
 // produce visually consistent fill-state variants, so we ship one
 // reference image and let the text do the work.
+// Decarb visuals — one image per method, all share the same kitchen style
+// (1024x1024 light-gray background, US quarter or ruler for scale, no text).
+import decarbSvDry from 'renderer/src/assets/wizard/decarb-sv-dry.png'
+import decarbSvFast from 'renderer/src/assets/wizard/decarb-sv-fast.png'
+import decarbSvCombined from 'renderer/src/assets/wizard/decarb-sv-combined.png'
+import decarbSvLowtemp from 'renderer/src/assets/wizard/decarb-sv-lowtemp.png'
+import decarbOvenSealed from 'renderer/src/assets/wizard/decarb-oven-sealed.png'
+import decarbOvenOpen from 'renderer/src/assets/wizard/decarb-oven-open.png'
+// Fat visuals — one image per carrier fat, jar + spoon + US quarter.
+import fatGhee from 'renderer/src/assets/wizard/fat-ghee.png'
+import fatCoconut from 'renderer/src/assets/wizard/fat-coconut.png'
+import fatMct from 'renderer/src/assets/wizard/fat-mct.png'
+import fatCustom from 'renderer/src/assets/wizard/fat-custom.png'
+// Format visuals — finished product at scale (ruler for brownies/gummies,
+// US quarter for capsules/8x8/custom).
+import formatBrownie9x13 from 'renderer/src/assets/wizard/format-brownie-9x13.png'
+import formatBrownie8x8 from 'renderer/src/assets/wizard/format-brownie-8x8.png'
+import formatGummy80 from 'renderer/src/assets/wizard/format-gummy-80.png'
+import formatGummy160 from 'renderer/src/assets/wizard/format-gummy-160.png'
+import formatCapsule00 from 'renderer/src/assets/wizard/format-capsule-00.png'
+import formatCustom from 'renderer/src/assets/wizard/format-custom.png'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import {
   calculateTheoreticalMax,
@@ -1046,6 +1067,18 @@ interface PrepOption {
   why: string
 }
 
+/**
+ * Generalized visual-card shape used by Prep, Decarb, Fats, and Formats
+ * steps. `subtitle` and `meta` are optional because Prep cards don't need
+ * them (caption is enough), while Decarb/Fats/Formats have substantive
+ * temperature / efficiency / serving metadata that benefits from a
+ * separate line.
+ */
+interface WizardCardOption extends PrepOption {
+  subtitle?: string
+  meta?: string
+}
+
 const GRIND_OPTIONS: readonly PrepOption[] = [
   {
     id: 'coarse',
@@ -1131,13 +1164,214 @@ const PACK_OPTIONS: readonly PrepOption[] = [
   },
 ]
 
+// ---------------------------------------------------------------------------
+// Decarb / Fat / Format visual-card arrays
+// ---------------------------------------------------------------------------
+// Each entry mirrors METHOD_OPTIONS / FAT_OPTIONS / FORMAT_OPTIONS from
+// engine/wizardOptions.ts (the engine layer is image-free by design —
+// pure domain models), but adds the static image import + the curated
+// humanNote / humanRecipe prose already exposed by the engine presets.
+// Reordering matches the engine source so test ids stay aligned.
+
+const DECARB_VISUAL_OPTIONS: readonly WizardCardOption[] = [
+  {
+    id: 'sv_dry',
+    label: 'Sous Vide — Dry',
+    image: decarbSvDry,
+    caption:
+      'Vacuum-sealed bag submerged in a water bath held at 95°C by an immersion circulator.',
+    why: 'Highest terpene retention of any method. The water bath also buffers against hot spots in the oven.',
+    subtitle:
+      'Pick this when you want near-maximum conversion with the highest terpene retention and only have a sous vide circulator available.',
+    meta: '95°C · 90–120 min · 97% conversion',
+  },
+  {
+    id: 'sv_fast',
+    label: 'Sous Vide — Fast',
+    image: decarbSvFast,
+    caption:
+      'Same setup as Sous Vide — Dry, with a slightly longer hold to nudge the last few percent of THCA across.',
+    why: 'A small time premium in exchange for ~97% conversion on the first pass.',
+    subtitle:
+      'Pick this when you want a quick, near-maximum conversion and do not mind giving up a bit of terpene character.',
+    meta: '95°C · 120–180 min · 97% conversion',
+  },
+  {
+    id: 'sv_combined',
+    label: 'Sous Vide — Combined',
+    image: decarbSvCombined,
+    caption:
+      'Plant material and carrier fat in the same bag. Lower temperature, much longer hold.',
+    why: 'One bag, one cleanup. The fat protects cannabinoids from oxidation during the long hold.',
+    subtitle:
+      'Pick this when you are decarbing and infusing in the same bag — the longer lower-temp run preserves cannabinoids already dissolved in the fat.',
+    meta: '85°C · 240–360 min · 88% conversion',
+  },
+  {
+    id: 'sv_lowtemp',
+    label: 'Sous Vide — Low Temp',
+    image: decarbSvLowtemp,
+    caption:
+      'Larger stockpot, gentler 73°C bath, an 8 to 12 hour window. Maximum flavor, minimum conversion.',
+    why: 'For when the flavor profile of the flower is the whole point.',
+    subtitle:
+      'Pick this when flavor matters most — you will sacrifice some conversion for the best terpene preservation of any method.',
+    meta: '73°C · 480–720 min · 68% conversion',
+  },
+  {
+    id: 'oven_sealed',
+    label: 'Oven — Sealed',
+    image: decarbOvenSealed,
+    caption:
+      'Glass baking dish covered tightly with aluminum foil, on the middle rack.',
+    why: 'The familiar kitchen workflow. The foil seal keeps enough vapor in to retain most of the terpenes.',
+    subtitle:
+      'Pick this for a familiar kitchen workflow with no special gear; the foil seal keeps enough vapor in to retain most of the terpenes.',
+    meta: '113°C · 60–90 min · 93% conversion',
+  },
+  {
+    id: 'oven_open',
+    label: 'Oven — Open',
+    image: decarbOvenOpen,
+    caption:
+      'Same dish, uncovered. Faster conversion, more terpene loss, more CBN formation.',
+    why: 'When speed is the priority and you are OK with a flatter flavor profile.',
+    subtitle:
+      'Pick this only when speed matters more than flavor — fastest conversion, but you lose the most terpenes and risk CBN formation.',
+    meta: '116°C · 40 min · 92% conversion',
+  },
+]
+
+const FAT_VISUAL_OPTIONS: readonly WizardCardOption[] = [
+  {
+    id: 'ghee',
+    label: 'Ghee',
+    image: fatGhee,
+    caption:
+      'Clarified butter. Golden, high smoke point, rich flavor. Solid at room temperature, melts clean.',
+    why: 'Excellent cannabinoid solubility and a flavor that pairs well with baked goods.',
+    subtitle:
+      'Pick ghee for brownies or any baked good — high smoke point, rich flavor, and excellent cannabinoid solubility.',
+    meta: '85% extraction',
+  },
+  {
+    id: 'coconut',
+    label: 'Coconut Oil',
+    image: fatCoconut,
+    caption:
+      'Virgin coconut oil. White and solid at room temperature. Mild coconut aroma.',
+    why: 'The classic for solid-at-room-temp end products — capsules, candy, fudge.',
+    subtitle:
+      'Pick coconut oil for solid-at-room-temperature end products like capsules or candy; mild coconut aroma.',
+    meta: '82% extraction',
+  },
+  {
+    id: 'mct',
+    label: 'MCT Oil',
+    image: fatMct,
+    caption:
+      'Fractionated coconut oil. Clear, colorless, stays liquid. Neutral flavor.',
+    why: 'Highest extraction efficiency. The default for tinctures, capsules, and gummies.',
+    subtitle:
+      'Pick MCT for tinctures, capsules, or gummies — neutral flavor, stays liquid at room temperature, highest extraction efficiency.',
+    meta: '92% extraction',
+  },
+  {
+    id: 'custom',
+    label: 'Custom',
+    image: fatCustom,
+    caption:
+      'A generic carrier-fat option. Bring your own oil and set the extraction efficiency yourself.',
+    why: 'When you already have a fat you trust, and a number you can defend.',
+    subtitle:
+      'Pick custom when you have your own carrier fat; you will set the extraction efficiency yourself.',
+    meta: 'set your own',
+  },
+]
+
+const FORMAT_VISUAL_OPTIONS: readonly WizardCardOption[] = [
+  {
+    id: 'brownie_9x13',
+    label: 'Brownie (9×13 pan)',
+    image: formatBrownie9x13,
+    caption:
+      'Classic rectangular 9×13 pan of baked brownies, cut into 12 visible squares.',
+    why: 'The most familiar end product for a first timer. Stir your infused fat in last so the batter stays cool.',
+    subtitle:
+      'Classic 9×13 pan of baked brownies. Stir your infused butter or coconut oil into the batter 1-for-1 in place of the recipe fat, bake at about 350°F (175°C) for 25–30 minutes, and let cool fully before cutting so the dose distributes evenly.',
+    meta: '18 typical servings',
+  },
+  {
+    id: 'brownie_8x8',
+    label: 'Brownie (8×8 pan)',
+    image: formatBrownie8x8,
+    caption:
+      'Thicker 8×8 pan of brownies, cut into 9 squares. Fewer, more potent pieces.',
+    why: 'Same workflow as 9×13, but each piece carries a noticeably bigger dose.',
+    subtitle:
+      'Thicker 8×8 brownie pan — fewer, more potent pieces. Same workflow as the 9×13 pan; cut into 9–12 squares instead of 18.',
+    meta: '12 typical servings',
+  },
+  {
+    id: 'gummy_80',
+    label: 'Gummy mold (80 cavities)',
+    image: formatGummy80,
+    caption:
+      'Silicone 8×10 mold with bear-shape cavities, filled with translucent amber gummies.',
+    why: 'Keep the gelatin-oil mixture under 82°C (180°F) at all times so the THC does not degrade.',
+    subtitle:
+      'Silicone 80-cavity gummy mold. Bloom gelatin in cold liquid, melt with infused MCT oil while keeping the mixture below 82°C (180°F) so the THC does not degrade, then pipette into the cavities.',
+    meta: '80 typical servings',
+  },
+  {
+    id: 'gummy_160',
+    label: 'Gummy mold (160 cavities)',
+    image: formatGummy160,
+    caption:
+      'Larger silicone mold with 160 smaller cavities. Same workflow as 80-cavity, roughly half the dose per piece.',
+    why: 'For high-volume runs where each piece should be a smaller dose.',
+    subtitle:
+      'Double-row 160-cavity mold for higher-volume runs. Same low-heat gelatin workflow as the 80-cavity mold; each cavity is roughly half the dose.',
+    meta: '160 typical servings',
+  },
+  {
+    id: 'capsule_00',
+    label: 'Size 00 capsules',
+    image: formatCapsule00,
+    caption:
+      'Size 00 gelatin capsules filled with infused MCT oil. About 24 per batch.',
+    why: 'Most precise per-piece dose, most discreet to store, longest shelf life.',
+    subtitle:
+      'Size 00 gelatin capsules filled with infused MCT oil using a capsule-filling tray. Most precise per-piece dose, most discreet to store, longest shelf life.',
+    meta: '24 typical servings',
+  },
+  {
+    id: 'custom',
+    label: 'Custom',
+    image: formatCustom,
+    caption:
+      'An empty plate. Pick this when you already know your batch size and serving count.',
+    why: 'Skip the curated defaults and enter grams, THCA%, and servings directly.',
+    subtitle:
+      'Pick this when you already know your batch size. Enter grams, THCA percentage, and serving count manually to match whatever you are actually making.',
+    meta: 'set your own',
+  },
+]
+
 interface VisualCardProps {
-  option: PrepOption
+  option: WizardCardOption
   selected: boolean
   onSelect: () => void
+  /** data-testid override — defaults to `prep-card-${id}` for Prep cards. */
+  testId?: string
 }
 
-function VisualCard({ option, selected, onSelect }: VisualCardProps): ReactNode {
+function VisualCard({
+  option,
+  selected,
+  onSelect,
+  testId,
+}: VisualCardProps): ReactNode {
   return (
     <button
       aria-pressed={selected}
@@ -1147,7 +1381,7 @@ function VisualCard({ option, selected, onSelect }: VisualCardProps): ReactNode 
           ? 'border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_10%,transparent)] shadow-[inset_0_0_0_1px_var(--accent)]'
           : 'border-[var(--border)] bg-[color-mix(in_oklab,var(--foreground)_3%,transparent)] hover:border-[var(--foreground)/30]'
       )}
-      data-testid={`prep-card-${option.id}`}
+      data-testid={testId ?? `prep-card-${option.id}`}
       onClick={onSelect}
       type="button"
     >
@@ -1168,10 +1402,20 @@ function VisualCard({ option, selected, onSelect }: VisualCardProps): ReactNode 
           <span className="text-sm font-semibold text-[var(--foreground)]">
             {option.label}
           </span>
+          {option.meta ? (
+            <span className="shrink-0 rounded-full border border-foreground/15 bg-foreground/5 px-1.5 py-0.5 text-[10px] font-medium text-foreground/70">
+              {option.meta}
+            </span>
+          ) : null}
         </span>
         <span className="text-xs leading-snug text-[var(--muted-foreground)]">
           {option.caption}
         </span>
+        {option.subtitle ? (
+          <span className="text-[11px] leading-snug text-foreground/60">
+            {option.subtitle}
+          </span>
+        ) : null}
       </span>
     </button>
   )
@@ -1365,15 +1609,6 @@ function StepDecarb({
   onToggle,
   perMethodPreview,
 }: StepDecarbProps): ReactNode {
-  const options = METHOD_OPTIONS.map(m => ({
-    id: m.id,
-    label: m.label,
-    subtitle: m.humanNote,
-    meta: `${m.tempC}°C · ${m.timeMin}–${m.timeMax} min`,
-    selected: selectedIds.includes(m.id),
-    onToggle: () => onToggle(m.id),
-  }))
-
   const counter =
     selectedIds.length === 1 ? '1 selected' : `${selectedIds.length} selected`
 
@@ -1418,11 +1653,27 @@ function StepDecarb({
         </section>
       )}
 
-      <MultiSelectGroup
-        counterLabel={counter}
-        label="Decarb methods to consider"
-        options={options}
-      />
+      <section
+        aria-label="Decarb methods to consider"
+        className="space-y-2"
+        data-testid="wizard-decarb-grid"
+      >
+        <p className="text-xs font-medium text-foreground/70">
+          Pick your methods{' '}
+          <span className="text-foreground/55">· {counter}</span>
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {DECARB_VISUAL_OPTIONS.map(o => (
+            <VisualCard
+              key={o.id}
+              option={o}
+              selected={selectedIds.includes(o.id)}
+              testId={`wizard-decarb-card-${o.id}`}
+              onSelect={() => onToggle(o.id)}
+            />
+          ))}
+        </div>
+      </section>
     </div>
   )
 }
@@ -1449,14 +1700,8 @@ function StepFats({
   onToggle,
   perFatPreview,
 }: StepFatsProps): ReactNode {
-  const options = FAT_OPTIONS.map(f => ({
-    id: f.id,
-    label: f.label,
-    subtitle: f.humanNote,
-    meta: `${(f.extractionEff * 100).toFixed(0)}% extraction`,
-    selected: selectedIds.includes(f.id),
-    onToggle: () => onToggle(f.id),
-  }))
+  const counter =
+    selectedIds.length === 1 ? '1 selected' : `${selectedIds.length} selected`
 
   return (
     <div className="space-y-4">
@@ -1498,7 +1743,27 @@ function StepFats({
         </section>
       )}
 
-      <MultiSelectGroup label="Fats on hand" options={options} />
+      <section
+        aria-label="Fats on hand"
+        className="space-y-2"
+        data-testid="wizard-fat-grid"
+      >
+        <p className="text-xs font-medium text-foreground/70">
+          Pick your carrier fats{' '}
+          <span className="text-foreground/55">· {counter}</span>
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {FAT_VISUAL_OPTIONS.map(o => (
+            <VisualCard
+              key={o.id}
+              option={o}
+              selected={selectedIds.includes(o.id)}
+              testId={`wizard-fat-card-${o.id}`}
+              onSelect={() => onToggle(o.id)}
+            />
+          ))}
+        </div>
+      </section>
     </div>
   )
 }
@@ -1522,24 +1787,38 @@ function StepFormats({
   servingsPerFormat,
   onServingsChange,
 }: StepFormatsProps): ReactNode {
-  const options = FORMAT_OPTIONS.map(r => ({
-    id: r.id,
-    label: r.label,
-    subtitle: r.humanRecipe,
-    meta: `${r.suggestedServings} typical servings`,
-    selected: selectedIds.includes(r.id),
-    onToggle: () => setSelectedIds(r.id),
-  }))
-
   // Default the per-format servings input to the first selected format's
   // suggestedServings so the user has a sensible starting number (the input
   // used to be empty when no override was set, leaving the user guessing).
   const firstSelected = FORMAT_OPTIONS.find(r => selectedIds.includes(r.id))
   const defaultServings = firstSelected?.suggestedServings ?? 0
 
+  const counter =
+    selectedIds.length === 1 ? '1 selected' : `${selectedIds.length} selected`
+
   return (
     <div className="space-y-4">
-      <MultiSelectGroup label="Recipe formats" options={options} />
+      <section
+        aria-label="Recipe formats"
+        className="space-y-2"
+        data-testid="wizard-format-grid"
+      >
+        <p className="text-xs font-medium text-foreground/70">
+          Pick the formats you want to make{' '}
+          <span className="text-foreground/55">· {counter}</span>
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {FORMAT_VISUAL_OPTIONS.map(o => (
+            <VisualCard
+              key={o.id}
+              option={o}
+              selected={selectedIds.includes(o.id)}
+              testId={`wizard-format-card-${o.id}`}
+              onSelect={() => setSelectedIds(o.id)}
+            />
+          ))}
+        </div>
+      </section>
 
       <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-3">
         <p
