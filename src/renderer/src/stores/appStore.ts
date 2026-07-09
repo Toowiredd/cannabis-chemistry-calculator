@@ -760,6 +760,7 @@ export const useAppStore = create<AppStore>()(
             active: false,
             dismissed: true,
           },
+          firstRunDismissed: true,
           firstTimerOpen: false,
         })),
 

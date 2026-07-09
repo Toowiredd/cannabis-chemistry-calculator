@@ -26,7 +26,7 @@
  *   state for a first-timer, so Next is always enabled there. Step 2
  *   (material) gates on valid positive numerics.
  */
-import { useCallback, useId, useMemo, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, type ReactNode } from 'react'
 import {
   Beaker,
   Carrot,
@@ -395,7 +395,10 @@ export function FirstTimerGuide(): ReactNode {
         const infused =
           _safeRun(() => calculateInfusedThc(decarbed, f.extractionEff)) ?? 0
         for (const r of formats) {
-          const servings = servingsPerFormat ?? r.suggestedServings
+          const servings =
+              servingsPerFormat != null && servingsPerFormat > 0
+                ? servingsPerFormat
+                : r.suggestedServings
           const perServing =
             _safeRun(() => calculateMgPerServing(infused, servings)) ?? 0
           const classification = _safeRun(() => classifyDose(perServing)) ?? ''
@@ -419,44 +422,53 @@ export function FirstTimerGuide(): ReactNode {
 
   /* ---- CTA: save to journal ---- */
   const handleSaveToJournal = useCallback(() => {
-    const top = matrix[0]
-    if (!top) return
-    const entry = {
-      id: `entry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      date: new Date().toISOString().split('T')[0],
-      strainName: '',
-      strainId: null,
-      materialWeight: grams.toString(),
-      thcaPct: thcaPct.toString(),
-      thcPct: '0',
-      cbdaPct: '0',
-      cbdPct: '0',
-      methodId: METHOD_OPTIONS.find(m => m.label === top.method)?.id ?? '',
-      methodName: top.method,
-      fatId: FAT_OPTIONS.find(f => f.label === top.fat)?.id ?? '',
-      fatName: top.fat,
-      servings: top.servings.toString(),
-      mgPerServing: _fmt1(top.perServing),
-      classification: top.classification,
-      totalInfusedThc: _fmt1(top.infused),
-      concentration: '0',
-      volume:
-        infusionDefaults.volume &&
-        Number.isFinite(parseFloat(infusionDefaults.volume)) &&
-        parseFloat(infusionDefaults.volume) > 0
-          ? infusionDefaults.volume
-          : '0',
-      volumeUnit: 'mL',
-      notes: `Saved from First-Timer Guide. ${matrix.length} combo(s) computed; saved top recommendation.`,
-    }
-    addJournalEntry(entry)
-    void window.App?.saveJournalEntry?.(entry).catch(() => {
-      // No-op: addJournalEntry already updated the local store. The IPC
-      // failure does not need to crash the wizard — it just means the
-      // entry is local-only this session.
+    if (matrix.length === 0) return
+    const baseDate = new Date().toISOString().split('T')[0]
+    const infusionVol =
+      infusionDefaults.volume &&
+      Number.isFinite(parseFloat(infusionDefaults.volume)) &&
+      parseFloat(infusionDefaults.volume) > 0
+        ? infusionDefaults.volume
+        : '0'
+    let savedCount = 0
+    matrix.forEach((row, idx) => {
+      const entry = {
+        id: `entry_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 8)}`,
+        date: baseDate,
+        strainName: '',
+        strainId: null,
+        materialWeight: grams.toString(),
+        thcaPct: thcaPct.toString(),
+        thcPct: '0',
+        cbdaPct: '0',
+        cbdPct: '0',
+        methodId: METHOD_OPTIONS.find(m => m.label === row.method)?.id ?? '',
+        methodName: row.method,
+        fatId: FAT_OPTIONS.find(f => f.label === row.fat)?.id ?? '',
+        fatName: row.fat,
+        servings: row.servings.toString(),
+        mgPerServing: _fmt1(row.perServing),
+        classification: row.classification,
+        totalInfusedThc: _fmt1(row.infused),
+        concentration: '0',
+        volume: infusionVol,
+        volumeUnit: 'mL',
+        notes: `Saved from First-Timer Guide. Combo ${idx + 1} of ${matrix.length}: ${row.method} + ${row.fat} + ${row.format}.`,
+      }
+      addJournalEntry(entry)
+      void window.App?.saveJournalEntry?.(entry).catch(() => {
+        // Surface the failure to the user via console + local store still
+        // has the entry; the wizard does not crash. Previously the .catch
+        // was a no-op — that swallowed real disk-write errors silently.
+        console.warn('[FirstTimerGuide] saveJournalEntry IPC failed', entry.id)
+      })
+      savedCount += 1
     })
     setActiveTab('journal')
     dismissWizard()
+    // savedCount is informational; the UI flashes to journal where the
+    // user can see all ${savedCount} entries.
+    void savedCount
   }, [matrix, grams, thcaPct, infusionDefaults.volume, addJournalEntry, setActiveTab, dismissWizard])
 
   /* ---- CTA: open in Quick Batch ---- */
@@ -489,7 +501,9 @@ export function FirstTimerGuide(): ReactNode {
       case 'fats':
         return selections.fatIds.length > 0
       case 'formats':
-        return selections.formatIds.length > 0 && (servingsPerFormat ?? 0) > 0
+        // No override required — formats have their own suggestedServings
+        // defaults. Only block advancement if there are no formats picked.
+        return selections.formatIds.length > 0
       case 'review':
         return false
       default:
@@ -559,6 +573,72 @@ export function FirstTimerGuide(): ReactNode {
     [setWizardNumberField]
   )
 
+  /* ---- modal accessibility: focus, scroll lock, escape ---- */
+  const modalRef = useRef<HTMLDivElement | null>(null)
+  const triggerRef = useRef<HTMLElement | null>(null)
+
+  // Capture the trigger element on open so we can return focus on close.
+  useEffect(() => {
+    if (active) {
+      triggerRef.current = (document.activeElement as HTMLElement) ?? null
+    } else if (triggerRef.current) {
+      triggerRef.current.focus()
+      triggerRef.current = null
+    }
+  }, [active])
+
+  // Lock body scroll while the modal is open so the underlying page cannot
+  // scroll behind it.
+  useEffect(() => {
+    if (!active) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [active])
+
+  // Escape closes the modal; Tab/Shift+Tab cycle inside the modal panel.
+  useEffect(() => {
+    if (!active) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        dismissWizard()
+        return
+      }
+      if (e.key !== 'Tab' || !modalRef.current) return
+      const focusables = Array.from(
+        modalRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter(el => !el.hasAttribute('aria-hidden'))
+      if (focusables.length === 0) return
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      const active = document.activeElement
+      if (e.shiftKey && active === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [active, dismissWizard])
+
+  // Move initial focus into the modal panel so keyboard users land somewhere
+  // sensible. Prefer the first focusable element (the dismiss X / Skip).
+  useEffect(() => {
+    if (!active || !modalRef.current) return
+    const focusables = modalRef.current.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+    ;(focusables[0] as HTMLElement | undefined)?.focus()
+  }, [active])
+
   /* ---- render gating ---- */
   if (!active) return null
 
@@ -567,12 +647,16 @@ export function FirstTimerGuide(): ReactNode {
   /* ---------------------------------------------------------------- */
   return (
     <div
-      aria-labelledby={wizardTitleId}
-      aria-modal="true"
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-      role="dialog"
+      role="presentation"
     >
-      <div className="glass-strong relative flex h-full max-h-[min(880px,calc(100dvh-2rem))] w-full max-w-[min(960px,calc(100dvw-2rem))] flex-col overflow-hidden rounded-2xl border border-foreground/10 shadow-2xl">
+      <div
+        aria-labelledby={wizardTitleId}
+        aria-modal="true"
+        className="glass-strong relative flex h-full max-h-[min(880px,calc(100dvh-2rem))] w-full max-w-[min(960px,calc(100dvw-2rem))] flex-col overflow-hidden rounded-2xl border border-foreground/10 shadow-2xl"
+        ref={modalRef}
+        role="dialog"
+      >
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-foreground/10 px-4 py-3 sm:px-6 sm:py-4">
           <div className="min-w-0">
@@ -868,6 +952,7 @@ function StepMaterial({
             className="w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-foreground/40"
             data-testid="wizard-grams"
             id="ftg-grams"
+            min="0"
             onChange={e => onGramsChange(e.target.value)}
             step="0.1"
             type="number"
@@ -1116,6 +1201,12 @@ function StepFormats({
     onToggle: () => setSelectedIds(r.id),
   }))
 
+  // Default the per-format servings input to the first selected format's
+  // suggestedServings so the user has a sensible starting number (the input
+  // used to be empty when no override was set, leaving the user guessing).
+  const firstSelected = FORMAT_OPTIONS.find(r => selectedIds.includes(r.id))
+  const defaultServings = firstSelected?.suggestedServings ?? 0
+
   return (
     <div className="space-y-4">
       <MultiSelectGroup label="Recipe formats" options={options} />
@@ -1146,7 +1237,13 @@ function StepFormats({
           onChange={e => onServingsChange(e.target.value)}
           step="1"
           type="number"
-          value={servingsPerFormat > 0 ? servingsPerFormat : ''}
+          value={
+            servingsPerFormat > 0
+              ? servingsPerFormat
+              : defaultServings > 0
+                ? defaultServings
+                : ''
+          }
         />
         <p className="mt-1 text-xs text-foreground/55">
           Default for the first selected format is shown. Adjust to match what

@@ -261,7 +261,7 @@ describe('FirstTimerGuide — step navigation', () => {
     ).toBe(false)
   })
 
-  it('formats step requires at least one format AND a servings value', () => {
+  it('formats step requires at least one format (servings override optional)', () => {
     openWizard({
       stepIndex: 4,
       selections: {
@@ -282,10 +282,12 @@ describe('FirstTimerGuide — step navigation', () => {
         '[data-option-row-id="brownie_9x13"]'
       ) as HTMLElement
     )
-    // Still disabled — servings is 0.
+    // A format is picked — Next is now enabled even without an override
+    // (each format has its own suggestedServings default).
     expect(
       (screen.getByTestId('wizard-next') as HTMLButtonElement).disabled
-    ).toBe(true)
+    ).toBe(false)
+    // User can still override the per-format servings value.
     fireEvent.change(screen.getByTestId('wizard-servings'), {
       target: { value: '12' },
     })
