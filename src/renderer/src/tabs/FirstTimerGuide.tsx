@@ -422,7 +422,7 @@ export function FirstTimerGuide(): ReactNode {
   }, [methodSet, fatSet, formatSet, theoretical, servingsPerFormat])
 
   /* ---- CTA: save to journal ---- */
-  const handleSaveToJournal = useCallback(() => {
+  const handleSaveToJournal = useCallback(async () => {
     if (matrix.length === 0) return
     const baseDate = new Date().toISOString().split('T')[0]
     const infusionVol =
@@ -432,7 +432,8 @@ export function FirstTimerGuide(): ReactNode {
         ? infusionDefaults.volume
         : '0'
     let savedCount = 0
-    matrix.forEach((row, idx) => {
+    let failedCount = 0
+    for (const [idx, row] of matrix.entries()) {
       const entry = {
         id: `entry_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 8)}`,
         date: baseDate,
@@ -456,20 +457,43 @@ export function FirstTimerGuide(): ReactNode {
         volumeUnit: 'mL',
         notes: `Saved from First-Timer Guide. Combo ${idx + 1} of ${matrix.length}: ${row.method} + ${row.fat} + ${row.format}.`,
       }
-      addJournalEntry(entry)
-      void window.App?.saveJournalEntry?.(entry).catch(() => {
-        // Surface the failure to the user via console + local store still
-        // has the entry; the wizard does not crash. Previously the .catch
-        // was a no-op — that swallowed real disk-write errors silently.
-        console.warn('[FirstTimerGuide] saveJournalEntry IPC failed', entry.id)
-      })
-      savedCount += 1
-    })
+      // Persist to disk FIRST; only add to the local store if the disk
+      // write succeeded. Previously the order was reversed — that meant
+      // a failed IPC silently left the entry in the local store and the
+      // Journal tab's mount-time reload from disk would then overwrite
+      // and lose it.
+      try {
+        if (typeof window.App?.saveJournalEntry !== 'function') {
+          // No IPC bridge (browser-only / dev-renderer audit). Fall back
+          // to local-store-only so the user can still see the entry.
+          addJournalEntry(entry)
+          savedCount += 1
+          continue
+        }
+        const result = await window.App.saveJournalEntry(entry)
+        if (result?.success) {
+          addJournalEntry(entry)
+          savedCount += 1
+        } else {
+          console.warn(
+            '[FirstTimerGuide] saveJournalEntry IPC returned failure',
+            entry.id,
+            result?.error
+          )
+          failedCount += 1
+        }
+      } catch (err) {
+        console.warn('[FirstTimerGuide] saveJournalEntry IPC threw', entry.id, err)
+        failedCount += 1
+      }
+    }
     setActiveTab('journal')
     dismissWizard()
-    // savedCount is informational; the UI flashes to journal where the
-    // user can see all ${savedCount} entries.
-    void savedCount
+    if (failedCount > 0) {
+      console.warn(
+        `[FirstTimerGuide] ${failedCount} of ${matrix.length} entries failed to persist to disk; they are local-only this session.`
+      )
+    }
   }, [matrix, grams, thcaPct, infusionDefaults.volume, addJournalEntry, setActiveTab, dismissWizard])
 
   /* ---- CTA: open in Quick Batch ---- */
