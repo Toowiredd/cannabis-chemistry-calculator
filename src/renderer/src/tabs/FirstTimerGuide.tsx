@@ -58,7 +58,10 @@ import { MultiSelectGroup } from 'renderer/components/MultiSelectGroup'
 import grindCoarse from 'renderer/src/assets/wizard/grind-coarse.png'
 import grindMedium from 'renderer/src/assets/wizard/grind-medium.png'
 import grindFine from 'renderer/src/assets/wizard/grind-fine.png'
-import bagAnnotated from 'renderer/src/assets/wizard/bag-annotated.png'
+import bagQuart from 'renderer/src/assets/wizard/bag-quart.png'
+import bagGallon from 'renderer/src/assets/wizard/bag-gallon.png'
+import bag2Gallon from 'renderer/src/assets/wizard/bag-2gallon.png'
+import bagSmallVac from 'renderer/src/assets/wizard/bag-small-vac.png'
 import packLoose from 'renderer/src/assets/wizard/pack-loose.png'
 import packMedium from 'renderer/src/assets/wizard/pack-medium.png'
 import packTight from 'renderer/src/assets/wizard/pack-tight.png'
@@ -1042,21 +1045,24 @@ const GRIND_OPTIONS: readonly PrepOption[] = [
     id: 'coarse',
     label: 'Coarse',
     image: grindCoarse,
-    caption: 'Chunky pieces — peppercorn-sized.',
+    caption:
+      'Peppercorn-sized chunks. For 3.5 g: ~21 cm³ — easily fits in the Quart bag.',
     why: 'Forgiving. Hard to over-decarb. Good if this is your first time.',
   },
   {
     id: 'medium',
     label: 'Medium',
     image: grindMedium,
-    caption: 'Grinder-dial texture.',
+    caption:
+      'Grinder-dial texture. For 3.5 g: ~12 cm³ — fits comfortably in the Quart bag.',
     why: 'The middle of the road. Most home cooks land here.',
   },
   {
     id: 'fine',
     label: 'Fine',
     image: grindFine,
-    caption: 'Powdery, like ground coffee.',
+    caption:
+      'Powdery, like ground coffee. For 3.5 g: ~8 cm³ — leaves plenty of room in any bag.',
     why: 'Maximum surface area. Burns through faster — watch your timer.',
   },
 ]
@@ -1064,30 +1070,30 @@ const GRIND_OPTIONS: readonly PrepOption[] = [
 const BAG_OPTIONS: readonly PrepOption[] = [
   {
     id: 'quart',
-    label: 'Quart',
-    image: bagAnnotated,
+    label: 'Quart Bag',
+    image: bagQuart,
     caption: '17.8 × 20.3 cm — fits up to ~10 g ground material.',
     why: 'Smallest bag. Pick this for a single 3.5 g batch.',
   },
   {
     id: 'gallon',
-    label: 'Gallon',
-    image: bagAnnotated,
-    caption: '28 × 28 cm — fits up to ~28 g ground material.',
+    label: 'Gallon Bag',
+    image: bagGallon,
+    caption: '28.0 × 27.9 cm — fits up to ~28 g ground material.',
     why: 'Plenty of room for one or two batches side by side.',
   },
   {
     id: '2gallon',
-    label: '2-Gallon',
-    image: bagAnnotated,
-    caption: '40 × 43 cm — fits up to ~60 g ground material.',
+    label: '2-Gallon Bag',
+    image: bag2Gallon,
+    caption: '40.6 × 42.9 cm — fits up to ~60 g ground material.',
     why: 'Big batch territory. Double-bag it before decarbing.',
   },
   {
     id: 'small_vac',
     label: 'Small Vacuum',
-    image: bagAnnotated,
-    caption: '16.5 × 21 cm — vacuum-seal style.',
+    image: bagSmallVac,
+    caption: '16.5 × 21.0 cm — vacuum-seal style with depthCm 0.167.',
     why: 'Best air-removal. If you have a vacuum sealer, use this.',
   },
 ]
@@ -1097,22 +1103,25 @@ const PACK_OPTIONS: readonly PrepOption[] = [
     id: 'loose',
     label: 'Loose',
     image: packLoose,
-    caption: 'Air gaps visible. Puffy bag.',
-    why: 'Air is the enemy of even decarbing. Avoid this if you can.',
+    caption:
+      'Air gaps visible. Bag is puffy. Heat reaches unevenly — expect hot spots.',
+    why: 'Avoid this if you can. The air pockets are where decarbing goes uneven.',
   },
   {
     id: 'medium',
     label: 'Medium',
     image: packMedium,
-    caption: 'A few gaps, mostly filled.',
-    why: 'Reasonable default. Spread the material into a single layer.',
+    caption:
+      'A few gaps, mostly filled. Reasonable default for a first-timer.',
+    why: 'Spread the material into a single layer. Press flat with a spatula.',
   },
   {
     id: 'tight',
     label: 'Tight',
     image: packTight,
-    caption: 'No visible air gaps, single layer.',
-    why: 'Best for even conversion. Press flat with a spatula before sealing.',
+    caption:
+      'No visible air gaps, single flat layer. Best for even conversion.',
+    why: 'Press flat with a spatula before sealing. Aim for this if you can.',
   },
 ]
 
