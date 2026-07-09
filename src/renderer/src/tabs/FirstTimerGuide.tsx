@@ -433,7 +433,15 @@ export function FirstTimerGuide(): ReactNode {
         : '0'
     let savedCount = 0
     let failedCount = 0
+    const infusionVolNum = parseFloat(infusionVol)
     for (const [idx, row] of matrix.entries()) {
+      // Concentration = infused THC (mg) / volume (mL). Was hardcoded '0'
+      // before, which made the journal display show "0 mg/mL" even when the
+      // math clearly should produce a real number.
+      const concentration =
+        Number.isFinite(infusionVolNum) && infusionVolNum > 0
+          ? _fmt1(row.infused / infusionVolNum)
+          : '0'
       const entry = {
         id: `entry_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 8)}`,
         date: baseDate,
@@ -452,7 +460,7 @@ export function FirstTimerGuide(): ReactNode {
         mgPerServing: _fmt1(row.perServing),
         classification: row.classification,
         totalInfusedThc: _fmt1(row.infused),
-        concentration: '0',
+        concentration,
         volume: infusionVol,
         volumeUnit: 'mL',
         notes: `Saved from First-Timer Guide. Combo ${idx + 1} of ${matrix.length}: ${row.method} + ${row.fat} + ${row.format}.`,
