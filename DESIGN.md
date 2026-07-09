@@ -10,12 +10,13 @@ This document covers the architecture choices, modeling rationale, and design de
 2. [Layered Design](#layered-design)
 3. [Electron Shell Design](#electron-shell-design)
 4. [Chemistry Model Rationale](#chemistry-model-rationale)
-5. [Preset Design Rationale](#preset-design-rationale)
-6. [State Management](#state-management)
-7. [Validation Strategy](#validation-strategy)
-8. [UI/UX Decisions](#uiux-decisions)
-9. [Testing Strategy](#testing-strategy)
-10. [Packaging & Distribution](#packaging--distribution)
+5. [Engine Citations & Audit](#engine-citations--audit)
+6. [Preset Design Rationale](#preset-design-rationale)
+7. [State Management](#state-management)
+8. [Validation Strategy](#validation-strategy)
+9. [UI/UX Decisions](#uiux-decisions)
+10. [Testing Strategy](#testing-strategy)
+11. [Packaging & Distribution](#packaging--distribution)
 
 ---
 
@@ -381,6 +382,32 @@ dist/v1.0.0/
 | Single store | Multiple stores | Cross-tab data flow is simpler with one store; Zustand selectors prevent performance issues |
 | Frameless window | Native frame | Glassmorphism needs edge-to-edge rendering; custom title bar is normal for Electron apps |
 | Text-only labels | Emoji | Accessibility, consistency across OS versions, professional tone |
+
+---
+
+## Engine Citations & Audit
+
+Every numeric / qualitative constant in `src/renderer/src/engine/*.ts` is traceable to either:
+
+1. A peer-reviewed source listed in `research/academic-references.md` (with a stable DOI / URL)
+2. An explicit `// TODO(citation): <reason>` comment in source + a row in the audit table
+3. An exact NIST / SI conversion factor (NIST CODATA universal gas constant, SI avoirdupois ounce, etc.)
+
+The audit table at the bottom of `research/academic-references.md` lists each constant, its current citation status, the action taken (kept / added / flagged TODO), and the verifier note. The audit was originally produced by `chem-engine` rein via `mavis team plan` and is updated as drift flags are resolved.
+
+### Arrhenius kinetics — Jaidee 2022 recompute (2026-07-09)
+
+The THC→CBN step in `doneness-simulation.ts` previously used `Ea₂ = 110 kJ/mol` (engineering default) and `A₂ = 2.0×10¹² s⁻¹` (no source match). These produced a THC halflife at room temperature of < 1 hour — unphysical for storage modeling.
+
+Recomputed from **Jaidee 2022** Table 3 (DOI 10.1089/can.2021.0004, pH-2 solution pseudo-first-order Δ9-THC degradation):
+
+- `Ea₂ = 51.70 kJ/mol`
+- `A₂ = 6.40×10⁶ day⁻¹` (paper convention; engine divides by 1440 for per-minute)
+- Sanity: `k₂(25 °C) ≈ 3.94×10⁻⁶ /min → halflife ≈ 122 days`, matching Jaidee's published `k@25 °C = 0.0056 day⁻¹` within 0.01% relative
+
+**Math-form note.** Jaidee's *dried-resin* Δ9-THC measurement is pseudo-zero-order (rate ∝ constant, not concentration) — a different mathematical form than the engine's first-order ODE. Switching to dried-resin pseudo-zero-order would require changing the simulation ODE itself, which is out of scope. The pH-2 solution pseudo-first-order value above is the matching Jaidee source for the current ODE form.
+
+The `Ea₁/A₁` pair (THCA→THC) still uses the engineering overestimate on top of Wang 2016 (`#2`); a separate cleanup pass is planned.
 
 ---
 

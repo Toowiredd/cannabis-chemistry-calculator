@@ -52,8 +52,8 @@ function RangeSlider({
       </div>
       <div className="relative h-6 flex items-center">
         <input
-          className="absolute inset-0 z-10 w-full cursor-pointer opacity-0"
           aria-label={label}
+          className="absolute inset-0 z-10 w-full cursor-pointer opacity-0"
           max={max}
           min={min}
           onChange={e => onChange(parseFloat(e.target.value))}
@@ -460,8 +460,8 @@ function Cite({ label, doi }: { label: string; doi: string }) {
 
   return (
     <a
-      className="ml-1 inline text-xs text-info dark:text-info dark:text-info/90 underline underline-offset-2 hover:text-info"
       aria-label={`Open DOI reference for ${label}`}
+      className="ml-1 inline text-xs text-info dark:text-info dark:text-info/90 underline underline-offset-2 hover:text-info"
       href={`https://doi.org/${doi}`}
       onClick={handleClick}
       rel="noopener noreferrer"

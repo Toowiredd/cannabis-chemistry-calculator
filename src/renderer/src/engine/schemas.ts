@@ -132,6 +132,10 @@ export const decarbInputSchema = z
 export type DecarbInput = z.infer<typeof decarbInputSchema>
 
 /** Warnings that don't block calculation but should be surfaced */
+// TODO(citation): 40% warning thresholds here are advisory display levels
+// only; no peer-reviewed "high-cannabinoid" cutoff at 40% is cited. Same
+// rationale as getDecarbWarnings in validation.ts — see
+// research/academic-references.md audit row #38.
 export function getDecarbWarnings(data: DecarbInput): string[] {
   const warnings: string[] = []
   const t = data.thcaPct || 0
@@ -187,6 +191,9 @@ export const infusionInputSchema = z.object({
 
 export type InfusionInput = z.infer<typeof infusionInputSchema>
 
+// TODO(citation): "volume < decarbedThc / 20" threshold (i.e. 25 mL per
+// 500 mg decarbed THC) is an internal advisory rule-of-thumb; display only.
+// See research/academic-references.md audit row #39.
 export function getInfusionWarnings(
   decarbedThc: number,
   volume: number
@@ -260,6 +267,9 @@ export const reverseDoseInputSchema = z.object({
     .transform(asNumber)
     .refine(isValidNumber, 'That does not look like a number')
     .refine(v => v >= 0, 'Dose cannot be negative')
+    // TODO(citation): 500 mg/serving ceiling is an internal upper safety
+    // bound; no peer-reviewed single-serving upper limit cited. See
+    // research/academic-references.md audit row #40.
     .refine(
       v => v <= 500,
       'That is an extraordinarily high dose. Double-check your units.'

@@ -46,6 +46,11 @@ export function calculateMgPerServing(
  *   x >= 100       → extreme
  *   x < 2.5        → sub-microdose
  *
+ * The 2.5 mg microdose threshold aligns with Bhaskar et al. 2021 (#9) and
+ * MacCallum & Russo 2018 (#4), both of which recommend initiating oral THC
+ * at 2.5 mg. The categorical labels above 5 mg and the bracket cutoffs are
+ * internal UI taxonomy — see research/academic-references.md audit table.
+ *
  * @param mgPerServing mg per serving (must be >= 0)
  * @returns DoseClassification string label
  */

@@ -8,7 +8,9 @@
 import { ValidationError } from './errors'
 import type { EfficiencyRange } from './models'
 
-/** Molecular weight ratio: CBD / CBDA ≈ 0.877 (same as THC / THCA) */
+/** Molecular weight ratio: CBD / CBDA ≈ 0.877 (same as THC / THCA).
+ *  Source: Filer 2022 (see research/academic-references.md #1) for the THCA→THC MW ratio of 314.45/358.47.
+ *  CBDA and THCA are isomers (C22H30O4, MW 358.47) — see also Citti 2018 (#14). */
 const CBDA_TO_CBD_FACTOR = 0.877
 
 /** Round to at most 1 decimal place with epsilon compensation for floating-point error */

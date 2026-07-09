@@ -319,8 +319,8 @@ export function JournalTab() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
             aria-label="Log current calculator values to the journal"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
             onClick={handleAutoPopulate}
             type="button"
           >
@@ -328,8 +328,8 @@ export function JournalTab() {
             Log to Journal
           </button>
           <button
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
             aria-label="Create a new journal entry"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
             onClick={() => {
               setForm(emptyForm())
               setShowForm(true)
@@ -353,8 +353,8 @@ export function JournalTab() {
               {form.id ? 'Edit Entry' : 'New Entry'}
             </h3>
             <button
-              className="inline-flex items-center gap-1 rounded-lg border border-foreground/20 bg-foreground/5 px-2 py-1 text-xs text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
               aria-expanded={showForm}
+              className="inline-flex items-center gap-1 rounded-lg border border-foreground/20 bg-foreground/5 px-2 py-1 text-xs text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
               onClick={() => setShowForm(false)}
               type="button"
             >
@@ -367,8 +367,8 @@ export function JournalTab() {
             {inputRow(
               'Date',
               <input
-                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
                 aria-label="Entry date"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
                 onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
                 type="date"
                 value={form.date}
@@ -377,8 +377,8 @@ export function JournalTab() {
             {inputRow(
               'Strain Name',
               <input
-                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 aria-label="Strain name"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 onChange={e =>
                   setForm(f => ({ ...f, strainName: e.target.value }))
                 }
@@ -390,8 +390,8 @@ export function JournalTab() {
             {inputRow(
               'Material Weight (g)',
               <input
-                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 aria-label="Material weight in grams"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 onChange={e =>
                   setForm(f => ({ ...f, materialWeight: e.target.value }))
                 }
@@ -404,8 +404,8 @@ export function JournalTab() {
             {inputRow(
               'THCA %',
               <input
-                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 aria-label="THCA percentage"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 onChange={e =>
                   setForm(f => ({ ...f, thcaPct: e.target.value }))
                 }
@@ -418,8 +418,8 @@ export function JournalTab() {
             {inputRow(
               'Existing THC %',
               <input
-                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 aria-label="Existing THC percentage"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 onChange={e => setForm(f => ({ ...f, thcPct: e.target.value }))}
                 placeholder="0.0"
                 step="0.1"
@@ -430,8 +430,8 @@ export function JournalTab() {
             {inputRow(
               'Method',
               <select
-                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
                 aria-label="Decarb method"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
                 onChange={e =>
                   setForm(f => ({ ...f, methodId: e.target.value }))
                 }
@@ -454,8 +454,8 @@ export function JournalTab() {
             {inputRow(
               'Fat',
               <select
-                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
                 aria-label="Infusion fat"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
                 onChange={e => setForm(f => ({ ...f, fatId: e.target.value }))}
                 value={form.fatId}
               >
@@ -476,8 +476,8 @@ export function JournalTab() {
             {inputRow(
               'Servings',
               <input
-                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 aria-label="Servings"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 onChange={e =>
                   setForm(f => ({ ...f, servings: e.target.value }))
                 }
@@ -490,8 +490,8 @@ export function JournalTab() {
             {inputRow(
               'mg per Serving',
               <input
-                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 aria-label="Milligrams per serving"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 onChange={e =>
                   setForm(f => ({ ...f, mgPerServing: e.target.value }))
                 }
@@ -504,8 +504,8 @@ export function JournalTab() {
             {inputRow(
               'Total Infused THC (mg)',
               <input
-                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 aria-label="Total infused THC in milligrams"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 onChange={e =>
                   setForm(f => ({ ...f, totalInfusedThc: e.target.value }))
                 }
@@ -518,8 +518,8 @@ export function JournalTab() {
             {inputRow(
               'Concentration (mg/mL)',
               <input
-                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 aria-label="Concentration in milligrams per milliliter"
+                className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                 onChange={e =>
                   setForm(f => ({ ...f, concentration: e.target.value }))
                 }
@@ -533,8 +533,8 @@ export function JournalTab() {
               'Volume',
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <input
-                  className="min-w-[8rem] flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                   aria-label="Volume amount"
+                  className="min-w-[8rem] flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
                   onChange={e =>
                     setForm(f => ({ ...f, volume: e.target.value }))
                   }
@@ -544,8 +544,8 @@ export function JournalTab() {
                   value={form.volume}
                 />
                 <select
-                  className="rounded-lg border border-foreground/20 bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
                   aria-label="Volume unit"
+                  className="rounded-lg border border-foreground/20 bg-foreground/5 px-2 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
                   onChange={e =>
                     setForm(f => ({ ...f, volumeUnit: e.target.value }))
                   }
@@ -571,8 +571,8 @@ export function JournalTab() {
           {inputRow(
             'Notes',
             <textarea
-              className="min-h-[80px] w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
               aria-label="Journal notes"
+              className="min-h-[80px] w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
               placeholder="Optional notes about the batch..."
               value={form.notes}
@@ -609,8 +609,8 @@ export function JournalTab() {
           <div className="flex min-w-0 items-center gap-2">
             <Search className="size-4 text-foreground/70" />
             <input
-              className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
               aria-label="Search journal entries"
+              className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
               onChange={e => setSearch(e.target.value)}
               placeholder="Search strain, method, fat..."
               type="text"
@@ -618,22 +618,22 @@ export function JournalTab() {
             />
           </div>
           <input
-            className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
             aria-label="Filter entries from date"
+            className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
             onChange={e => setDateFrom(e.target.value)}
             type="date"
             value={dateFrom}
           />
           <input
-            className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
             aria-label="Filter entries to date"
+            className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
             onChange={e => setDateTo(e.target.value)}
             type="date"
             value={dateTo}
           />
           <input
-            className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
             aria-label="Minimum milligrams per serving"
+            className="min-w-0 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
             onChange={e => setPotencyMin(e.target.value)}
             placeholder="Min mg/serving"
             step="0.1"
@@ -705,8 +705,8 @@ export function JournalTab() {
                   </div>
                 ) : (
                   <button
-                    className="inline-flex items-center rounded-lg border border-danger/20 bg-danger/10 px-2 py-1 text-xs text-danger transition-colors hover:bg-danger/20"
                     aria-label={`Delete journal entry ${entry.strainName || 'Unnamed Batch'}`}
+                    className="inline-flex items-center rounded-lg border border-danger/20 bg-danger/10 px-2 py-1 text-xs text-danger transition-colors hover:bg-danger/20"
                     onClick={() => setPendingDeleteId(entry.id)}
                     title="Delete entry"
                     type="button"

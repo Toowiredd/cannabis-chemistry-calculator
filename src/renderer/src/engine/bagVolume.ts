@@ -109,6 +109,10 @@ export function calculateHeadspace(
  * - optimal: 10% – 25%
  * - loose: 25% – 40%
  *
+ * TODO(citation): zones are sous-vide bag-fill engineering heuristics, not
+ * from a peer-reviewed source. See research/academic-references.md audit
+ * row #26.
+ *
  * @param headspacePct Headspace percentage
  * @returns Status label
  */
@@ -121,6 +125,10 @@ export function getHeadspaceStatus(headspacePct: number): string {
 
 /**
  * Recommend double-bagging based on temperature and bag type.
+ *
+ * TODO(citation): the `tempC >= 95 && bagType === 'zip'` rule is a
+ * sous-vide LDPE softening heuristic; not from a peer-reviewed source.
+ * See research/academic-references.md audit row #27.
  *
  * @param tempC Decarboxylation temperature in Celsius
  * @param bagType Bag construction type ('zip' | 'vacuum')

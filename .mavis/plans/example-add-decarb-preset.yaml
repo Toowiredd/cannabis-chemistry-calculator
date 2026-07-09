@@ -1,0 +1,140 @@
+# Concrete working example:
+# Add a new decarb preset (sous_vide_precise, 89 °C, efficiency window 96–98%)
+# end-to-end through the team.
+#
+# Verifier pattern: every producer is independently re-checked by qa-e2e
+# using the Playwright MCP audit pattern documented in
+# docs/ui-ux-touchpoint-topology-2026-06-18.json.
+
+version: 1
+plan:
+  name: "Add sous_vide_precise decarb preset"
+  max_concurrency: 3
+  max_consecutive_failures: 2
+  max_cycles: 6
+  auto_reject_retries: 1
+  verifier_config:
+    default_verifiers:
+      - c-users-lewis-ccc-cannabis-chemistry-calculator--qa-e2e
+    audit_sample_rate: 0.0
+
+tasks:
+  # Engine track: add the preset constant to models.ts + Vitest cases
+  - id: chem-engine-add-preset
+    title: "Add sous_vide_precise to engine preset data + TDD"
+    prompt: |
+      Add a new decarb preset to the chemistry engine:
+        preset_id:    "sv_precise"
+        temperatureC: 89
+        efficiency:   "96-98%"
+        description:  "High precision. Modest terpene trade-off."
+        zone:         "yellow"
+
+      Touch ONLY the engine layer (per DESIGN.md "Engine Layer" — must remain
+      zero-UI / zero-React / zero-Electron):
+
+        - src/renderer/src/engine/models.ts  (PRESETS array entry)
+        - src/renderer/src/engine/__tests__/models.test.ts
+            (Vitest case covering preset shape + zone mapping for sv_precise)
+
+      Citation must be added to research/academic-references.md in the same
+      change. Use a real source — no invented papers.
+
+      Stop when:
+        - `pnpm vitest run src/renderer/src/engine` green (including new case)
+        - `pnpm typecheck` clean
+        - `pnpm lint` reports no new errors in engine/**
+        - research/academic-references.md has a citation for the 89 °C value
+    assigned_to: c-users-lewis-ccc-cannabis-chemistry-calculator--chem-engine
+    verified_by: c-users-lewis-ccc-cannabis-chemistry-calculator--qa-e2e
+    verify_prompt: |
+      VERDICT: PASS|FAIL — <one-line reason>
+
+      Re-derive the preset entry from the spec:
+        - src/renderer/src/engine/models.ts contains an entry with the
+          fields above (cite line numbers).
+        - src/renderer/src/engine/__tests__/models.test.ts has at least
+          one new case asserting zone === "yellow" at 89 °C.
+
+      Run:
+        pnpm vitest run src/renderer/src/engine
+        pnpm typecheck
+
+      Confirm `research/academic-references.md` carries a real citation
+      for the 89 °C value (not a placeholder, not "TBD").
+
+      Green only when all three checks land.
+    max_retries: 2
+
+  # UI track: add the preset option to the Decarb tab + heatmap zone mapping.
+  # Depends on engine preset existing.
+  - id: ui-tabs-add-preset-option
+    title: "Expose sv_precise on DecarbTab + heatmap zone"
+    prompt: |
+      Add the new "Sous Vide Precise" preset option to the Decarb tab UI:
+
+        - src/renderer/src/tabs/DecarbTab.tsx  (preset <option>)
+        - src/renderer/src/components/DecarbHeatmap.tsx
+            (zone boundary must include 89 °C as yellow per heatmapGeometry)
+
+      Wire the select so:
+        - Switching the preset moves the needle to the correct heatmap position
+        - The sentence below the heatmap reads identically to other preset rows
+          (zone + temperature + efficiency)
+
+      Reduced-motion handling: gate any new transition via useReducedMotion().
+
+      Stop when:
+        - `pnpm dev` renders the new option; selecting it puts the needle in
+          the yellow zone and the sentence updates correctly
+        - console-clean (no error-level entries)
+        - `pnpm typecheck` clean; `pnpm lint` reports no new errors
+        - Visual verified with `prefers-reduced-motion: reduce` forced on
+    assigned_to: c-users-lewis-ccc-cannabis-chemistry-calculator--ui-tabs
+    verified_by: c-users-lewis-ccc-cannabis-chemistry-calculator--qa-e2e
+    verify_prompt: |
+      VERDICT: PASS|FAIL — <one-line reason>
+
+      Per the touchpoint matrix in
+      docs/ui-ux-touchpoint-topology-2026-06-18.json (Decarb tab zone
+      selector touchpoint), drive the live Electron app via Playwright MCP
+      (CDP on port 9222):
+
+        1. Set preset to sous_vide_precise.
+        2. Confirm needle lands in the yellow zone span.
+        3. Confirm the sentence explicitly includes 89 °C + the efficiency
+           window + the zone word "yellow" or its equivalent.
+        4. Console-clean throughout (no error-level entries).
+        5. Capture screenshot under screenshots/decarb_sv_precise_<state>.png.
+
+      Green only when every check passes; red otherwise.
+    depends_on:
+      - chem-engine-add-preset
+    max_retries: 2
+
+  # E2E audit: independent revalidation pass after both tracks land
+  - id: e2e-audit-decarb-preset
+    title: "E2E audit pass on the new preset"
+    role: verify-as-task
+    prompt: |
+      VERDICT: PASS|FAIL — <one-line reason>
+
+      Run the full per-interaction matrix for the Decarb tab in light of the
+      new preset, mirroring the pattern in validation_report.md:
+
+        - Open the Decarb tab from a clean first-launch boot
+        - Cycle every preset in the touchpoint list (sv_combined, sv_fast,
+          sv_lowtemp, oven_sealed, oven_open, sv_precise)
+        - For each: needle position, zone, sentence text, console-clean
+        - Save screenshots with the <tab>_<test>_<state>.png naming pattern
+
+      File the per-tab matrix update under
+      docs/e2e-electron-ux-audit-<date>.md and the per-touchpoint evidence
+      under evidence/e2e-electron/decarb/.
+
+      Report back with VERDICT-first format and concrete pass/fail per item.
+    assigned_to: c-users-lewis-ccc-cannabis-chemistry-calculator--qa-e2e
+    depends_on:
+      - chem-engine-add-preset
+      - ui-tabs-add-preset-option
+    max_retries: 1

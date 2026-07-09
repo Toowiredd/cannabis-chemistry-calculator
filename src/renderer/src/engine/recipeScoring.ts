@@ -120,6 +120,10 @@ export const RECIPES: readonly RecipeData[] = [
 /* Scoring                                                            */
 /* ------------------------------------------------------------------ */
 
+// TODO(citation): SmartSuggest ranking weights (70 / 30 / 15 / 15), the
+// `*20` mg-distance scaling factor, and the `+10` inside-ideal-range bonus are
+// engineering scoring heuristics; no peer-reviewed source defines these exact
+// numbers. See research/academic-references.md audit rows #34–36.
 const MG_WEIGHT = 70
 const FAT_MATCH_WEIGHT = 30
 const FAT_PARTIAL_WEIGHT = 15

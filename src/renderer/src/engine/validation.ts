@@ -92,6 +92,10 @@ export type DoseInput = z.infer<typeof doseInputSchema>
 
 function getDecarbWarnings(input: DecarbInput): string[] {
   const warnings: string[] = []
+  // TODO(citation): 40% warning threshold is an internal advisory level; it is
+  // a display warning only and does not affect calculation. No peer-reviewed
+  // "high-cannabinoid" cutoff at 40% cited. See research/academic-references.md
+  // audit row #38.
   if (input.thcaPct + input.thcPct > 40) {
     warnings.push(
       'Note: High total cannabinoid percentage (>40%). Verify lab results.'
@@ -102,6 +106,9 @@ function getDecarbWarnings(input: DecarbInput): string[] {
 
 function getCbdaWarnings(input: CbdaInput): string[] {
   const warnings: string[] = []
+  // TODO(citation): 40% warning threshold duplicated from getDecarbWarnings
+  // above — internal advisory display threshold only. See
+  // research/academic-references.md audit row #38.
   if (input.cbdaPct + input.cbdPct > 40) {
     warnings.push(
       'Note: High total cannabinoid percentage (>40%). Verify lab results.'
@@ -112,7 +119,10 @@ function getCbdaWarnings(input: CbdaInput): string[] {
 
 function getInfusionWarnings(input: InfusionInput): string[] {
   const warnings: string[] = []
-  // Threshold: volume less than 25 mL per 500 mg decarbed THC is considered low
+  // TODO(citation): threshold "volume < decarbedThc / 20" (i.e. 25 mL per
+  // 500 mg decarbed THC) is an internal rule-of-thumb. Display warning only;
+  // no peer-reviewed source anchors the specific divisor of 20. See
+  // research/academic-references.md audit row #39.
   if (
     input.decarbedThcMg > 0 &&
     input.volumeMl > 0 &&

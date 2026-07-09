@@ -289,8 +289,8 @@ export function MethodsTab() {
         <div className="flex flex-wrap items-center gap-2">
           <TabActions tabId="methods" />
           <button
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
             aria-label="Reset method comparison inputs to defaults"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
             onClick={handleReset}
             type="button"
           >
@@ -329,13 +329,13 @@ export function MethodsTab() {
             {
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <input
+                  aria-label="Material weight"
                   className={cn(
                     'min-w-[8rem] flex-1 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                     fieldErrors.weight
                       ? 'border-danger/60 focus:border-danger'
                       : 'border-foreground/20 focus:border-foreground/40'
                   )}
-                  aria-label="Material weight"
                   onChange={e => setDecarb({ weight: e.target.value })}
                   placeholder="0.00"
                   step="0.01"
@@ -362,13 +362,13 @@ export function MethodsTab() {
           >
             {
               <input
+                aria-label="THCA percentage"
                 className={cn(
                   'min-w-0 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   fieldErrors.thcaPct
                     ? 'border-danger/60 focus:border-danger'
                     : 'border-foreground/20 focus:border-foreground/40'
                 )}
-                aria-label="THCA percentage"
                 onChange={e => setDecarb({ thcaPct: e.target.value })}
                 placeholder="0.0"
                 step="0.1"
@@ -389,13 +389,13 @@ export function MethodsTab() {
           >
             {
               <input
+                aria-label="Existing THC percentage"
                 className={cn(
                   'min-w-0 rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
                   fieldErrors.thcPct
                     ? 'border-danger/60 focus:border-danger'
                     : 'border-foreground/20 focus:border-foreground/40'
                 )}
-                aria-label="Existing THC percentage"
                 onChange={e => setDecarb({ thcPct: e.target.value })}
                 placeholder="0.0"
                 step="0.1"
@@ -519,8 +519,8 @@ export function MethodsTab() {
 
               {/* Use This */}
               <button
-                className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
                 aria-label={`Use ${method.name} in the decarb calculator`}
+                className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
                 onClick={() => handleUseThis(method.id)}
                 type="button"
               >

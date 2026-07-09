@@ -8,7 +8,8 @@
 /* Font stack                                                        */
 /* ──────────────────────────────────────────────────────────────── */
 :root {
-  --font-display: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display:
+    "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "SFMono-Regular", "Cascadia Code", ui-monospace, monospace;
 }
@@ -215,13 +216,13 @@ header {
 
   body {
     overflow: hidden;
+    color: var(--foreground);
     background: var(--background);
     background-image: var(--background-radial), var(--background-noise);
     background-repeat: no-repeat, repeat;
     background-size:
       cover,
       256px 256px;
-    color: var(--foreground);
   }
 
   h1,
