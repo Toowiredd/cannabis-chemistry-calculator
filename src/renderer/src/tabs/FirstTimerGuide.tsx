@@ -26,10 +26,11 @@
  *   state for a first-timer, so Next is always enabled there. Step 2
  *   (material) gates on valid positive numerics.
  */
-import { useCallback, useId, useMemo, type ReactNode } from 'react'
+import { useCallback, useId, useMemo, useState, type ReactNode } from 'react'
 import {
   Beaker,
   Carrot,
+  Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -54,6 +55,13 @@ import {
 } from 'lucide-react'
 
 import { MultiSelectGroup } from 'renderer/components/MultiSelectGroup'
+import grindCoarse from 'renderer/src/assets/wizard/grind-coarse.png'
+import grindMedium from 'renderer/src/assets/wizard/grind-medium.png'
+import grindFine from 'renderer/src/assets/wizard/grind-fine.png'
+import bagAnnotated from 'renderer/src/assets/wizard/bag-annotated.png'
+import packLoose from 'renderer/src/assets/wizard/pack-loose.png'
+import packMedium from 'renderer/src/assets/wizard/pack-medium.png'
+import packTight from 'renderer/src/assets/wizard/pack-tight.png'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import {
   calculateTheoreticalMax,
@@ -77,7 +85,7 @@ import { useModalA11y } from '../hooks/useModalA11y'
 /* ------------------------------------------------------------------ */
 
 interface StepDef {
-  id: 'equipment' | 'material' | 'decarb' | 'fats' | 'formats' | 'review'
+  id: 'equipment' | 'material' | 'prep' | 'decarb' | 'fats' | 'formats' | 'review'
   label: string
   Icon: LucideIcon
   /** Short helper shown under the header on each step. */
@@ -102,6 +110,13 @@ const STEPS: readonly StepDef[] = [
     label: 'Your material',
     Icon: Scale,
     description: 'Two numbers and a one-click shortcut from your Decarb tab.',
+  },
+  {
+    id: 'prep',
+    label: 'Prep',
+    Icon: Salad,
+    description:
+      'Pick how you grind, which bag, and how tightly you pack — visual guides below.',
   },
   {
     id: 'decarb',
@@ -269,6 +284,15 @@ export function FirstTimerGuide(): ReactNode {
   const infusionDefaults = useAppStore(s => s.infusion)
 
   const reducedMotion = useReducedMotion()
+
+  /* Prep step selections (visual guides for grind/bag/pack). These are
+   * intentional ephemeral state — they are not persisted to the journal
+   * entry. The user's prep choices don't materially affect the resulting
+   * matrix math (which is method × fat × format driven); they exist to
+   * teach first-timers the visual concepts before they pick a method. */
+  const [prepGrindId, setPrepGrindId] = useState<GrindId | null>(null)
+  const [prepBagId, setPrepBagId] = useState<BagId | null>(null)
+  const [prepPackId, setPrepPackId] = useState<PackId | null>(null)
 
   /* ---- local derived state ---- */
   const step = STEPS[stepIndex] ?? STEPS[0]
@@ -724,6 +748,17 @@ export function FirstTimerGuide(): ReactNode {
             />
           )}
 
+          {step.id === 'prep' && (
+            <StepPrep
+              bagId={prepBagId}
+              grindId={prepGrindId}
+              onBagChange={setPrepBagId}
+              onGrindChange={setPrepGrindId}
+              onPackChange={setPrepPackId}
+              packId={prepPackId}
+            />
+          )}
+
           {step.id === 'decarb' && (
             <StepDecarb
               onToggle={id => toggleWizardSelection('decarbMethodIds', id)}
@@ -981,7 +1016,314 @@ function StepMaterial({
 }
 
 /* ------------------------------------------------------------------ */
-/* Step 3 — Decarb methods                                            */
+/* Step 3 — Prep (grind level + bag + packing arrangement)            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * AI-generated visual aids (flat illustrations of cannabis kitchen
+ * concepts). These ship as static PNGs so the wizard is fully offline-
+ * capable after install — no remote fetch on first run.
+ */
+type GrindId = 'coarse' | 'medium' | 'fine'
+type BagId = 'quart' | 'gallon' | '2gallon' | 'small_vac'
+type PackId = 'loose' | 'medium' | 'tight'
+
+interface PrepOption {
+  id: string
+  label: string
+  image: string
+  caption: string
+  /** Reason to pick this. First-timer-facing, anti-worry tone. */
+  why: string
+}
+
+const GRIND_OPTIONS: readonly PrepOption[] = [
+  {
+    id: 'coarse',
+    label: 'Coarse',
+    image: grindCoarse,
+    caption: 'Chunky pieces — peppercorn-sized.',
+    why: 'Forgiving. Hard to over-decarb. Good if this is your first time.',
+  },
+  {
+    id: 'medium',
+    label: 'Medium',
+    image: grindMedium,
+    caption: 'Grinder-dial texture.',
+    why: 'The middle of the road. Most home cooks land here.',
+  },
+  {
+    id: 'fine',
+    label: 'Fine',
+    image: grindFine,
+    caption: 'Powdery, like ground coffee.',
+    why: 'Maximum surface area. Burns through faster — watch your timer.',
+  },
+]
+
+const BAG_OPTIONS: readonly PrepOption[] = [
+  {
+    id: 'quart',
+    label: 'Quart',
+    image: bagAnnotated,
+    caption: '17.8 × 20.3 cm — fits up to ~10 g ground material.',
+    why: 'Smallest bag. Pick this for a single 3.5 g batch.',
+  },
+  {
+    id: 'gallon',
+    label: 'Gallon',
+    image: bagAnnotated,
+    caption: '28 × 28 cm — fits up to ~28 g ground material.',
+    why: 'Plenty of room for one or two batches side by side.',
+  },
+  {
+    id: '2gallon',
+    label: '2-Gallon',
+    image: bagAnnotated,
+    caption: '40 × 43 cm — fits up to ~60 g ground material.',
+    why: 'Big batch territory. Double-bag it before decarbing.',
+  },
+  {
+    id: 'small_vac',
+    label: 'Small Vacuum',
+    image: bagAnnotated,
+    caption: '16.5 × 21 cm — vacuum-seal style.',
+    why: 'Best air-removal. If you have a vacuum sealer, use this.',
+  },
+]
+
+const PACK_OPTIONS: readonly PrepOption[] = [
+  {
+    id: 'loose',
+    label: 'Loose',
+    image: packLoose,
+    caption: 'Air gaps visible. Puffy bag.',
+    why: 'Air is the enemy of even decarbing. Avoid this if you can.',
+  },
+  {
+    id: 'medium',
+    label: 'Medium',
+    image: packMedium,
+    caption: 'A few gaps, mostly filled.',
+    why: 'Reasonable default. Spread the material into a single layer.',
+  },
+  {
+    id: 'tight',
+    label: 'Tight',
+    image: packTight,
+    caption: 'No visible air gaps, single layer.',
+    why: 'Best for even conversion. Press flat with a spatula before sealing.',
+  },
+]
+
+interface VisualCardProps {
+  option: PrepOption
+  selected: boolean
+  onSelect: () => void
+}
+
+function VisualCard({ option, selected, onSelect }: VisualCardProps): ReactNode {
+  return (
+    <button
+      aria-pressed={selected}
+      className={cn(
+        'group flex w-full min-w-0 flex-col items-stretch overflow-hidden rounded-2xl border text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+        selected
+          ? 'border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_10%,transparent)] shadow-[inset_0_0_0_1px_var(--accent)]'
+          : 'border-[var(--border)] bg-[color-mix(in_oklab,var(--foreground)_3%,transparent)] hover:border-[var(--foreground)/30]'
+      )}
+      data-testid={`prep-card-${option.id}`}
+      onClick={onSelect}
+      type="button"
+    >
+      <span className="relative aspect-square w-full overflow-hidden bg-[color-mix(in_oklab,var(--foreground)_5%,transparent)]">
+        <img
+          alt={option.caption}
+          className="absolute inset-0 size-full object-cover"
+          src={option.image}
+        />
+        {selected ? (
+          <span className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-foreground)] shadow-sm">
+            <Check className="size-3.5" />
+          </span>
+        ) : null}
+      </span>
+      <span className="flex flex-col gap-1 p-3">
+        <span className="flex items-center justify-between gap-2">
+          <span className="text-sm font-semibold text-[var(--foreground)]">
+            {option.label}
+          </span>
+        </span>
+        <span className="text-xs leading-snug text-[var(--muted-foreground)]">
+          {option.caption}
+        </span>
+      </span>
+    </button>
+  )
+}
+
+interface StepPrepProps {
+  grindId: GrindId | null
+  bagId: BagId | null
+  packId: PackId | null
+  onGrindChange: (id: GrindId) => void
+  onBagChange: (id: BagId) => void
+  onPackChange: (id: PackId) => void
+}
+
+type PrepSubTab = 'grind' | 'bag' | 'pack'
+
+function StepPrep({
+  grindId,
+  bagId,
+  packId,
+  onGrindChange,
+  onBagChange,
+  onPackChange,
+}: StepPrepProps): ReactNode {
+  const [activeTab, setActiveTab] = useState<PrepSubTab>('grind')
+
+  return (
+    <div className="space-y-4">
+      {/* Sub-tabs */}
+      <div
+        aria-label="Prep sub-sections"
+        className="flex flex-wrap gap-1 rounded-xl border border-[var(--border)] bg-[color-mix(in_oklab,var(--foreground)_3%,transparent)] p-1"
+        role="tablist"
+      >
+        {(
+          [
+            { id: 'grind', label: 'Grind level' },
+            { id: 'bag', label: 'Bag size' },
+            { id: 'pack', label: 'Packing' },
+          ] as const
+        ).map(t => {
+          const isActive = activeTab === t.id
+          return (
+            <button
+              aria-selected={isActive}
+              className={cn(
+                'flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+                isActive
+                  ? 'bg-[var(--accent)] text-[var(--accent-foreground)] shadow-sm'
+                  : 'text-[var(--muted-foreground)] hover:bg-[color-mix(in_oklab,var(--foreground)_5%,transparent)] hover:text-[var(--foreground)]'
+              )}
+              data-testid={`prep-tab-${t.id}`}
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              role="tab"
+              type="button"
+            >
+              {t.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {activeTab === 'grind' && (
+        <section
+          aria-label="Grind level choices"
+          className="space-y-3"
+          data-testid="prep-grind"
+          role="tabpanel"
+        >
+          <p className="text-xs leading-relaxed text-[var(--muted-foreground)]">
+            Grind is the texture of your flower before it goes in the bag.
+            The right grind helps heat reach every particle evenly.
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {GRIND_OPTIONS.map(o => (
+              <VisualCard
+                key={o.id}
+                onSelect={() => onGrindChange(o.id as GrindId)}
+                option={o}
+                selected={grindId === o.id}
+              />
+            ))}
+          </div>
+          {grindId ? (
+            <p
+              className="rounded-lg border border-info/30 bg-info/10 p-3 text-xs leading-relaxed text-info"
+              data-testid="prep-why-grind"
+            >
+              {GRIND_OPTIONS.find(o => o.id === grindId)?.why}
+            </p>
+          ) : null}
+        </section>
+      )}
+
+      {activeTab === 'bag' && (
+        <section
+          aria-label="Bag size choices"
+          className="space-y-3"
+          data-testid="prep-bag"
+          role="tabpanel"
+        >
+          <p className="text-xs leading-relaxed text-[var(--muted-foreground)]">
+            Pick the bag that fits your batch with a little room to spread
+            the material flat. A bag that's too small forces tight packing
+            (which leads to uneven decarbing); too big and the material
+            shifts around.
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {BAG_OPTIONS.map(o => (
+              <VisualCard
+                key={o.id}
+                onSelect={() => onBagChange(o.id as BagId)}
+                option={o}
+                selected={bagId === o.id}
+              />
+            ))}
+          </div>
+          {bagId ? (
+            <p
+              className="rounded-lg border border-info/30 bg-info/10 p-3 text-xs leading-relaxed text-info"
+              data-testid="prep-why-bag"
+            >
+              {BAG_OPTIONS.find(o => o.id === bagId)?.why}
+            </p>
+          ) : null}
+        </section>
+      )}
+
+      {activeTab === 'pack' && (
+        <section
+          aria-label="Packing arrangement choices"
+          className="space-y-3"
+          data-testid="prep-pack"
+          role="tabpanel"
+        >
+          <p className="text-xs leading-relaxed text-[var(--muted-foreground)]">
+            Spread the ground cannabis into a single flat layer inside the
+            bag. Aim for the tightest pack you can get without compressing
+            the material — air pockets are where decarbing goes uneven.
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {PACK_OPTIONS.map(o => (
+              <VisualCard
+                key={o.id}
+                onSelect={() => onPackChange(o.id as PackId)}
+                option={o}
+                selected={packId === o.id}
+              />
+            ))}
+          </div>
+          {packId ? (
+            <p
+              className="rounded-lg border border-info/30 bg-info/10 p-3 text-xs leading-relaxed text-info"
+              data-testid="prep-why-pack"
+            >
+              {PACK_OPTIONS.find(o => o.id === packId)?.why}
+            </p>
+          ) : null}
+        </section>
+      )}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Step 4 — Decarb methods                                            */
 /* ------------------------------------------------------------------ */
 
 interface MethodPreviewRow {
