@@ -65,6 +65,12 @@ import bagSmallVac from 'renderer/src/assets/wizard/bag-small-vac.png'
 import packLoose from 'renderer/src/assets/wizard/pack-loose.png'
 import packMedium from 'renderer/src/assets/wizard/pack-medium.png'
 import packTight from 'renderer/src/assets/wizard/pack-tight.png'
+// All three are the same canonical reference image (byte-identical copies
+// of pack-tight.png). The variance between loose/medium/tight is
+// described in the captions and "why pick this" prose rather than
+// rendered as three different visuals — AI image-to-image couldn't
+// produce visually consistent fill-state variants, so we ship one
+// reference image and let the text do the work.
 import { useAppStore } from 'renderer/src/stores/appStore'
 import {
   calculateTheoreticalMax,
@@ -1104,15 +1110,15 @@ const PACK_OPTIONS: readonly PrepOption[] = [
     label: 'Loose',
     image: packLoose,
     caption:
-      'About 30% fill — most of the bag is empty. Material sits in a few loose clumps with big gaps.',
-    why: 'Avoid this if you can. The air pockets are where decarbing goes uneven.',
+      'The image shows a fully-packed reference. Loose means: the bag is about 30 percent full — material sits in a few loose clumps with most of the bag interior empty.',
+    why: 'Avoid this if you can. The empty space is air, and air is what makes decarbing uneven.',
   },
   {
     id: 'medium',
     label: 'Medium',
     image: packMedium,
     caption:
-      'About 85% fill — nearly continuous single layer with only tiny gaps.',
+      'The image shows a fully-packed reference. Medium means: about 85 percent fill — nearly a single continuous layer with only tiny gaps here and there.',
     why: 'Reasonable default. Press flat with a spatula before sealing.',
   },
   {
@@ -1120,7 +1126,7 @@ const PACK_OPTIONS: readonly PrepOption[] = [
     label: 'Tight',
     image: packTight,
     caption:
-      'About 100% fill, single flat layer. No visible air gaps.',
+      'About 100 percent fill, single flat layer, no visible air gaps. The image is the actual reference.',
     why: 'Best for even conversion. Press flat with a spatula before sealing.',
   },
 ]
@@ -1306,6 +1312,9 @@ function StepPrep({
             Spread the ground cannabis into a single flat layer inside the
             bag. Aim for the tightest pack you can get without compressing
             the material — air pockets are where decarbing goes uneven.
+            The three cards below all show the same fully-packed reference
+            image; the difference between loose / medium / tight is
+            described in each card's caption.
           </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {PACK_OPTIONS.map(o => (
