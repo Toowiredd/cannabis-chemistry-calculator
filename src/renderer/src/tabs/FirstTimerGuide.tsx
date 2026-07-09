@@ -1104,7 +1104,7 @@ const PACK_OPTIONS: readonly PrepOption[] = [
     label: 'Loose',
     image: packLoose,
     caption:
-      'Air gaps visible. Bag is puffy. Heat reaches unevenly — expect hot spots.',
+      'About 30% fill — most of the bag is empty. Material sits in a few loose clumps with big gaps.',
     why: 'Avoid this if you can. The air pockets are where decarbing goes uneven.',
   },
   {
@@ -1112,16 +1112,16 @@ const PACK_OPTIONS: readonly PrepOption[] = [
     label: 'Medium',
     image: packMedium,
     caption:
-      'A few gaps, mostly filled. Reasonable default for a first-timer.',
-    why: 'Spread the material into a single layer. Press flat with a spatula.',
+      'About 85% fill — nearly continuous single layer with only tiny gaps.',
+    why: 'Reasonable default. Press flat with a spatula before sealing.',
   },
   {
     id: 'tight',
     label: 'Tight',
     image: packTight,
     caption:
-      'No visible air gaps, single flat layer. Best for even conversion.',
-    why: 'Press flat with a spatula before sealing. Aim for this if you can.',
+      'About 100% fill, single flat layer. No visible air gaps.',
+    why: 'Best for even conversion. Press flat with a spatula before sealing.',
   },
 ]
 
