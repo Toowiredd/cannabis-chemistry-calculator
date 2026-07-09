@@ -213,7 +213,7 @@ describe('FirstTimerGuide — step navigation', () => {
 
   it('decarb step requires at least one selection to enable Next', () => {
     openWizard({
-      stepIndex: 2,
+      stepIndex: 3,
       selections: {
         equipment: [],
         decarbMethodIds: [],
@@ -239,7 +239,7 @@ describe('FirstTimerGuide — step navigation', () => {
 
   it('fats step requires at least one fat to enable Next', () => {
     openWizard({
-      stepIndex: 3,
+      stepIndex: 4,
       selections: {
         equipment: [],
         decarbMethodIds: ['oven_sealed'],
@@ -263,7 +263,7 @@ describe('FirstTimerGuide — step navigation', () => {
 
   it('formats step requires at least one format (servings override optional)', () => {
     openWizard({
-      stepIndex: 4,
+      stepIndex: 5,
       selections: {
         equipment: [],
         decarbMethodIds: ['oven_sealed'],
@@ -297,14 +297,14 @@ describe('FirstTimerGuide — step navigation', () => {
   })
 
   it('Back from step 3 returns to step 2', () => {
-    openWizard({ stepIndex: 2 })
+    openWizard({ stepIndex: 3 })
     render(<FirstTimerGuide />)
     fireEvent.click(screen.getByTestId('wizard-back'))
-    expect(wizardState().stepIndex).toBe(1)
+    expect(wizardState().stepIndex).toBe(2)
   })
 
   it('clicking an earlier pill jumps backwards', () => {
-    openWizard({ stepIndex: 3 })
+    openWizard({ stepIndex: 4 })
     render(<FirstTimerGuide />)
     fireEvent.click(screen.getByTestId('wizard-pill-equipment'))
     expect(wizardState().stepIndex).toBe(0)
@@ -354,7 +354,7 @@ describe('FirstTimerGuide — live previews', () => {
 
   it('renders a decarb-method preview for each selected method', () => {
     openWizard({
-      stepIndex: 2,
+      stepIndex: 3,
       selections: {
         equipment: [],
         decarbMethodIds: ['oven_sealed', 'oven_open'],
@@ -377,7 +377,7 @@ describe('FirstTimerGuide — live previews', () => {
 
   it('formats step totals the suggestedServings of selected formats', () => {
     openWizard({
-      stepIndex: 4,
+      stepIndex: 5,
       selections: {
         equipment: [],
         decarbMethodIds: ['oven_sealed'],
@@ -400,7 +400,7 @@ describe('FirstTimerGuide — step 6 matrix', () => {
 
   it('shows a row per (method × fat × format) combination', () => {
     openWizard({
-      stepIndex: 5,
+      stepIndex: 6,
       selections: {
         equipment: [],
         decarbMethodIds: ['oven_sealed'],
@@ -429,7 +429,7 @@ describe('FirstTimerGuide — step 6 matrix', () => {
 
   it('shows the empty-state message when no combinations are possible', () => {
     openWizard({
-      stepIndex: 5,
+      stepIndex: 6,
       selections: {
         equipment: [],
         decarbMethodIds: [],
@@ -444,7 +444,7 @@ describe('FirstTimerGuide — step 6 matrix', () => {
 
   it('Save to Journal appends one entry to journalEntries and dismisses the wizard', async () => {
     openWizard({
-      stepIndex: 5,
+      stepIndex: 6,
       selections: {
         equipment: [],
         decarbMethodIds: ['oven_sealed'],
@@ -474,7 +474,7 @@ describe('FirstTimerGuide — step 6 matrix', () => {
 
   it('Open in Quick Batch switches tab and dismisses the wizard', () => {
     openWizard({
-      stepIndex: 5,
+      stepIndex: 6,
       selections: {
         equipment: [],
         decarbMethodIds: ['oven_sealed'],
