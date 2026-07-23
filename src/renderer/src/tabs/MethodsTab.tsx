@@ -6,25 +6,13 @@ import {
 } from 'renderer/src/engine/decarb'
 import { DECARB_METHODS } from 'renderer/src/engine/models'
 import { gToOz, ozToG } from 'renderer/src/engine/units'
+import { fmt1, round1n } from 'renderer/src/engine/formatting'
 import { cn } from 'renderer/lib/utils'
 import { RotateCcw } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
 import { InputRow } from 'renderer/src/components/InputRow'
 import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
 import { UnitToggle } from 'renderer/src/components/UnitToggle'
-
-/* ------------------------------------------------------------------ */
-/* Small helpers (mirroring DecarbTab patterns)                       */
-/* ------------------------------------------------------------------ */
-
-function round1n(value: number): number {
-  return Math.round((value + 1e-9) * 10) / 10
-}
-
-function fmt1(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return ''
-  return value.toFixed(1)
-}
 
 /* ------------------------------------------------------------------ */
 /* Validation */

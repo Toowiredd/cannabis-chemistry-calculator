@@ -37,6 +37,7 @@ import {
   ClipboardList,
   Cookie,
   Copy,
+  Droplets,
   ExternalLink,
   Eye,
   EyeOff,
@@ -115,7 +116,15 @@ import { useModalA11y } from '../hooks/useModalA11y'
 /* ------------------------------------------------------------------ */
 
 interface StepDef {
-  id: 'equipment' | 'material' | 'prep' | 'decarb' | 'fats' | 'formats' | 'review'
+  id:
+    | 'equipment'
+    | 'material'
+    | 'prep'
+    | 'decarb'
+    | 'fats'
+    | 'fat_volume'
+    | 'formats'
+    | 'review'
   label: string
   Icon: LucideIcon
   /** Short helper shown under the header on each step. */
@@ -161,6 +170,13 @@ const STEPS: readonly StepDef[] = [
     Icon: FlaskConical,
     description:
       'Tick the carrier fats you actually own — one preview line per fat.',
+  },
+  {
+    id: 'fat_volume',
+    label: 'Fat volume',
+    Icon: Droplets,
+    description:
+      'How much carrier fat are you infusing into? The number goes into the journal entry so the concentration matches your batch, not a default.',
   },
   {
     id: 'formats',
@@ -488,13 +504,20 @@ export function FirstTimerGuide(): ReactNode {
     if (matrix.length === 0) return
     const topRow = matrix[0]
     const baseDate = new Date().toISOString().split('T')[0]
-    const infusionVol =
-      infusionDefaults.volume &&
-      Number.isFinite(parseFloat(infusionDefaults.volume)) &&
-      parseFloat(infusionDefaults.volume) > 0
-        ? infusionDefaults.volume
-        : '0'
-    const infusionVolNum = parseFloat(infusionVol)
+    // The 2026-07-25 ccc Infusion audit (MINOR #3) replaced the
+    // Infusion-tab default 100 mL fallback with the wizard's own
+    // fatVolume selection. If the user skipped the new step, fall back
+    // to the Infusion tab's persisted value (keeps the old behavior
+    // for users who haven't updated).
+    const wizardVol = selections.fatVolume
+    const fallbackVol = parseFloat(infusionDefaults.volume)
+    const infusionVolNum =
+      wizardVol != null && wizardVol > 0 && Number.isFinite(wizardVol)
+        ? wizardVol
+        : Number.isFinite(fallbackVol) && fallbackVol > 0
+          ? fallbackVol
+          : 0
+    const infusionVol = infusionVolNum.toString()
     // Concentration = infused THC (mg) / volume (mL). Was hardcoded '0'
     // before, which made the journal display show "0 mg/mL" even when the
     // math clearly should produce a real number.
@@ -588,6 +611,15 @@ export function FirstTimerGuide(): ReactNode {
         return selections.decarbMethodIds.length > 0
       case 'fats':
         return selections.fatIds.length > 0
+      case 'fat_volume':
+        // The 2026-07-25 ccc Infusion audit added this step so the
+        // journal-saved concentration is computed against the user's
+        // actual batch volume, not the Infusion tab's 100 mL default.
+        // Require a positive value before letting the user proceed.
+        return (
+          (selections.fatVolume ?? 0) > 0 &&
+          Number.isFinite(selections.fatVolume ?? 0)
+        )
       case 'formats':
         // No override required — formats have their own suggestedServings
         // defaults. Only block advancement if there are no formats picked.
@@ -803,6 +835,13 @@ export function FirstTimerGuide(): ReactNode {
               onToggle={id => toggleWizardSelection('fatIds', id)}
               perFatPreview={perFatPreview}
               selectedIds={Array.from(fatSet)}
+            />
+          )}
+
+          {step.id === 'fat_volume' && (
+            <StepFatVolume
+              fatVolume={selections.fatVolume}
+              onChange={value => setWizardNumberField('fatVolume', value)}
             />
           )}
 
@@ -1674,6 +1713,67 @@ function StepDecarb({
             />
           ))}
         </div>
+      </section>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Step 4.5 — Fat volume                                              */
+/* ------------------------------------------------------------------ */
+
+interface StepFatVolumeProps {
+  fatVolume: number | undefined
+  onChange: (raw: number | undefined) => void
+}
+
+/**
+ * Asks the user how much carrier fat they are infusing into. The answer
+ * is what the journal-saved "concentration" (mg/mL) is computed against
+ * — without it, the wizard was silently dividing by the Infusion tab's
+ * default 100 mL. Added in the 2026-07-25 ccc Infusion audit
+ * (MINOR #3 fix).
+ */
+function StepFatVolume({ fatVolume, onChange }: StepFatVolumeProps): ReactNode {
+  return (
+    <div className="space-y-4">
+      <section
+        aria-label="Fat volume"
+        className="space-y-3 rounded-xl border border-foreground/10 bg-foreground/5 p-4"
+        data-testid="wizard-fat-volume"
+      >
+        <p className="text-xs font-medium text-foreground/70">
+          How much fat are you infusing into?
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            aria-label="Fat volume in milliliters"
+            className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+            data-testid="wizard-fat-volume-input"
+            inputMode="decimal"
+            max={10000}
+            min={0}
+            onChange={e => {
+              const v = e.target.value
+              if (v === '') {
+                onChange(undefined)
+                return
+              }
+              const n = Number(v)
+              onChange(Number.isFinite(n) ? n : undefined)
+            }}
+            placeholder="0"
+            step="1"
+            type="number"
+            value={fatVolume ?? ''}
+          />
+          <span className="text-sm text-foreground/70">mL</span>
+        </div>
+        <p className="text-xs leading-relaxed text-foreground/70">
+          A typical small batch is 100 mL (about 7 tablespoons). Use the
+          exact amount you plan to infuse into so the journal entry's
+          concentration matches your batch.
+        </p>
       </section>
     </div>
   )

@@ -159,7 +159,7 @@ cannabis-chemistry-calculator/
 |   |       |   |-- InfusionTab.tsx   # Tab 2: Fat infusion calculator
 |   |       |   |-- DoseTab.tsx       # Tab 3: Dose estimation calculator
 |   |       |   |-- MethodsTab.tsx    # Tab 4: Method comparison
-|   |       |   |-- FatsTab.tsx       # Tab 5: Fat comparison
+|   |       |   |-- AdvancedToolsTab.tsx  # Tab 5: Fat comparison + blend + cost (Fats sub-tab is the live Fats comparison)
 |   |       |   |-- KnowledgeTab.tsx  # Tab 6: Educational content
 |   |       |-- components/
 |   |       |   |-- TitleBar.tsx      # Custom frameless title bar

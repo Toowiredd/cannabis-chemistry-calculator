@@ -120,13 +120,14 @@ describe('FirstTimerGuide — mount + dismiss', () => {
     expect(container.querySelector('[role="dialog"]')).toBeNull()
   })
 
-  it('header pills expose all six steps', () => {
+  it('header pills expose all seven steps', () => {
     openWizard()
     render(<FirstTimerGuide />)
     expect(screen.getByTestId('wizard-pill-equipment')).toBeTruthy()
     expect(screen.getByTestId('wizard-pill-material')).toBeTruthy()
     expect(screen.getByTestId('wizard-pill-decarb')).toBeTruthy()
     expect(screen.getByTestId('wizard-pill-fats')).toBeTruthy()
+    expect(screen.getByTestId('wizard-pill-fat_volume')).toBeTruthy()
     expect(screen.getByTestId('wizard-pill-formats')).toBeTruthy()
     expect(screen.getByTestId('wizard-pill-review')).toBeTruthy()
   })
@@ -261,7 +262,7 @@ describe('FirstTimerGuide — step navigation', () => {
     ).toBe(false)
   })
 
-  it('formats step requires at least one format (servings override optional)', () => {
+  it('fat-volume step requires a positive volume to enable Next', () => {
     openWizard({
       stepIndex: 5,
       selections: {
@@ -271,6 +272,31 @@ describe('FirstTimerGuide — step navigation', () => {
         formatIds: [],
         grams: 3.5,
         thcaPct: 20,
+      },
+    })
+    render(<FirstTimerGuide />)
+    expect(
+      (screen.getByTestId('wizard-next') as HTMLButtonElement).disabled
+    ).toBe(true)
+    fireEvent.change(screen.getByTestId('wizard-fat-volume-input'), {
+      target: { value: '100' },
+    })
+    expect(
+      (screen.getByTestId('wizard-next') as HTMLButtonElement).disabled
+    ).toBe(false)
+  })
+
+  it('formats step requires at least one format (servings override optional)', () => {
+    openWizard({
+      stepIndex: 6,
+      selections: {
+        equipment: [],
+        decarbMethodIds: ['oven_sealed'],
+        fatIds: ['coconut'],
+        formatIds: [],
+        grams: 3.5,
+        thcaPct: 20,
+        fatVolume: 100,
       },
     })
     render(<FirstTimerGuide />)
@@ -377,7 +403,7 @@ describe('FirstTimerGuide — live previews', () => {
 
   it('formats step totals the suggestedServings of selected formats', () => {
     openWizard({
-      stepIndex: 5,
+      stepIndex: 6,
       selections: {
         equipment: [],
         decarbMethodIds: ['oven_sealed'],
@@ -385,6 +411,7 @@ describe('FirstTimerGuide — live previews', () => {
         formatIds: ['brownie_9x13', 'gummy_80'],
         grams: 3.5,
         thcaPct: 20,
+        fatVolume: 100,
       },
     })
     render(<FirstTimerGuide />)
@@ -400,7 +427,7 @@ describe('FirstTimerGuide — step 6 matrix', () => {
 
   it('shows a row per (method × fat × format) combination', () => {
     openWizard({
-      stepIndex: 6,
+      stepIndex: 7,
       selections: {
         equipment: [],
         decarbMethodIds: ['oven_sealed'],
@@ -409,6 +436,7 @@ describe('FirstTimerGuide — step 6 matrix', () => {
         grams: 3.5,
         thcaPct: 20,
         servings: 16,
+        fatVolume: 100,
       },
     })
     render(<FirstTimerGuide />)
@@ -429,7 +457,7 @@ describe('FirstTimerGuide — step 6 matrix', () => {
 
   it('shows the empty-state message when no combinations are possible', () => {
     openWizard({
-      stepIndex: 6,
+      stepIndex: 7,
       selections: {
         equipment: [],
         decarbMethodIds: [],
@@ -444,7 +472,7 @@ describe('FirstTimerGuide — step 6 matrix', () => {
 
   it('Save to Journal appends one entry to journalEntries and dismisses the wizard', async () => {
     openWizard({
-      stepIndex: 6,
+      stepIndex: 7,
       selections: {
         equipment: [],
         decarbMethodIds: ['oven_sealed'],
@@ -453,6 +481,7 @@ describe('FirstTimerGuide — step 6 matrix', () => {
         grams: 3.5,
         thcaPct: 20,
         servings: 16,
+        fatVolume: 100,
       },
     })
     render(<FirstTimerGuide />)
@@ -474,7 +503,7 @@ describe('FirstTimerGuide — step 6 matrix', () => {
 
   it('Open in Quick Batch switches tab and dismisses the wizard', () => {
     openWizard({
-      stepIndex: 6,
+      stepIndex: 7,
       selections: {
         equipment: [],
         decarbMethodIds: ['oven_sealed'],
@@ -483,6 +512,7 @@ describe('FirstTimerGuide — step 6 matrix', () => {
         grams: 3.5,
         thcaPct: 20,
         servings: 16,
+        fatVolume: 100,
       },
     })
     render(<FirstTimerGuide />)

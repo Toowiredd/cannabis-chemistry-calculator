@@ -16,7 +16,7 @@ import {
 import { DECARB_METHODS } from 'renderer/src/engine/models'
 import type { Strain } from 'renderer/src/engine/models'
 import { cToF, fToC, gToOz, ozToG } from 'renderer/src/engine/units'
-import { minSigFigs, formatWithSigFigs } from 'renderer/src/engine/formatting'
+import { minSigFigs, formatWithSigFigs, round1n, fmt1 } from 'renderer/src/engine/formatting'
 import { cn } from 'renderer/lib/utils'
 import {
   ChevronDown,
@@ -41,15 +41,6 @@ import { DecarbHeatmap } from 'renderer/src/components/DecarbHeatmap'
 /* ------------------------------------------------------------------ */
 /* Small helpers                                                      */
 /* ------------------------------------------------------------------ */
-
-function round1n(value: number): number {
-  return Math.round((value + 1e-9) * 10) / 10
-}
-
-function fmt1(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return ''
-  return value.toFixed(1)
-}
 
 function fmtSigFigs(
   value: number | null | undefined,
@@ -1236,7 +1227,10 @@ export function DecarbTab() {
           )}
 
           {/* Theoretical Max */}
-          <div className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+          <div
+            aria-live="polite"
+            className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4"
+          >
             <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
               Theoretical Maximum THC
             </span>
@@ -1251,7 +1245,10 @@ export function DecarbTab() {
           </div>
 
           {/* Decarb-adjusted */}
-          <div className="flex flex-col gap-2 rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+          <div
+            aria-live="polite"
+            className="flex flex-col gap-2 rounded-xl border border-foreground/10 bg-foreground/5 p-4"
+          >
             <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
               Decarb-Adjusted THC
             </span>

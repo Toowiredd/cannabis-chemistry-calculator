@@ -13,7 +13,9 @@ import {
   mlToTsp,
   tbspToMl,
   tspToMl,
+  volumeToMl,
 } from 'renderer/src/engine/units'
+import { round1n, fmt1 } from 'renderer/src/engine/formatting'
 import {
   infusionInputSchema,
   getInfusionWarnings,
@@ -28,17 +30,8 @@ import { UnitToggle } from 'renderer/src/components/UnitToggle'
 import { OverrideBadge } from 'renderer/src/components/OverrideBadge'
 
 /* ------------------------------------------------------------------ */
-/* Small helpers (mirroring DecarbTab patterns)                       */
+/* Small helpers (canonical versions imported from engine/formatting)   */
 /* ------------------------------------------------------------------ */
-
-function round1n(value: number): number {
-  return Math.round((value + 1e-9) * 10) / 10
-}
-
-function fmt1(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return ''
-  return value.toFixed(1)
-}
 
 /* ------------------------------------------------------------------ */
 /* Validation                                                         */
@@ -125,16 +118,12 @@ function mlToDisplayVolume(
 }
 
 function unitFactor(unit: 'mL' | 'tsp' | 'tbsp' | 'cup'): number {
-  switch (unit) {
-    case 'mL':
-      return 1
-    case 'tsp':
-      return 4.929
-    case 'tbsp':
-      return 14.787
-    case 'cup':
-      return 236.588
-  }
+  // The per-unit magic numbers (4.929 / 14.787 / 236.588) are owned by
+  // engine/units.ts (volumeToMl). Calling volumeToMl(1, unit) is the
+  // canonical way to read them. The local copy was flagged by the 2026-07-25
+  // ccc Infusion audit as NIT #1 — drift risk if the US-customary teaspoon
+  // figure ever changes (last re-measured in 1930 by the FDA).
+  return volumeToMl(1, unit)
 }
 
 function unitLabel(unit: 'mL' | 'tsp' | 'tbsp' | 'cup'): string {
@@ -399,6 +388,7 @@ export function InfusionTab() {
                       ? 'border-danger/60 focus:border-danger'
                       : 'border-foreground/20 focus:border-foreground/40'
                   )}
+                  data-testid="infusion-decarbed-input"
                   onChange={e => setInfusion({ decarbedThc: e.target.value })}
                   placeholder="0.0"
                   step="0.1"
@@ -422,6 +412,7 @@ export function InfusionTab() {
             {
               <select
                 className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+                data-testid="infusion-fat-select"
                 onChange={e => handleFatChange(e.target.value)}
                 value={infusion.fatId}
               >
@@ -508,6 +499,7 @@ export function InfusionTab() {
                       ? 'border-danger/60 focus:border-danger'
                       : 'border-foreground/20 focus:border-foreground/40'
                   )}
+                  data-testid="infusion-volume-input"
                   onChange={e => setInfusion({ volume: e.target.value })}
                   placeholder="0.0"
                   step="0.1"
@@ -560,7 +552,10 @@ export function InfusionTab() {
           </div>
 
           {/* Total infused THC — primary, authoritative result */}
-          <div className="flex flex-col rounded-xl border border-success/30 bg-success/5 dark:bg-success/5 p-4">
+          <div
+            aria-live="polite"
+            className="flex flex-col rounded-xl border border-success/30 bg-success/5 dark:bg-success/5 p-4"
+          >
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                 Total Infused THC
@@ -571,6 +566,7 @@ export function InfusionTab() {
             </div>
             <span
               className="result-bloom mt-1 text-2xl font-bold text-foreground"
+              data-testid="infusion-thc-result"
               key={
                 results
                   ? `infusion-thc-${fmt1(results.infusedThc)}`
@@ -588,12 +584,16 @@ export function InfusionTab() {
           </div>
 
           {/* Per-unit */}
-          <div className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+          <div
+            aria-live="polite"
+            className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4"
+          >
             <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
               Concentration
             </span>
             <span
               className="result-bloom mt-1 text-2xl font-bold text-success"
+              data-testid="infusion-concentration-result"
               key={
                 results
                   ? `infusion-conc-${fmt1(results.mgPerUnit)}`

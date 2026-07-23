@@ -4,6 +4,8 @@ import {
   roundToSigFigs,
   formatWithSigFigs,
   minSigFigs,
+  round1n,
+  fmt1,
 } from '../formatting'
 
 describe('countSigFigs', () => {
@@ -72,5 +74,44 @@ describe('minSigFigs', () => {
 
   it('returns default 3 when all invalid', () => {
     expect(minSigFigs('', 'abc')).toBe(3)
+  })
+})
+
+describe('round1n', () => {
+  it('rounds to 1 decimal with epsilon compensation', () => {
+    // The classic case the epsilon was added for: 1.05 - 0.05 = 1.0
+    // without epsilon but 1.0000000000000002 with floating-point error.
+    expect(round1n(1.05 - 0.05)).toBe(1.0)
+    expect(round1n(0.1 + 0.2)).toBe(0.3)
+    expect(round1n(613.9)).toBe(613.9)
+    expect(round1n(0.04)).toBe(0)
+  })
+
+  it('returns 0 for null/NaN (safe default for the most common tab pattern)', () => {
+    expect(round1n(NaN)).toBe(0)
+    expect(round1n(null as unknown as number)).toBe(0)
+  })
+})
+
+describe('fmt1', () => {
+  it('formats with at most 1 decimal place', () => {
+    expect(fmt1(613.9)).toBe('613.9')
+    expect(fmt1(0)).toBe('0.0')
+    expect(fmt1(1754)).toBe('1754.0')
+  })
+
+  it('returns empty string for null/undefined/NaN (most common tab convention)', () => {
+    expect(fmt1(null)).toBe('')
+    expect(fmt1(undefined)).toBe('')
+    expect(fmt1(NaN)).toBe('')
+  })
+
+  it('matches the per-tab local copies that were the source of truth', () => {
+    // The exact values the per-tab local fmt1 functions returned before the
+    // consolidation. If any future change to the canonical version breaks
+    // a tab's display, this test catches it.
+    expect(fmt1(273.06)).toBe('273.1')
+    expect(fmt1(33.3)).toBe('33.3')
+    expect(fmt1(7.5)).toBe('7.5')
   })
 })

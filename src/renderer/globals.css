@@ -578,6 +578,17 @@ header {
   animation: result-bloom 0.877s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Hard-gate the result-bloom animation when the user has prefers-reduced-motion
+ * set. The global * rule above already shortens duration to 0.01ms, but a
+ * dedicated rule is explicit about the intent and survives if a future
+ * contributor narrows the global selector. The 2026-07-25 ccc Infusion audit
+ * flagged this as MINOR #4 (uiux-reviewer). */
+@media (prefers-reduced-motion: reduce) {
+  .result-bloom {
+    animation: none !important;
+  }
+}
+
 /* ──────────────────────────────────────────────────────────────── */
 /* Transformation canvas keyframes                                   */
 /* ──────────────────────────────────────────────────────────────── */

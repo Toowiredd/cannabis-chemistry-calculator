@@ -17,13 +17,12 @@ import {
   compareMethodCosts,
 } from 'renderer/src/engine/costAnalysis'
 import { cToF, ozToG } from 'renderer/src/engine/units'
+import { fmt1 } from 'renderer/src/engine/formatting'
 import { version as appVersion } from '~/package.json'
 
-function fmt1(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return ''
-  return value.toFixed(1)
-}
-
+// fmt1 is the canonical 1-decimal display helper from
+// renderer/src/engine/formatting. fmt2 stays local — it's for cost
+// display, which is a 2-decimal concern (different precision).
 function fmt2(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return ''
   return value.toFixed(2)

@@ -67,3 +67,31 @@ export function minSigFigs(...inputs: string[]): number {
   if (counts.length === 0) return 3 // default precision
   return Math.min(...counts)
 }
+
+/**
+ * Round a value to at most 1 decimal place with epsilon compensation for
+ * floating-point error. This is the canonical "round to 1 decimal" helper
+ * used across every calculator tab. Local copies of this function used to
+ * live in DoseTab, DecarbTab, InfusionTab, MethodsTab, QuickBatchTab,
+ * AdvancedToolsTab, JournalTab, LabelGenerator, BagCalculator, exportReport,
+ * and (with a `0.0` default) DashboardTab + FirstTimerGuide. They were
+ * consolidated here after the 2026-07-25 ccc Infusion audit flagged the
+ * duplication as NIT #2 — the engine is the canonical owner of these
+ * primitives so future tabs use the same function without a fresh copy.
+ */
+export function round1n(value: number): number {
+  if (value == null || Number.isNaN(value)) return 0
+  return Math.round((value + 1e-9) * 10) / 10
+}
+
+/**
+ * Format a number as a string with at most 1 decimal place. Returns the
+ * empty string for null / undefined / NaN so a missing value renders as
+ * a blank input (the most common tab convention). For tabs that want a
+ * "0.0" default (DashboardTab, FirstTimerGuide), keep a local copy — the
+ * defaults are a UX call, not an engine invariant.
+ */
+export function fmt1(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return ''
+  return value.toFixed(1)
+}

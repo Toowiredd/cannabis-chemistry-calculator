@@ -326,3 +326,38 @@ describe('FIRST_TIMER lifted constants', () => {
     expect(FIRST_TIMER_DEFAULT_THCA_PCT).toBeLessThanOrEqual(100)
   })
 })
+
+/**
+ * The 2026-07-25 ccc Infusion audit (ccc-calc-auditor MINOR #1) flagged that
+ * INFUSION_FATS[i].simplifiedMultiplier is hand-typed alongside the
+ * extractionEff it derives from. The contract is:
+ *
+ *   simplifiedMultiplier ≈ THCA_TO_THC_FACTOR × 10 × extractionEff
+ *                       rounded to 2 decimal places
+ *
+ * where THCA_TO_THC_FACTOR (0.877) is the molecular-weight ratio used
+ * everywhere in the engine. If extractionEff is ever retuned (e.g. a new
+ * paper pushes the MCT number up), this test fails and the author is
+ * forced to also update the multiplier — preventing the two from drifting
+ * out of sync.
+ *
+ * Custom fat (id 'custom') is exempt: it carries extractionEff 0 by
+ * design and its multiplier is the literal 0.0 sentinel.
+ */
+describe('INFUSION_FATS simplifiedMultiplier contract', () => {
+  const THCA_TO_THC_FACTOR = 0.877
+
+  it('every non-custom fat multiplier matches THCA_TO_THC_FACTOR * 10 * eff (2dp)', () => {
+    for (const fat of INFUSION_FATS) {
+      if (fat.id === 'custom') continue
+      const expected =
+        Math.round((THCA_TO_THC_FACTOR * 10 * fat.extractionEff) * 100) / 100
+      expect(fat.simplifiedMultiplier).toBe(expected)
+    }
+  })
+
+  it('custom fat is the 0.0 sentinel (exempt from the contract)', () => {
+    const custom = INFUSION_FATS.find(f => f.id === 'custom')
+    expect(expectDefined(custom, 'custom fat').simplifiedMultiplier).toBe(0.0)
+  })
+})

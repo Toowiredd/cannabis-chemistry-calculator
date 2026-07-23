@@ -151,7 +151,7 @@ export type WizardSelectionField =
   | 'fatIds'
   | 'formatIds'
 
-export type WizardNumberField = 'grams' | 'thcaPct' | 'servings'
+export type WizardNumberField = 'grams' | 'thcaPct' | 'servings' | 'fatVolume'
 
 export interface WizardSelections {
   /** Checked equipment names (free-form string ids). */
@@ -168,6 +168,14 @@ export interface WizardSelections {
   formatIds: string[]
   /** Number of servings. */
   servings?: number
+  /**
+   * Fat volume in mL — what the user is actually infusing into. The
+   * First-Timer Guide asks for this on a dedicated step so the
+   * "Save to Journal" concentration is computed against the user's
+   * batch, not against the Infusion tab's default of 100 mL.
+   * Added in the 2026-07-25 ccc Infusion audit (MINOR #3 fix).
+   */
+  fatVolume?: number
 }
 
 export interface WizardState {

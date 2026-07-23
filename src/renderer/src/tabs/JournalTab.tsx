@@ -4,6 +4,7 @@ import { DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
 import { calculateTheoreticalMax } from 'renderer/src/engine/decarb'
 import { classifyDose, displayDoseLabel } from 'renderer/src/engine/dosing'
 import { volumeToMl } from 'renderer/src/engine/units'
+import { fmt1 } from 'renderer/src/engine/formatting'
 import { cn } from 'renderer/lib/utils'
 import {
   BookOpen,
@@ -15,11 +16,6 @@ import {
 } from 'lucide-react'
 import { TimerWidget } from 'renderer/src/components/Timer'
 import { Toast } from 'renderer/src/components/Toast'
-
-function fmt1(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return ''
-  return value.toFixed(1)
-}
 
 function todayInputValue(): string {
   const d = new Date()
@@ -189,34 +185,48 @@ export function JournalTab() {
       return
     }
 
-    window.App.loadJournalEntries().then(result => {
-      if (result.success && result.entries) {
-        const mapped = result.entries.map((e: Record<string, unknown>) => ({
-          id: String(e.id ?? ''),
-          date: String(e.date ?? e.savedAt ?? ''),
-          strainName: String(e.strainName ?? ''),
-          strainId: e.strainId != null ? String(e.strainId) : null,
-          materialWeight: String(e.materialWeight ?? ''),
-          thcaPct: String(e.thcaPct ?? ''),
-          thcPct: String(e.thcPct ?? ''),
-          cbdaPct: String(e.cbdaPct ?? ''),
-          cbdPct: String(e.cbdPct ?? ''),
-          methodId: String(e.methodId ?? ''),
-          methodName: String(e.methodName ?? ''),
-          fatId: String(e.fatId ?? ''),
-          fatName: String(e.fatName ?? ''),
-          servings: String(e.servings ?? ''),
-          mgPerServing: String(e.mgPerServing ?? ''),
-          classification: String(e.classification ?? ''),
-          totalInfusedThc: String(e.totalInfusedThc ?? ''),
-          concentration: String(e.concentration ?? ''),
-          volume: String(e.volume ?? ''),
-          volumeUnit: String(e.volumeUnit ?? 'mL'),
-          notes: String(e.notes ?? ''),
-        }))
-        setJournalEntries(mapped)
-      }
-    })
+    window.App.loadJournalEntries()
+      .then(result => {
+        if (result.success && result.entries) {
+          const mapped = result.entries.map((e: Record<string, unknown>) => ({
+            id: String(e.id ?? ''),
+            date: String(e.date ?? e.savedAt ?? ''),
+            strainName: String(e.strainName ?? ''),
+            strainId: e.strainId != null ? String(e.strainId) : null,
+            materialWeight: String(e.materialWeight ?? ''),
+            thcaPct: String(e.thcaPct ?? ''),
+            thcPct: String(e.thcPct ?? ''),
+            cbdaPct: String(e.cbdaPct ?? ''),
+            cbdPct: String(e.cbdPct ?? ''),
+            methodId: String(e.methodId ?? ''),
+            methodName: String(e.methodName ?? ''),
+            fatId: String(e.fatId ?? ''),
+            fatName: String(e.fatName ?? ''),
+            servings: String(e.servings ?? ''),
+            mgPerServing: String(e.mgPerServing ?? ''),
+            classification: String(e.classification ?? ''),
+            totalInfusedThc: String(e.totalInfusedThc ?? ''),
+            concentration: String(e.concentration ?? ''),
+            volume: String(e.volume ?? ''),
+            volumeUnit: String(e.volumeUnit ?? 'mL'),
+            notes: String(e.notes ?? ''),
+          }))
+          setJournalEntries(mapped)
+        } else {
+          // IPC returned a structured failure — surface it so the user
+          // doesn't see an empty journal and assume their data is gone.
+          // The 2026-07-25 ccc Infusion audit flagged this as NIT #3.
+          console.warn('[JournalTab] loadJournalEntries IPC returned failure', result?.error)
+          showToast('Could not load journal entries — your saved batches are still on disk')
+        }
+      })
+      .catch(err => {
+        // IPC promise rejected (e.g. main process not reachable, file
+        // system error). Same UX as the success=false branch above:
+        // tell the user their data is safe, don't leave them guessing.
+        console.warn('[JournalTab] loadJournalEntries IPC threw', err)
+        showToast('Could not load journal entries — your saved batches are still on disk')
+      })
   }, [setJournalEntries])
 
   const handleAutoPopulate = () => {

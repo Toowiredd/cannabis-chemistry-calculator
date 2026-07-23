@@ -12,6 +12,7 @@ import {
 import { calculateMgPerServing, classifyDose } from 'renderer/src/engine/dosing'
 import { scaleRecipe } from 'renderer/src/engine/recipe'
 import { ozToG, cToF } from 'renderer/src/engine/units'
+import { fmt1, round1n } from 'renderer/src/engine/formatting'
 import { cn } from 'renderer/lib/utils'
 import {
   RotateCcw,
@@ -25,15 +26,6 @@ import {
 import { LabelGenerator } from 'renderer/src/components/LabelGenerator'
 import { InputRow } from 'renderer/src/components/InputRow'
 import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
-
-function fmt1(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return ''
-  return value.toFixed(1)
-}
-
-function round1n(value: number): number {
-  return Math.round((value + 1e-9) * 10) / 10
-}
 
 const STEPS = [
   { key: 'material', label: 'Material & Lab Data' },

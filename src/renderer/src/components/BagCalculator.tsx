@@ -14,6 +14,7 @@ import {
   selectBestBag,
 } from 'renderer/src/engine/bagVolume'
 import { cmToIn, inToCm } from 'renderer/src/engine/units'
+import { fmt1 } from 'renderer/src/engine/formatting'
 import { cn } from 'renderer/lib/utils'
 import { Info, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react'
 
@@ -21,17 +22,17 @@ import { Info, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react'
 /* Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
+// round1 / round3 stay local — they're different precisions (1 vs 3
+// decimal places) used for bag dimensions and fill depth. fmt1 comes
+// from the engine so missing values render as empty strings consistently
+// with every other tab.
+
 function round1(value: number): number {
   return Math.round((value + 1e-9) * 10) / 10
 }
 
 function round3(value: number): number {
   return Math.round((value + 1e-9) * 1000) / 1000
-}
-
-function fmt1(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return ''
-  return value.toFixed(1)
 }
 
 function TooltipIcon({ text }: { text: string }) {

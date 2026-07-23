@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { INFUSION_FATS, DECARB_METHODS } from 'renderer/src/engine/models'
+import { fmt1 } from 'renderer/src/engine/formatting'
 import {
   calculateTheoreticalMaxCbd,
   calculateDecarbedCbd,
@@ -8,11 +9,6 @@ import {
 import { cn } from 'renderer/lib/utils'
 import { useModalA11y } from '../hooks/useModalA11y'
 import { Printer, X, Info, Tag, AlertTriangle, ShieldAlert } from 'lucide-react'
-
-function fmt1(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return ''
-  return value.toFixed(1)
-}
 
 export function LabelGenerator({
   mgPerServing,

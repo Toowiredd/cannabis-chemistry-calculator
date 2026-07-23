@@ -3,6 +3,7 @@ import { useAppStore } from 'renderer/src/stores/appStore'
 import { calculateMgPerServing, classifyDose } from 'renderer/src/engine/dosing'
 import { reverseFullWorkflow } from 'renderer/src/engine/reverse'
 import { scaleRecipe } from 'renderer/src/engine/recipe'
+import { fmt1 } from 'renderer/src/engine/formatting'
 import {
   EDIBLE_FORMATS,
   DECARB_METHODS,
@@ -25,13 +26,8 @@ import { DoseRadarChart } from 'renderer/src/components/DoseRadarChart'
 import { SmartSuggestPanel } from 'renderer/src/components/SmartSuggestPanel'
 
 /* ------------------------------------------------------------------ */
-/* Small helpers (mirroring DecarbTab / InfusionTab patterns)         */
+/* Small helpers (canonical versions imported from engine/formatting)   */
 /* ------------------------------------------------------------------ */
-
-function fmt1(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return ''
-  return value.toFixed(1)
-}
 
 /* ------------------------------------------------------------------ */
 /* Classification definitions                                           */
@@ -791,7 +787,10 @@ export function DoseTab() {
             </div>
 
             {/* mg per serving */}
-            <div className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+            <div
+              aria-live="polite"
+              className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4"
+            >
               <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                 mg per Serving
               </span>
@@ -810,7 +809,10 @@ export function DoseTab() {
             </div>
 
             {/* Classification label */}
-            <div className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+            <div
+              aria-live="polite"
+              className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/5 p-4"
+            >
               <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                 Classification
               </span>

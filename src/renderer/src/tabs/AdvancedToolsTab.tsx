@@ -24,6 +24,7 @@ import {
   type EfficiencyRange,
 } from 'renderer/src/engine/models'
 import { cupToMl, tbspToMl, tspToMl } from 'renderer/src/engine/units'
+import { fmt1 } from 'renderer/src/engine/formatting'
 import {
   fatCompareInputSchema,
   zodIssuesToFieldErrors,
@@ -62,18 +63,13 @@ const SUB_TABS: {
 /* Shared helpers                                                      */
 /* ------------------------------------------------------------------ */
 
-function fmt1(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return ''
-  return value.toFixed(1)
-}
+// fmt1 is the canonical 1-decimal display helper from
+// renderer/src/engine/formatting. fmt2 is local because it has a
+// different precision (cost / price display).
 
 function fmt2(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return ''
   return value.toFixed(2)
-}
-
-function _round1n(value: number): number {
-  return Math.round((value + 1e-9) * 10) / 10
 }
 
 /* ------------------------------------------------------------------ */
