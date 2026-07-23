@@ -53,6 +53,32 @@ export function cupToMl(cup: number): number {
   return cup * 236.588
 }
 
+/**
+ * Convert a volume expressed in any supported unit to milliliters.
+ * Single canonical entry point so consumers (e.g. JournalTab) don't hand-roll
+ * the per-unit switch — which was a drift risk the 2026-07-24 audit flagged.
+ *
+ * @param value  Numeric volume in `unit`
+ * @param unit   'mL' | 'tsp' | 'tbsp' | 'cup'
+ * @returns Volume in milliliters. Throws on unknown unit.
+ */
+export function volumeToMl(value: number, unit: 'mL' | 'tsp' | 'tbsp' | 'cup'): number {
+  switch (unit) {
+    case 'mL':
+      return value
+    case 'tsp':
+      return tspToMl(value)
+    case 'tbsp':
+      return tbspToMl(value)
+    case 'cup':
+      return cupToMl(value)
+    default:
+      // Exhaustiveness check — if a new unit is added to the union, TS
+      // will fail to compile here until the switch is updated.
+      throw new Error(`Unknown volume unit: ${String(unit)}`)
+  }
+}
+
 /** Convert centimeters to inches. 1 in = 2.54 cm */
 export function cmToIn(cm: number): number {
   return cm / 2.54

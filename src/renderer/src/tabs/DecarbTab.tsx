@@ -828,6 +828,7 @@ export function DecarbTab() {
                       ? 'border-danger/60 focus:border-danger'
                       : 'border-foreground/20 focus:border-foreground/40'
                   )}
+                  data-testid="decarb-weight-input"
                   onChange={e => setDecarb({ weight: e.target.value })}
                   placeholder="0.00"
                   step="0.01"
@@ -861,6 +862,7 @@ export function DecarbTab() {
                     ? 'border-danger/60 focus:border-danger'
                     : 'border-foreground/20 focus:border-foreground/40'
                 )}
+                data-testid="decarb-thca-input"
                 onChange={e => setDecarb({ thcaPct: e.target.value })}
                 placeholder="0.0"
                 step="0.1"
@@ -888,6 +890,7 @@ export function DecarbTab() {
                     ? 'border-danger/60 focus:border-danger'
                     : 'border-foreground/20 focus:border-foreground/40'
                 )}
+                data-testid="decarb-thc-input"
                 onChange={e => setDecarb({ thcPct: e.target.value })}
                 placeholder="0.0"
                 step="0.1"
@@ -1237,7 +1240,10 @@ export function DecarbTab() {
             <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
               Theoretical Maximum THC
             </span>
-            <span className="mt-1 text-2xl font-bold text-foreground">
+            <span
+              className="mt-1 text-2xl font-bold text-foreground"
+              data-testid="decarb-theoretical-max"
+            >
               {results
                 ? `${fmtSigFigs(results.theoreticalMax, decarb.weight, decarb.thcaPct, decarb.thcPct)} mg`
                 : 'Enter your material weight and potency above to see results'}
@@ -1266,6 +1272,7 @@ export function DecarbTab() {
                 </span>
                 <span
                   className="result-bloom text-lg font-semibold text-success"
+                  data-testid="decarb-expected"
                   key={
                     results
                       ? `decarb-expected-${fmtSigFigs(results.decarbed.expected, decarb.weight, decarb.thcaPct, decarb.thcPct)}`

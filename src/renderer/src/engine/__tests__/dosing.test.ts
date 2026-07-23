@@ -4,7 +4,7 @@
  * and confirm they FAIL because dosing.ts does not exist yet.
  */
 import { describe, expect, it } from 'vitest'
-import { calculateMgPerServing, classifyDose } from '../dosing'
+import { calculateMgPerServing, classifyDose, displayDoseLabel } from '../dosing'
 import { ValidationError } from '../errors'
 
 describe('calculateMgPerServing', () => {
@@ -120,5 +120,48 @@ describe('classifyDose', () => {
 
   it('throws ValidationError for negative mgPerServing', () => {
     expect(() => classifyDose(-1)).toThrow(ValidationError)
+  })
+})
+
+describe('displayDoseLabel', () => {
+  it('maps the 7 canonical engine tokens to Title-Case display labels', () => {
+    expect(displayDoseLabel('sub-microdose')).toBe('Sub-Microdose')
+    expect(displayDoseLabel('microdose')).toBe('Microdose')
+    expect(displayDoseLabel('low')).toBe('Low')
+    expect(displayDoseLabel('moderate')).toBe('Moderate')
+    expect(displayDoseLabel('strong')).toBe('Strong')
+    expect(displayDoseLabel('very strong')).toBe('Very Strong')
+    expect(displayDoseLabel('extreme')).toBe('Extreme')
+  })
+
+  it('passes through unknown tokens (forward-compat for future engine categories)', () => {
+    expect(displayDoseLabel('hypertherapeutic')).toBe('hypertherapeutic')
+    expect(displayDoseLabel('')).toBe('')
+  })
+
+  it('round-trips with classifyDose at every boundary the engine uses', () => {
+    // classifyDose uses inclusive-floor / exclusive-ceiling boundaries:
+    //   2.5 <= x < 5   → microdose
+    //   5   <= x < 10  → low
+    //   10  <= x < 25  → moderate
+    //   25  <= x < 50  → strong
+    //   50  <= x < 100 → very strong
+    //   x >= 100       → extreme
+    //   x < 2.5        → sub-microdose
+    // displayDoseLabel must map each engine token to its Title-Case display
+    // string. The exact mg value just below each ceiling is the strongest
+    // boundary check.
+    expect(displayDoseLabel(classifyDose(2.5))).toBe('Microdose')     // inclusive floor of microdose
+    expect(displayDoseLabel(classifyDose(4.99))).toBe('Microdose')    // just below low ceiling
+    expect(displayDoseLabel(classifyDose(5.0))).toBe('Low')           // inclusive floor of low
+    expect(displayDoseLabel(classifyDose(9.99))).toBe('Low')           // just below moderate ceiling
+    expect(displayDoseLabel(classifyDose(10.0))).toBe('Moderate')     // inclusive floor of moderate
+    expect(displayDoseLabel(classifyDose(24.99))).toBe('Moderate')    // just below strong ceiling
+    expect(displayDoseLabel(classifyDose(25.0))).toBe('Strong')       // inclusive floor of strong
+    expect(displayDoseLabel(classifyDose(49.99))).toBe('Strong')      // just below very strong ceiling
+    expect(displayDoseLabel(classifyDose(50.0))).toBe('Very Strong')  // inclusive floor of very strong
+    expect(displayDoseLabel(classifyDose(99.99))).toBe('Very Strong') // just below extreme ceiling
+    expect(displayDoseLabel(classifyDose(100.0))).toBe('Extreme')     // inclusive floor of extreme
+    expect(displayDoseLabel(classifyDose(0.0))).toBe('Sub-Microdose') // below microdose floor
   })
 })

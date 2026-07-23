@@ -10,6 +10,7 @@ import {
   tbspToMl,
   mlToCup,
   cupToMl,
+  volumeToMl,
   round1,
 } from '../units'
 
@@ -168,6 +169,26 @@ describe('units', () => {
   describe('cupToMl', () => {
     it('converts 1 cup to 236.588mL', () => {
       expect(cupToMl(1)).toBe(236.588)
+    })
+  })
+
+  describe('volumeToMl', () => {
+    it('passes mL through unchanged', () => {
+      expect(volumeToMl(120, 'mL')).toBe(120)
+    })
+    it('converts tsp via tspToMl', () => {
+      expect(volumeToMl(2, 'tsp')).toBeCloseTo(2 * 4.929, 6)
+    })
+    it('converts tbsp via tbspToMl', () => {
+      expect(volumeToMl(1, 'tbsp')).toBe(14.787)
+    })
+    it('converts cup via cupToMl', () => {
+      expect(volumeToMl(0.5, 'cup')).toBeCloseTo(118.294, 3)
+    })
+    it('throws on unknown unit (exhaustiveness check)', () => {
+      expect(() =>
+        volumeToMl(1, 'unknown' as unknown as 'mL')
+      ).toThrow(/Unknown volume unit/)
     })
   })
 })

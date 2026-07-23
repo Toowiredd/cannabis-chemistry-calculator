@@ -476,8 +476,17 @@ export function FirstTimerGuide(): ReactNode {
   }, [methodSet, fatSet, formatSet, theoretical, servingsPerFormat])
 
   /* ---- CTA: save to journal ---- */
+  // The on-screen CTA + prose (lines around 1983-1987) promise a SINGLE entry
+  // — the "top recommendation" — that is quick and reversible. The prior
+  // implementation saved every matrix row, which contradicted the prose and
+  // could write up to 18 entries in one click. The 2026-07-24 ccc-validation
+  // team flagged this as a MAJOR. Now the code matches the prose: save the
+  // first matrix row only. Users who want all combinations in the journal
+  // can use the per-row "Add" affordance in Dose tab, or repeat the wizard
+  // for a different top pick.
   const handleSaveToJournal = useCallback(async () => {
     if (matrix.length === 0) return
+    const topRow = matrix[0]
     const baseDate = new Date().toISOString().split('T')[0]
     const infusionVol =
       infusionDefaults.volume &&
@@ -485,76 +494,68 @@ export function FirstTimerGuide(): ReactNode {
       parseFloat(infusionDefaults.volume) > 0
         ? infusionDefaults.volume
         : '0'
-    let savedCount = 0
-    let failedCount = 0
     const infusionVolNum = parseFloat(infusionVol)
-    for (const [idx, row] of matrix.entries()) {
-      // Concentration = infused THC (mg) / volume (mL). Was hardcoded '0'
-      // before, which made the journal display show "0 mg/mL" even when the
-      // math clearly should produce a real number.
-      const concentration =
-        Number.isFinite(infusionVolNum) && infusionVolNum > 0
-          ? _fmt1(row.infused / infusionVolNum)
-          : '0'
-      const entry = {
-        id: `entry_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 8)}`,
-        date: baseDate,
-        strainName: '',
-        strainId: null,
-        materialWeight: grams.toString(),
-        thcaPct: thcaPct.toString(),
-        thcPct: '0',
-        cbdaPct: '0',
-        cbdPct: '0',
-        methodId: METHOD_OPTIONS.find(m => m.label === row.method)?.id ?? '',
-        methodName: row.method,
-        fatId: FAT_OPTIONS.find(f => f.label === row.fat)?.id ?? '',
-        fatName: row.fat,
-        servings: row.servings.toString(),
-        mgPerServing: _fmt1(row.perServing),
-        classification: row.classification,
-        totalInfusedThc: _fmt1(row.infused),
-        concentration,
-        volume: infusionVol,
-        volumeUnit: 'mL',
-        notes: `Saved from First-Timer Guide. Combo ${idx + 1} of ${matrix.length}: ${row.method} + ${row.fat} + ${row.format}.`,
-      }
-      // Persist to disk FIRST; only add to the local store if the disk
-      // write succeeded. Previously the order was reversed — that meant
-      // a failed IPC silently left the entry in the local store and the
-      // Journal tab's mount-time reload from disk would then overwrite
-      // and lose it.
-      try {
-        if (typeof window.App?.saveJournalEntry !== 'function') {
-          // No IPC bridge (browser-only / dev-renderer audit). Fall back
-          // to local-store-only so the user can still see the entry.
-          addJournalEntry(entry)
-          savedCount += 1
-          continue
-        }
-        const result = await window.App.saveJournalEntry(entry)
-        if (result?.success) {
-          addJournalEntry(entry)
-          savedCount += 1
-        } else {
-          console.warn(
-            '[FirstTimerGuide] saveJournalEntry IPC returned failure',
-            entry.id,
-            result?.error
-          )
-          failedCount += 1
-        }
-      } catch (err) {
-        console.warn('[FirstTimerGuide] saveJournalEntry IPC threw', entry.id, err)
-        failedCount += 1
-      }
+    // Concentration = infused THC (mg) / volume (mL). Was hardcoded '0'
+    // before, which made the journal display show "0 mg/mL" even when the
+    // math clearly should produce a real number.
+    const concentration =
+      Number.isFinite(infusionVolNum) && infusionVolNum > 0
+        ? _fmt1(topRow.infused / infusionVolNum)
+        : '0'
+    const entry = {
+      id: `entry_${Date.now()}_0_${Math.random().toString(36).slice(2, 8)}`,
+      date: baseDate,
+      strainName: '',
+      strainId: null,
+      materialWeight: grams.toString(),
+      thcaPct: thcaPct.toString(),
+      thcPct: '0',
+      cbdaPct: '0',
+      cbdPct: '0',
+      methodId: METHOD_OPTIONS.find(m => m.label === topRow.method)?.id ?? '',
+      methodName: topRow.method,
+      fatId: FAT_OPTIONS.find(f => f.label === topRow.fat)?.id ?? '',
+      fatName: topRow.fat,
+      servings: topRow.servings.toString(),
+      mgPerServing: _fmt1(topRow.perServing),
+      classification: topRow.classification,
+      totalInfusedThc: _fmt1(topRow.infused),
+      concentration,
+      volume: infusionVol,
+      volumeUnit: 'mL',
+      notes: `Saved from First-Timer Guide. Top recommendation: ${topRow.method} + ${topRow.fat} + ${topRow.format}.`,
     }
-    setActiveTab('journal')
-    dismissWizard()
-    if (failedCount > 0) {
-      console.warn(
-        `[FirstTimerGuide] ${failedCount} of ${matrix.length} entries failed to persist to disk; they are local-only this session.`
-      )
+    // Persist to disk FIRST; only add to the local store if the disk write
+    // succeeded. Previously the order was reversed — that meant a failed IPC
+    // silently left the entry in the local store and the Journal tab's
+    // mount-time reload from disk would then overwrite and lose it.
+    try {
+      if (typeof window.App?.saveJournalEntry !== 'function') {
+        // No IPC bridge (browser-only / dev-renderer audit). Fall back
+        // to local-store-only so the user can still see the entry.
+        addJournalEntry(entry)
+        setActiveTab('journal')
+        dismissWizard()
+        return
+      }
+      const result = await window.App.saveJournalEntry(entry)
+      if (result?.success) {
+        addJournalEntry(entry)
+        setActiveTab('journal')
+        dismissWizard()
+      } else {
+        console.warn(
+          '[FirstTimerGuide] saveJournalEntry IPC returned failure',
+          entry.id,
+          result?.error
+        )
+        // Disk failed — do NOT add to local store (it would be lost on
+        // next mount-time reload) and do NOT jump to the journal tab
+        // (the user would see a phantom entry that vanishes on refresh).
+        // Just leave them on the review step with a console warning.
+      }
+    } catch (err) {
+      console.warn('[FirstTimerGuide] saveJournalEntry IPC threw', entry.id, err)
     }
   }, [matrix, grams, thcaPct, infusionDefaults.volume, addJournalEntry, setActiveTab, dismissWizard])
 

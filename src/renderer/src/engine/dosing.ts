@@ -67,3 +67,35 @@ export function classifyDose(mgPerServing: number): string {
   if (mgPerServing < 100) return 'very strong'
   return 'extreme'
 }
+
+/**
+ * Map a dose classification token (the engine's canonical lowercase output)
+ * to the Title-Case display label the UI surfaces. Pure mapping — no DOM,
+ * no side effects. Safe to call from any renderer code that needs to show
+ * a classification to the user.
+ *
+ * The token set is the same 7 values `classifyDose` returns, plus a passthrough
+ * for unknown tokens (e.g. a future category the engine adds before the UI
+ * mapping is updated). The mapping mirrors the DOSE_ZONES table in
+ * DoseTab.tsx so the two tabs show identical labels.
+ */
+export function displayDoseLabel(raw: string): string {
+  switch (raw) {
+    case 'sub-microdose':
+      return 'Sub-Microdose'
+    case 'microdose':
+      return 'Microdose'
+    case 'low':
+      return 'Low'
+    case 'moderate':
+      return 'Moderate'
+    case 'strong':
+      return 'Strong'
+    case 'very strong':
+      return 'Very Strong'
+    case 'extreme':
+      return 'Extreme'
+    default:
+      return raw
+  }
+}

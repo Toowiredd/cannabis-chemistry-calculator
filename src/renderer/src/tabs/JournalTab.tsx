@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
+import { calculateTheoreticalMax } from 'renderer/src/engine/decarb'
+import { classifyDose, displayDoseLabel } from 'renderer/src/engine/dosing'
+import { volumeToMl } from 'renderer/src/engine/units'
 import { cn } from 'renderer/lib/utils'
 import {
   BookOpen,
@@ -79,7 +82,12 @@ function buildFormFromStore(
   const method = DECARB_METHODS.find(m => m.id === decarb.presetId)
   const fat = INFUSION_FATS.find(f => f.id === infusion.fatId)
 
-  // Compute decarb expected THC for population
+  // Compute decarb expected THC for population. All math goes through the
+  // engine — the THCA→THC factor, the decarb efficiency, the fat extraction
+  // efficiency, the volume unit conversion, and the dose classification all
+  // come from engine modules. The hand-coded copies that lived here before
+  // were a drift risk flagged by the 2026-07-24 audit (ccc-validation
+  // team's first Decarb end-to-end run).
   const weight = parseFloat(decarb.weight)
   const thca = parseFloat(decarb.thcaPct)
   const thc = parseFloat(decarb.thcPct)
@@ -89,46 +97,39 @@ function buildFormFromStore(
   let classification = ''
 
   try {
-    // Reuse engine-like simple math to fill downstream values
+    // Engine: theoretical max → decarb-adjusted → fat infusion
     const grams = !Number.isNaN(weight) ? weight : 0
     const thcaVal = !Number.isNaN(thca) ? thca : 0
     const thcVal = !Number.isNaN(thc) ? thc : 0
     const eff = method ? method.efficiency.expected : 0.9
-    const theoreticalMax =
-      grams * ((thcaVal / 100) * 0.877 + thcVal / 100) * 1000
-    const decarbed = theoreticalMax * eff
-
     const fatEff = fat?.extractionEff ?? 0.82
+    const theoreticalMax = calculateTheoreticalMax(grams, thcaVal, thcVal)
+    const decarbed = theoreticalMax * eff
     const infused = decarbed * fatEff
     totalInfused = fmt1(infused)
 
+    // Engine: any-volume-unit → mL
     const vol = parseFloat(infusion.volume)
-    const volMl =
-      units.volumeUnit === 'mL'
-        ? vol
-        : units.volumeUnit === 'tsp'
-          ? vol * 4.929
-          : units.volumeUnit === 'tbsp'
-            ? vol * 14.787
-            : vol * 236.588
-    if (!Number.isNaN(volMl) && volMl > 0) {
-      concentration = fmt1(infused / volMl)
+    if (!Number.isNaN(vol) && vol > 0) {
+      const volMl = volumeToMl(vol, units.volumeUnit)
+      if (volMl > 0) {
+        concentration = fmt1(infused / volMl)
+      }
     }
 
+    // Engine: dose classification
     const serv = parseFloat(dose.servings)
     if (!Number.isNaN(serv) && serv > 0) {
-      mgPerServing = fmt1(infused / serv)
       const mps = infused / serv
-      if (mps < 2.5) classification = 'Sub-Microdose'
-      else if (mps < 5) classification = 'Microdose'
-      else if (mps < 10) classification = 'Low'
-      else if (mps < 25) classification = 'Moderate'
-      else if (mps < 50) classification = 'Strong'
-      else if (mps < 100) classification = 'Very Strong'
-      else classification = 'Extreme'
+      mgPerServing = fmt1(mps)
+      // classifyDose returns the engine's canonical token (e.g. 'sub-microdose');
+      // displayDoseLabel maps it to the Title-Case display the UI surfaces
+      // (e.g. 'Sub-Microdose'), matching DoseTab's DOSE_ZONES table.
+      classification = displayDoseLabel(classifyDose(mps))
     }
   } catch {
-    // Leave downstream fields blank if computation fails
+    // Leave downstream fields blank if computation fails (e.g. preset not
+    // selected yet, or partial inputs)
   }
 
   return {
