@@ -13,7 +13,7 @@ import {
   recommendDoubleBag,
   selectBestBag,
 } from 'renderer/src/engine/bagVolume'
-import { cmToIn, inToCm } from 'renderer/src/engine/units'
+import { cmToIn, convertWeight, inToCm } from 'renderer/src/engine/units'
 import { fmt1 } from 'renderer/src/engine/formatting'
 import { cn } from 'renderer/lib/utils'
 import { Info, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react'
@@ -235,6 +235,29 @@ export function BagCalculator({ tempC }: { tempC: number }) {
     return units.bagUnit === 'in' ? fmt1(round1(cmToIn(l))) : fmt1(round1(l))
   }, [bagPreset.lengthCm, decarb.bagLengthOverride, isCustomBag, units.bagUnit])
 
+  /*
+   * Read-only "Material Weight (from Decarb)" display.
+   *
+   * Per-field unit refactor (2026-07-25 ccc-uiux-reviewer B4): the
+   * stored value lives in `decarb.weightUnit` (the unit the user
+   * typed in on the Decarb tab). Pre-fix, this input printed the raw
+   * stored value but labelled it with `units.weightUnit` (the display
+   * unit), so toggling the display unit re-labelled the number
+   * without converting it — 3.5 typed in g with display=oz would
+   * render as "3.5 oz" instead of the correct "0.12 oz". Post-fix,
+   * convert from the per-field unit to the display unit (same
+   * pattern as DecarbTab.tsx:867-881's weight input). The stored
+   * value is never mutated.
+   */
+  const displayWeight = useMemo(() => {
+    const raw = decarb.weight.trim()
+    if (raw === '') return ''
+    if (decarb.weightUnit === units.weightUnit) return raw
+    const n = parseFloat(raw)
+    if (Number.isNaN(n)) return raw
+    return convertWeight(n, decarb.weightUnit, units.weightUnit).toFixed(2)
+  }, [decarb.weight, decarb.weightUnit, units.weightUnit])
+
   /* Weight in grams from Decarb tab */
   const weightGrams = useMemo(() => {
     const w = parseFloat(decarb.weight)
@@ -403,7 +426,7 @@ export function BagCalculator({ tempC }: { tempC: number }) {
               className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground/70 outline-none"
               readOnly
               type="text"
-              value={`${decarb.weight} ${units.weightUnit}`}
+              value={`${displayWeight} ${units.weightUnit}`}
             />
           )}
 

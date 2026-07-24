@@ -169,6 +169,211 @@ describe('BagCalculator — B4 fix (weight-from-decarb per-field unit)', () => {
   })
 })
 
+describe('BagCalculator — B4 fix (Material Weight display uses per-field unit)', () => {
+  beforeEach(() => resetState())
+
+  it('read-only Material Weight input converts from per-field to display unit', async () => {
+    // The B4 display-consumer fix (2026-07-25 ccc-uiux-reviewer):
+    // the read-only "Material Weight (from Decarb)" input at
+    // BagCalculator.tsx:400-408 used to print `${decarb.weight}
+    // ${units.weightUnit}` — raw stored value with the display unit
+    // label. With per-field=g and display=oz, that rendered "3.5 oz"
+    // for 3.5g (wrong; 3.5g ≈ 0.12 oz). The fix derives a
+    // `displayWeight` from the per-field value and the display unit
+    // (same pattern as DecarbTab.tsx:867-881's weight input).
+    useAppStore.setState({
+      decarb: { ...DEFAULT_DECARB, weight: '3.5', weightUnit: 'g' },
+      units: {
+        ...useAppStore.getState().units,
+        weightUnit: 'oz',
+      },
+    })
+    render(<BagCalculator tempC={110} />)
+    const input = (await waitFor(() => {
+      const candidate = document.querySelector(
+        'input[readonly][type="text"]'
+      ) as HTMLInputElement | null
+      if (!candidate) throw new Error('Material Weight input not found')
+      return candidate
+    })) as HTMLInputElement
+    // 3.5 g = 3.5 / 28.3495 = 0.1234... → toFixed(2) = "0.12".
+    // Pre-fix the value would have been "3.5 oz" (raw + display
+    // label), post-fix it is the converted value with the display
+    // label.
+    expect(input.value).toBe('0.12 oz')
+    // Belt-and-suspenders: explicitly assert the value is NOT the
+    // raw stored value, so a regression that drops the conversion
+    // (and just re-labels the number) is caught.
+    expect(input.value).not.toBe('3.5 oz')
+  })
+
+  it('Material Weight input is unchanged when per-field unit and display unit match', async () => {
+    // The no-op case: when `decarb.weightUnit === units.weightUnit`,
+    // the conversion short-circuits and the raw value passes through
+    // unchanged. The unit label is still the display unit (which
+    // here equals the per-field unit, so no contradiction).
+    useAppStore.setState({
+      decarb: { ...DEFAULT_DECARB, weight: '7', weightUnit: 'oz' },
+      units: {
+        ...useAppStore.getState().units,
+        weightUnit: 'oz',
+      },
+    })
+    render(<BagCalculator tempC={110} />)
+    const input = (await waitFor(() => {
+      const candidate = document.querySelector(
+        'input[readonly][type="text"]'
+      ) as HTMLInputElement | null
+      if (!candidate) throw new Error('Material Weight input not found')
+      return candidate
+    })) as HTMLInputElement
+    expect(input.value).toBe('7 oz')
+  })
+
+  it('toggling the global weight display unit updates the Material Weight input value', async () => {
+    // The user-facing regression: with 3.5 typed in g, switching
+    // the display unit from g → oz should change the displayed
+    // number from "3.5 g" to the converted "0.12 oz" — NOT just
+    // re-label "3.5" as "oz". This is the bug the audit flagged.
+    useAppStore.setState({
+      decarb: { ...DEFAULT_DECARB, weight: '3.5', weightUnit: 'g' },
+      units: {
+        ...useAppStore.getState().units,
+        weightUnit: 'g',
+      },
+    })
+    render(<BagCalculator tempC={110} />)
+    const input = (await waitFor(() => {
+      const candidate = document.querySelector(
+        'input[readonly][type="text"]'
+      ) as HTMLInputElement | null
+      if (!candidate) throw new Error('Material Weight input not found')
+      return candidate
+    })) as HTMLInputElement
+    expect(input.value).toBe('3.5 g')
+
+    // Flip the display unit. The store-level toggle is what the
+    // UnitToggle does on the Decarb tab; simulating it here keeps
+    // the test focused on the BagCalculator's read path.
+    useAppStore.setState({
+      units: {
+        ...useAppStore.getState().units,
+        weightUnit: 'oz',
+      },
+    })
+    await waitFor(() => {
+      const updated = document.querySelector(
+        'input[readonly][type="text"]'
+      ) as HTMLInputElement | null
+      expect(updated?.value).toBe('0.12 oz')
+    })
+  })
+})
+
+describe('BagCalculator — B4 fix (Material Weight display uses per-field unit)', () => {
+  beforeEach(() => resetState())
+
+  it('read-only Material Weight input converts from per-field to display unit', async () => {
+    // The B4 display-consumer fix (2026-07-25 ccc-uiux-reviewer):
+    // the read-only "Material Weight (from Decarb)" input at
+    // BagCalculator.tsx:400-408 used to print `${decarb.weight}
+    // ${units.weightUnit}` — raw stored value with the display unit
+    // label. With per-field=g and display=oz, that rendered "3.5 oz"
+    // for 3.5g (wrong; 3.5g ≈ 0.12 oz). The fix derives a
+    // `displayWeight` from the per-field value and the display unit
+    // (same pattern as DecarbTab.tsx:867-881's weight input).
+    useAppStore.setState({
+      decarb: { ...DEFAULT_DECARB, weight: '3.5', weightUnit: 'g' },
+      units: {
+        ...useAppStore.getState().units,
+        weightUnit: 'oz',
+      },
+    })
+    render(<BagCalculator tempC={110} />)
+    // The Material Weight input is the only readonly text input in
+    // the panel. Find it by its label sibling ("Material Weight
+    // (from Decarb)") + readOnly attribute.
+    const input = (await waitFor(() => {
+      const candidate = document.querySelector(
+        'input[readonly][type="text"]'
+      ) as HTMLInputElement | null
+      if (!candidate) throw new Error('Material Weight input not found')
+      return candidate
+    })) as HTMLInputElement
+    // 3.5 g = 3.5 / 28.3495 = 0.1234... → toFixed(2) = "0.12".
+    // Pre-fix the value would have been "3.5 oz" (raw + display
+    // label), post-fix it is the converted value with the display
+    // label.
+    expect(input.value).toBe('0.12 oz')
+    // Belt-and-suspenders: explicitly assert the value is NOT the
+    // raw stored value, so a regression that drops the conversion
+    // (and just re-labels the number) is caught.
+    expect(input.value).not.toBe('3.5 oz')
+  })
+
+  it('Material Weight input is unchanged when per-field unit and display unit match', async () => {
+    // The no-op case: when `decarb.weightUnit === units.weightUnit`,
+    // the conversion short-circuits and the raw value passes through
+    // unchanged. The unit label is still the display unit (which
+    // here equals the per-field unit, so no contradiction).
+    useAppStore.setState({
+      decarb: { ...DEFAULT_DECARB, weight: '7', weightUnit: 'oz' },
+      units: {
+        ...useAppStore.getState().units,
+        weightUnit: 'oz',
+      },
+    })
+    render(<BagCalculator tempC={110} />)
+    const input = (await waitFor(() => {
+      const candidate = document.querySelector(
+        'input[readonly][type="text"]'
+      ) as HTMLInputElement | null
+      if (!candidate) throw new Error('Material Weight input not found')
+      return candidate
+    })) as HTMLInputElement
+    expect(input.value).toBe('7 oz')
+  })
+
+  it('toggling the global weight display unit updates the Material Weight input value', async () => {
+    // The user-facing regression: with 3.5 typed in g, switching
+    // the display unit from g → oz should change the displayed
+    // number from "3.5 g" to the converted "0.12 oz" — NOT just
+    // re-label "3.5" as "oz". This is the bug the audit flagged.
+    useAppStore.setState({
+      decarb: { ...DEFAULT_DECARB, weight: '3.5', weightUnit: 'g' },
+      units: {
+        ...useAppStore.getState().units,
+        weightUnit: 'g',
+      },
+    })
+    render(<BagCalculator tempC={110} />)
+    const input = (await waitFor(() => {
+      const candidate = document.querySelector(
+        'input[readonly][type="text"]'
+      ) as HTMLInputElement | null
+      if (!candidate) throw new Error('Material Weight input not found')
+      return candidate
+    })) as HTMLInputElement
+    expect(input.value).toBe('3.5 g')
+
+    // Flip the display unit. The store-level toggle is what the
+    // UnitToggle does on the Decarb tab; simulating it here keeps
+    // the test focused on the BagCalculator's read path.
+    useAppStore.setState({
+      units: {
+        ...useAppStore.getState().units,
+        weightUnit: 'oz',
+      },
+    })
+    await waitFor(() => {
+      const updated = document.querySelector(
+        'input[readonly][type="text"]'
+      ) as HTMLInputElement | null
+      expect(updated?.value).toBe('0.12 oz')
+    })
+  })
+})
+
 describe('BagCalculator — B5 fix (bag unit toggle preserves the stored value)', () => {
   beforeEach(() =>
     resetState({

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { DECARB_METHODS } from 'renderer/src/engine/models'
+import { cToF, fToC } from 'renderer/src/engine/units'
 import {
   needlePosition,
   zoneColor,
@@ -52,16 +53,36 @@ export function DecarbHeatmap() {
     [decarb.presetId]
   )
 
-  /* Effective temperature in Celsius */
+  /*
+   * Effective temperature in Celsius (the intrinsic scale of the
+   * 73–130°C decarb danger zone — needle/zone geometry is C-only).
+   *
+   * Per-field unit refactor (2026-07-25 ccc-uiux-reviewer B5):
+   * interpret the stored override using `decarb.tempOverrideUnit` —
+   * the unit the user TYPED in — not `units.tempUnit` (the display
+   * unit). Pre-fix, the conversion was keyed on the display unit, so
+   * toggling °C/°F re-interpreted the stored value in the new
+   * display unit and the needle shifted. Post-fix, the stored value
+   * always means the same physical temperature regardless of which
+   * unit is currently displayed, and the needle stays put on toggle.
+   * The display label below converts tempC to the user's chosen
+   * display unit so the number is still readable.
+   */
   const tempC = useMemo(() => {
     if (decarb.tempOverride != null) {
       const v = parseFloat(decarb.tempOverride)
       if (!Number.isNaN(v)) {
-        return units.tempUnit === 'F' ? (v - 32) * (5 / 9) : v
+        return decarb.tempOverrideUnit === 'F' ? fToC(v) : v
       }
     }
     return preset.tempC
-  }, [decarb.tempOverride, preset.tempC, units.tempUnit])
+  }, [decarb.tempOverride, decarb.tempOverrideUnit, preset.tempC])
+
+  /* Display value in the user's chosen unit. */
+  const tempDisplay = useMemo(
+    () => (units.tempUnit === 'F' ? cToF(tempC) : tempC),
+    [tempC, units.tempUnit]
+  )
 
   const isOverridden = decarb.tempOverride != null
   const pos = needlePosition(tempC)
@@ -80,7 +101,9 @@ export function DecarbHeatmap() {
         <span className="text-xs font-semibold uppercase tracking-wider text-foreground/60">
           Temperature Danger Zone
         </span>
-        <span className="text-xs text-foreground/50">{tempC.toFixed(0)}°C</span>
+        <span className="text-xs text-foreground/50">
+          {tempDisplay.toFixed(0)}°{units.tempUnit}
+        </span>
       </div>
 
       {/* Out-of-range warning */}
