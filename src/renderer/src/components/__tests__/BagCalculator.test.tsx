@@ -276,3 +276,50 @@ describe('BagCalculator — custom bag override math', () => {
     })
   })
 })
+
+describe('BagCalculator — B5 PARTIAL fix (custom-bag calc uses per-field bag unit, not display)', () => {
+  beforeEach(() =>
+    resetState({
+      bagPresetId: 'custom',
+      // User TYPED the override in inches; the display unit is cm.
+      // The downstream calc at BagCalculator.tsx:266-267 must read
+      // the per-field `bagWidthOverrideUnit` (here 'in'), not the
+      // display `units.bagUnit` (here 'cm'). 10 in × 15 in =
+      // 25.4 × 38.1 cm = 967.74 cm²; 12.25 cm³ / 967.74 = 0.01266 cm.
+      // Pre-PARTIAL-fix: would treat 10 as 10 cm → 150 cm² →
+      // fillDepth = 0.0817 cm (off by ~6.5×).
+      bagWidthOverride: '10',
+      bagWidthOverrideUnit: 'in',
+      bagLengthOverride: '15',
+      bagLengthOverrideUnit: 'in',
+    })
+  )
+
+  it('Fill Depth matches the per-field (inch) bag, not the display (cm) bag', async () => {
+    // The PARTIAL in the 2026-07-25 ccc-verify-final audit: the B5
+    // fix introduced per-field bag units but the downstream custom-bag
+    // calc at BagCalculator.tsx:266-267 still used `units.bagUnit`
+    // (display). The fix in BagCalculator.tsx:266-267 now uses
+    // `decarb.bagWidthOverrideUnit` / `decarb.bagLengthOverrideUnit`.
+    // This test pins that the Fill Depth matches the 10 in × 15 in
+    // (25.4 × 38.1 cm) bag, not the 10 × 15 cm bag.
+    render(<BagCalculator tempC={110} />)
+    const fillDepth = await waitFor(() =>
+      screen.getByTestId('bag-fill-depth')
+    )
+    await waitFor(() => {
+      expect(fillDepth.textContent ?? '').toMatch(/[0-9]+\.[0-9]+\s*cm/)
+    })
+    const text = fillDepth.textContent ?? ''
+    const m = text.match(/([0-9]+\.[0-9]+)/)
+    expect(m).toBeTruthy()
+    const displayed = Number(m![1])
+    // Post-fix: 10 in × 15 in = 25.4 × 38.1 cm; 12.25 / 967.74 =
+    // 0.01266 cm. Pre-PARTIAL-fix (the regression): 10 cm × 15 cm;
+    // 12.25 / 150 = 0.0817 cm. The 0.05 bound catches the
+    // regression with margin.
+    expect(displayed).toBeLessThan(0.05)
+    // The correct value: ~0.0127. Tolerance: 0.005–0.03.
+    expect(displayed).toBeGreaterThan(0.005)
+  })
+})

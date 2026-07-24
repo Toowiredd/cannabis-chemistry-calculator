@@ -262,9 +262,11 @@ export function BagCalculator({ tempC }: { tempC: number }) {
             decarb.bagLengthOverride != null
               ? parseFloat(decarb.bagLengthOverride)
               : 0
-          // Convert from display unit to cm if needed
-          const w = units.bagUnit === 'in' ? inToCm(wRaw) : wRaw
-          const l = units.bagUnit === 'in' ? inToCm(lRaw) : lRaw
+          // Use per-field unit (not display) to interpret the stored override —
+          // otherwise toggling units between type and view would re-scale the
+          // bag by 2.54x. The display value is converted on read, not on type.
+          const w = decarb.bagWidthOverrideUnit === 'in' ? inToCm(wRaw) : wRaw
+          const l = decarb.bagLengthOverrideUnit === 'in' ? inToCm(lRaw) : lRaw
           if (!Number.isNaN(w) && w > 0) widthCm = w
           if (!Number.isNaN(l) && l > 0) lengthCm = l
         }

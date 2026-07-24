@@ -23,7 +23,7 @@ import {
   DECARB_METHODS,
   type EfficiencyRange,
 } from 'renderer/src/engine/models'
-import { volumeToMl } from 'renderer/src/engine/units'
+import { displayVolumeToMl } from 'renderer/src/engine/units'
 import { fmt1 } from 'renderer/src/engine/formatting'
 import {
   fatCompareInputSchema,
@@ -99,13 +99,12 @@ function FatsSection() {
     // the user TYPED in), NOT the display unit (`units.volumeUnit`).
     // 2026-07-25 ccc-validation audit B3: using the display unit here
     // would re-interpret the stored value after every toggle, producing
-    // 6.76x-236x off results. The engine's `volumeToMl` is the single
-    // canonical converter (engine/units.ts) — drift-proof.
-    () => {
-      const n = parseFloat(infusion.volume)
-      if (Number.isNaN(n)) return NaN
-      return volumeToMl(n, infusion.volumeUnit)
-    },
+    // 6.76x-236x off results. The engine's `displayVolumeToMl` is the
+    // canonical helper (engine/units.ts:103-110) — drift-proof.
+    // 2026-07-25 ccc-verify-final NEW-2: replaced the local
+    // `parseFloat + volumeToMl(NaN-on-invalid)` pattern with the
+    // canonical helper to close the duplication.
+    () => displayVolumeToMl(infusion.volume, infusion.volumeUnit),
     [infusion.volume, infusion.volumeUnit]
   )
 
