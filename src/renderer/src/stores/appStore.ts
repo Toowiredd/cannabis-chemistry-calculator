@@ -51,6 +51,16 @@ export interface DecarbState {
   cbdaPct: string
   cbdPct: string
   presetId: string
+  /**
+   * Unit the stored `tempOverride` value is in. The 2026-07-25
+   * dose-units audit (validation_report_dose_units.md §6 B6) found
+   * the temperature toggle was doing convert-and-replace with
+   * `fmt1(round1n(...))`, which drifts on values not at the rounded
+   * boundary (240.1°C → 464.18°F → 240.1°C accumulated 0.01°C drift
+   * per round-trip). The fix: per-field unit tracking, same pattern
+   * as `weightUnit` and `volumeUnit`.
+   */
+  tempOverrideUnit: 'C' | 'F'
   tempOverride: string | null
   timeOverride: string | null
   effLowOverride: string | null
@@ -59,7 +69,16 @@ export interface DecarbState {
   bagExpanded: boolean
   bagGrindId: string
   bagPresetId: string
+  /**
+   * Unit the stored `bagWidthOverride` value is in. The 2026-07-25
+   * dose-units audit (validation_report_dose_units.md §6 B5) found
+   * the bag unit toggle was doing convert-and-replace with
+   * `fmt1(round1(...))`, which drifts on every toggle. The fix:
+   * per-field unit tracking, same pattern as `weightUnit`.
+   */
+  bagWidthOverrideUnit: 'cm' | 'in'
   bagWidthOverride: string | null
+  bagLengthOverrideUnit: 'cm' | 'in'
   bagLengthOverride: string | null
   bagHasStems: boolean
   strainId: string | null
@@ -297,6 +316,7 @@ export const DEFAULT_DECARB: DecarbState = {
   cbdaPct: '0',
   cbdPct: '0',
   presetId: 'oven_sealed',
+  tempOverrideUnit: 'C',
   tempOverride: null,
   timeOverride: null,
   effLowOverride: null,
@@ -305,7 +325,9 @@ export const DEFAULT_DECARB: DecarbState = {
   bagExpanded: true,
   bagGrindId: 'medium',
   bagPresetId: 'quart',
+  bagWidthOverrideUnit: 'cm',
   bagWidthOverride: null,
+  bagLengthOverrideUnit: 'cm',
   bagLengthOverride: null,
   bagHasStems: false,
   strainId: null,
@@ -838,6 +860,10 @@ export const useAppStore = create<AppStore>()(
             cbdaPct: stringish(di.cbdaPct, DEFAULT_DECARB.cbdaPct),
             cbdPct: stringish(di.cbdPct, DEFAULT_DECARB.cbdPct),
             presetId: stringish(di.presetId, DEFAULT_DECARB.presetId),
+            tempOverrideUnit:
+              di.tempOverrideUnit === 'C' || di.tempOverrideUnit === 'F'
+                ? di.tempOverrideUnit
+                : DEFAULT_DECARB.tempOverrideUnit,
             tempOverride: nullableStringish(di.tempOverride),
             timeOverride: nullableStringish(di.timeOverride),
             effLowOverride: nullableStringish(di.effLowOverride),
@@ -849,7 +875,17 @@ export const useAppStore = create<AppStore>()(
                 : DEFAULT_DECARB.bagExpanded,
             bagGrindId: stringish(di.bagGrindId, DEFAULT_DECARB.bagGrindId),
             bagPresetId: stringish(di.bagPresetId, DEFAULT_DECARB.bagPresetId),
+            bagWidthOverrideUnit:
+              di.bagWidthOverrideUnit === 'cm' ||
+              di.bagWidthOverrideUnit === 'in'
+                ? di.bagWidthOverrideUnit
+                : DEFAULT_DECARB.bagWidthOverrideUnit,
             bagWidthOverride: nullableStringish(di.bagWidthOverride),
+            bagLengthOverrideUnit:
+              di.bagLengthOverrideUnit === 'cm' ||
+              di.bagLengthOverrideUnit === 'in'
+                ? di.bagLengthOverrideUnit
+                : DEFAULT_DECARB.bagLengthOverrideUnit,
             bagLengthOverride: nullableStringish(di.bagLengthOverride),
             bagHasStems:
               typeof di.bagHasStems === 'boolean'

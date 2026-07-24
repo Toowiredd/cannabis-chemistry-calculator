@@ -317,21 +317,15 @@ export function BagCalculator({ tempC }: { tempC: number }) {
 
   const handleBagUnitToggle = (newUnit: 'cm' | 'in') => {
     if (newUnit === units.bagUnit) return
-    // Convert custom overrides if present
-    if (decarb.bagWidthOverride != null) {
-      const w = parseFloat(decarb.bagWidthOverride)
-      if (!Number.isNaN(w)) {
-        const converted = newUnit === 'in' ? cmToIn(w) : inToCm(w)
-        setDecarb({ bagWidthOverride: fmt1(round1(converted)) })
-      }
-    }
-    if (decarb.bagLengthOverride != null) {
-      const l = parseFloat(decarb.bagLengthOverride)
-      if (!Number.isNaN(l)) {
-        const converted = newUnit === 'in' ? cmToIn(l) : inToCm(l)
-        setDecarb({ bagLengthOverride: fmt1(round1(converted)) })
-      }
-    }
+    // 2026-07-25 dose-units audit (validation_report_dose_units.md §6
+    // B5): the old implementation did convert-and-replace with
+    // `fmt1(round1(...))`, which drifts on every toggle (10cm →
+    // 3.94in → 10.0078cm → 10.0cm, accumulating 0.01cm per
+    // round-trip). Same per-field unit pattern as weightUnit /
+    // volumeUnit — don't touch the stored value, just change the
+    // display unit. The override fields now track their own
+    // `bagWidthOverrideUnit` / `bagLengthOverrideUnit` on the
+    // DecarbState.
     setUnits({ bagUnit: newUnit })
   }
 
@@ -465,13 +459,30 @@ export function BagCalculator({ tempC }: { tempC: number }) {
                     ? 'border-foreground/20 focus:border-foreground/40'
                     : 'border-foreground/10 text-foreground/70'
                 )}
-                onChange={e => setDecarb({ bagWidthOverride: e.target.value })}
+                onChange={e =>
+                  setDecarb({
+                    bagWidthOverride: e.target.value,
+                    bagWidthOverrideUnit: units.bagUnit,
+                  })
+                }
                 placeholder={isCustomBag ? '0.0' : displayWidth}
                 readOnly={!isCustomBag}
                 step="0.1"
                 type="number"
                 value={
-                  isCustomBag ? (decarb.bagWidthOverride ?? '') : displayWidth
+                  isCustomBag
+                    ? (() => {
+                        if (decarb.bagWidthOverride == null) return ''
+                        if (decarb.bagWidthOverrideUnit === units.bagUnit) {
+                          return decarb.bagWidthOverride
+                        }
+                        const v = parseFloat(decarb.bagWidthOverride)
+                        if (Number.isNaN(v)) return decarb.bagWidthOverride
+                        const converted =
+                          units.bagUnit === 'in' ? cmToIn(v) : inToCm(v)
+                        return converted.toFixed(2)
+                      })()
+                    : displayWidth
                 }
               />
             )}
@@ -484,13 +495,30 @@ export function BagCalculator({ tempC }: { tempC: number }) {
                     ? 'border-foreground/20 focus:border-foreground/40'
                     : 'border-foreground/10 text-foreground/70'
                 )}
-                onChange={e => setDecarb({ bagLengthOverride: e.target.value })}
+                onChange={e =>
+                  setDecarb({
+                    bagLengthOverride: e.target.value,
+                    bagLengthOverrideUnit: units.bagUnit,
+                  })
+                }
                 placeholder={isCustomBag ? '0.0' : displayLength}
                 readOnly={!isCustomBag}
                 step="0.1"
                 type="number"
                 value={
-                  isCustomBag ? (decarb.bagLengthOverride ?? '') : displayLength
+                  isCustomBag
+                    ? (() => {
+                        if (decarb.bagLengthOverride == null) return ''
+                        if (decarb.bagLengthOverrideUnit === units.bagUnit) {
+                          return decarb.bagLengthOverride
+                        }
+                        const v = parseFloat(decarb.bagLengthOverride)
+                        if (Number.isNaN(v)) return decarb.bagLengthOverride
+                        const converted =
+                          units.bagUnit === 'in' ? cmToIn(v) : inToCm(v)
+                        return converted.toFixed(2)
+                      })()
+                    : displayLength
                 }
               />
             )}

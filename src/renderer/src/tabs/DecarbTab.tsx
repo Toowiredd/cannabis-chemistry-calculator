@@ -580,14 +580,13 @@ export function DecarbTab() {
 
   const handleTempUnitToggle = (newUnit: 'C' | 'F') => {
     if (newUnit === units.tempUnit) return
-    // Convert temperature override if present
-    if (decarb.tempOverride != null) {
-      const current = parseFloat(decarb.tempOverride)
-      if (!Number.isNaN(current)) {
-        const converted = newUnit === 'F' ? cToF(current) : fToC(current)
-        setDecarb({ tempOverride: fmt1(round1n(converted)) })
-      }
-    }
+    // 2026-07-25 dose-units audit (validation_report_dose_units.md §6
+    // B6): the old implementation did convert-and-replace with
+    // `fmt1(round1n(...))`, which drifts on values not at the
+    // rounded boundary (240.1°C → 464.18°F → 240.1°C accumulated
+    // 0.01°C per round-trip). Same per-field unit pattern as
+    // weightUnit / volumeUnit — don't touch the stored value, just
+    // change the display unit.
     setUnits({ tempUnit: newUnit })
   }
 
@@ -621,9 +620,23 @@ export function DecarbTab() {
   const isEffExpectedOverride = decarb.effExpectedOverride !== null
   const isEffHighOverride = decarb.effHighOverride !== null
 
+  // Convert the stored override (which is in `decarb.tempOverrideUnit`,
+  // the unit the user typed in) to the current display unit. If
+  // the units match, no conversion needed. 2-decimal rounded for
+  // readability. The user's exact typed value is preserved in the
+  // store.
   const tempValue =
     isTempOverride && decarb.tempOverride != null
-      ? decarb.tempOverride
+      ? (() => {
+          const v = parseFloat(decarb.tempOverride)
+          if (Number.isNaN(v)) return decarb.tempOverride ?? ''
+          if (decarb.tempOverrideUnit === units.tempUnit) {
+            return decarb.tempOverride ?? ''
+          }
+          const converted =
+            units.tempUnit === 'F' ? cToF(v) : fToC(v)
+          return converted.toFixed(2)
+        })()
       : presetTempDisplay
   const timeValue =
     isTimeOverride && decarb.timeOverride != null
@@ -1056,7 +1069,10 @@ export function DecarbTab() {
                             : 'border-foreground/20 focus:border-foreground/40'
                       )}
                       onChange={e =>
-                        setDecarb({ tempOverride: e.target.value })
+                        setDecarb({
+                          tempOverride: e.target.value,
+                          tempOverrideUnit: units.tempUnit,
+                        })
                       }
                       placeholder={`${presetTempDisplay} ${units.tempUnit}`}
                       step="0.1"
