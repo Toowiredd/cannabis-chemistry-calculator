@@ -199,7 +199,10 @@ export function StrainManager({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" role="presentation">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      role="presentation"
+    >
       <div
         aria-labelledby="strain-manager-title"
         aria-modal="true"
@@ -211,16 +214,24 @@ export function StrainManager({
         <div className="flex items-center justify-between border-b border-foreground/10 px-5 py-4">
           <div className="flex items-center gap-2">
             <Leaf className="size-5 text-success" />
-            <h2 className="text-lg font-semibold text-foreground" id="strain-manager-title">
+            <h2
+              className="text-lg font-semibold text-foreground"
+              id="strain-manager-title"
+            >
               Strain Library
             </h2>
           </div>
           <button
+            // 2026-07-25 ccc uiux-reviewer audit M7: icon-only
+            // close button needs an accessible name. Without
+            // `aria-label` the button is a "no name" element to
+            // assistive tech (the X icon has no semantic text).
+            aria-label="Close strain library"
             className="rounded-lg p-1 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
             onClick={onClose}
             type="button"
           >
-            <X className="size-5" />
+            <X aria-hidden="true" className="size-5" />
           </button>
         </div>
 
@@ -408,18 +419,31 @@ export function StrainManager({
                     </button>
                     <div className="flex items-center gap-1">
                       <button
+                        // 2026-07-25 ccc uiux-reviewer audit M7:
+                        // icon-only edit button needs an accessible
+                        // name that includes the strain name so
+                        // screen-reader users hear WHICH strain
+                        // they're targeting (a long list would
+                        // otherwise be indistinguishable).
+                        aria-label={`Edit ${strain.name}`}
                         className="rounded p-1 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
                         onClick={() => handleEdit(strain)}
                         type="button"
                       >
-                        <Pencil className="size-3.5" />
+                        <Pencil aria-hidden="true" className="size-3.5" />
                       </button>
                       <button
+                        // 2026-07-25 ccc uiux-reviewer audit M7:
+                        // icon-only delete button needs an
+                        // accessible name that includes the
+                        // strain name. Deletion is destructive
+                        // so the affordance must be unambiguous.
+                        aria-label={`Delete ${strain.name}`}
                         className="rounded p-1 text-foreground/70 transition-colors hover:bg-danger/10 hover:text-danger"
                         onClick={() => handleDelete(strain.id)}
                         type="button"
                       >
-                        <Trash2 className="size-3.5" />
+                        <Trash2 aria-hidden="true" className="size-3.5" />
                       </button>
                     </div>
                   </div>

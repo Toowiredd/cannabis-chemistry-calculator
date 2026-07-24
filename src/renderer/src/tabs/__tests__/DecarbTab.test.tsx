@@ -17,7 +17,13 @@
  *   always shortens the animation
  */
 import { beforeEach, describe, expect, it } from 'vitest'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 
 import { DecarbTab } from '../DecarbTab'
 import { DEFAULT_DECARB, useAppStore } from '../../stores/appStore'
@@ -200,5 +206,219 @@ describe('DecarbTab — validation', () => {
         )
       ).toBe(true)
     })
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-25 ccc uiux-reviewer audit M4 / M5                          */
+/*                                                                    */
+/* The audit's M4 / M5 fix removed the UI gate that required         */
+/* `thcPct` to be non-empty. The engine already handles `thcPct = ''` */
+/* by defaulting to 0 (the `|| 0` on the engine call sites at        */
+/* DecarbTab.tsx:385 + 425). Post-fix the user can compute the        */
+/* decarb-adjusted THC from THCA alone — the dominant case for raw   */
+/* cannabis flower. The error message "We need an existing THC       */
+/* percentage" no longer appears when `thcPct` is empty.              */
+/* ------------------------------------------------------------------ */
+
+describe('DecarbTab — audit M4/M5 (thcPct is optional when THCA is set)', () => {
+  beforeEach(() => resetDecarb())
+
+  it('does NOT surface a thcPct error when thcPct is empty and THCA is set', async () => {
+    // Seed: valid weight + THCA, but empty thcPct (the common
+    // "I only have a THCA lab value" case). The pre-fix UI gate
+    // would surface "We need an existing THC percentage" and
+    // suppress the result panel. Post-fix the gate is removed
+    // and the result panel populates.
+    useAppStore.setState({
+      decarb: {
+        ...DEFAULT_DECARB,
+        weight: '3.5',
+        thcaPct: '20',
+        thcPct: '',
+      },
+    })
+    render(<DecarbTab />)
+    // Wait for the debounced calculation to populate. The
+    // theoretical-max panel should show a real number (the
+    // engine treats thc=0 and computes grams * 20% * 0.877).
+    const theoMax = screen.getByTestId('decarb-theoretical-max')
+    await waitFor(() => {
+      const text = theoMax.textContent ?? ''
+      expect(text).toMatch(/[0-9]+(\.[0-9]+)?\s*mg/)
+    })
+    // The pre-fix error message must NOT be present.
+    const alerts = screen.queryAllByRole('alert')
+    const hasThcPctError = alerts.some(a =>
+      /we need an existing thc percentage/i.test(a.textContent ?? '')
+    )
+    expect(hasThcPctError).toBe(false)
+  })
+
+  it('still surfaces a thcPct error for non-numeric values (the validation pipeline is not weakened)', async () => {
+    // The fix is targeted at the "empty thcPct" case, not the
+    // "non-numeric thcPct" case. A non-numeric value should still
+    // surface the "That does not look like a number" error. We
+    // can't drive a non-numeric value through the <input
+    // type=number> in jsdom, so we set the store directly.
+    useAppStore.setState({
+      decarb: { ...DEFAULT_DECARB, thcPct: 'abc' },
+    })
+    render(<DecarbTab />)
+    await waitFor(() => {
+      const alerts = screen.getAllByRole('alert')
+      expect(
+        alerts.some(a => /not look like a number/i.test(a.textContent ?? ''))
+      ).toBe(true)
+    })
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-25 ccc workflow-validator audit R1                          */
+/*                                                                    */
+/* The audit's R1 finding moved the engine-side thcPct gate forward,  */
+/* but the "Insufficient material" guard at                          */
+/* `DecarbTab.tsx:248-250` (originally) short-circuited on            */
+/* `inventory.items.length === 0`, so the warning never fired on the   */
+/* default empty state. The fix splits the guard into three cases:    */
+/*   1. No weight entered → no warning.                               */
+/*   2. Weight entered + empty inventory → "Add to your inventory"     */
+/*      CTA with a link to the Dashboard tab.                          */
+/*   3. Weight entered + items present + insufficient → the existing  */
+/*      "Insufficient material: need Xg, have Yg" message.             */
+/* ------------------------------------------------------------------ */
+
+describe('DecarbTab — audit R1 (inventory warning gate)', () => {
+  beforeEach(() => {
+    resetDecarb()
+    useAppStore.setState({
+      inventory: { items: [], lowStockThreshold: '3.5' },
+    })
+  })
+
+  it('shows NOTHING when the user has not entered a weight (no warning before input)', () => {
+    // Default weight is '3.5' from the store default — clear it
+    // so the "no weight entered" branch is exercised.
+    useAppStore.setState({
+      decarb: { ...DEFAULT_DECARB, weight: '' },
+    })
+    render(<DecarbTab />)
+    expect(screen.queryByTestId('decarb-inventory-empty')).toBeNull()
+    expect(screen.queryByTestId('decarb-inventory-shortage')).toBeNull()
+  })
+
+  it('shows the "Add to your inventory" CTA when weight is set and inventory is empty', async () => {
+    useAppStore.setState({
+      decarb: { ...DEFAULT_DECARB, weight: '3.5' },
+    })
+    render(<DecarbTab />)
+    await waitFor(() => {
+      expect(screen.getByTestId('decarb-inventory-empty')).toBeTruthy()
+    })
+    // The friendly warning text.
+    expect(screen.getByTestId('decarb-inventory-empty').textContent).toMatch(
+      /Add to your inventory to track consumption/i
+    )
+    // The shortage warning is NOT shown — that requires items.
+    expect(screen.queryByTestId('decarb-inventory-shortage')).toBeNull()
+  })
+
+  it('the "Add to your inventory" CTA has a link to the Dashboard tab', async () => {
+    useAppStore.setState({
+      decarb: { ...DEFAULT_DECARB, weight: '3.5' },
+    })
+    render(<DecarbTab />)
+    await waitFor(() => {
+      expect(screen.getByTestId('decarb-inventory-empty-link')).toBeTruthy()
+    })
+    fireEvent.click(screen.getByTestId('decarb-inventory-empty-link'))
+    expect(useAppStore.getState().activeTab).toBe('dashboard')
+  })
+
+  it('shows the "Insufficient material" shortage message when items exist and weight > on-hand', async () => {
+    // Seed: 1 purchase of 1g, user wants 5g → insufficient.
+    useAppStore.setState({
+      decarb: { ...DEFAULT_DECARB, weight: '5' },
+      inventory: {
+        items: [
+          {
+            id: 'inv_seed',
+            date: '2026-07-25',
+            type: 'purchase',
+            name: 'OG Kush',
+            amountGrams: '1',
+          },
+        ],
+        lowStockThreshold: '3.5',
+      },
+    })
+    render(<DecarbTab />)
+    await waitFor(() => {
+      expect(screen.getByTestId('decarb-inventory-shortage')).toBeTruthy()
+    })
+    expect(screen.getByTestId('decarb-inventory-shortage').textContent).toMatch(
+      /Insufficient material: need 5\.0g, have 1\.0g/i
+    )
+    // The empty-state CTA is NOT shown — the user has items.
+    expect(screen.queryByTestId('decarb-inventory-empty')).toBeNull()
+  })
+
+  it('shows NOTHING when items exist and on-hand covers the weight (no warning when sufficient)', async () => {
+    useAppStore.setState({
+      decarb: { ...DEFAULT_DECARB, weight: '2' },
+      inventory: {
+        items: [
+          {
+            id: 'inv_seed',
+            date: '2026-07-25',
+            type: 'purchase',
+            name: 'OG Kush',
+            amountGrams: '10',
+          },
+        ],
+        lowStockThreshold: '3.5',
+      },
+    })
+    render(<DecarbTab />)
+    // No waitFor — the effect is synchronous, and asserting on
+    // the negative case (`toBeNull`) is fine without a tick.
+    // Allow a microtask flush for the effect to run.
+    await new Promise(r => setTimeout(r, 0))
+    expect(screen.queryByTestId('decarb-inventory-empty')).toBeNull()
+    expect(screen.queryByTestId('decarb-inventory-shortage')).toBeNull()
+  })
+
+  it('flips back to the empty-state CTA when the user deletes the last item', async () => {
+    useAppStore.setState({
+      decarb: { ...DEFAULT_DECARB, weight: '5' },
+      inventory: {
+        items: [
+          {
+            id: 'inv_seed',
+            date: '2026-07-25',
+            type: 'purchase',
+            name: 'OG Kush',
+            amountGrams: '1',
+          },
+        ],
+        lowStockThreshold: '3.5',
+      },
+    })
+    const { rerender } = render(<DecarbTab />)
+    await waitFor(() => {
+      expect(screen.getByTestId('decarb-inventory-shortage')).toBeTruthy()
+    })
+    // User deletes the last item. Re-render with the new store
+    // state. The warning must flip to the empty-state CTA, not
+    // disappear.
+    useAppStore.setState({
+      inventory: { items: [], lowStockThreshold: '3.5' },
+    })
+    rerender(<DecarbTab />)
+    await waitFor(() => {
+      expect(screen.getByTestId('decarb-inventory-empty')).toBeTruthy()
+    })
+    expect(screen.queryByTestId('decarb-inventory-shortage')).toBeNull()
   })
 })

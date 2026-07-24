@@ -45,6 +45,7 @@ import {
   FlaskConical,
   Layers,
   ListChecks,
+  Package,
   Pill,
   Salad,
   Scale,
@@ -244,6 +245,45 @@ const EQUIPMENT_OPTIONS: readonly EquipmentOption[] = [
     subtitle:
       'A double boiler or even a very low oven holds the right temperature.',
     Icon: Flame,
+  },
+  // 2026-07-25 FirstTimerGuide equipment gap: the previous list was
+  // oven-centric (oven / foil / glass dish / stove / slow cooker),
+  // but 4 of the 6 decarb methods in METHOD_OPTIONS are sous vide
+  // (sv_dry / sv_fast / sv_combined / sv_lowtemp). A first-timer
+  // planning a sous vide setup had no way to mark the equipment
+  // they own on step 1. The oven warning at line 967-977 also
+  // landed on every user regardless of method (audit M2).
+  // Adding the 4 minimum items needed for a sous vide workflow:
+  // circulator + vacuum sealer + mason jar (sous vide bags go
+  // in jars to keep the water bath out) + probe thermometer
+  // (for temp verification on both oven and sous vide).
+  {
+    id: 'sv_circulator',
+    label: 'A sous vide circulator',
+    subtitle:
+      'An immersion circulator that clips to a pot — required for any sous vide decarb method.',
+    Icon: FlaskConical,
+  },
+  {
+    id: 'vacuum_sealer',
+    label: 'A vacuum sealer',
+    subtitle:
+      'For the sealed sous vide methods. A zip-top bag works in a pinch if you displace the air well.',
+    Icon: Package,
+  },
+  {
+    id: 'mason_jar',
+    label: 'Mason jars (for sous vide)',
+    subtitle:
+      'Wide-mouth pint or quart jars hold the vacuum-sealed bag upright in the water bath.',
+    Icon: Beaker,
+  },
+  {
+    id: 'probe_thermometer',
+    label: 'A probe thermometer',
+    subtitle:
+      'Verifies bath and oven temperature. Sous vide holds within 1°C; ovens drift 10–25°C.',
+    Icon: Thermometer,
   },
   {
     id: 'strainer',
@@ -467,9 +507,9 @@ export function FirstTimerGuide(): ReactNode {
           _safeRun(() => calculateInfusedThc(decarbed, f.extractionEff)) ?? 0
         for (const r of formats) {
           const servings =
-              servingsPerFormat != null && servingsPerFormat > 0
-                ? servingsPerFormat
-                : r.suggestedServings
+            servingsPerFormat != null && servingsPerFormat > 0
+              ? servingsPerFormat
+              : r.suggestedServings
           const perServing =
             _safeRun(() => calculateMgPerServing(infused, servings)) ?? 0
           const classification = _safeRun(() => classifyDose(perServing)) ?? ''
@@ -526,6 +566,14 @@ export function FirstTimerGuide(): ReactNode {
         ? _fmt1(topRow.infused / infusionVolNum)
         : '0'
     const entry = {
+      // 2026-07-25 ccc uiux-reviewer audit B1: stamp the entry
+      // source so the journal can group / filter entries by where
+      // they came from. The `state-routing` agent is widening the
+      // `JournalEntry` type + migration in parallel; once that
+      // lands the field is fully typed. Today TypeScript accepts
+      // the extra string literal via the structural shape used at
+      // the IPC boundary.
+      source: 'first_timer_guide' as const,
       id: `entry_${Date.now()}_0_${Math.random().toString(36).slice(2, 8)}`,
       date: baseDate,
       strainName: '',
@@ -578,14 +626,27 @@ export function FirstTimerGuide(): ReactNode {
         // Just leave them on the review step with a console warning.
       }
     } catch (err) {
-      console.warn('[FirstTimerGuide] saveJournalEntry IPC threw', entry.id, err)
+      console.warn(
+        '[FirstTimerGuide] saveJournalEntry IPC threw',
+        entry.id,
+        err
+      )
     }
     // 2026-07-25 user-journey verification: selections.fatVolume is read
     // inside this closure. Without it in the dep array, the callback
     // would capture the fatVolume from the first render and the journal
     // entry's `volume` field would always be the Infusion-tab default
     // (100 mL) — exactly the bug MINOR #3 was supposed to fix.
-  }, [matrix, grams, thcaPct, selections.fatVolume, infusionDefaults.volume, addJournalEntry, setActiveTab, dismissWizard])
+  }, [
+    matrix,
+    grams,
+    thcaPct,
+    selections.fatVolume,
+    infusionDefaults.volume,
+    addJournalEntry,
+    setActiveTab,
+    dismissWizard,
+  ])
 
   /* ---- CTA: open in Quick Batch ---- */
   const handleOpenQuickBatch = useCallback(() => {
@@ -734,7 +795,7 @@ export function FirstTimerGuide(): ReactNode {
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <button
-              className="rounded-md px-3 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="rounded-md px-3 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none"
               data-testid="wizard-skip"
               onClick={handleDismiss}
               type="button"
@@ -743,7 +804,7 @@ export function FirstTimerGuide(): ReactNode {
             </button>
             <button
               aria-label="Close guide"
-              className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/60 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/60 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none"
               data-testid="wizard-close"
               onClick={handleDismiss}
               title="Close guide"
@@ -768,7 +829,7 @@ export function FirstTimerGuide(): ReactNode {
                 <button
                   aria-current={isActive ? 'step' : undefined}
                   className={cn(
-                    'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+                    'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium focus-visible:outline-none',
                     isActive
                       ? 'bg-foreground/15 text-foreground border border-foreground/20'
                       : 'text-foreground/60 hover:bg-foreground/5',
@@ -876,7 +937,7 @@ export function FirstTimerGuide(): ReactNode {
           <button
             aria-label="Previous step"
             className={cn(
-              'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+              'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none',
               !isFirstStep
                 ? 'text-foreground/80 hover:bg-foreground/10'
                 : 'cursor-not-allowed text-foreground/30'
@@ -910,7 +971,7 @@ export function FirstTimerGuide(): ReactNode {
           <button
             aria-label="Next step"
             className={cn(
-              'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+              'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none',
               canGoNext && !isLastStep
                 ? 'bg-foreground/15 text-foreground hover:bg-foreground/20'
                 : 'cursor-not-allowed text-foreground/30'
@@ -970,9 +1031,18 @@ function StepEquipment({
           className="mt-0.5 size-4 shrink-0 text-foreground/70"
         />
         <p className="text-xs leading-relaxed text-foreground/70">
-          The one thing you cannot mess up: keep the oven at 235°F (113°C) and
-          do not open the door during the first hour. Opening drops the
-          temperature and lets out the good stuff.
+          {/* 2026-07-25 ccc uiux audit (MAJOR M2): the previous
+              callout was oven-specific ("keep the oven at 235°F
+              and do not open the door") and landed on every user
+              regardless of method — a sous vide user read it as
+              universal and got confused. The critical detail is
+              method-specific (oven vs sous vide vs combined) and
+              lives on the per-method cards in step 4. */}
+          Every method has a critical detail that affects potency — the
+          oven doesn't like an open door, sous vide doesn't like a
+          bag above the water line. We'll show the right one when you
+          pick your method in step 4. For now, just check what you
+          have on hand.
         </p>
       </div>
     </div>
@@ -1007,7 +1077,7 @@ function StepMaterial({
 
       <div className="flex flex-wrap items-center gap-2">
         <button
-          className="inline-flex items-center gap-1.5 rounded-md border border-foreground/20 bg-foreground/5 px-2.5 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="inline-flex items-center gap-1.5 rounded-md border border-foreground/20 bg-foreground/5 px-2.5 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 focus-visible:outline-none"
           data-testid="wizard-use-decarb"
           onClick={onShortcut}
           type="button"
@@ -1421,7 +1491,7 @@ function VisualCard({
     <button
       aria-pressed={selected}
       className={cn(
-        'group flex w-full min-w-0 flex-col items-stretch overflow-hidden rounded-2xl border text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+        'group flex w-full min-w-0 flex-col items-stretch overflow-hidden rounded-2xl border text-left transition-colors duration-200 focus-visible:outline-none',
         selected
           ? 'border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_10%,transparent)] shadow-[inset_0_0_0_1px_var(--accent)]'
           : 'border-[var(--border)] bg-[color-mix(in_oklab,var(--foreground)_3%,transparent)] hover:border-[var(--foreground)/30]'
@@ -1507,7 +1577,7 @@ function StepPrep({
             <button
               aria-selected={isActive}
               className={cn(
-                'flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+                'flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none',
                 isActive
                   ? 'bg-[var(--accent)] text-[var(--accent-foreground)] shadow-sm'
                   : 'text-[var(--muted-foreground)] hover:bg-[color-mix(in_oklab,var(--foreground)_5%,transparent)] hover:text-[var(--foreground)]'
@@ -1532,8 +1602,8 @@ function StepPrep({
           role="tabpanel"
         >
           <p className="text-xs leading-relaxed text-[var(--muted-foreground)]">
-            Grind is the texture of your flower before it goes in the bag.
-            The right grind helps heat reach every particle evenly.
+            Grind is the texture of your flower before it goes in the bag. The
+            right grind helps heat reach every particle evenly.
           </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {GRIND_OPTIONS.map(o => (
@@ -1564,10 +1634,9 @@ function StepPrep({
           role="tabpanel"
         >
           <p className="text-xs leading-relaxed text-[var(--muted-foreground)]">
-            Pick the bag that fits your batch with a little room to spread
-            the material flat. A bag that's too small forces tight packing
-            (which leads to uneven decarbing); too big and the material
-            shifts around.
+            Pick the bag that fits your batch with a little room to spread the
+            material flat. A bag that's too small forces tight packing (which
+            leads to uneven decarbing); too big and the material shifts around.
           </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {BAG_OPTIONS.map(o => (
@@ -1598,12 +1667,12 @@ function StepPrep({
           role="tabpanel"
         >
           <p className="text-xs leading-relaxed text-[var(--muted-foreground)]">
-            Spread the ground cannabis into a single flat layer inside the
-            bag. Aim for the tightest pack you can get without compressing
-            the material — air pockets are where decarbing goes uneven.
-            The three cards below all show the same fully-packed reference
-            image; the difference between loose / medium / tight is
-            described in each card's caption.
+            Spread the ground cannabis into a single flat layer inside the bag.
+            Aim for the tightest pack you can get without compressing the
+            material — air pockets are where decarbing goes uneven. The three
+            cards below all show the same fully-packed reference image; the
+            difference between loose / medium / tight is described in each
+            card's caption.
           </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {PACK_OPTIONS.map(o => (
@@ -1711,10 +1780,10 @@ function StepDecarb({
           {DECARB_VISUAL_OPTIONS.map(o => (
             <VisualCard
               key={o.id}
+              onSelect={() => onToggle(o.id)}
               option={o}
               selected={selectedIds.includes(o.id)}
               testId={`wizard-decarb-card-${o.id}`}
-              onSelect={() => onToggle(o.id)}
             />
           ))}
         </div>
@@ -1775,9 +1844,9 @@ function StepFatVolume({ fatVolume, onChange }: StepFatVolumeProps): ReactNode {
           <span className="text-sm text-foreground/70">mL</span>
         </div>
         <p className="text-xs leading-relaxed text-foreground/70">
-          A typical small batch is 100 mL (about 7 tablespoons). Use the
-          exact amount you plan to infuse into so the journal entry's
-          concentration matches your batch.
+          A typical small batch is 100 mL (about 7 tablespoons). Use the exact
+          amount you plan to infuse into so the journal entry's concentration
+          matches your batch.
         </p>
       </section>
     </div>
@@ -1862,10 +1931,10 @@ function StepFats({
           {FAT_VISUAL_OPTIONS.map(o => (
             <VisualCard
               key={o.id}
+              onSelect={() => onToggle(o.id)}
               option={o}
               selected={selectedIds.includes(o.id)}
               testId={`wizard-fat-card-${o.id}`}
-              onSelect={() => onToggle(o.id)}
             />
           ))}
         </div>
@@ -1917,10 +1986,10 @@ function StepFormats({
           {FORMAT_VISUAL_OPTIONS.map(o => (
             <VisualCard
               key={o.id}
+              onSelect={() => setSelectedIds(o.id)}
               option={o}
               selected={selectedIds.includes(o.id)}
               testId={`wizard-format-card-${o.id}`}
-              onSelect={() => setSelectedIds(o.id)}
             />
           ))}
         </div>
@@ -2066,7 +2135,7 @@ function StepReview({
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <button
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-foreground/10 px-4 py-3 text-sm font-medium text-foreground/90 transition-colors hover:bg-foreground/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-foreground/10 px-4 py-3 text-sm font-medium text-foreground/90 transition-colors hover:bg-foreground/15 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           data-testid="wizard-save-journal"
           disabled={matrix.length === 0}
           onClick={onSave}
@@ -2076,7 +2145,7 @@ function StepReview({
           Save to Journal
         </button>
         <button
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-foreground/5 px-4 py-3 text-sm font-medium text-foreground/90 transition-colors hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-foreground/5 px-4 py-3 text-sm font-medium text-foreground/90 transition-colors hover:bg-foreground/10 focus-visible:outline-none"
           data-testid="wizard-open-quickbatch"
           onClick={onOpenQuickBatch}
           type="button"

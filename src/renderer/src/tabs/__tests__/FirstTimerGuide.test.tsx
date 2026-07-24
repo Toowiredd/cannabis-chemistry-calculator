@@ -578,3 +578,58 @@ describe('FirstTimerGuide — reduced-motion safety', () => {
     expect(container.innerHTML).not.toMatch(/transition-all/)
   })
 })
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-25 ccc uiux-reviewer audit B1                                */
+/*                                                                    */
+/* The audit's B1 fix stamps `source: 'first_timer_guide'` on every   */
+/* journal entry saved from this wizard. The `state-routing` agent   */
+/* owns the `JournalEntry.source` schema widening; the test asserts   */
+/* the stamped value reaches the saved entry.                          */
+/* ------------------------------------------------------------------ */
+
+describe('FirstTimerGuide — audit B1 (entry.source on save)', () => {
+  beforeEach(() => {
+    resetWizard()
+    // Clear the journal — the broader FirstTimerGuide test
+    // suite adds entries in other tests. The audit B1 test
+    // asserts on the COUNT of new entries, so the journal must
+    // start empty.
+    useAppStore.setState({ journalEntries: [] })
+  })
+
+  it('save-to-journal stamps `source: "first_timer_guide"` on the new entry', async () => {
+    // Walk the wizard to the review step with a complete selection
+    // set so the matrix has at least one row, then click the save
+    // CTA. The save lands via the mock `window.App.saveJournalEntry`
+    // set up in `beforeEach` above; the entry should reach the
+    // local store on success.
+    openWizard({
+      stepIndex: 7, // Review / Save step
+      selections: {
+        equipment: [],
+        decarbMethodIds: ['oven_sealed'],
+        fatIds: ['coconut'],
+        formatIds: ['brownie_9x13'],
+        grams: 3.5,
+        thcaPct: 20,
+        servings: 10,
+        fatVolume: 100,
+      },
+    })
+    render(<FirstTimerGuide />)
+    // The save CTA is identified by `wizard-save-journal` in the
+    // existing tests; reuse the same selector.
+    fireEvent.click(screen.getByTestId('wizard-save-journal'))
+    await waitFor(() => {
+      expect(useAppStore.getState().journalEntries.length).toBe(1)
+    })
+    const entry = useAppStore.getState().journalEntries[0]
+    // Read through the structural shape — the schema widening is
+    // the parallel dispatch's job, but the producer side must
+    // stamp the literal value.
+    expect((entry as unknown as { source?: string }).source).toBe(
+      'first_timer_guide'
+    )
+  })
+})

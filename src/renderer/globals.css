@@ -248,6 +248,19 @@ header {
 /* ──────────────────────────────────────────────────────────────── */
 /* Focus styles (accessible across themes)                           */
 /* ──────────────────────────────────────────────────────────────── */
+/* Canonical focus ring is the cyan rgba below — one color, applied
+ * everywhere via this rule. The 2026-07-25 ccc-uiux-reviewer audit
+ * flagged two issues here:
+ *   - m2: many button sites also carry a Tailwind utility
+ *     `focus-visible:ring-[var(--accent)]` (teal) which out-specifies
+ *     this rule, producing two focus colors in the same dialog. Keep
+ *     this rule single-color; removing the teal utility from the
+ *     ui-tabs button sites is the follow-up tracked separately.
+ *   - m3: this rule used to set `border-radius: 0.375rem`, which
+ *     overrode `rounded-lg` / `rounded-xl` / `rounded-2xl` on focus
+ *     and snapped button corners. Do not add a border-radius here —
+ *     the element's own radius (from its Tailwind utility) must
+ *     remain in effect on focus. */
 @layer base {
   input:focus-visible,
   select:focus-visible,
@@ -256,7 +269,6 @@ header {
   a:focus-visible,
   [tabindex]:focus-visible {
     outline: none;
-    border-radius: 0.375rem;
     box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.45);
   }
 

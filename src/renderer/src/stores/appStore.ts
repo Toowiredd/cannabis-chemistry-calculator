@@ -277,6 +277,25 @@ const DEFAULT_INVENTORY: InventoryState = {
   items: [],
   lowStockThreshold: '3.5',
 }
+/**
+ * Provenance tag for a `JournalEntry`. Records which UI surface
+ * saved the entry so the Journal tab can label entries by source
+ * (Quick Batch, First-Timer Guide, Journal form, Advanced Tools).
+ *
+ * `'unknown'` is the legacy sentinel: it is stamped on any entry
+ * that pre-dates the v1→v2 persist migration (see appStore.ts
+ * `migrate` block) and on any code path that doesn't yet pass a
+ * known source. The 2026-07-25 ccc-uiux-reviewer (BLOCKER B1) and
+ * ccc-workflow-validator reports both flagged that `JournalEntry`
+ * had no `source` field — every save was dropping provenance.
+ */
+export type JournalEntrySource =
+  | 'quickbatch'
+  | 'first_timer_guide'
+  | 'journal_form'
+  | 'advanced_tools'
+  | 'unknown'
+
 export interface JournalEntry {
   id: string
   date: string
@@ -299,6 +318,18 @@ export interface JournalEntry {
   volume: string
   volumeUnit: string
   notes: string
+  /**
+   * Which UI surface wrote this entry. Optional in the interface so
+   * legacy call sites (QuickBatch / First-Timer Guide / Journal
+   * form) keep typechecking before `ui-tabs`'s parallel dispatch
+   * wires each save site to pass the correct literal — those
+   * call sites will spread `{ ...entry, source: '<literal>' }`
+   * into `addJournalEntry` / `setJournalEntries`. The v1→v2
+   * persist migration (appStore.ts `migrate`) backfills this to
+   * `'unknown'` on legacy snapshots so consumers can rely on a
+   * present-but-default value after a one-time upgrade.
+   */
+  source?: JournalEntrySource
 }
 
 export interface TimerState {
@@ -974,23 +1005,33 @@ export const useAppStore = create<AppStore>()(
     }),
     {
       name: 'cannabis-chem-units',
+      // Bumped to v2 when `JournalEntry.source` (provenance) was added.
+      // The v1 partialize never persisted `journalEntries` (they live on
+      // disk in localStorage / IPC), but the migration defensively
+      // backfills any `journalEntries` array it finds in the persisted
+      // snapshot with `source: 'unknown'` so consumers can rely on a
+      // present-but-default value after a one-time upgrade.
+      //
       // Bumped to v1 when the multi-select wizard slice was added. Older v0
       // snapshots have no wizard fields at all; the migration backfills
       // missing array keys with `[]` so `toggleWizardSelection` never has
       // to defend against `undefined`. Partializing only `dismissed` +
       // `selections` keeps the on-disk shape minimal and the runtime fields
       // (`active`, `stepIndex`) reset to defaults on every reload.
-      version: 1,
+      version: 2,
       migrate: (persistedState: unknown, version: number): unknown => {
         if (!isRecord(persistedState)) return persistedState
+
+        // Chain v0→v1 and v1→v2 by rebinding through `state` rather than
+        // early-returning inside the v0→v1 block, so a v0→v2 upgrade runs
+        // both migrations in order on the same envelope.
+        let state: Record<string, unknown> = persistedState
 
         // v0 -> v1: the wizard slice is new. Backfill any missing array
         // keys with `[]` so consumers see a consistent shape regardless of
         // which version the user originally installed.
         if (version < 1) {
-          const existingWizard = isRecord(persistedState.wizard)
-            ? persistedState.wizard
-            : {}
+          const existingWizard = isRecord(state.wizard) ? state.wizard : {}
           const existingSelections = isRecord(existingWizard.selections)
             ? existingWizard.selections
             : {}
@@ -1020,8 +1061,8 @@ export const useAppStore = create<AppStore>()(
             }
           }
 
-          return {
-            ...persistedState,
+          state = {
+            ...state,
             wizard: {
               dismissed:
                 typeof existingWizard.dismissed === 'boolean'
@@ -1032,7 +1073,50 @@ export const useAppStore = create<AppStore>()(
           }
         }
 
-        return persistedState
+        // v1 -> v2: `JournalEntry.source` (provenance) is new. Backfill any
+        // existing journal entries with `source: 'unknown'` so consumers
+        // can rely on a present value. The v1 partialize never wrote
+        // `journalEntries` to disk (they live on disk in localStorage /
+        // IPC via the Journal tab's load-on-mount), but the migration runs
+        // defensively in case a future snapshot or a hand-edited local
+        // dev envelope has the field. The 2026-07-25 ccc-uiux-reviewer
+        // (BLOCKER B1) and ccc-workflow-validator reports both flagged the
+        // missing provenance; this backfill closes the gap on legacy
+        // entries without forcing the user to re-save.
+        if (version < 2) {
+          if (Array.isArray(state.journalEntries)) {
+            const rawEntries = state.journalEntries as unknown[]
+            state = {
+              ...state,
+              journalEntries: rawEntries.map(entry => {
+                if (!isRecord(entry)) {
+                  // Non-object entry — shouldn't happen in a well-formed
+                  // snapshot, but be defensive. Stamping a sentinel so
+                  // downstream code never has to defend against `undefined`.
+                  return { source: 'unknown' as JournalEntrySource }
+                }
+                // Preserve any pre-existing valid source; otherwise stamp
+                // 'unknown'. This makes the migration idempotent — running
+                // it twice on a v2-shaped snapshot leaves entries intact.
+                const existing = entry.source
+                const valid =
+                  existing === 'quickbatch' ||
+                  existing === 'first_timer_guide' ||
+                  existing === 'journal_form' ||
+                  existing === 'advanced_tools' ||
+                  existing === 'unknown'
+                return {
+                  ...entry,
+                  source: valid
+                    ? (existing as JournalEntrySource)
+                    : ('unknown' as JournalEntrySource),
+                }
+              }),
+            }
+          }
+        }
+
+        return state
       },
       // Custom merge: shallow per-top-level key, BUT the `wizard` slice gets
       // a deep-merge that always re-applies the runtime defaults

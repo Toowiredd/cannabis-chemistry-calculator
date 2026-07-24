@@ -16,7 +16,14 @@ import {
   calculateCostPerDose,
   compareMethodCosts,
 } from 'renderer/src/engine/costAnalysis'
-import { cToF, ozToG } from 'renderer/src/engine/units'
+import {
+  cToF,
+  convertVolume,
+  convertWeight,
+  fToC,
+  ozToG,
+  volumeToMl,
+} from 'renderer/src/engine/units'
 import { fmt1 } from 'renderer/src/engine/formatting'
 import { version as appVersion } from '~/package.json'
 
@@ -46,14 +53,33 @@ function decarbSummary(
   units: UnitPreferences
 ): { text: string; data: Record<string, unknown> } {
   const preset = DECARB_METHODS.find(m => m.id === state.presetId)
-  const weightUnit = units.weightUnit
-  const tempUnit = units.tempUnit
+  // 2026-07-25 ccc workflow-validator audit B3: the per-field
+  // units (`state.weightUnit`, `state.tempOverrideUnit`) are the
+  // SOURCE OF TRUTH for what unit the stored value is in. The
+  // `units.*` slices are display-only and can differ from the
+  // per-field unit (e.g. user typed 0.12 oz then toggled display
+  // to g). Convention from the 2026-07-25 dose-units refactor
+  // ("display converts for read"): the report prints the value
+  // CONVERTED to the display unit, with the display unit as the
+  // label. The `data` payload records both so downstream
+  // consumers can disambiguate.
+  const weightUnitField = state.weightUnit
+  const tempUnitField = state.tempOverrideUnit
+  const displayWeightUnit = units.weightUnit
+  const displayTempUnit = units.tempUnit
 
-  const weightG = parseFloat(state.weight)
-  const weightDisplay = Number.isNaN(weightG) ? '' : fmt1(weightG)
+  const weightFieldRaw = parseFloat(state.weight)
+  const weightFieldDisplay = Number.isNaN(weightFieldRaw)
+    ? ''
+    : weightUnitField === displayWeightUnit
+      ? fmt1(weightFieldRaw)
+      : fmt1(convertWeight(weightFieldRaw, weightUnitField, displayWeightUnit))
 
   const tempC = preset?.tempC ?? 0
-  const tempDisplay = tempUnit === 'F' ? fmt1(cToF(tempC)) : fmt1(tempC)
+  // The preset's default temperature is stored in C; display in
+  // the user's chosen display unit.
+  const presetTempDisplay =
+    displayTempUnit === 'F' ? fmt1(cToF(tempC)) : fmt1(tempC)
 
   const effLow =
     state.effLowOverride != null
@@ -73,13 +99,15 @@ function decarbSummary(
       ? state.timeOverride
       : String(preset?.timeMax ?? '')
 
-  // Compute theoretical max and decarbed values for export
+  // Compute theoretical max and decarbed values for export. The
+  // engine wants grams; convert from the per-field `weightUnit`.
   let theoreticalMax: number | null = null
   let decarbedLow: number | null = null
   let decarbedExpected: number | null = null
   let decarbedHigh: number | null = null
   try {
-    const grams = weightUnit === 'oz' ? ozToG(weightG) : weightG
+    const grams =
+      weightUnitField === 'oz' ? ozToG(weightFieldRaw) : weightFieldRaw
     const thca = parseFloat(state.thcaPct)
     const thc = parseFloat(state.thcPct)
     if (!Number.isNaN(grams) && !Number.isNaN(thca) && !Number.isNaN(thc)) {
@@ -94,15 +122,31 @@ function decarbSummary(
     // leave null
   }
 
+  // Temperature override: the stored value is in
+  // `state.tempOverrideUnit` (per-field). Display in
+  // `displayTempUnit`. If the user overrode 240.1°C then toggled
+  // display to °F, the display-side "460" comes from the
+  // C↔F math at the report boundary, not from re-storing the value.
+  let tempOverrideDisplay: string | null = null
+  if (state.tempOverride != null) {
+    const raw = parseFloat(state.tempOverride)
+    if (!Number.isNaN(raw)) {
+      const inC = tempUnitField === 'F' ? fToC(raw) : raw
+      tempOverrideDisplay =
+        displayTempUnit === 'F' ? fmt1(cToF(inC)) : fmt1(inC)
+    } else {
+      tempOverrideDisplay = state.tempOverride
+    }
+  }
+  const tempLineValue = tempOverrideDisplay ?? presetTempDisplay
+
   const lines: string[] = []
   lines.push('--- Decarboxylation ---')
-  lines.push(`Material Weight: ${weightDisplay} ${weightUnit}`)
+  lines.push(`Material Weight: ${weightFieldDisplay} ${displayWeightUnit}`)
   lines.push(`THCA: ${state.thcaPct}%`)
   lines.push(`Existing THC: ${state.thcPct}%`)
   lines.push(`Method: ${preset?.name ?? state.presetId}`)
-  lines.push(
-    `Temperature: ${state.tempOverride != null ? state.tempOverride : tempDisplay} ${tempUnit}`
-  )
+  lines.push(`Temperature: ${tempLineValue} ${displayTempUnit}`)
   lines.push(`Time: ${timeVal} min`)
   lines.push(
     `Efficiency: Low ${fmt1(effLow)}, Expected ${fmt1(effExpected)}, High ${fmt1(effHigh)}`
@@ -127,11 +171,16 @@ function decarbSummary(
     tab: 'decarb',
     inputs: {
       weight: state.weight,
-      weightUnit,
+      // Per-field unit is the source of truth for the stored value.
+      weightUnit: weightUnitField,
+      // Display unit is what the report line was rendered in.
+      displayWeightUnit,
       thcaPct: state.thcaPct,
       thcPct: state.thcPct,
       presetId: state.presetId,
       tempOverride: state.tempOverride,
+      tempOverrideUnit: tempUnitField,
+      displayTempUnit,
       timeOverride: state.timeOverride,
       effLowOverride: state.effLowOverride,
       effExpectedOverride: state.effExpectedOverride,
@@ -154,10 +203,9 @@ function decarbSummary(
       decarbedLow,
       decarbedExpected,
       decarbedHigh,
-      tempUnit,
+      tempUnit: displayTempUnit,
       timeDisplay: timeVal,
-      tempDisplay:
-        state.tempOverride != null ? state.tempOverride : tempDisplay,
+      tempDisplay: tempLineValue,
     },
   }
 
@@ -180,29 +228,41 @@ function infusionSummary(
 
   const decarbedThc = parseFloat(state.decarbedThc)
   const volume = parseFloat(state.volume)
-  const volumeUnit = units.volumeUnit
+  // 2026-07-25 ccc workflow-validator audit B3: read the per-field
+  // `state.volumeUnit` (the unit the user typed the volume in).
+  // `units.volumeUnit` is display-only and can differ from the
+  // per-field unit.
+  const volumeUnitField = state.volumeUnit
+  const displayVolumeUnit = units.volumeUnit
 
   let infusedThc: number | null = null
   let mgPerUnit: number | null = null
-  let volumeMl = volume
-  if (volumeUnit === 'tsp') volumeMl = volume * 4.929
-  else if (volumeUnit === 'tbsp') volumeMl = volume * 14.787
-  else if (volumeUnit === 'cup') volumeMl = volume * 236.588
+  // Convert from the per-field unit to mL for the math. The
+  // `volumeToMl` helper is the single canonical entry point — it
+  // also throws on an unknown unit (exhaustiveness check), so the
+  // old per-unit switch is gone.
+  const volumeMl = volumeToMl(volume, volumeUnitField)
 
   if (!Number.isNaN(decarbedThc) && !Number.isNaN(eff)) {
     infusedThc = Math.round((decarbedThc * eff + 1e-9) * 10) / 10
     if (!Number.isNaN(volumeMl) && volumeMl > 0) {
       const mgPerMl = infusedThc / volumeMl
-      if (volumeUnit === 'mL')
-        mgPerUnit = Math.round((mgPerMl + 1e-9) * 10) / 10
-      else if (volumeUnit === 'tsp')
-        mgPerUnit = Math.round((mgPerMl * 4.929 + 1e-9) * 10) / 10
-      else if (volumeUnit === 'tbsp')
-        mgPerUnit = Math.round((mgPerMl * 14.787 + 1e-9) * 10) / 10
-      else if (volumeUnit === 'cup')
-        mgPerUnit = Math.round((mgPerMl * 236.588 + 1e-9) * 10) / 10
+      // Per the "display converts for read" convention: render
+      // the concentration in the DISPLAY volume unit, with the
+      // display unit as the label.
+      const displayValue = convertVolume(volumeMl, 'mL', displayVolumeUnit)
+      const mgPerDisplayUnit = mgPerMl * displayValue
+      mgPerUnit = Math.round((mgPerDisplayUnit + 1e-9) * 10) / 10
     }
   }
+
+  // Display the volume in the display unit, with the display unit
+  // as the label. The stored value (volume) is in the per-field
+  // unit; convert at the report boundary.
+  const volumeDisplayValue =
+    Number.isNaN(volume) || volumeUnitField === displayVolumeUnit
+      ? state.volume
+      : convertVolume(volume, volumeUnitField, displayVolumeUnit).toFixed(2)
 
   const lines: string[] = []
   lines.push('--- Fat Infusion ---')
@@ -211,11 +271,11 @@ function infusionSummary(
   lines.push(
     `Extraction Efficiency: ${isCustom ? state.customEfficiency : String(preset?.extractionEff ?? '')}`
   )
-  lines.push(`Volume: ${state.volume} ${volumeUnit}`)
+  lines.push(`Volume: ${volumeDisplayValue} ${displayVolumeUnit}`)
   if (infusedThc != null) {
     lines.push(`Total Infused THC: ${fmt1(infusedThc)} mg`)
     lines.push(
-      `Concentration: ${mgPerUnit != null ? fmt1(mgPerUnit) : '--'} mg/${volumeUnit}`
+      `Concentration: ${mgPerUnit != null ? fmt1(mgPerUnit) : '--'} mg/${displayVolumeUnit}`
     )
   } else {
     lines.push('Total Infused THC: --')
@@ -229,7 +289,10 @@ function infusionSummary(
       decarbedThc: state.decarbedThc,
       fatId: state.fatId,
       volume: state.volume,
-      volumeUnit,
+      // Per-field unit is the source of truth for the stored value.
+      volumeUnit: volumeUnitField,
+      // Display unit is what the report line was rendered in.
+      displayVolumeUnit,
       customEfficiency: state.customEfficiency,
     },
     preset: preset
@@ -243,7 +306,7 @@ function infusionSummary(
     outputs: {
       infusedThc,
       mgPerUnit,
-      unit: volumeUnit,
+      unit: displayVolumeUnit,
     },
   }
 
@@ -311,11 +374,22 @@ function methodsSummary(
   units: UnitPreferences
 ): { text: string; data: Record<string, unknown> } {
   const preset = DECARB_METHODS.find(m => m.id === state.presetId)
-  const weightUnit = units.weightUnit
+  // 2026-07-25 ccc workflow-validator audit B3: per-field unit is
+  // the source of truth for the stored value. Render in the
+  // display unit (convention: "display converts for read").
+  const weightUnitField = state.weightUnit
+  const displayWeightUnit = units.weightUnit
+
+  const weightFieldRaw = parseFloat(state.weight)
+  const weightFieldDisplay = Number.isNaN(weightFieldRaw)
+    ? state.weight
+    : weightUnitField === displayWeightUnit
+      ? fmt1(weightFieldRaw)
+      : fmt1(convertWeight(weightFieldRaw, weightUnitField, displayWeightUnit))
 
   const lines: string[] = []
   lines.push('--- Method Comparison ---')
-  lines.push(`Material Weight: ${state.weight} ${weightUnit}`)
+  lines.push(`Material Weight: ${weightFieldDisplay} ${displayWeightUnit}`)
   lines.push(`THCA: ${state.thcaPct}%`)
   lines.push(`Existing THC: ${state.thcPct}%`)
   lines.push(`Selected Method: ${preset?.name ?? state.presetId}`)
@@ -325,7 +399,8 @@ function methodsSummary(
     tab: 'methods',
     inputs: {
       weight: state.weight,
-      weightUnit,
+      weightUnit: weightUnitField,
+      displayWeightUnit,
       thcaPct: state.thcaPct,
       thcPct: state.thcPct,
       presetId: state.presetId,
@@ -347,13 +422,23 @@ function fatsSummary(
   units: UnitPreferences
 ): { text: string; data: Record<string, unknown> } {
   const preset = INFUSION_FATS.find(f => f.id === state.fatId)
-  const volumeUnit = units.volumeUnit
+  // 2026-07-25 ccc workflow-validator audit B3: per-field unit is
+  // the source of truth for the stored value. Render in the
+  // display unit.
+  const volumeUnitField = state.volumeUnit
+  const displayVolumeUnit = units.volumeUnit
+
+  const volume = parseFloat(state.volume)
+  const volumeDisplayValue =
+    Number.isNaN(volume) || volumeUnitField === displayVolumeUnit
+      ? state.volume
+      : convertVolume(volume, volumeUnitField, displayVolumeUnit).toFixed(2)
 
   const lines: string[] = []
   lines.push('--- Fat Comparison ---')
   lines.push(`Decarbed THC: ${state.decarbedThc} mg`)
   lines.push(`Selected Fat: ${preset?.name ?? state.fatId}`)
-  lines.push(`Volume: ${state.volume} ${volumeUnit}`)
+  lines.push(`Volume: ${volumeDisplayValue} ${displayVolumeUnit}`)
   lines.push('')
 
   const data = {
@@ -362,7 +447,8 @@ function fatsSummary(
       decarbedThc: state.decarbedThc,
       fatId: state.fatId,
       volume: state.volume,
-      volumeUnit,
+      volumeUnit: volumeUnitField,
+      displayVolumeUnit,
     },
     outputs: {
       selectedFat: preset?.name ?? state.fatId,

@@ -147,7 +147,16 @@ function buildFormFromStore(
     totalInfusedThc: totalInfused,
     concentration,
     volume: infusion.volume,
-    volumeUnit: units.volumeUnit,
+    // 2026-07-25 ccc workflow-validator audit B1: use the
+    // per-field `infusion.volumeUnit` (the unit the user typed the
+    // value in) for the form's volume unit, not the display
+    // `units.volumeUnit`. If the user typed 100 in mL and then
+    // toggled display to 'cup' before opening the form, the old
+    // code stamped the form's volumeUnit as 'cup' — so the form
+    // displayed the value 100 with the unit "cup" and saved an
+    // entry of 100 cup (≈23.6 L). The per-field unit is the source
+    // of truth for what the user typed.
+    volumeUnit: infusion.volumeUnit,
     notes: '',
   }
 }
@@ -217,8 +226,13 @@ export function JournalTab() {
           // IPC returned a structured failure — surface it so the user
           // doesn't see an empty journal and assume their data is gone.
           // The 2026-07-25 ccc Infusion audit flagged this as NIT #3.
-          console.warn('[JournalTab] loadJournalEntries IPC returned failure', result?.error)
-          showToast('Could not load journal entries — your saved batches are still on disk')
+          console.warn(
+            '[JournalTab] loadJournalEntries IPC returned failure',
+            result?.error
+          )
+          showToast(
+            'Could not load journal entries — your saved batches are still on disk'
+          )
         }
       })
       .catch(err => {
@@ -226,7 +240,9 @@ export function JournalTab() {
         // system error). Same UX as the success=false branch above:
         // tell the user their data is safe, don't leave them guessing.
         console.warn('[JournalTab] loadJournalEntries IPC threw', err)
-        showToast('Could not load journal entries — your saved batches are still on disk')
+        showToast(
+          'Could not load journal entries — your saved batches are still on disk'
+        )
       })
   }, [setJournalEntries])
 
@@ -251,6 +267,14 @@ export function JournalTab() {
 
     const entry = {
       ...form,
+      // 2026-07-25 ccc uiux-reviewer audit B1: stamp the entry
+      // source so the journal can group / filter entries by where
+      // they came from. The `state-routing` agent is widening the
+      // `JournalEntry` type + migration in parallel; once that
+      // lands the field is fully typed. Today TypeScript accepts
+      // the extra string literal via the structural shape used at
+      // the IPC boundary.
+      source: 'journal_form' as const,
       id:
         form.id ||
         `entry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -735,7 +759,37 @@ export function JournalTab() {
                   Weight
                 </span>
                 <span className="text-sm font-semibold text-foreground">
-                  {entry.materialWeight} g
+                  {/* 2026-07-25 ccc workflow-validator audit B7:
+                      render the material weight in the per-field unit
+                      recorded on the entry (`materialWeightUnit`), not
+                      as a hardcoded "g". A user who saved 0.12 oz
+                      would otherwise see "0.12 g" on the entry card
+                      — a 28× under-report. The `materialWeightUnit`
+                      field is the `state-routing`-owned schema
+                      widening tracked alongside the B1 fix. Older
+                      entries saved before the widening have no field
+                      and we fall back to "g". */}
+                  {(() => {
+                    const w = parseFloat(entry.materialWeight)
+                    // `materialWeightUnit` is the
+                    // `state-routing`-owned schema widening
+                    // tracked alongside the B1 fix. Pre-widening
+                    // entries have no field, so the local cast
+                    // reads through `(entry as ...)` until both
+                    // dispatches land. Once the type widens the
+                    // cast can be deleted.
+                    const unitField = (
+                      entry as unknown as {
+                        materialWeightUnit?: 'g' | 'oz' | string
+                      }
+                    ).materialWeightUnit
+                    if (Number.isNaN(w)) {
+                      return `${entry.materialWeight} ${unitField ?? 'g'}`
+                    }
+                    const unit =
+                      unitField === 'g' || unitField === 'oz' ? unitField : 'g'
+                    return `${w} ${unit}`
+                  })()}
                 </span>
               </div>
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">

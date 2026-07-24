@@ -16,6 +16,7 @@ import {
   simulateDoneness,
   timeLabel,
 } from 'renderer/src/engine/doneness-simulation'
+import { cToF, fToC } from 'renderer/src/engine/units'
 import { MolecularBuilder } from 'renderer/src/components/MolecularBuilder'
 import { TERPENES } from 'renderer/src/engine/terpenes'
 
@@ -95,34 +96,56 @@ function DonenessCurve() {
   const methodMaxTime = Math.max(120, preset.timeMax)
   const defaultTemp = preset.tempC
 
-  const [tempC, setTempC] = useState(defaultTemp)
+  // 2026-07-25 ccc workflow-validator audit B8: the doneness curve
+  // slider previously hardcoded "°C" for both the unit label and
+  // the value passed to the engine. The user's global temp unit
+  // (`units.tempUnit`) was ignored — a °F user would drag the
+  // slider in °C and "Apply to Decarb Tab" would stamp the value
+  // in °C with `tempOverrideUnit: 'C'`, causing a 5/9 × 32
+  // conversion error. Fix: track the slider value in the
+  // DISPLAY unit, convert to C when invoking the engine and
+  // when writing to the store, and stamp `tempOverrideUnit:
+  // units.tempUnit` on the store so the per-field refactor sees
+  // it. The `simulateDoneness` engine call still wants °C, so
+  // we convert at the call boundary.
+  const tempUnit = useAppStore(s => s.units.tempUnit)
+  // Local state is in the DISPLAY unit. `defaultTempDisplay` is
+  // the preset's C value converted to the display unit.
+  const defaultTempDisplay = tempUnit === 'F' ? cToF(defaultTemp) : defaultTemp
+  const [tempDisplay, setTempDisplay] = useState(defaultTempDisplay)
   const [timeMin, setTimeMin] = useState(Math.round(methodMaxTime / 2))
 
-  // Reset to method defaults when preset changes
+  // Reset to method defaults when preset or unit changes.
   useEffect(() => {
-    setTempC(preset.tempC)
+    setTempDisplay(tempUnit === 'F' ? cToF(preset.tempC) : preset.tempC)
     setTimeMin(Math.round(preset.timeMax / 2))
-  }, [preset])
+  }, [preset, tempUnit])
 
   const setDecarb = useAppStore(s => s.setDecarb)
   const setActiveTab = useAppStore(s => s.setActiveTab)
 
+  // Engine and store want °C. Convert at the boundary so the
+  // per-field refactor sees the value in the user's chosen unit
+  // (via `tempOverrideUnit: tempUnit`).
+  const tempForEngine = tempUnit === 'F' ? fToC(tempDisplay) : tempDisplay
+
   const handleApplyToDecarb = useCallback(() => {
     setDecarb({
-      tempOverride: String(tempC),
+      tempOverride: String(tempDisplay),
+      tempOverrideUnit: tempUnit,
       timeOverride: String(timeMin),
     })
     setActiveTab('decarb')
-  }, [setDecarb, setActiveTab, tempC, timeMin])
+  }, [setDecarb, setActiveTab, tempDisplay, tempUnit, timeMin])
 
   function handleReset() {
-    setTempC(preset.tempC)
+    setTempDisplay(tempUnit === 'F' ? cToF(preset.tempC) : preset.tempC)
     setTimeMin(Math.round(preset.timeMax / 2))
   }
 
   const data = useMemo(
-    () => simulateDoneness(tempC, methodMaxTime),
-    [tempC, methodMaxTime]
+    () => simulateDoneness(tempForEngine, methodMaxTime),
+    [tempForEngine, methodMaxTime]
   )
 
   const currentIndex = useMemo(() => {
@@ -182,12 +205,18 @@ function DonenessCurve() {
         <div className="flex-1">
           <RangeSlider
             label="Temperature"
-            max={140}
-            min={60}
-            onChange={setTempC}
+            // Slider min/max in the DISPLAY unit. °F has a wider
+            // numerical range than °C, so the bounds depend on
+            // the current unit. 60-140 °C = 140-284 °F. We pick
+            // the bounds from the active unit so the user gets a
+            // natural drag experience in whichever unit they
+            // use.
+            max={tempUnit === 'F' ? 284 : 140}
+            min={tempUnit === 'F' ? 140 : 60}
+            onChange={setTempDisplay}
             step={1}
-            unit="°C"
-            value={tempC}
+            unit={tempUnit === 'F' ? '°F' : '°C'}
+            value={tempDisplay}
           />
         </div>
         <div className="flex-1">

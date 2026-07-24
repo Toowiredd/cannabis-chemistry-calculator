@@ -297,3 +297,90 @@ describe('AdvancedToolsTab — Fats sub-tab B3 fix (per-field volume unit)', () 
     expect(displayed).toBe(expected)
   })
 })
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-25 ccc uiux-reviewer audit M11                              */
+/*                                                                    */
+/* The audit's M11 fix stamps `decarb.weightUnit` on the              */
+/* "Apply to Decarb Tab" handler in the Concentrates sub-tab. The     */
+/* concentrate's `concentrate.weight` is in grams by contract (the    */
+/* AdvancedConcentrateState has no per-field unit). The handler now   */
+/* preserves the user's existing `decarb.weightUnit` so a future      */
+/* engine call on the Decarb tab interprets the copied weight in the  */
+/* unit the user actually had selected.                                */
+/* ------------------------------------------------------------------ */
+
+describe('AdvancedToolsTab — audit M11 (Apply to Decarb Tab preserves weightUnit)', () => {
+  beforeEach(() => {
+    // The "Apply to Decarb Tab" button lives in the Concentrate
+    // sub-tab. Set the active sub-tab + the concentrate state so
+    // the button renders. Also reset the decarb slice so the
+    // weightUnit is the DEFAULT (not the value seeded by the
+    // "stamps the user's existing weightUnit" test that runs
+    // first in this describe).
+    useAppStore.setState(state => ({
+      decarb: { ...state.decarb, weightUnit: 'g' },
+      advancedTools: {
+        ...state.advancedTools,
+        subTab: 'concentrate',
+      },
+      activeTab: 'advanced',
+    }))
+  })
+
+  it('stamps the user\'s existing decarb.weightUnit on Apply (audit M11)', async () => {
+    // Seed: user had `decarb.weightUnit = 'oz'` (display) and is
+    // now in the Concentrate sub-tab with a non-default weight.
+    // Pre-fix the handler did not stamp weightUnit, so the value
+    // carried into the Decarb tab AS grams while `decarb.weightUnit`
+    // stayed 'oz' — the per-field refactor would then interpret
+    // the grams as ounces (28.35x error).
+    useAppStore.setState(state => ({
+      decarb: { ...state.decarb, weightUnit: 'oz' },
+      advancedTools: {
+        ...state.advancedTools,
+        concentrate: {
+          ...state.advancedTools.concentrate,
+          weight: '5.0',
+        },
+      },
+    }))
+    render(<AdvancedToolsTab />)
+    // The "Apply to Decarb Tab" button only renders once the
+    // debounced calculation has produced a result. Wait for it.
+    const applyBtn = await screen.findByRole('button', {
+      name: /Apply to Decarb Tab/i,
+    })
+    fireEvent.click(applyBtn)
+    // The handler must preserve the user's existing weightUnit.
+    expect(useAppStore.getState().decarb.weightUnit).toBe('oz')
+    // The weight is carried in grams (the contract for the
+    // AdvancedConcentrateState slice).
+    expect(useAppStore.getState().decarb.weight).toBe('5.0')
+    // The active tab switched to 'decarb'.
+    expect(useAppStore.getState().activeTab).toBe('decarb')
+  })
+
+  it('defaults decarb.weightUnit to "g" when no prior value exists (audit M11)', async () => {
+    // Defensive: even if the user lands on Advanced Tools first
+    // (no prior decarb.weightUnit) and clicks Apply, the handler
+    // must stamp a sensible unit. The DEFAULT_DECARB has
+    // weightUnit='g', which the handler reads via the prior
+    // value. So even on a fresh store the value stays 'g'.
+    useAppStore.setState(state => ({
+      advancedTools: {
+        ...state.advancedTools,
+        concentrate: {
+          ...state.advancedTools.concentrate,
+          weight: '2.0',
+        },
+      },
+    }))
+    render(<AdvancedToolsTab />)
+    const applyBtn = await screen.findByRole('button', {
+      name: /Apply to Decarb Tab/i,
+    })
+    fireEvent.click(applyBtn)
+    expect(useAppStore.getState().decarb.weightUnit).toBe('g')
+  })
+})

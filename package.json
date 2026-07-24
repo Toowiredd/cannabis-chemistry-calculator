@@ -31,7 +31,14 @@
     "lint": "biome check --no-errors-on-unmatched",
     "lint:fix": "biome check --write --no-errors-on-unmatched --assist-enabled=true",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "pwa:assets": "pwa-assets-generator",
+    "prebuild:web": "pnpm pwa:assets",
+    "build:web": "vite build --config vite.web.config.ts",
+    "dev:web": "vite dev --config vite.web.config.ts",
+    "preview:web": "vite preview --config vite.web.config.ts",
+    "serve:pwa": "node scripts/serve-pwa.cjs",
+    "validate:pwa": "node scripts/validate-pwa.cjs"
   },
   "dependencies": {
     "@fontsource-variable/space-grotesk": "^5.2.10",

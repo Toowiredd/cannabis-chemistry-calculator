@@ -123,7 +123,9 @@ function advanceToStep(n: number) {
 }
 
 function clickSaveBatch() {
-  fireEvent.click(screen.getByRole('button', { name: /Save Batch to Journal/i }))
+  fireEvent.click(
+    screen.getByRole('button', { name: /Save Batch to Journal/i })
+  )
 }
 
 describe('QuickBatchTab — save-to-journal discipline', () => {
@@ -465,5 +467,278 @@ describe('QuickBatchTab — per-field unit refactor (audit B1, B2, MAJOR)', () =
     expect(useAppStore.getState().infusion.volumeUnit).toBe('mL')
     // 250 / 236.588 = 1.056... -> "1.06"
     expect(volumeInput.value).toBe('1.06')
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-25 ccc uiux-reviewer audit B1                                */
+/*                                                                    */
+/* The audit's B1 fix stamps `source: 'quickbatch'` on every journal  */
+/* entry saved from this tab. The `state-routing` agent owns the      */
+/* `JournalEntry.source` schema widening; the test asserts the        */
+/* stamped value reaches the saved entry even before the widening     */
+/* lands (the entry is read through the existing structural shape).   */
+/* ------------------------------------------------------------------ */
+
+describe('QuickBatchTab — audit B1 (entry.source on save)', () => {
+  beforeEach(() => resetCalculator())
+
+  it('save-to-journal stamps `source: "quickbatch"` on the new entry', async () => {
+    // Browser-only path — no IPC, entry goes straight to the local
+    // store. Simpler + deterministic than the IPC round-trip and
+    // tests the same producer-side concern.
+    delete (window as unknown as { App?: unknown }).App
+    render(<QuickBatchTab />)
+    advanceToFinalStep()
+    clickSaveBatch()
+    await waitFor(() => {
+      expect(useAppStore.getState().journalEntries.length).toBe(1)
+    })
+    const entry = useAppStore.getState().journalEntries[0]
+    // The producer stamps the source; the schema widening is
+    // state-routing's job, so we read through the structural shape
+    // (`unknown`) until both dispatches land.
+    expect((entry as unknown as { source?: string }).source).toBe('quickbatch')
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-25 ccc workflow-validator audit B2                          */
+/*                                                                    */
+/* The audit's B2 fix restores `infusion.volumeUnit` (and             */
+/* `decarb.strainId`, the folded-in N4 fix) on                       */
+/* `handleLoadFromLastBatch` so a journal entry that was saved with   */
+/* per-field units / a selected strain doesn't lose them on reload.   */
+/* ------------------------------------------------------------------ */
+
+describe('QuickBatchTab — audit B2 (handleLoadFromLastBatch carries forward volumeUnit + strainId)', () => {
+  beforeEach(() => resetCalculator())
+
+  it('restores infusion.volumeUnit from the saved entry (audit B2)', () => {
+    // Seed: one saved entry with volume=100, volumeUnit='mL'. The
+    // user's current display unit is 'cup' (so the prior handler
+    // would have loaded 100 mL as 100 cup).
+    useAppStore.setState({
+      journalEntries: [
+        {
+          id: 'entry_test_1',
+          date: '2026-07-25',
+          strainName: '',
+          strainId: null,
+          materialWeight: '3.5',
+          thcaPct: '20',
+          thcPct: '0',
+          cbdaPct: '0',
+          cbdPct: '0',
+          methodId: 'oven_sealed',
+          methodName: 'Oven (Sealed)',
+          fatId: 'coconut',
+          fatName: 'Coconut',
+          servings: '10',
+          mgPerServing: '0',
+          classification: '',
+          totalInfusedThc: '0',
+          concentration: '0',
+          volume: '100',
+          volumeUnit: 'mL',
+          notes: '',
+        },
+      ],
+      units: { ...useAppStore.getState().units, volumeUnit: 'cup' },
+    })
+    render(<QuickBatchTab />)
+    // The "Start from last batch" button is at the top of the
+    // QuickBatch tab.
+    const loadBtn = screen.getByRole('button', {
+      name: /Start from last batch/i,
+    })
+    fireEvent.click(loadBtn)
+    // The new handler must restore BOTH the per-field unit and the
+    // display unit so the loaded value isn't misinterpreted.
+    expect(useAppStore.getState().infusion.volume).toBe('100')
+    expect(useAppStore.getState().infusion.volumeUnit).toBe('mL')
+    expect(useAppStore.getState().units.volumeUnit).toBe('mL')
+  })
+
+  it('restores decarb.strainId from the saved entry (audit workflow N4, folded into B2)', () => {
+    useAppStore.setState({
+      journalEntries: [
+        {
+          id: 'entry_test_2',
+          date: '2026-07-25',
+          strainName: 'OG Kush',
+          // The strainId is the key field — pre-fix, the loader
+          // dropped it silently.
+          strainId: 'strain_og_kush',
+          materialWeight: '3.5',
+          thcaPct: '20',
+          thcPct: '0',
+          cbdaPct: '0',
+          cbdPct: '0',
+          methodId: 'oven_sealed',
+          methodName: 'Oven (Sealed)',
+          fatId: 'coconut',
+          fatName: 'Coconut',
+          servings: '10',
+          mgPerServing: '0',
+          classification: '',
+          totalInfusedThc: '0',
+          concentration: '0',
+          volume: '100',
+          volumeUnit: 'mL',
+          notes: '',
+        },
+      ],
+    })
+    render(<QuickBatchTab />)
+    fireEvent.click(
+      screen.getByRole('button', { name: /Start from last batch/i })
+    )
+    expect(useAppStore.getState().decarb.strainId).toBe('strain_og_kush')
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-25 ccc workflow-validator audit B6                          */
+/*                                                                    */
+/* The audit's B6 fix converts the saved material weight to the       */
+/* DISPLAY unit for the Label & Save summary panel, instead of        */
+/* hardcoding "g". The fix is in the JSX of the Step 5 summary        */
+/* panel; this test renders the final step and asserts the unit       */
+/* label matches the display unit (or the per-field unit, when they   */
+/* match).                                                            */
+/* ------------------------------------------------------------------ */
+
+describe('QuickBatchTab — audit B6 (Label & Save summary panel uses display unit)', () => {
+  beforeEach(() => resetCalculator())
+
+  it('summary panel material line matches the display unit, not a hardcoded "g"', () => {
+    // Seed: weight=3.5, per-field=g, display=oz. Display converts
+    // 3.5 g to 0.12 oz. The summary must show "0.12 oz" — not
+    // "3.5 g" — because the user is in oz mode.
+    useAppStore.setState({
+      decarb: {
+        ...useAppStore.getState().decarb,
+        weight: '3.5',
+        weightUnit: 'g',
+      },
+      units: { ...useAppStore.getState().units, weightUnit: 'oz' },
+    })
+    render(<QuickBatchTab />)
+    advanceToFinalStep()
+    // The summary panel is in step 4 (Label & Save). Render the
+    // tree and walk it for the material cell.
+    const container = document.body
+    // The "Material" label cell.
+    expect(container.textContent).toContain('Material')
+    // The cell must NOT show "3.5 g" (the buggy pre-fix output).
+    // It must show "0.12 oz" (the post-fix display-converted
+    // value).
+    expect(container.textContent).toContain('0.12')
+    expect(container.textContent).toContain('oz')
+    // And the previous "3.5 g" hardcoded value should be gone.
+    expect(container.textContent).not.toContain('3.5 g')
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-25 ccc workflow-validator audit R1 (mirror of DecarbTab)   */
+/*                                                                    */
+/* Same three-case guard the DecarbTab tests pin. The QuickBatchTab   */
+/* shares the audit's R1 fix shape — see DecarbTab tests above for   */
+/* the full rationale. QuickBatch renders the warning on step 0       */
+/* (Material & Lab), so the test mounts and asserts on step 0.        */
+/* ------------------------------------------------------------------ */
+
+describe('QuickBatchTab — audit R1 (inventory warning gate)', () => {
+  beforeEach(() => {
+    resetCalculator()
+    useAppStore.setState({
+      inventory: { items: [], lowStockThreshold: '3.5' },
+    })
+  })
+
+  it('shows NOTHING on step 0 when the user has not entered a weight', () => {
+    useAppStore.setState({
+      decarb: { ...useAppStore.getState().decarb, weight: '' },
+    })
+    render(<QuickBatchTab />)
+    // Step 0 is the default — Material & Lab card is rendered.
+    expect(screen.queryByTestId('quickbatch-inventory-empty')).toBeNull()
+    expect(screen.queryByTestId('quickbatch-inventory-shortage')).toBeNull()
+  })
+
+  it('shows the "Add to your inventory" CTA when weight is set and inventory is empty', async () => {
+    useAppStore.setState({
+      decarb: { ...useAppStore.getState().decarb, weight: '3.5' },
+    })
+    render(<QuickBatchTab />)
+    await waitFor(() => {
+      expect(screen.getByTestId('quickbatch-inventory-empty')).toBeTruthy()
+    })
+    expect(
+      screen.getByTestId('quickbatch-inventory-empty').textContent
+    ).toMatch(/Add to your inventory to track consumption/i)
+    expect(screen.queryByTestId('quickbatch-inventory-shortage')).toBeNull()
+  })
+
+  it('the QuickBatch "Add to your inventory" CTA navigates to the Dashboard tab', async () => {
+    useAppStore.setState({
+      decarb: { ...useAppStore.getState().decarb, weight: '3.5' },
+    })
+    render(<QuickBatchTab />)
+    await waitFor(() => {
+      expect(screen.getByTestId('quickbatch-inventory-empty-link')).toBeTruthy()
+    })
+    fireEvent.click(screen.getByTestId('quickbatch-inventory-empty-link'))
+    expect(useAppStore.getState().activeTab).toBe('dashboard')
+  })
+
+  it('shows the "Insufficient material" shortage message when items exist and weight > on-hand', async () => {
+    useAppStore.setState({
+      decarb: { ...useAppStore.getState().decarb, weight: '5' },
+      inventory: {
+        items: [
+          {
+            id: 'inv_seed',
+            date: '2026-07-25',
+            type: 'purchase',
+            name: 'OG Kush',
+            amountGrams: '1',
+          },
+        ],
+        lowStockThreshold: '3.5',
+      },
+    })
+    render(<QuickBatchTab />)
+    await waitFor(() => {
+      expect(screen.getByTestId('quickbatch-inventory-shortage')).toBeTruthy()
+    })
+    expect(
+      screen.getByTestId('quickbatch-inventory-shortage').textContent
+    ).toMatch(/Insufficient material: need 5\.0g, have 1\.0g/i)
+    expect(screen.queryByTestId('quickbatch-inventory-empty')).toBeNull()
+  })
+
+  it('shows NOTHING when items exist and on-hand covers the weight', async () => {
+    useAppStore.setState({
+      decarb: { ...useAppStore.getState().decarb, weight: '2' },
+      inventory: {
+        items: [
+          {
+            id: 'inv_seed',
+            date: '2026-07-25',
+            type: 'purchase',
+            name: 'OG Kush',
+            amountGrams: '10',
+          },
+        ],
+        lowStockThreshold: '3.5',
+      },
+    })
+    render(<QuickBatchTab />)
+    await new Promise(r => setTimeout(r, 0))
+    expect(screen.queryByTestId('quickbatch-inventory-empty')).toBeNull()
+    expect(screen.queryByTestId('quickbatch-inventory-shortage')).toBeNull()
   })
 })

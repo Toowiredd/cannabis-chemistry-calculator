@@ -15,8 +15,19 @@ import {
 } from 'renderer/src/engine/concentrate'
 import { DECARB_METHODS } from 'renderer/src/engine/models'
 import type { Strain } from 'renderer/src/engine/models'
-import { cToF, fToC, convertWeight, gToOz, ozToG } from 'renderer/src/engine/units'
-import { minSigFigs, formatWithSigFigs, round1n, fmt1 } from 'renderer/src/engine/formatting'
+import {
+  cToF,
+  fToC,
+  convertWeight,
+  gToOz,
+  ozToG,
+} from 'renderer/src/engine/units'
+import {
+  minSigFigs,
+  formatWithSigFigs,
+  round1n,
+  fmt1,
+} from 'renderer/src/engine/formatting'
 import { cn } from 'renderer/lib/utils'
 import {
   ChevronDown,
@@ -109,10 +120,20 @@ function validateDecarbFields(
   }
 
   // THC
+  // 2026-07-25 ccc uiux-reviewer audit M4 / M5: the prior version
+  // gated the entire calculator on `thcPct !== ''`, demanding the
+  // user enter an "existing THC percentage" even when the user
+  // only had a THCA reading (the dominant case for raw cannabis
+  // flower). The engine — both flower mode at DecarbTab.tsx:425
+  // and concentrate mode at DecarbTab.tsx:385 — already handles
+  // `thcPct = ''` by defaulting to 0 (`|| 0`). The UI gate was
+  // out of sync with the engine. Now: empty thcPct is allowed
+  // (THCA alone is enough); a non-empty value must still be a
+  // valid percentage in [0, 100]. This matches the QuickBatch
+  // engine path that already treats thc=0 as the standard flower
+  // case.
   const hStr = thcPct.trim()
-  if (hStr === '') {
-    errors.thcPct = 'We need an existing THC percentage'
-  } else {
+  if (hStr !== '') {
     const h = parseFloat(hStr)
     if (Number.isNaN(h)) errors.thcPct = 'That does not look like a number'
     else if (h < 0)
@@ -235,20 +256,49 @@ export function DecarbTab() {
   const units = useAppStore(s => s.units)
   const setUnits = useAppStore(s => s.setUnits)
   const inventory = useAppStore(s => s.inventory)
+  const setActiveTab = useAppStore(s => s.setActiveTab)
 
-  /* Inventory warning */
+  /* Inventory warning.
+   *
+   * 2026-07-25 ccc workflow-validator audit (R1) found the prior
+   * guard short-circuited on `inventory.items.length === 0`, so the
+   * warning never fired on the default empty state. The fix has two
+   * surfaces:
+   *   - When the user has NOT entered a weight yet, show nothing
+   *     (the previous behavior, still correct — the warning is
+   *     about a specific batch).
+   *   - When the user HAS entered a weight but the inventory is
+   *     empty, show a friendly empty-state warning with a link to
+   *     the Dashboard tab where the inventory UI now lives
+   *     (the audit's BLOCKER B4 closes that loop).
+   *   - When the user has entered a weight and has items, show the
+   *     pre-existing "Insufficient material: need Xg, have Yg"
+   *     message.
+   *
+   * The state shape is `string | null` (plain text) for the
+   * shortage case + a boolean for the empty-state case. We compute
+   * both in the same effect so the warning can't desync.
+   */
   const [inventoryWarning, setInventoryWarning] = useState<string | null>(null)
+  const [inventoryEmpty, setInventoryEmpty] = useState<boolean>(false)
 
   useEffect(() => {
     const w = parseFloat(decarb.weight)
     if (Number.isNaN(w) || w <= 0) {
       setInventoryWarning(null)
+      setInventoryEmpty(false)
       return
     }
     if (inventory.items.length === 0) {
+      // Weight entered but inventory empty: this is the new
+      // empty-state warning. The actual warning text lives in the
+      // JSX (a link to the Dashboard) — we just flip a boolean
+      // here so the effect stays a pure computation.
       setInventoryWarning(null)
+      setInventoryEmpty(true)
       return
     }
+    setInventoryEmpty(false)
     // Convert the stored value (which is in `decarb.weightUnit`, the
     // unit the user typed it in) to grams for the inventory check.
     // Previously this used `units.weightUnit` (the display unit) —
@@ -266,7 +316,7 @@ export function DecarbTab() {
     } else {
       setInventoryWarning(null)
     }
-  }, [decarb.weight, units.weightUnit, inventory.items])
+  }, [decarb.weight, decarb.weightUnit, units.weightUnit, inventory.items])
 
   /* Preset lookup */
   const preset = useMemo(
@@ -376,7 +426,15 @@ export function DecarbTab() {
         if (isConcentrate) {
           // Concentrate mode
           const thca = parseFloat(decarb.thcaPct)
-          const thc = parseFloat(decarb.thcPct)
+          // 2026-07-25 ccc uiux-reviewer audit M4 / M5: the
+          // `|| 0` lets the engine run with THCA alone (a missing
+          // thcPct is the common case — concentrates are
+          // typically labeled as THCA%). Without it, parseFloat('')
+          // is NaN, calculateConcentrateTheoreticalMax produces
+          // NaN, and the result panel hides. The M4 / M5 fix
+          // removes the UI gate; this `|| 0` keeps the engine in
+          // sync with the new gate.
+          const thc = parseFloat(decarb.thcPct) || 0
           const theoreticalMax = calculateConcentrateTheoreticalMax(
             weightGrams,
             thca,
@@ -409,7 +467,14 @@ export function DecarbTab() {
         } else {
           // Flower mode
           const thca = parseFloat(decarb.thcaPct)
-          const thc = parseFloat(decarb.thcPct)
+          // 2026-07-25 ccc uiux-reviewer audit M4 / M5: same as
+          // the concentrate branch — `|| 0` so the engine works
+          // with THCA alone (the dominant case for raw cannabis
+          // flower). Without it, parseFloat('') is NaN,
+          // calculateTheoreticalMax produces NaN, and the result
+          // panel hides. The UI gate is removed in
+          // `validateDecarbFields`; this keeps the engine in sync.
+          const thc = parseFloat(decarb.thcPct) || 0
           const theoreticalMax = calculateTheoreticalMax(weightGrams, thca, thc)
 
           const effLow =
@@ -633,8 +698,7 @@ export function DecarbTab() {
           if (decarb.tempOverrideUnit === units.tempUnit) {
             return decarb.tempOverride ?? ''
           }
-          const converted =
-            units.tempUnit === 'F' ? cToF(v) : fToC(v)
+          const converted = units.tempUnit === 'F' ? cToF(v) : fToC(v)
           return converted.toFixed(2)
         })()
       : presetTempDisplay
@@ -815,8 +879,34 @@ export function DecarbTab() {
           <LabPasteField onParsed={handleLabParsed} />
 
           {/* Weight */}
+          {inventoryEmpty && !inventoryWarning && (
+            // 2026-07-25 inventory audit: when the user has typed
+            // a weight but has no inventory items, the friendly
+            // "Add to your inventory" warning replaces the
+            // short-circuit. The link navigates to the Dashboard
+            // where the InventorySection lives (BLOCKER B4).
+            <div
+              className="flex flex-wrap items-center gap-2 rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-xs text-info"
+              data-testid="decarb-inventory-empty"
+            >
+              <AlertTriangle className="size-4 shrink-0" />
+              <span>Add to your inventory to track consumption.</span>
+              <button
+                aria-label="Open Dashboard to add to inventory"
+                className="rounded font-semibold underline underline-offset-2 transition-colors hover:text-info/80"
+                data-testid="decarb-inventory-empty-link"
+                onClick={() => setActiveTab('dashboard')}
+                type="button"
+              >
+                Open Dashboard
+              </button>
+            </div>
+          )}
           {inventoryWarning && (
-            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+            <div
+              className="flex flex-wrap items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning"
+              data-testid="decarb-inventory-shortage"
+            >
               <AlertTriangle className="size-4 shrink-0" />
               {inventoryWarning}
             </div>

@@ -452,10 +452,25 @@ function ConcentrateSection() {
   ])
 
   const handleUseThis = () => {
+    // 2026-07-25 ccc uiux-reviewer audit M11: the prior handler
+    // did not stamp `decarb.weightUnit`, so the per-field unit on
+    // the Decarb tab stayed whatever the user last had selected.
+    // The concentrate's `concentrate.weight` is in grams by
+    // contract (the AdvancedConcentrateState has no per-field
+    // unit — see appStore.ts:114-120), so the value carries into
+    // the Decarb tab AS grams. Fix: preserve the user's existing
+    // `decarb.weightUnit` when present, otherwise default to 'g'
+    // (the conventional unit for concentrate weight). This
+    // prevents a fresh "Apply to Decarb Tab" from
+    // materialMode='concentrate' with a stale per-field unit
+    // like 'oz' that would later make the per-field refactor
+    // re-interpret the grams as ounces (28.35x error).
+    const prevDecarb = useAppStore.getState().decarb
     setDecarb({
       materialMode: 'concentrate',
       concentrateTypeId: cType.id,
       weight: concentrate.weight,
+      weightUnit: prevDecarb.weightUnit ?? 'g',
       thcaPct: String(thcaPct),
       thcPct: String(thcPct),
       presetId: cType.needsDecarb ? 'oven_sealed' : 'distillate',

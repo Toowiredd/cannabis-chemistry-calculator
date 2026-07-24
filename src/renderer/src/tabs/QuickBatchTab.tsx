@@ -224,6 +224,15 @@ export function QuickBatchTab() {
     const fat = results.fat
 
     const entry = {
+      // 2026-07-25 ccc uiux-reviewer audit B1: stamp the entry
+      // source so the journal can group / filter entries by where
+      // they came from. The `state-routing` agent is widening the
+      // `JournalEntry` type + migration in parallel; once that
+      // lands the field is fully typed. Today TypeScript accepts
+      // the extra string literal via the structural shape used at
+      // the IPC boundary (see `window.App.saveJournalEntry`'s
+      // `unknown` entry param).
+      source: 'quickbatch' as const,
       id: `entry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       date: new Date().toISOString().split('T')[0],
       strainName: '',
@@ -286,11 +295,7 @@ export function QuickBatchTab() {
       // Disk write failed (or the IPC bridge threw for a real reason,
       // not just "undefined"). Do NOT add to the local store — that
       // would be a phantom entry, lost on the next Journal-tab mount.
-      console.warn(
-        '[QuickBatchTab] saveJournalEntry IPC threw',
-        entry.id,
-        err
-      )
+      console.warn('[QuickBatchTab] saveJournalEntry IPC threw', entry.id, err)
       showToast('Could not save — your data is still in the calculator')
     }
   }
@@ -324,15 +329,35 @@ export function QuickBatchTab() {
       cbdaPct: lastEntry.cbdaPct,
       cbdPct: lastEntry.cbdPct,
       presetId: lastEntry.methodId,
+      // 2026-07-25 ccc workflow-validator audit (workflow N4, folded
+      // into the B2 site): the prior `handleLoadFromLastBatch` only
+      // restored weight + thcaPct + thcPct + cbdaPct + cbdPct + presetId
+      // and dropped `strainId`. Loading a journal entry that was
+      // saved with a strain selected silently re-opened the entry
+      // with `strainId = null`, so the Strain Library would not
+      // count the resumed batch against that strain's usage stats.
+      strainId: lastEntry.strainId ?? null,
     })
     setInfusion({
       fatId: lastEntry.fatId,
       volume: lastEntry.volume,
+      // 2026-07-25 ccc workflow-validator audit B2: restore the
+      // per-field `volumeUnit` (the unit the entry was saved in),
+      // not just the display `units.volumeUnit`. If the entry was
+      // saved as "100 mL" while the user's display was "cup", the
+      // old handler left `infusion.volumeUnit = 'mL'` (the
+      // default) and toggled `units.volumeUnit = 'cup'`, so the
+      // loaded "100" was re-interpreted as 100 cup — a 23.6x
+      // fat-volume error.
+      volumeUnit: lastEntry.volumeUnit as UnitPreferences['volumeUnit'],
     })
     setDose({
       servings: lastEntry.servings,
     })
     setUnits({
+      // Display unit mirrors the per-field unit on load so the
+      // user sees the same numeric value they saved. They can
+      // toggle display freely after.
       volumeUnit: lastEntry.volumeUnit as UnitPreferences['volumeUnit'],
     })
     // Loading a prior batch is a deliberate repeat/resume action and is a
@@ -365,18 +390,32 @@ export function QuickBatchTab() {
   const progressPct = ((step + 1) / STEPS.length) * 100
 
   // Inventory warning for weight
+  //
+  // 2026-07-25 ccc workflow-validator audit (R1) found the prior
+  // guard short-circuited on `inventory.items.length === 0`, so the
+  // warning never fired on the default empty state. The fix is the
+  // same shape as DecarbTab:
+  //   - No weight entered → show nothing.
+  //   - Weight entered + empty inventory → show the friendly
+  //     "Add to your inventory" warning with a link to Dashboard.
+  //   - Weight entered + items present + insufficient → show the
+  //     pre-existing "Insufficient material: need Xg, have Yg".
   const [inventoryWarning, setInventoryWarning] = useState<string | null>(null)
+  const [inventoryEmpty, setInventoryEmpty] = useState<boolean>(false)
   useEffect(() => {
     const inventory = store.inventory
     const w = parseFloat(decarb.weight)
     if (Number.isNaN(w) || w <= 0) {
       setInventoryWarning(null)
+      setInventoryEmpty(false)
       return
     }
     if (inventory.items.length === 0) {
       setInventoryWarning(null)
+      setInventoryEmpty(true)
       return
     }
+    setInventoryEmpty(false)
     // Use the per-field unit. See DecarbState.weightUnit.
     const weightGrams = decarb.weightUnit === 'oz' ? ozToG(w) : w
     const onHand = inventory.items.reduce((sum, i) => {
@@ -390,7 +429,7 @@ export function QuickBatchTab() {
     } else {
       setInventoryWarning(null)
     }
-  }, [decarb.weight, units.weightUnit, store.inventory])
+  }, [decarb.weight, decarb.weightUnit, units.weightUnit, store.inventory])
 
   return (
     <div className="flex min-w-0 flex-col gap-5 p-2 sm:p-4">
@@ -462,8 +501,33 @@ export function QuickBatchTab() {
           </h3>
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {inventoryEmpty && !inventoryWarning && (
+              // 2026-07-25 inventory audit: when the user has
+              // typed a weight but has no inventory items, show a
+              // friendly warning with a link to the Dashboard
+              // where the InventorySection lives (BLOCKER B4).
+              <div
+                className="col-span-full flex flex-wrap items-center gap-2 rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-xs text-info"
+                data-testid="quickbatch-inventory-empty"
+              >
+                <AlertTriangle className="size-4 shrink-0" />
+                <span>Add to your inventory to track consumption.</span>
+                <button
+                  aria-label="Open Dashboard to add to inventory"
+                  className="rounded font-semibold underline underline-offset-2 transition-colors hover:text-info/80"
+                  data-testid="quickbatch-inventory-empty-link"
+                  onClick={() => setActiveTab('dashboard')}
+                  type="button"
+                >
+                  Open Dashboard
+                </button>
+              </div>
+            )}
             {inventoryWarning && (
-              <div className="col-span-full flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+              <div
+                className="col-span-full flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning"
+                data-testid="quickbatch-inventory-shortage"
+              >
                 <AlertTriangle className="size-4 shrink-0" />
                 {inventoryWarning}
               </div>
@@ -1032,7 +1096,21 @@ export function QuickBatchTab() {
                   Material
                 </span>
                 <span className="text-sm font-semibold text-foreground">
-                  {decarb.weight} g
+                  {/* 2026-07-25 ccc workflow-validator audit B6: convert
+                      the stored material weight to the DISPLAY unit for
+                      this label, matching the Decarb tab's pattern
+                      (DecarbTab.tsx:867-881) — do NOT hardcode "g".
+                      A user who typed 0.12 oz would otherwise see
+                      "0.12 g" here even though they entered ounces. */}
+                  {(() => {
+                    const w = parseFloat(decarb.weight)
+                    if (Number.isNaN(w))
+                      return `${decarb.weight} ${units.weightUnit}`
+                    if (decarb.weightUnit === units.weightUnit) {
+                      return `${fmt1(w)} ${units.weightUnit}`
+                    }
+                    return `${convertWeight(w, decarb.weightUnit, units.weightUnit).toFixed(2)} ${units.weightUnit}`
+                  })()}
                 </span>
               </div>
               <div className="flex flex-col rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
