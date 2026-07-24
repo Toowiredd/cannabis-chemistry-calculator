@@ -1075,6 +1075,29 @@ function StepMaterial({
         button below pulls those values in for you.
       </p>
 
+      {/*
+        2026-07-25 AVB feature round: one-line callout near the
+        material step. The First-Timer Guide is a "happy path"
+        for raw flower; users with AVB need a sign that the
+        calculator supports them. The callout points to the
+        QuickBatch Material step (where the AVB material mode
+        lives), without disrupting the wizard's normal flow.
+      */}
+      <div
+        className="flex flex-col gap-1 rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-xs text-info"
+        data-testid="first-timer-avb-callout"
+      >
+        <span className="font-semibold">
+          Already vaped bud? You can skip the decarb step.
+        </span>
+        <span>
+          If you have AVB (already vaped bud) from a vaporizer,
+          you can skip the decarb step and go straight to
+          infusion. Pick AVB on the Material step in Quick Batch
+          to see the flow.
+        </span>
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         <button
           className="inline-flex items-center gap-1.5 rounded-md border border-foreground/20 bg-foreground/5 px-2.5 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 focus-visible:outline-none"

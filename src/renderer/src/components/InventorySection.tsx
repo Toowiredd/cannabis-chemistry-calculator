@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useAppStore, type InventoryItem } from 'renderer/src/stores/appStore'
+import { AVB_RESIDUAL_THC_RANGES, type AVBColor } from 'renderer/src/engine/decarb'
 import { cn } from 'renderer/lib/utils'
 import {
   Package,
@@ -10,8 +11,12 @@ import {
   Save,
   ShoppingCart,
   FlaskConical,
+  Leaf,
+  Droplets,
+  Cloud,
 } from 'lucide-react'
 import { Toast, type ToastVariant } from './Toast'
+import { TooltipIcon } from './TooltipIcon'
 
 /**
  * 2026-07-25 ccc workflow-validator audit (BLOCKER B4 + B5 + B6 + B7)
@@ -51,6 +56,44 @@ import { Toast, type ToastVariant } from './Toast'
  * is the only UI surface that calls them.
  */
 
+/**
+ * The `InventoryItem` schema on the store is locked by
+ * `state-routing` (v3) to:
+ *   `{id, date, type, name, amountGrams, cost?, notes?, kind?}`
+ * where `kind` is the material semantic ('flower' | 'concentrate' | 'avb').
+ * The store intentionally does NOT carry an `avbColor` field — it lives
+ * on the QuickBatch / Decarb tab via the `materialMode` + a separate
+ * residual-THC % input. So the inventory's "color" is encoded as a
+ * parseable prefix in the free-text `notes` field (`color:light` /
+ * `color:medium` / `color:dark`). This is the chosen trade-off: avoid
+ * a v3→v4 persist migration just to add one field, and the color is
+ * only needed for display on the inventory row badge — the calculator
+ * never reads it back (it uses the materialMode + thcPct instead).
+ */
+const AVB_COLOR_PREFIX = 'color:'
+
+function parseAvbColor(notes: string | undefined): AVBColor | null {
+  if (!notes) return null
+  const trimmed = notes.trim()
+  for (const c of ['light', 'medium', 'dark'] as const) {
+    if (trimmed === `${AVB_COLOR_PREFIX}${c}`) return c
+    if (trimmed.startsWith(`${AVB_COLOR_PREFIX}${c}\n`)) return c
+    if (trimmed.startsWith(`${AVB_COLOR_PREFIX}${c} `)) return c
+  }
+  return null
+}
+
+function withAvbColor(notes: string, color: AVBColor | null): string {
+  const existing = notes.replace(
+    new RegExp(`^${AVB_COLOR_PREFIX}(light|medium|dark)\\s*\\n?\\s?`),
+    ''
+  )
+  if (color === null) return existing
+  return existing
+    ? `${AVB_COLOR_PREFIX}${color}\n${existing}`
+    : `${AVB_COLOR_PREFIX}${color}`
+}
+
 interface FormData {
   name: string
   amountGrams: string
@@ -58,6 +101,8 @@ interface FormData {
   date: string
   cost: string
   notes: string
+  kind: 'flower' | 'concentrate' | 'avb'
+  avbColor: AVBColor
 }
 
 function todayIso(): string {
@@ -72,6 +117,8 @@ const EMPTY_FORM: FormData = {
   date: todayIso(),
   cost: '',
   notes: '',
+  kind: 'flower',
+  avbColor: 'medium',
 }
 
 function genId(): string {
@@ -143,18 +190,28 @@ export function InventorySection() {
       return
     }
     const id = genId()
+    // `withAvbColor` collapses the form's free-text `notes` with the
+    // structured AVB color prefix so the row can render the color
+    // badge without a schema widening.
+    const mergedNotes = withAvbColor(form.notes.trim(), form.kind === 'avb' ? form.avbColor : null)
     const item: InventoryItem = {
       id,
       date: form.date || todayIso(),
       type: form.type,
       name: form.name.trim(),
       amountGrams: form.amountGrams.trim(),
+      // 2026-07-25 AVB feature: stamp `kind` on every new item so the
+      // "Insufficient material" gate on QuickBatch + Decarb can
+      // branch on flower / concentrate / avb without inspecting
+      // notes. The store's v2→v3 migration backfills `kind: 'flower'`
+      // for legacy items, so consumers can rely on a present value.
+      kind: form.kind,
       // Only stamp `cost` / `notes` when the user actually entered
       // something. The store schema makes them optional, and a
       // persistent empty-string would be a phantom field for the
       // Journal / summary consumers.
       ...(form.cost.trim() !== '' ? { cost: form.cost.trim() } : {}),
-      ...(form.notes.trim() !== '' ? { notes: form.notes.trim() } : {}),
+      ...(mergedNotes !== '' ? { notes: mergedNotes } : {}),
     }
     try {
       addInventoryItem(item)
@@ -170,13 +227,26 @@ export function InventorySection() {
     setEditingId(item.id)
     setConfirmingDeleteId(null)
     setEditError(null)
+    const existingColor = parseAvbColor(item.notes)
+    const displayNotes = item.notes
+      ? item.notes.replace(
+          new RegExp(`^${AVB_COLOR_PREFIX}(light|medium|dark)\\s*\\n?\\s?`),
+          ''
+        )
+      : ''
     setEditForm({
       name: item.name,
       amountGrams: item.amountGrams,
       type: item.type,
       date: item.date,
       cost: item.cost ?? '',
-      notes: item.notes ?? '',
+      notes: displayNotes,
+      // 2026-07-25 AVB feature: pre-populate kind from the item
+      // (v2→v3 migration backfills `'flower'` for legacy items, so
+      // this is always defined). Default to 'flower' for the
+      // pre-v3 typecheck.
+      kind: item.kind ?? 'flower',
+      avbColor: existingColor ?? 'medium',
     })
   }, [])
 
@@ -193,15 +263,22 @@ export function InventorySection() {
         setEditError(err)
         return
       }
+      const mergedNotes = withAvbColor(
+        editForm.notes.trim(),
+        editForm.kind === 'avb' ? editForm.avbColor : null
+      )
       const updated: InventoryItem = {
         id: originalId,
         date: editForm.date || todayIso(),
         type: editForm.type,
         name: editForm.name.trim(),
         amountGrams: editForm.amountGrams.trim(),
+        // Preserve the kind the user just picked (or the prior
+        // v2-migration-backfilled value for a legacy item).
+        kind: editForm.kind,
         ...(editForm.cost.trim() !== '' ? { cost: editForm.cost.trim() } : {}),
-        ...(editForm.notes.trim() !== ''
-          ? { notes: editForm.notes.trim() }
+        ...(mergedNotes !== ''
+          ? { notes: mergedNotes }
           : {}),
       }
       try {
@@ -390,6 +467,117 @@ export function InventorySection() {
                 <option value="usage">Usage (consume from stock)</option>
               </select>
             </div>
+
+            {/*
+              2026-07-25 AVB feature: 3-option Material kind picker.
+              Defaults to "Flower" (the common add-to-stock case).
+              The AVB option reveals a color picker that pre-fills
+              the residual THC % estimate from
+              `AVB_RESIDUAL_THC_RANGES[color].midPct` (engine layer,
+              chem-engine) so the user doesn't have to research the
+              color → potency mapping themselves.
+            */}
+            <div className="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/70">
+                Material
+                {form.kind === 'avb' && (
+                  <TooltipIcon text="Already Vaped Bud — the material left in your vaporizer after a session. It's already decarboxylated, so skip the oven step. Pick the color closest to your AVB to estimate residual potency." />
+                )}
+              </span>
+              <div
+                aria-label="Material kind"
+                className="inline-flex w-full rounded-lg border border-foreground/20 bg-foreground/5 p-0.5"
+                data-testid="inventory-kind-toggle"
+                role="radiogroup"
+              >
+                {(
+                  [
+                    { value: 'flower', label: 'Flower', icon: Leaf },
+                    { value: 'concentrate', label: 'Concentrate', icon: Droplets },
+                    { value: 'avb', label: 'AVB (already vaped bud)', icon: Cloud },
+                  ] as const
+                ).map(opt => {
+                  const Icon = opt.icon
+                  const isSelected = form.kind === opt.value
+                  return (
+                    <button
+                      aria-checked={isSelected}
+                      aria-label={opt.label}
+                      className={cn(
+                        'flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                        isSelected
+                          ? 'bg-foreground/15 text-foreground'
+                          : 'text-foreground/70 hover:text-foreground/80'
+                      )}
+                      data-testid={`inventory-kind-${opt.value}`}
+                      key={opt.value}
+                      onClick={() =>
+                        setForm(f => ({ ...f, kind: opt.value }))
+                      }
+                      role="radio"
+                      type="button"
+                    >
+                      <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+                      <span className="truncate">{opt.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {form.kind === 'avb' && (
+              <div
+                className="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3"
+                data-testid="inventory-avb-color-picker"
+              >
+                <span className="text-xs font-medium text-foreground/70">
+                  AVB color
+                </span>
+                <div
+                  aria-label="AVB color"
+                  className="inline-flex w-full rounded-lg border border-foreground/20 bg-foreground/5 p-0.5"
+                  role="radiogroup"
+                >
+                  {(
+                    [
+                      { value: 'light', label: 'Light', range: AVB_RESIDUAL_THC_RANGES.light },
+                      { value: 'medium', label: 'Medium', range: AVB_RESIDUAL_THC_RANGES.medium },
+                      { value: 'dark', label: 'Dark', range: AVB_RESIDUAL_THC_RANGES.dark },
+                    ] as const
+                  ).map(opt => {
+                    const isSelected = form.avbColor === opt.value
+                    return (
+                      <button
+                        aria-checked={isSelected}
+                        aria-label={`${opt.label} (≈ ${opt.range.midPct}% residual THC)`}
+                        className={cn(
+                          'flex min-h-10 flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
+                          isSelected
+                            ? 'bg-foreground/15 text-foreground'
+                            : 'text-foreground/70 hover:text-foreground/80'
+                        )}
+                        data-testid={`inventory-avb-color-${opt.value}`}
+                        key={opt.value}
+                        onClick={() =>
+                          setForm(f => ({ ...f, avbColor: opt.value }))
+                        }
+                        role="radio"
+                        type="button"
+                      >
+                        <span>{opt.label}</span>
+                        <span className="text-[10px] font-normal text-foreground/60">
+                          ≈ {opt.range.midPct}% residual
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+                <span className="text-[11px] text-foreground/60">
+                  Lighter AVB retains more THC; darker AVB has been
+                  vaped longer and is less potent.
+                </span>
+              </div>
+            )}
 
             <div className="flex min-w-0 flex-col gap-1">
               <label
@@ -592,6 +780,104 @@ export function InventorySection() {
                       />
                     </div>
                     <div className="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3">
+                      <span className="text-xs font-medium text-foreground/70">
+                        Material
+                      </span>
+                      <div
+                        aria-label="Material kind"
+                        className="inline-flex w-full rounded-lg border border-foreground/20 bg-foreground/5 p-0.5"
+                        data-testid="inventory-edit-kind-toggle"
+                        role="radiogroup"
+                      >
+                        {(
+                          [
+                            { value: 'flower', label: 'Flower', icon: Leaf },
+                            { value: 'concentrate', label: 'Concentrate', icon: Droplets },
+                            { value: 'avb', label: 'AVB (already vaped bud)', icon: Cloud },
+                          ] as const
+                        ).map(opt => {
+                          const Icon = opt.icon
+                          const isSelected = editForm.kind === opt.value
+                          return (
+                            <button
+                              aria-checked={isSelected}
+                              aria-label={opt.label}
+                              className={cn(
+                                'flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                                isSelected
+                                  ? 'bg-foreground/15 text-foreground'
+                                  : 'text-foreground/70 hover:text-foreground/80'
+                              )}
+                              data-testid={`inventory-edit-kind-${opt.value}`}
+                              key={opt.value}
+                              onClick={() =>
+                                setEditForm(f => ({ ...f, kind: opt.value }))
+                              }
+                              role="radio"
+                              type="button"
+                            >
+                              <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+                              <span className="truncate">{opt.label}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {editForm.kind === 'avb' && (
+                      <div
+                        className="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3"
+                        data-testid="inventory-edit-avb-color-picker"
+                      >
+                        <span className="text-xs font-medium text-foreground/70">
+                          AVB color
+                        </span>
+                        <div
+                          aria-label="AVB color"
+                          className="inline-flex w-full rounded-lg border border-foreground/20 bg-foreground/5 p-0.5"
+                          role="radiogroup"
+                        >
+                          {(
+                            [
+                              { value: 'light', label: 'Light', range: AVB_RESIDUAL_THC_RANGES.light },
+                              { value: 'medium', label: 'Medium', range: AVB_RESIDUAL_THC_RANGES.medium },
+                              { value: 'dark', label: 'Dark', range: AVB_RESIDUAL_THC_RANGES.dark },
+                            ] as const
+                          ).map(opt => {
+                            const isSelected = editForm.avbColor === opt.value
+                            return (
+                              <button
+                                aria-checked={isSelected}
+                                aria-label={`${opt.label} (≈ ${opt.range.midPct}% residual THC)`}
+                                className={cn(
+                                  'flex min-h-10 flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
+                                  isSelected
+                                    ? 'bg-foreground/15 text-foreground'
+                                    : 'text-foreground/70 hover:text-foreground/80'
+                                )}
+                                data-testid={`inventory-edit-avb-color-${opt.value}`}
+                                key={opt.value}
+                                onClick={() =>
+                                  setEditForm(f => ({
+                                    ...f,
+                                    avbColor: opt.value,
+                                  }))
+                                }
+                                role="radio"
+                                type="button"
+                              >
+                                <span>{opt.label}</span>
+                                <span className="text-[10px] font-normal text-foreground/60">
+                                  ≈ {opt.range.midPct}% residual
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3">
                       <label
                         className="text-xs font-medium text-foreground/70"
                         htmlFor={`edit-notes-${item.id}`}
@@ -667,6 +953,16 @@ export function InventorySection() {
             const isPurchase = item.type === 'purchase'
             const grams = parseFloat(item.amountGrams) || 0
             const costNum = item.cost ? parseFloat(item.cost) : null
+            const itemKind = item.kind ?? 'flower'
+            const itemAvbColor = parseAvbColor(item.notes)
+            // Display notes without the `color:...` prefix so the
+            // user sees only their free-text on the row.
+            const displayNotes = item.notes
+              ? item.notes.replace(
+                  new RegExp(`^${AVB_COLOR_PREFIX}(light|medium|dark)\\s*\\n?\\s?`),
+                  ''
+                )
+              : ''
             return (
               <li
                 className="flex flex-col gap-2 rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
@@ -707,6 +1003,35 @@ export function InventorySection() {
                       >
                         {isPurchase ? 'Purchase' : 'Usage'}
                       </span>
+                      {/*
+                        2026-07-25 AVB feature: per-item kind badge.
+                        Concentrate + AVB get distinct colors so the
+                        user can scan a list and see what they have
+                        at a glance. Flower (the legacy default) is
+                        left unbadged to avoid visual noise on lists
+                        dominated by flower.
+                      */}
+                      {itemKind !== 'flower' && (
+                        <span
+                          className={cn(
+                            'rounded-full border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
+                            itemKind === 'avb'
+                              ? 'border-warning/30 bg-warning/10 text-warning'
+                              : 'border-info/30 bg-info/10 text-info'
+                          )}
+                          data-testid="inventory-item-kind-badge"
+                        >
+                          {itemKind === 'avb' ? 'AVB' : 'Concentrate'}
+                        </span>
+                      )}
+                      {itemKind === 'avb' && itemAvbColor && (
+                        <span
+                          className="rounded-full border border-foreground/15 bg-foreground/5 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/70"
+                          data-testid="inventory-item-avb-color"
+                        >
+                          {itemAvbColor} ({AVB_RESIDUAL_THC_RANGES[itemAvbColor].midPct}%)
+                        </span>
+                      )}
                       <span data-testid="inventory-item-amount">
                         {grams.toFixed(1)} g
                       </span>
@@ -720,14 +1045,14 @@ export function InventorySection() {
                           </span>
                         </>
                       )}
-                      {item.notes && (
+                      {displayNotes && (
                         <>
                           <span>·</span>
                           <span
                             className="truncate"
                             data-testid="inventory-item-notes"
                           >
-                            {item.notes}
+                            {displayNotes}
                           </span>
                         </>
                       )}

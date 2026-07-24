@@ -422,3 +422,86 @@ describe('DecarbTab — audit R1 (inventory warning gate)', () => {
     expect(screen.queryByTestId('decarb-inventory-shortage')).toBeNull()
   })
 })
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-25 AVB feature round — ui-tabs                               */
+/*                                                                     */
+/* The DecarbTab's AVB engine path:                                    */
+/* - Material mode toggle includes a 3rd "AVB" option                  */
+/* - Picking AVB hides the Decarb Method picker, the temperature /     */
+/*   time / efficiency advanced inputs, and the THCA % input           */
+/* - The same `decarb.thcPct` field is reused as the residual THC %    */
+/* - The engine calls `calculateAvbTheoreticalMax(weightGrams, thc)`   */
+/*   and `calculateDecarbedThc(theoreticalMax, 1.0)` (efficiency = 1)  */
+/* - The "Insufficient material" gate filters by `kind: 'avb'`         */
+/* ------------------------------------------------------------------ */
+
+describe('DecarbTab — AVB (already vaped bud) feature', () => {
+  beforeEach(() => resetDecarb())
+
+  it('AVB material mode hides the Decarb Method picker + temperature/time inputs', () => {
+    useAppStore.setState({
+      decarb: { ...DEFAULT_DECARB, materialMode: 'avb' },
+    })
+    render(<DecarbTab />)
+    // The Method Preset picker is the InputRow that contains the
+    // <select> for presetId. It is hidden in AVB mode — there
+    // should be no <select> for the method preset.
+    expect(
+      screen.queryByRole('combobox', { name: /Method Preset/i })
+    ).toBeNull()
+    // The Advanced Settings toggle is also hidden — no
+    // temperature / time / efficiency overrides in AVB mode.
+    expect(screen.queryByTestId('decarb-advanced-toggle')).toBeNull()
+    // The THCA % input is hidden in AVB mode (no THCA on AVB).
+    expect(screen.queryByTestId('decarb-thca-input')).toBeNull()
+    // The Existing THC % input is repurposed as the Residual THC %
+    // input — its test-id is unchanged but the label is different.
+    expect(screen.getByTestId('decarb-thc-input')).toBeTruthy()
+    // The color picker is rendered.
+    expect(screen.getByTestId('decarb-avb-color-picker')).toBeTruthy()
+  })
+
+  it('AVB engine call uses calculateAvbTheoreticalMax with the right input', async () => {
+    // Seed: 3.5g of light AVB. The midPct of `light` is 6.5%, so
+    // the engine call should compute 3.5 × 6.5% × 1000 = 227.5 mg
+    // (no 0.877 factor — AVB is already decarboxylated).
+    useAppStore.setState({
+      decarb: {
+        ...DEFAULT_DECARB,
+        materialMode: 'avb',
+        weight: '3.5',
+        thcPct: '6.5',
+      },
+    })
+    render(<DecarbTab />)
+    const theoMax = screen.getByTestId('decarb-theoretical-max')
+    await waitFor(() => {
+      const text = theoMax.textContent ?? ''
+      // Sig-fig rounding: 3.5 / 6.5 → 2 sig-figs, so 227.5 → 230.
+      // The 0.877 flower path would give 3.5 × 6.5 × 0.877 = 19.95
+      // → 20 (with 2 sig-figs). The gap (230 vs 20) is what
+      // proves the AVB engine call skipped the 0.877 factor.
+      expect(text).toMatch(/2[0-9][0-9](\.[0-9]+)?\s*mg/)
+    })
+    // The decarb-adjusted THC must be the same value (efficiency 1.0).
+    const decarbedExpected = screen.getByTestId('decarb-expected')
+    await waitFor(() => {
+      expect(decarbedExpected.textContent ?? '').toMatch(/2[0-9][0-9](\.[0-9]+)?\s*mg/)
+    })
+  })
+
+  it('AVB color picker pre-fills the residual THC % field on click', () => {
+    useAppStore.setState({
+      decarb: { ...DEFAULT_DECARB, materialMode: 'avb' },
+    })
+    render(<DecarbTab />)
+    // Click the "Light" color. The midPct of `light` is 6.5 — the
+    // input should reflect that value.
+    fireEvent.click(screen.getByTestId('decarb-avb-color-light'))
+    expect(useAppStore.getState().decarb.thcPct).toBe('6.5')
+    // The Dark color sets thcPct to 2.
+    fireEvent.click(screen.getByTestId('decarb-avb-color-dark'))
+    expect(useAppStore.getState().decarb.thcPct).toBe('2')
+  })
+})

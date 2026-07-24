@@ -4,6 +4,9 @@ import { DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
 import {
   calculateTheoreticalMax,
   calculateDecarbedThc,
+  calculateAvbTheoreticalMax,
+  AVB_RESIDUAL_THC_RANGES,
+  type AVBColor,
 } from 'renderer/src/engine/decarb'
 import {
   calculateInfusedThc,
@@ -28,6 +31,9 @@ import {
   BookOpen,
   AlertTriangle,
   History,
+  Leaf,
+  Droplets,
+  Cloud,
 } from 'lucide-react'
 import { LabelGenerator } from 'renderer/src/components/LabelGenerator'
 import { InputRow } from 'renderer/src/components/InputRow'
@@ -97,20 +103,47 @@ export function QuickBatchTab() {
       decarb.effHighOverride ?? String(method?.efficiency.high ?? 0.98)
     )
 
-    const hasDecarb =
-      !Number.isNaN(weight) && !Number.isNaN(thca) && !Number.isNaN(thc)
-    const theoreticalMax = hasDecarb
-      ? calculateTheoreticalMax(weightGrams, thca, thc)
-      : 0
-    const decarbedLow = hasDecarb
-      ? calculateDecarbedThc(theoreticalMax, effLow)
-      : 0
-    const decarbedExpected = hasDecarb
-      ? calculateDecarbedThc(theoreticalMax, effExpected)
-      : 0
-    const decarbedHigh = hasDecarb
-      ? calculateDecarbedThc(theoreticalMax, effHigh)
-      : 0
+    // 2026-07-25 AVB feature: three material modes (flower /
+    // concentrate / avb). AVB skips the 0.877 THCA→THC factor
+    // (it's already decarboxylated by the vaporizer) and uses the
+    // residual THC % the user typed in `thcPct`. The engine math
+    // is in `decarb.ts` (`calculateAvbTheoreticalMax`); this file
+    // just routes the right call site.
+    const isAvb = decarb.materialMode === 'avb'
+    const hasDecarb = isAvb
+      ? !Number.isNaN(weight) && !Number.isNaN(thc) && weight > 0 && thc > 0
+      : !Number.isNaN(weight) && !Number.isNaN(thca) && !Number.isNaN(thc)
+    const theoreticalMax = isAvb
+      ? hasDecarb
+        ? calculateAvbTheoreticalMax(weightGrams, thc)
+        : 0
+      : hasDecarb
+        ? calculateTheoreticalMax(weightGrams, thca, thc)
+        : 0
+    // For AVB, the residual IS already-decarbed THC, so the
+    // efficiency is 1.0. The flower / concentrate paths use the
+    // user-selected decarb method's efficiency.
+    const decarbedLow = isAvb
+      ? hasDecarb
+        ? calculateDecarbedThc(theoreticalMax, 1.0)
+        : 0
+      : hasDecarb
+        ? calculateDecarbedThc(theoreticalMax, effLow)
+        : 0
+    const decarbedExpected = isAvb
+      ? hasDecarb
+        ? calculateDecarbedThc(theoreticalMax, 1.0)
+        : 0
+      : hasDecarb
+        ? calculateDecarbedThc(theoreticalMax, effExpected)
+        : 0
+    const decarbedHigh = isAvb
+      ? hasDecarb
+        ? calculateDecarbedThc(theoreticalMax, 1.0)
+        : 0
+      : hasDecarb
+        ? calculateDecarbedThc(theoreticalMax, effHigh)
+        : 0
 
     const fat = INFUSION_FATS.find(f => f.id === infusion.fatId)
     const extractionEff =
@@ -155,6 +188,7 @@ export function QuickBatchTab() {
       method,
       fat,
       extractionEff,
+      isAvb,
     }
   }, [decarb, infusion, dose, units])
 
@@ -223,6 +257,13 @@ export function QuickBatchTab() {
     const method = results.method
     const fat = results.fat
 
+    // 2026-07-25 AVB feature: stamp `source: 'avb'` when the user
+    // saved an AVB-origin batch so the Journal tab can group /
+    // colour-code these separately from regular quickbatch entries.
+    // The 'avb' literal is in `JournalEntrySource` (state-routing
+    // widening) — the cast keeps the structural IPC contract
+    // satisfied.
+    const isAvbSave = decarb.materialMode === 'avb'
     const entry = {
       // 2026-07-25 ccc uiux-reviewer audit B1: stamp the entry
       // source so the journal can group / filter entries by where
@@ -232,7 +273,7 @@ export function QuickBatchTab() {
       // the extra string literal via the structural shape used at
       // the IPC boundary (see `window.App.saveJournalEntry`'s
       // `unknown` entry param).
-      source: 'quickbatch' as const,
+      source: isAvbSave ? ('avb' as const) : ('quickbatch' as const),
       id: `entry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       date: new Date().toISOString().split('T')[0],
       strainName: '',
@@ -366,9 +407,34 @@ export function QuickBatchTab() {
     showToast('Loaded last batch')
   }
 
-  /* Step helpers */
-  const nextStep = () => setStep(s => Math.min(s + 1, STEPS.length - 1))
-  const prevStep = () => setStep(s => Math.max(s - 1, 0))
+  /* Step helpers.
+   * 2026-07-25 AVB feature: when `materialMode === 'avb'`, the Decarb
+   * Method step (index 1) is meaningless — AVB is already decarbed
+   * by the vaporizer. Skip the step in both directions by advancing
+   * the raw step index by 2 instead of 1 when stepping out of
+   * Material (0), and by 2 when stepping back from Fat (2). The
+   * step header pills (the 5-segment progress UI) keep using the
+   * raw step index, so the user can still jump back to Material
+   * via the pill — they just see the Decarb Method step as
+   * unmapped when AVB is the mode.
+   */
+  const isAvbMode = decarb.materialMode === 'avb'
+  const nextStep = () =>
+    setStep(s => {
+      if (isAvbMode && s === 0) {
+        // 0 (Material) -> 2 (Fat & Volume), skipping 1 (Decarb)
+        return Math.min(s + 2, STEPS.length - 1)
+      }
+      return Math.min(s + 1, STEPS.length - 1)
+    })
+  const prevStep = () =>
+    setStep(s => {
+      if (isAvbMode && s === 2) {
+        // 2 (Fat & Volume) -> 0 (Material), skipping 1 (Decarb)
+        return Math.max(s - 2, 0)
+      }
+      return Math.max(s - 1, 0)
+    })
   const nextStepLabel =
     step < STEPS.length - 1 ? `Next: ${STEPS[step + 1].label}` : 'Next'
 
@@ -381,12 +447,24 @@ export function QuickBatchTab() {
     return units.tempUnit === 'F' ? round1n(cToF(val)) : round1n(val)
   }, [decarb.presetId, decarb.tempOverride, units.tempUnit])
 
-  /* Validation helpers */
+  /* Validation helpers.
+   * 2026-07-25 AVB feature: in AVB mode, the THCA % input is
+   * hidden — the residual THC % (typed into the thcPct field) is
+   * what the engine uses. The gate reduces to "grams > 0 AND
+   * thcPct >= 0", and the residual THC % is allowed to be 0
+   * (a spent AVB with effectively zero residual is a valid input
+   * that yields 0 mg — the user can still see the calculator run).
+   */
   const materialValid =
-    !Number.isNaN(parseFloat(decarb.weight)) &&
-    parseFloat(decarb.weight) > 0 &&
-    !Number.isNaN(parseFloat(decarb.thcaPct)) &&
-    parseFloat(decarb.thcaPct) >= 0
+    decarb.materialMode === 'avb'
+      ? !Number.isNaN(parseFloat(decarb.weight)) &&
+        parseFloat(decarb.weight) > 0 &&
+        !Number.isNaN(parseFloat(decarb.thcPct)) &&
+        parseFloat(decarb.thcPct) >= 0
+      : !Number.isNaN(parseFloat(decarb.weight)) &&
+        parseFloat(decarb.weight) > 0 &&
+        !Number.isNaN(parseFloat(decarb.thcaPct)) &&
+        parseFloat(decarb.thcaPct) >= 0
   const progressPct = ((step + 1) / STEPS.length) * 100
 
   // Inventory warning for weight
@@ -410,7 +488,28 @@ export function QuickBatchTab() {
       setInventoryEmpty(false)
       return
     }
-    if (inventory.items.length === 0) {
+    // 2026-07-25 AVB feature: 3-way material-mode branch. The
+    // "Insufficient material" gate only fires for the kinds the
+    // inventory actually tracks.
+    //   - 'flower' (or undefined, the legacy default): sum
+    //     `kind === 'flower' || kind === undefined` items
+    //   - 'concentrate': not tracked in inventory (concentrates
+    //     are typically bought by the gram, not batch-tracked)
+    //     → no gate at all
+    //   - 'avb': sum `kind === 'avb'` items
+    if (decarb.materialMode === 'concentrate') {
+      setInventoryWarning(null)
+      setInventoryEmpty(false)
+      return
+    }
+    const targetKind = decarb.materialMode // 'flower' | 'avb'
+    const matching = inventory.items.filter(
+      i =>
+        (targetKind === 'flower'
+          ? i.kind === 'flower' || i.kind === undefined
+          : i.kind === 'avb')
+    )
+    if (matching.length === 0) {
       setInventoryWarning(null)
       setInventoryEmpty(true)
       return
@@ -418,7 +517,7 @@ export function QuickBatchTab() {
     setInventoryEmpty(false)
     // Use the per-field unit. See DecarbState.weightUnit.
     const weightGrams = decarb.weightUnit === 'oz' ? ozToG(w) : w
-    const onHand = inventory.items.reduce((sum, i) => {
+    const onHand = matching.reduce((sum, i) => {
       const g = parseFloat(i.amountGrams) || 0
       return i.type === 'purchase' ? sum + g : sum - g
     }, 0)
@@ -429,7 +528,13 @@ export function QuickBatchTab() {
     } else {
       setInventoryWarning(null)
     }
-  }, [decarb.weight, decarb.weightUnit, units.weightUnit, store.inventory])
+  }, [
+    decarb.weight,
+    decarb.weightUnit,
+    decarb.materialMode,
+    units.weightUnit,
+    store.inventory,
+  ])
 
   return (
     <div className="flex min-w-0 flex-col gap-5 p-2 sm:p-4">
@@ -605,45 +710,190 @@ export function QuickBatchTab() {
               }
             </InputRow>
 
-            <InputRow
-              label={
-                <>
-                  THCA %
-                  <TooltipIcon text="Raw cannabis actually contains THCA, not THC. Heat converts it." />
-                </>
-              }
+            {/* 2026-07-25 AVB feature: 3-option Material kind picker.
+                When the user picks AVB, the THCA % input is hidden
+                and replaced with a "Residual THC %" input (the AVB
+                residual is already-active THC, so the 0.877 factor
+                doesn't apply). A 3-segment color picker pre-fills
+                the residual THC % with the midpoint of the color's
+                range. */}
+            <div
+              className="col-span-full flex min-w-0 flex-col gap-2"
+              data-testid="quickbatch-material-mode"
             >
-              {
-                <input
-                  className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-                  onChange={e => setDecarb({ thcaPct: e.target.value })}
-                  placeholder="0.0"
-                  step="0.1"
-                  type="number"
-                  value={decarb.thcaPct}
-                />
-              }
-            </InputRow>
+              <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/80">
+                Material
+                {decarb.materialMode === 'avb' && (
+                  <TooltipIcon text="Already Vaped Bud — the material left in your vaporizer after a session. It's already decarboxylated, so skip the oven step. Pick the color closest to your AVB to estimate residual potency." />
+                )}
+              </span>
+              <div
+                aria-label="Material kind"
+                className="inline-flex w-full rounded-lg border border-foreground/20 bg-foreground/5 p-0.5"
+                role="radiogroup"
+              >
+                {(
+                  [
+                    { value: 'flower', label: 'Flower', icon: Leaf },
+                    { value: 'concentrate', label: 'Concentrate', icon: Droplets },
+                    { value: 'avb', label: 'AVB (already vaped bud)', icon: Cloud },
+                  ] as const
+                ).map(opt => {
+                  const Icon = opt.icon
+                  const isSelected = decarb.materialMode === opt.value
+                  return (
+                    <button
+                      aria-checked={isSelected}
+                      aria-label={opt.label}
+                      className={cn(
+                        'flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                        isSelected
+                          ? 'bg-foreground/15 text-foreground'
+                          : 'text-foreground/70 hover:text-foreground/80'
+                      )}
+                      data-testid={`quickbatch-material-${opt.value}`}
+                      key={opt.value}
+                      onClick={() => setDecarb({ materialMode: opt.value })}
+                      role="radio"
+                      type="button"
+                    >
+                      <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+                      <span className="truncate">{opt.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
 
-            <InputRow
-              label={
-                <>
-                  Existing THC %
-                  <TooltipIcon text="THC already in your material. Ready to go, no heat needed." />
-                </>
-              }
-            >
-              {
-                <input
-                  className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-                  onChange={e => setDecarb({ thcPct: e.target.value })}
-                  placeholder="0.0"
-                  step="0.1"
-                  type="number"
-                  value={decarb.thcPct}
-                />
-              }
-            </InputRow>
+            {decarb.materialMode === 'avb' ? (
+              <>
+                <InputRow
+                  label={
+                    <>
+                      Residual THC %
+                      <TooltipIcon text="Already-active THC in your AVB. AVB is decarboxylated by the vaporizer, so the 0.877 THCA→THC factor does NOT apply. Pick the AVB color below to pre-fill this with a typical value, then fine-tune." />
+                    </>
+                  }
+                >
+                  {
+                    <input
+                      className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                      data-testid="quickbatch-residual-thc-input"
+                      max={100}
+                      min={0}
+                      onChange={e => setDecarb({ thcPct: e.target.value })}
+                      placeholder="0.0"
+                      step="0.1"
+                      type="number"
+                      value={decarb.thcPct}
+                    />
+                  }
+                </InputRow>
+                <div
+                  className="col-span-full flex min-w-0 flex-col gap-2"
+                  data-testid="quickbatch-avb-color-picker"
+                >
+                  <span className="text-xs font-medium text-foreground/80">
+                    AVB color
+                  </span>
+                  <div
+                    aria-label="AVB color"
+                    className="inline-flex w-full rounded-lg border border-foreground/20 bg-foreground/5 p-0.5"
+                    role="radiogroup"
+                  >
+                    {(
+                      [
+                        {
+                          value: 'light' as AVBColor,
+                          label: 'Light',
+                          range: AVB_RESIDUAL_THC_RANGES.light,
+                        },
+                        {
+                          value: 'medium' as AVBColor,
+                          label: 'Medium',
+                          range: AVB_RESIDUAL_THC_RANGES.medium,
+                        },
+                        {
+                          value: 'dark' as AVBColor,
+                          label: 'Dark',
+                          range: AVB_RESIDUAL_THC_RANGES.dark,
+                        },
+                      ] as const
+                    ).map(opt => (
+                      <button
+                        aria-checked={parseFloat(decarb.thcPct) === opt.range.midPct}
+                        aria-label={`${opt.label} (≈ ${opt.range.midPct}% residual THC)`}
+                        className={cn(
+                          'flex min-h-10 flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
+                          parseFloat(decarb.thcPct) === opt.range.midPct
+                            ? 'bg-foreground/15 text-foreground'
+                            : 'text-foreground/70 hover:text-foreground/80'
+                        )}
+                        data-testid={`quickbatch-avb-color-${opt.value}`}
+                        key={opt.value}
+                        // Pre-fill the residual THC % with the
+                        // midpoint of the color's range. The user
+                        // can still fine-tune the % manually after.
+                        onClick={() => setDecarb({ thcPct: String(opt.range.midPct) })}
+                        role="radio"
+                        type="button"
+                      >
+                        <span>{opt.label}</span>
+                        <span className="text-[10px] font-normal text-foreground/60">
+                          ≈ {opt.range.midPct}% residual
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[11px] text-foreground/60">
+                    Lighter AVB retains more THC; darker AVB has been
+                    vaped longer and is less potent.
+                  </span>
+                </div>
+              </>
+            ) : (
+              <InputRow
+                label={
+                  <>
+                    THCA %
+                    <TooltipIcon text="Raw cannabis actually contains THCA, not THC. Heat converts it." />
+                  </>
+                }
+              >
+                {
+                  <input
+                    className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                    onChange={e => setDecarb({ thcaPct: e.target.value })}
+                    placeholder="0.0"
+                    step="0.1"
+                    type="number"
+                    value={decarb.thcaPct}
+                  />
+                }
+              </InputRow>
+            )}
+
+            {decarb.materialMode !== 'avb' && (
+              <InputRow
+                label={
+                  <>
+                    Existing THC %
+                    <TooltipIcon text="THC already in your material. Ready to go, no heat needed." />
+                  </>
+                }
+              >
+                {
+                  <input
+                    className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                    onChange={e => setDecarb({ thcPct: e.target.value })}
+                    placeholder="0.0"
+                    step="0.1"
+                    type="number"
+                    value={decarb.thcPct}
+                  />
+                }
+              </InputRow>
+            )}
 
             <InputRow
               label={
@@ -711,8 +961,16 @@ export function QuickBatchTab() {
         </div>
       )}
 
-      {/* ---- STEP 2: Decarb Method ---- */}
-      {step === 1 && (
+      {/* ---- STEP 2: Decarb Method ----
+          2026-07-25 AVB feature: the Decarb Method step is
+          meaningless for AVB — the material is already decarbed by
+          the vaporizer. The nextStep/prevStep helpers skip this
+          step's raw index (1) when materialMode === 'avb', so
+          the user should never land here in AVB mode. The render
+          block returns null as a defensive guard so a stale store
+          (e.g. user toggled from flower→avb while on step 1) does
+          not flash the decarb-method UI before nextStep fires. */}
+      {step === 1 && decarb.materialMode !== 'avb' && (
         <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Decarb Method

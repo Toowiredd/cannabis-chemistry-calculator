@@ -221,15 +221,18 @@ describe('appStore wizard persistence (round-trip)', () => {
     expect(persistedWizard).toHaveProperty('selections')
   })
 
-  it('version=2 is set on the persisted envelope (was bumped when JournalEntry.source was added)', async () => {
+  it('version=3 is set on the persisted envelope (was bumped again in the 2026-07-25 AVB feature round for InventoryItem.kind)', async () => {
     useAppStore
       .getState()
       .toggleWizardSelection('decarbMethodIds', 'oven_sealed')
     await waitForPersisted()
-    // Bumped from 1 to 2 in the 2026-07-25 BLOCKER B1 fix (see
-    // appStore.journalMigration.test.ts). The wizard slice contract
-    // is unchanged — only the on-disk envelope version moved.
-    expect(readPersisted()?.version).toBe(2)
+    // Bumped from 1 → 2 in the 2026-07-25 BLOCKER B1 fix
+    // (JournalEntry.source backfill) and again 2 → 3 in the
+    // 2026-07-25 AVB feature round (InventoryItem.kind backfill,
+    // see appStore.journalMigration.test.ts). The wizard slice
+    // contract is unchanged across both bumps — only the on-disk
+    // envelope version moved.
+    expect(readPersisted()?.version).toBe(3)
   })
 
   it('round-trip: wizard.dismissed=true survives reload (rehydration)', async () => {

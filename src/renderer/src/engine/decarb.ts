@@ -105,3 +105,125 @@ export function calculateRange(
     high: round1(theoreticalMax * highEff),
   }
 }
+
+// ---------------------------------------------------------------------------
+// AVB (Already Vaped Bud / ABV) math layer
+// ---------------------------------------------------------------------------
+
+/**
+ * AVB is the community term for material left in a dry-herb vaporizer after
+ * a session. It is already decarboxylated (THCA → THC during the vape
+ * session) and has a lower residual THC content (typically 1–8% by mass)
+ * depending on the vaporizer temperature, draw length, and number of
+ * re-vapes.
+ *
+ * Mathematically, AVB fits the existing theoretical-max formula by treating
+ * the residual as already-decarboxylated THC (so the 0.877 THCA→THC factor
+ * does NOT apply). The color → residual mapping below encodes the community
+ * heuristic that lighter brown AVB retains more THC than darker AVB.
+ */
+
+/** Visual AVB color category used as a proxy for residual THC. */
+export type AVBColor = 'light' | 'medium' | 'dark'
+
+/**
+ * Residual THC percentage range for a given AVB color category.
+ *
+ * @property minPct     Lower-bound residual THC percentage [0, 100]
+ * @property midPct     Most-likely residual THC percentage [0, 100]
+ * @property maxPct     Upper-bound residual THC percentage [0, 100]
+ * @property efficiency Decarb efficiency [0.0, 1.0] — always 1.0 for AVB
+ *                      because the material is already decarboxylated by
+ *                      the vaporizer session (no further decarb needed)
+ */
+export interface AVBResidualRange {
+  minPct: number
+  midPct: number
+  maxPct: number
+  efficiency: number
+}
+
+/**
+ * Residual THC ranges keyed by visual AVB color.
+ *
+ * Basis: community + dry-herb vaporizer manufacturer guidance, plus the
+ * generalized "low-temp retains more cannabinoids" principle from the same
+ * decarboxylation literature that drives the rest of the engine (see
+ * `research/academic-references.md`). There is no single peer-reviewed
+ * "AVB residual THC" number; published vaporizer studies report a wide
+ * spread because residual depends on temperature, draw length, packing
+ * density, and number of re-vapes. The ranges below are conservative
+ * midpoints of that spread:
+ *   - light  (golden / light brown, low-temp ~180°C, short draws):
+ *       ~5–8% residual THC remaining
+ *   - medium (medium brown, mid-temp ~200°C, typical session):
+ *       ~3–5% residual THC remaining
+ *   - dark   (dark brown / near-black, high-temp ~220°C, long session,
+ *       re-vaped): ~1–3% residual THC remaining
+ *
+ * `efficiency` is 1.0 for all three because AVB is already decarboxylated —
+ * no further decarb step is needed before infusion.
+ */
+export const AVB_RESIDUAL_THC_RANGES: Record<AVBColor, AVBResidualRange> = {
+  light: { minPct: 5, midPct: 6.5, maxPct: 8, efficiency: 1.0 },
+  medium: { minPct: 3, midPct: 4, maxPct: 5, efficiency: 1.0 },
+  dark: { minPct: 1, midPct: 2, maxPct: 3, efficiency: 1.0 },
+}
+
+/**
+ * Calculate the theoretical maximum THC (in mg) from AVB material.
+ *
+ * Formula: grams * (residualThcPct / 100) * 1000
+ *          (delegates to `calculateTheoreticalMax(grams, 0, residualThcPct)`)
+ *
+ * The 0.877 THCA→THC factor is intentionally NOT applied: AVB is already
+ * decarboxylated by the vaporizer, so the residual is already-active THC.
+ *
+ * @param grams          AVB weight in grams
+ * @param residualThcPct Residual THC percentage [0, 100] (already decarbed)
+ * @returns              Theoretical maximum in mg, rounded to 1 decimal
+ * @throws {ValidationError} if grams < 0 or residualThcPct is outside [0, 100]
+ */
+export function calculateAvbTheoreticalMax(
+  grams: number,
+  residualThcPct: number
+): number {
+  if (grams < 0) throw new ValidationError('grams cannot be negative')
+  if (residualThcPct < 0) {
+    throw new ValidationError('residualThcPct cannot be negative')
+  }
+  if (residualThcPct > 100) {
+    throw new ValidationError('residualThcPct cannot exceed 100%')
+  }
+  // Delegate to the canonical theoretical-max function so the THCA→THC
+  // factor, input validation, and 1-decimal rounding are all reused
+  // consistently with the flower / concentrate paths. The `* 1.0` documents
+  // that AVB is already decarboxylated (efficiency = 1.0).
+  return calculateTheoreticalMax(grams, 0, residualThcPct) * 1.0
+}
+
+/**
+ * Calculate low / expected / high theoretical max (in mg) for an AVB
+ * weight + color category.
+ *
+ * Uses `AVB_RESIDUAL_THC_RANGES[color]` to pick the min / mid / max residual
+ * THC percentages, then delegates to `calculateAvbTheoreticalMax` for each.
+ *
+ * @param grams AVB weight in grams
+ * @param color AVB color category ('light' | 'medium' | 'dark')
+ * @returns     Object with `low`, `expected`, `high` theoretical max in mg
+ *              (all rounded to 1 decimal)
+ * @throws {ValidationError} if grams < 0 (propagated from
+ *         `calculateAvbTheoreticalMax`)
+ */
+export function calculateAvbTheoreticalMaxFromColor(
+  grams: number,
+  color: AVBColor
+): { low: number; expected: number; high: number } {
+  const range = AVB_RESIDUAL_THC_RANGES[color]
+  return {
+    low: calculateAvbTheoreticalMax(grams, range.minPct),
+    expected: calculateAvbTheoreticalMax(grams, range.midPct),
+    high: calculateAvbTheoreticalMax(grams, range.maxPct),
+  }
+}

@@ -9,6 +9,7 @@ import {
   Leaf,
   AlertTriangle,
   ArrowRight,
+  Cloud,
 } from 'lucide-react'
 import { DECARB_METHODS } from 'renderer/src/engine/models'
 import { useAppStore } from 'renderer/src/stores/appStore'
@@ -976,6 +977,67 @@ export function KnowledgeTab() {
             pressure on delicate terpenes as low as possible.
             <Cite doi="10.1089/can.2021.0173" label="Eyal et al. 2023" />
             <Cite doi="10.3390/molecules27206920" label="Raz et al. 2022" />
+          </p>
+        </SectionCard>
+
+        {/* Section 13: AVB (Already Vaped Bud) — 2026-07-25 feature round.
+            The card lives between the explainer cards (1-12) and
+            the Interactive Decarboxylation Curve (which is a
+            different layout). It explains what AVB is, why it
+            doesn't need decarbing, the color → residual THC
+            mapping, why re-decarbing AVB is wrong, and the
+            typical usage (lower-temp infusion). The icon is
+            Cloud (matching the QuickBatch / Decarb /
+            InventorySection pickers). The body text is 4
+            sentences per the task spec. */}
+        <SectionCard
+          icon={<Cloud className="size-5 text-foreground/80" />}
+          title="AVB (Already Vaped Bud)"
+        >
+          <p>
+            AVB is the material left in your dry-herb vaporizer after a
+            session — the community also calls it ABV. Because the
+            vaporizer heats the cannabis hot enough to decarboxylate
+            the THCA into active THC on the way through, AVB is
+            <em> already decarboxylated</em>: skip the oven step
+            entirely and go straight to infusion.
+          </p>
+          <p className="mt-3">
+            AVB is not zero-potency though. The residual THC depends on
+            how long and how hot the session ran, and the community
+            uses the color as a quick signal:{' '}
+            <strong className="font-semibold text-foreground/90">
+              light
+            </strong>{' '}
+            (golden / light brown) AVB still has roughly 5–8% residual
+            THC; <strong className="font-semibold text-foreground/90">
+              medium
+            </strong>{' '}
+            (medium brown) is around 3–5%;{' '}
+            <strong className="font-semibold text-foreground/90">
+              dark
+            </strong>{' '}
+            (dark brown / near-black) is around 1–3%. The Quick Batch
+            and Decarb tabs use those ranges as the default for the
+            residual-THC % estimate when you pick a color.
+          </p>
+          <p className="mt-3">
+            Do <em>not</em> re-decarb AVB. The cannabinoids left in
+            AVB are more fragile than in fresh flower — the same heat
+            that pulls the last few percent of THCA across also
+            degrades a larger fraction of what is already active THC
+            into CBN. The material is already where the decarb step
+            would have put it; the right move is to skip ahead to
+            infusion.
+          </p>
+          <p className="mt-3">
+            Typical usage: infuse AVB into a carrier fat at
+            <em> lower</em> temperature than you would for fresh
+            flower (around 70–80 °C for an hour or two rather than
+            the usual 90+). The residual cannabinoids are more
+            heat-sensitive, and a low-and-slow infusion preserves
+            more of what is left. The Quick Batch tab will route you
+            through this flow when you pick AVB on the Material step.
           </p>
         </SectionCard>
 

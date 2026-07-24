@@ -404,3 +404,80 @@ describe('InventorySection — edit', () => {
     expect(useAppStore.getState().inventory.items[0].name).toBe('OG Kush')
   })
 })
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-25 AVB feature round — ui-tabs                               */
+/*                                                                     */
+/* The `kind` + `avbColor` UI surfaces added by the AVB feature round  */
+/* live in this file. The chem-engine agent owns the                   */
+/* `AVB_RESIDUAL_THC_RANGES` math; state-routing owns the              */
+/* `InventoryItem.kind` schema widening; this test pins the           */
+/* producer-side wiring (kind stamp, AVB color picker visibility,     */
+/* tooltip-on-AVB-option, edit-form pre-population).                  */
+/* ------------------------------------------------------------------ */
+
+describe('InventorySection — AVB (already vaped bud) feature', () => {
+  beforeEach(() => resetInventory())
+
+  it('adding an item with kind="avb" succeeds and writes the kind to the store', async () => {
+    render(<InventorySection />)
+    // Pick AVB. The kind toggle is on the always-visible add form.
+    fireEvent.click(screen.getByTestId('inventory-kind-avb'))
+    // The color picker reveals once AVB is selected.
+    expect(screen.getByTestId('inventory-avb-color-picker')).toBeTruthy()
+    // Fill required fields + a color choice.
+    fireEvent.change(screen.getByTestId('inventory-name-input'), {
+      target: { value: 'AVB from Volcano' },
+    })
+    fireEvent.change(screen.getByTestId('inventory-amount-input'), {
+      target: { value: '2.5' },
+    })
+    fireEvent.click(screen.getByTestId('inventory-avb-color-light'))
+    fireEvent.click(screen.getByTestId('inventory-save-button'))
+    await waitFor(() => {
+      expect(useAppStore.getState().inventory.items.length).toBe(1)
+    })
+    const item = useAppStore.getState().inventory.items[0]
+    expect(item.kind).toBe('avb')
+    expect(item.name).toBe('AVB from Volcano')
+    // The color is encoded in the notes prefix — schema is locked
+    // by state-routing, so the parseable prefix is the chosen
+    // shape (see `withAvbColor` in InventorySection.tsx).
+    expect(item.notes).toBe('color:light')
+  })
+
+  it('the "What is AVB?" tooltip appears when AVB is selected (M2-style discoverability)', () => {
+    render(<InventorySection />)
+    // Before picking AVB, the tooltip trigger is not in the DOM —
+    // it only renders next to the Material label when the AVB
+    // option is the active pick. (We check the label text by
+    // inspecting the picker area after the user picks AVB.)
+    fireEvent.click(screen.getByTestId('inventory-kind-avb'))
+    // The Material label now hosts a TooltipIcon. The label's text
+    // should still read "Material" — the tooltip is a sibling info
+    // button, not a text label.
+    expect(screen.getByText('Material')).toBeTruthy()
+    // The TooltipIcon renders a button with aria-label="Show explanation".
+    // The ARIA description surfaces on click — confirm the trigger
+    // is reachable from the Material section.
+    const triggerButtons = screen.getAllByRole('button', {
+      name: /Show explanation/i,
+    })
+    expect(triggerButtons.length).toBeGreaterThan(0)
+  })
+
+  it('the AVB color picker is hidden until kind="avb" is selected', () => {
+    render(<InventorySection />)
+    // Default kind is 'flower' — no color picker in the DOM.
+    expect(screen.queryByTestId('inventory-avb-color-picker')).toBeNull()
+    // Switch to flower explicitly to confirm the toggle works.
+    fireEvent.click(screen.getByTestId('inventory-kind-flower'))
+    expect(screen.queryByTestId('inventory-avb-color-picker')).toBeNull()
+    // Switch to concentrate — still no color picker.
+    fireEvent.click(screen.getByTestId('inventory-kind-concentrate'))
+    expect(screen.queryByTestId('inventory-avb-color-picker')).toBeNull()
+    // Switch to AVB — color picker appears.
+    fireEvent.click(screen.getByTestId('inventory-kind-avb'))
+    expect(screen.getByTestId('inventory-avb-color-picker')).toBeTruthy()
+  })
+})

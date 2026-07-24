@@ -633,3 +633,29 @@ describe('FirstTimerGuide — audit B1 (entry.source on save)', () => {
     )
   })
 })
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-25 AVB feature round — ui-tabs                               */
+/*                                                                     */
+/* The First-Timer Guide's Step 2 (Material) surfaces a one-line       */
+/* callout that points AVB-havers at the Quick Batch flow. The        */
+/* callout must be visible on the Material step in the rendered       */
+/* wizard.                                                             */
+/* ------------------------------------------------------------------ */
+
+describe('FirstTimerGuide — AVB callout on the Material step', () => {
+  beforeEach(() => resetWizard())
+  afterEach(() => resetWizard())
+
+  it('renders the AVB callout when the user is on the Material step (step 1)', () => {
+    openWizard({ stepIndex: 1 })
+    render(<FirstTimerGuide />)
+    // The callout is identified by `first-timer-avb-callout` (a
+    // custom data-testid on the wrapping div in StepMaterial).
+    const callout = screen.getByTestId('first-timer-avb-callout')
+    expect(callout).toBeTruthy()
+    // The copy must mention "AVB" and the Quick Batch hand-off.
+    expect(callout.textContent).toMatch(/AVB/i)
+    expect(callout.textContent).toMatch(/Quick Batch/i)
+  })
+})

@@ -67,6 +67,17 @@ export function buildPresetPayloadFromState(state: {
       // (`weightUnit`, `tempOverrideUnit`, `bagWidthOverrideUnit`,
       // `bagLengthOverrideUnit`) and the bag / strain / material-mode
       // fields the old payload dropped.
+      //
+      // 2026-07-25 AVB feature round: the spread carries the
+      // widened `materialMode: 'flower' | 'concentrate' | 'avb'`
+      // and the AVB-specific `thcPct` (which doubles as the
+      // residual-THC % in AVB mode). The state-routing agent
+      // owns the schema widening; this producer is a thin
+      // spread, so every persisted field round-trips without
+      // an explicit allow-list. The `loadFromPreset` consumer
+      // (in appStore.ts) guards each field with a literal-type
+      // check, so a pre-v3 preset that lacks the widened
+      // union falls back to the runtime default.
       decarb: { ...state.decarb },
       // Full shape — including the per-field `volumeUnit` (the old
       // payload dropped it, so 100 mL got re-interpreted as 100

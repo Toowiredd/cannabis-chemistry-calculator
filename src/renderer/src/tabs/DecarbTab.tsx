@@ -3,6 +3,9 @@ import { useAppStore } from 'renderer/src/stores/appStore'
 import {
   calculateTheoreticalMax,
   calculateDecarbedThc,
+  calculateAvbTheoreticalMax,
+  AVB_RESIDUAL_THC_RANGES,
+  type AVBColor,
 } from 'renderer/src/engine/decarb'
 import {
   calculateTheoreticalMaxCbd,
@@ -37,6 +40,7 @@ import {
   AlertTriangle,
   Droplets,
   Loader2,
+  Cloud,
 } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
 import { BagCalculator } from 'renderer/src/components/BagCalculator'
@@ -289,8 +293,24 @@ export function DecarbTab() {
       setInventoryEmpty(false)
       return
     }
-    if (inventory.items.length === 0) {
-      // Weight entered but inventory empty: this is the new
+    // 2026-07-25 AVB feature: 3-way material-mode branch on
+    // inventory. Concentrate isn't tracked (bought by the gram,
+    // not batch-tracked) → no gate. Flower / AVB each filter
+    // inventory items by `kind`. Legacy items (kind === undefined)
+    // are treated as flower (the v2→v3 migration stamps
+    // `kind: 'flower'` on every pre-v3 item).
+    if (decarb.materialMode === 'concentrate') {
+      setInventoryWarning(null)
+      setInventoryEmpty(false)
+      return
+    }
+    const matching = inventory.items.filter(i =>
+      decarb.materialMode === 'flower'
+        ? i.kind === 'flower' || i.kind === undefined
+        : i.kind === 'avb'
+    )
+    if (matching.length === 0) {
+      // Weight entered but no matching items: this is the new
       // empty-state warning. The actual warning text lives in the
       // JSX (a link to the Dashboard) — we just flip a boolean
       // here so the effect stays a pure computation.
@@ -305,7 +325,7 @@ export function DecarbTab() {
     // which is wrong post-toggle because the stored value is in the
     // per-field unit, not the display unit.
     const weightGrams = decarb.weightUnit === 'oz' ? ozToG(w) : w
-    const onHand = inventory.items.reduce((sum, i) => {
+    const onHand = matching.reduce((sum, i) => {
       const g = parseFloat(i.amountGrams) || 0
       return i.type === 'purchase' ? sum + g : sum - g
     }, 0)
@@ -316,7 +336,13 @@ export function DecarbTab() {
     } else {
       setInventoryWarning(null)
     }
-  }, [decarb.weight, decarb.weightUnit, units.weightUnit, inventory.items])
+  }, [
+    decarb.weight,
+    decarb.weightUnit,
+    decarb.materialMode,
+    units.weightUnit,
+    inventory.items,
+  ])
 
   /* Preset lookup */
   const preset = useMemo(
@@ -384,6 +410,12 @@ export function DecarbTab() {
   } | null>(null)
 
   const isConcentrate = decarb.materialMode === 'concentrate'
+  // 2026-07-25 AVB feature: third material mode branch. AVB is
+  // already decarbed by the vaporizer, so the decarb math
+  // collapses to `calculateAvbTheoreticalMax(grams, residualThcPct)`
+  // with efficiency 1.0. The Decarb Method picker is hidden in
+  // this mode (no temperature / time to set).
+  const isAvb = decarb.materialMode === 'avb'
   const selectedConcentrate = useMemo(
     () =>
       CONCENTRATE_TYPES.find(ct => ct.id === decarb.concentrateTypeId) ??
@@ -423,7 +455,35 @@ export function DecarbTab() {
       }
 
       try {
-        if (isConcentrate) {
+        if (isAvb) {
+          // 2026-07-25 AVB feature: third material mode branch.
+          // The residual THC % lives in `decarb.thcPct` (the
+          // existing field; for AVB it's already-active THC, not
+          // the delta from THCA). The engine call is the
+          // dedicated AVB path that skips the 0.877 THCA→THC
+          // factor and applies efficiency 1.0 (AVB is already
+          // decarbed). The expected output range is the same
+          // low / expected / high shape as the flower branch.
+          const residualThcPct = parseFloat(decarb.thcPct) || 0
+          const theoreticalMax = calculateAvbTheoreticalMax(
+            weightGrams,
+            residualThcPct
+          )
+
+          // AVB has a single mid-point (already decarbed), so the
+          // low / expected / high range is identical. We still
+          // build the range object so the result panel renders
+          // the same 3-position layout as the flower path.
+          const decarbed = {
+            low: calculateDecarbedThc(theoreticalMax, 1.0),
+            expected: calculateDecarbedThc(theoreticalMax, 1.0),
+            high: calculateDecarbedThc(theoreticalMax, 1.0),
+          }
+
+          setResults({ theoreticalMax, decarbed, warnings })
+          useAppStore.getState().setLastDecarbExpected(fmt1(decarbed.expected))
+          setCbdResults(null) // AVB mode doesn't show CBD
+        } else if (isConcentrate) {
           // Concentrate mode
           const thca = parseFloat(decarb.thcaPct)
           // 2026-07-25 ccc uiux-reviewer audit M4 / M5: the
@@ -504,7 +564,12 @@ export function DecarbTab() {
         setCbdResults(null)
       }
 
-      if (!isConcentrate) {
+      // 2026-07-25 AVB feature: AVB is not raw flower, so the
+      // CBD panel (which expects raw-cannabis THCA→THC + the
+      // equivalent for CBD) is also suppressed in AVB mode.
+      // The `!isAvb && !isConcentrate` predicate reads as
+      // "flower only".
+      if (!isConcentrate && !isAvb) {
         try {
           const cbda = parseFloat(decarb.cbdaPct)
           const cbd = parseFloat(decarb.cbdPct)
@@ -572,6 +637,7 @@ export function DecarbTab() {
     weightGrams,
     hasBlockingErrors,
     isConcentrate,
+    isAvb,
     selectedConcentrate,
   ])
 
@@ -801,32 +867,58 @@ export function DecarbTab() {
             <span className="text-sm font-medium text-foreground/80">
               Material Type
             </span>
-            <div className="inline-flex w-full rounded-lg border border-foreground/20 bg-foreground/5 p-0.5 min-[420px]:w-auto">
+            <div
+              className="inline-flex w-full rounded-lg border border-foreground/20 bg-foreground/5 p-0.5 min-[420px]:w-auto"
+              data-testid="decarb-material-mode"
+              role="radiogroup"
+            >
               <button
+                aria-checked={decarb.materialMode === 'flower'}
                 className={cn(
                   'flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors min-[420px]:flex-none',
-                  !isConcentrate
+                  decarb.materialMode === 'flower'
                     ? 'bg-foreground/15 text-foreground'
                     : 'text-foreground/70 hover:text-foreground/80'
                 )}
+                data-testid="decarb-material-flower"
                 onClick={() => setDecarb({ materialMode: 'flower' })}
+                role="radio"
                 type="button"
               >
                 <Leaf className="size-4" />
                 Flower
               </button>
               <button
+                aria-checked={decarb.materialMode === 'concentrate'}
                 className={cn(
                   'flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors min-[420px]:flex-none',
-                  isConcentrate
+                  decarb.materialMode === 'concentrate'
                     ? 'bg-foreground/15 text-foreground'
                     : 'text-foreground/70 hover:text-foreground/80'
                 )}
+                data-testid="decarb-material-concentrate"
                 onClick={() => setDecarb({ materialMode: 'concentrate' })}
+                role="radio"
                 type="button"
               >
                 <Droplets className="size-4" />
                 Concentrate
+              </button>
+              <button
+                aria-checked={decarb.materialMode === 'avb'}
+                className={cn(
+                  'flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors min-[420px]:flex-none',
+                  decarb.materialMode === 'avb'
+                    ? 'bg-foreground/15 text-foreground'
+                    : 'text-foreground/70 hover:text-foreground/80'
+                )}
+                data-testid="decarb-material-avb"
+                onClick={() => setDecarb({ materialMode: 'avb' })}
+                role="radio"
+                type="button"
+              >
+                <Cloud className="size-4" />
+                AVB
               </button>
             </div>
           </div>
@@ -974,41 +1066,58 @@ export function DecarbTab() {
             }
           </InputRow>
 
-          {/* THCA */}
-          <InputRow
-            error={fieldErrors.thcaPct}
-            label={
-              <>
-                THCA %
-                <TooltipIcon text="Tetrahydrocannabinolic acid -- the non-psychoactive precursor to THC found in raw cannabis." />
-              </>
-            }
-          >
-            {
-              <input
-                className={cn(
-                  'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
-                  fieldErrors.thcaPct
-                    ? 'border-danger/60 focus:border-danger'
-                    : 'border-foreground/20 focus:border-foreground/40'
-                )}
-                data-testid="decarb-thca-input"
-                onChange={e => setDecarb({ thcaPct: e.target.value })}
-                placeholder="0.0"
+          {/* THCA. 2026-07-25 AVB feature: hidden in AVB mode —
+              the 0.877 THCA→THC factor does NOT apply (AVB is
+              already decarboxylated), and the residual is
+              already-active THC that the user types in as the
+              `thcPct` field. The "Existing THC %" input
+              (decarb.thcPct) is repurposed below as the
+              "Residual THC %" input in AVB mode. */}
+          {!isAvb && (
+            <InputRow
+              error={fieldErrors.thcaPct}
+              label={
+                <>
+                  THCA %
+                  <TooltipIcon text="Tetrahydrocannabinolic acid -- the non-psychoactive precursor to THC found in raw cannabis." />
+                </>
+              }
+            >
+              {
+                <input
+                  className={cn(
+                    'rounded-lg border bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30',
+                    fieldErrors.thcaPct
+                      ? 'border-danger/60 focus:border-danger'
+                      : 'border-foreground/20 focus:border-foreground/40'
+                  )}
+                  data-testid="decarb-thca-input"
+                  onChange={e => setDecarb({ thcaPct: e.target.value })}
+                  placeholder="0.0"
                 step="0.1"
                 type="number"
                 value={decarb.thcaPct}
               />
             }
           </InputRow>
+          )}
 
-          {/* THC */}
+          {/* THC. 2026-07-25 AVB feature: the same input doubles as
+              the "Residual THC %" input in AVB mode. The label
+              switches + the help text reflects the AVB
+              semantics (already-active THC, no decarb step). */}
           <InputRow
             error={fieldErrors.thcPct}
             label={
               <>
-                Existing THC %
-                <TooltipIcon text="Delta-9-THC already present in the material. This does not need decarboxylation and contributes directly to total potency." />
+                {isAvb ? 'Residual THC %' : 'Existing THC %'}
+                <TooltipIcon
+                  text={
+                    isAvb
+                      ? 'Already-active THC remaining in your AVB. AVB is decarboxylated by the vaporizer, so the 0.877 THCA→THC factor does NOT apply. Pick the AVB color below to pre-fill this with a typical value, then fine-tune.'
+                      : 'Delta-9-THC already present in the material. This does not need decarboxylation and contributes directly to total potency.'
+                  }
+                />
               </>
             }
           >
@@ -1030,8 +1139,77 @@ export function DecarbTab() {
             }
           </InputRow>
 
-          {/* CBDA + CBD — advanced fields */}
-          {showAdvanced && !isConcentrate && (
+          {/* AVB color picker (only when materialMode === 'avb').
+              Same 3-segment control as InventorySection /
+              QuickBatchTab. The selected color pre-fills the
+              residual THC % with the midpoint of the color's
+              range, but the user can still fine-tune the % in
+              the field above. */}
+          {isAvb && (
+            <div
+              className="flex flex-col gap-2"
+              data-testid="decarb-avb-color-picker"
+            >
+              <span className="text-xs font-medium text-foreground/80">
+                AVB color
+              </span>
+              <div
+                aria-label="AVB color"
+                className="inline-flex w-full rounded-lg border border-foreground/20 bg-foreground/5 p-0.5"
+                role="radiogroup"
+              >
+                {(
+                  [
+                    {
+                      value: 'light' as AVBColor,
+                      label: 'Light',
+                      range: AVB_RESIDUAL_THC_RANGES.light,
+                    },
+                    {
+                      value: 'medium' as AVBColor,
+                      label: 'Medium',
+                      range: AVB_RESIDUAL_THC_RANGES.medium,
+                    },
+                    {
+                      value: 'dark' as AVBColor,
+                      label: 'Dark',
+                      range: AVB_RESIDUAL_THC_RANGES.dark,
+                    },
+                  ] as const
+                ).map(opt => (
+                  <button
+                    aria-checked={parseFloat(decarb.thcPct) === opt.range.midPct}
+                    aria-label={`${opt.label} (≈ ${opt.range.midPct}% residual THC)`}
+                    className={cn(
+                      'flex min-h-10 flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
+                      parseFloat(decarb.thcPct) === opt.range.midPct
+                        ? 'bg-foreground/15 text-foreground'
+                        : 'text-foreground/70 hover:text-foreground/80'
+                    )}
+                    data-testid={`decarb-avb-color-${opt.value}`}
+                    key={opt.value}
+                    onClick={() => setDecarb({ thcPct: String(opt.range.midPct) })}
+                    role="radio"
+                    type="button"
+                  >
+                    <span>{opt.label}</span>
+                    <span className="text-[10px] font-normal text-foreground/60">
+                      ≈ {opt.range.midPct}% residual
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <span className="text-[11px] text-foreground/60">
+                Lighter AVB retains more THC; darker AVB has been
+                vaped longer and is less potent.
+              </span>
+            </div>
+          )}
+
+          {/* CBDA + CBD — advanced fields.
+              2026-07-25 AVB feature: also hidden in AVB mode (no
+              raw-flower CBDA / CBD on AVB). */}
+          {showAdvanced && !isConcentrate && !isAvb && (
             <>
               <InputRow
                 error={fieldErrors.cbdaPct}
@@ -1087,8 +1265,13 @@ export function DecarbTab() {
             </>
           )}
 
-          {/* Method preset (flower mode only) */}
-          {!isConcentrate && (
+          {/* Method preset (flower mode only).
+              2026-07-25 AVB feature: hidden in AVB mode — AVB is
+              already decarboxylated by the vaporizer, so there's
+              no decarb method for the user to choose. The engine
+              call in the useEffect uses `calculateAvbTheoreticalMax`
+              with efficiency 1.0 in this mode. */}
+          {!isConcentrate && !isAvb && (
             <InputRow
               label={
                 <>
@@ -1117,10 +1300,11 @@ export function DecarbTab() {
             </InputRow>
           )}
 
-          {/* Advanced Settings toggle */}
-          {!isConcentrate && (
+          {/* Advanced Settings toggle (flower mode only) */}
+          {!isConcentrate && !isAvb && (
             <button
               className="flex w-full items-center justify-between rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+              data-testid="decarb-advanced-toggle"
               onClick={() => setShowAdvanced(v => !v)}
               type="button"
             >
@@ -1135,8 +1319,11 @@ export function DecarbTab() {
             </button>
           )}
 
-          {/* Temperature, Time, Efficiency — advanced fields */}
-          {showAdvanced && !isConcentrate && (
+          {/* Temperature, Time, Efficiency — advanced fields.
+              2026-07-25 AVB feature: hidden in AVB mode — the
+              residual THC is already active, so temperature / time
+              / efficiency overrides are meaningless. */}
+          {showAdvanced && !isConcentrate && !isAvb && (
             <>
               <InputRow
                 error={fieldErrors.temperature}

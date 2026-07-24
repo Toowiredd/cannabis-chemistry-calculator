@@ -23,7 +23,7 @@
  * assert on the resulting journalEntries + activeTab.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 
 import { QuickBatchTab } from '../QuickBatchTab'
 import { DEFAULT_DECARB, useAppStore } from '../../stores/appStore'
@@ -116,6 +116,29 @@ function advanceToStep(n: number) {
     if (!nextBtn) {
       throw new Error(
         `Could not find Next button at step ${i}. Found: ${buttons.map(b => b.textContent).join(' | ')}`
+      )
+    }
+    fireEvent.click(nextBtn)
+  }
+}
+
+/**
+ * Advance the QuickBatch wizard to the final step in AVB mode.
+ * 2026-07-25 AVB feature: the Decarb Method step is skipped, so
+ * it takes 3 clicks (0→2, 2→3, 3→4) instead of the 4 the
+ * flower path needs.
+ */
+function advanceToFinalStepAvb() {
+  for (let i = 0; i < 3; i++) {
+    const buttons = screen.getAllByRole('button')
+    const nextBtn = buttons.find(
+      b =>
+        b.querySelector('svg.lucide-arrow-right') !== null &&
+        !b.hasAttribute('disabled')
+    )
+    if (!nextBtn) {
+      throw new Error(
+        `advanceToFinalStepAvb: Could not find Next button at click ${i}. Found: ${buttons.map(b => b.textContent).join(' | ')}`
       )
     }
     fireEvent.click(nextBtn)
@@ -740,5 +763,195 @@ describe('QuickBatchTab — audit R1 (inventory warning gate)', () => {
     await new Promise(r => setTimeout(r, 0))
     expect(screen.queryByTestId('quickbatch-inventory-empty')).toBeNull()
     expect(screen.queryByTestId('quickbatch-inventory-shortage')).toBeNull()
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-25 AVB feature round — ui-tabs                               */
+/*                                                                     */
+/* These tests pin the AVB UI surface on QuickBatch: the materialMode  */
+/* selector, the residual-THC % swap for thcaPct, the color picker     */
+/* pre-fill, the wizard skipping Step 2 (Decarb Method), the journal   */
+/* source stamp, and the AVB-specific inventory gate.                  */
+/* ------------------------------------------------------------------ */
+
+describe('QuickBatchTab — AVB (already vaped bud) feature', () => {
+  beforeEach(() => resetCalculator())
+
+  it('shows the materialMode selector in Step 1 with Flower / Concentrate / AVB options', () => {
+    render(<QuickBatchTab />)
+    // The 3-option materialMode toggle lives on Step 1.
+    const modeGroup = screen.getByTestId('quickbatch-material-mode')
+    expect(modeGroup).toBeTruthy()
+    // Each option is a button with a data-testid matching the
+    // value (flower / concentrate / avb).
+    expect(
+      within(modeGroup).getByTestId('quickbatch-material-flower')
+    ).toBeTruthy()
+    expect(
+      within(modeGroup).getByTestId('quickbatch-material-concentrate')
+    ).toBeTruthy()
+    expect(
+      within(modeGroup).getByTestId('quickbatch-material-avb')
+    ).toBeTruthy()
+    // Default is flower — the flower radio is aria-checked.
+    expect(
+      within(modeGroup)
+        .getByTestId('quickbatch-material-flower')
+        .getAttribute('aria-checked')
+    ).toBe('true')
+  })
+
+  it('AVB mode swaps the THCA % input for a residual-THC % input AND a color picker', async () => {
+    render(<QuickBatchTab />)
+    // In flower mode the THCA % input is present, residual-THC is NOT.
+    expect(
+      screen.queryByTestId('quickbatch-residual-thc-input')
+    ).toBeNull()
+    expect(
+      screen.queryByTestId('quickbatch-avb-color-picker')
+    ).toBeNull()
+    // Click AVB.
+    fireEvent.click(screen.getByTestId('quickbatch-material-avb'))
+    // The residual-THC % input now exists.
+    const residualInput = screen.getByTestId('quickbatch-residual-thc-input')
+    expect(residualInput).toBeTruthy()
+    // The color picker is visible.
+    expect(screen.getByTestId('quickbatch-avb-color-picker')).toBeTruthy()
+    // Light/Medium/Dark color buttons are all present.
+    expect(
+      screen.getByTestId('quickbatch-avb-color-light')
+    ).toBeTruthy()
+    expect(
+      screen.getByTestId('quickbatch-avb-color-medium')
+    ).toBeTruthy()
+    expect(
+      screen.getByTestId('quickbatch-avb-color-dark')
+    ).toBeTruthy()
+  })
+
+  it('AVB color picker pre-fills residual THC % with the midpoint of the color range', () => {
+    render(<QuickBatchTab />)
+    fireEvent.click(screen.getByTestId('quickbatch-material-avb'))
+    // 3.5 * midPct of light (6.5%) = 227.5 mg. The form writes the
+    // % (not mg) to thcPct. So we expect thcPct === '6.5' (the
+    // midPct literal, not the multiplied mg).
+    fireEvent.click(screen.getByTestId('quickbatch-avb-color-light'))
+    expect(useAppStore.getState().decarb.thcPct).toBe(
+      String(6.5) // AVB_RESIDUAL_THC_RANGES.light.midPct
+    )
+    fireEvent.click(screen.getByTestId('quickbatch-avb-color-dark'))
+    expect(useAppStore.getState().decarb.thcPct).toBe(
+      String(2) // AVB_RESIDUAL_THC_RANGES.dark.midPct
+    )
+  })
+
+  it('AVB skips Step 2 (Decarb Method): Next from Step 1 lands on Step 3 (Fat & Volume)', () => {
+    render(<QuickBatchTab />)
+    // Switch to AVB.
+    fireEvent.click(screen.getByTestId('quickbatch-material-avb'))
+    // Type a residual THC % so the gate is satisfied.
+    fireEvent.change(screen.getByTestId('quickbatch-weight-input'), {
+      target: { value: '3.5' },
+    })
+    fireEvent.change(screen.getByTestId('quickbatch-residual-thc-input'), {
+      target: { value: '4' },
+    })
+    // Click Next.
+    const nextBtns = () =>
+      screen
+        .getAllByRole('button')
+        .filter(
+          b =>
+            b.querySelector('svg.lucide-arrow-right') !== null &&
+            !b.hasAttribute('disabled')
+        )
+    expect(nextBtns().length).toBeGreaterThan(0)
+    fireEvent.click(nextBtns()[0])
+    // We should be on step 2 (index), which is "Fat & Volume" — the
+    // Decarb Method step (index 1) is skipped.
+    expect(screen.getByTestId('quickbatch-volume-input')).toBeTruthy()
+    // The step pills indicate we're on step 3 of 5.
+    expect(screen.getByText(/Step 3 of 5/)).toBeTruthy()
+  })
+
+  it('AVB save stamps `source: "avb"` on the journal entry (vs source: "quickbatch" in flower mode)', async () => {
+    useAppStore.setState({
+      decarb: {
+        ...useAppStore.getState().decarb,
+        materialMode: 'avb',
+        weight: '3.5',
+        weightUnit: 'g',
+        thcaPct: '0',
+        thcPct: '4', // residual THC % for AVB
+        cbdaPct: '0',
+        cbdPct: '0',
+        presetId: 'oven_sealed',
+      },
+    })
+    // Browser-only path — no IPC, entry goes straight to the local
+    // store. The fall-through local-add path runs.
+    delete (window as unknown as { App?: unknown }).App
+    render(<QuickBatchTab />)
+    // In AVB mode, Step 2 is skipped: 0→2 (1 click), 2→3 (1
+    // click), 3→4 (1 click) = 3 clicks to reach the final step.
+    // The flower path needs 4 clicks. We use the AVB-specific
+    // helper here so the test is robust if either path changes.
+    advanceToFinalStepAvb()
+    clickSaveBatch()
+    await waitFor(() => {
+      expect(useAppStore.getState().journalEntries.length).toBe(1)
+    })
+    const entry = useAppStore.getState().journalEntries[0]
+    // The producer stamps the AVB source, not the regular
+    // quickbatch source.
+    expect((entry as unknown as { source?: string }).source).toBe('avb')
+    expect((entry as unknown as { source?: string }).source).not.toBe(
+      'quickbatch'
+    )
+  })
+
+  it('AVB "Insufficient material" gate counts kind: "avb" items (not flower)', async () => {
+    // Seed inventory: 1g of flower, 5g of AVB. User picks AVB and
+    // types 7g → insufficient (only 5g of AVB on hand).
+    useAppStore.setState({
+      decarb: {
+        ...useAppStore.getState().decarb,
+        materialMode: 'avb',
+        weight: '7',
+        thcPct: '4',
+      },
+      inventory: {
+        items: [
+          {
+            id: 'inv_flower',
+            date: '2026-07-25',
+            type: 'purchase',
+            name: 'OG Kush',
+            amountGrams: '1',
+            kind: 'flower',
+          },
+          {
+            id: 'inv_avb',
+            date: '2026-07-25',
+            type: 'purchase',
+            name: 'AVB from Volcano',
+            amountGrams: '5',
+            kind: 'avb',
+          },
+        ],
+        lowStockThreshold: '3.5',
+      },
+    })
+    render(<QuickBatchTab />)
+    await waitFor(() => {
+      expect(screen.getByTestId('quickbatch-inventory-shortage')).toBeTruthy()
+    })
+    // The shortage message must reflect the AVB-only total (5g),
+    // not the combined flower+avb total (6g). The user has 5g of
+    // AVB; they want 7g → need 7.0g, have 5.0g.
+    expect(
+      screen.getByTestId('quickbatch-inventory-shortage').textContent
+    ).toMatch(/Insufficient material: need 7\.0g, have 5\.0g/i)
   })
 })

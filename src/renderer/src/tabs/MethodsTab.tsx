@@ -261,6 +261,16 @@ export function MethodsTab() {
     setActiveTab('decarb')
   }
 
+  // 2026-07-25 AVB feature: the method grid is irrelevant for
+  // AVB — there's no decarb step to apply. We still render the
+  // shared inputs + theoretical-max summary (the user might
+  // want to compare), but the "Use This" button is replaced
+  // by a callout pointing the user to QuickBatch / Decarb to
+  // set up the AVB-specific residual THC % input. The chosen
+  // design (callout vs. hide-button) is a callout — it is
+  // discoverable AND explains why the grid is still showing.
+  const isAvbMode = decarb.materialMode === 'avb'
+
   /* ---------------------------------------------------------------- */
   /* Render helpers                                                   */
   /* ---------------------------------------------------------------- */
@@ -522,15 +532,35 @@ export function MethodsTab() {
                 </span>
               </div>
 
-              {/* Use This */}
-              <button
-                aria-label={`Use ${method.name} in the decarb calculator`}
-                className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
-                onClick={() => handleUseThis(method.id)}
-                type="button"
-              >
-                Use This
-              </button>
+              {/* Use This — hidden in AVB mode (no decarb method
+                  to apply). The 2026-07-25 AVB feature round
+                  replaces the button with a callout that
+                  explains the flow and points the user to the
+                  AVB-aware surfaces (QuickBatch / Decarb). */}
+              {isAvbMode ? (
+                <div
+                  className="mt-auto flex flex-col gap-1 rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-xs text-info"
+                  data-testid="methods-avb-callout"
+                >
+                  <span className="font-semibold">
+                    AVB doesn't need a decarb method
+                  </span>
+                  <span>
+                    It's already decarboxylated by the vaporizer.
+                    Go to Quick Batch or Decarb to set up the
+                    residual THC %.
+                  </span>
+                </div>
+              ) : (
+                <button
+                  aria-label={`Use ${method.name} in the decarb calculator`}
+                  className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                  onClick={() => handleUseThis(method.id)}
+                  type="button"
+                >
+                  Use This
+                </button>
+              )}
             </div>
           )
         })}

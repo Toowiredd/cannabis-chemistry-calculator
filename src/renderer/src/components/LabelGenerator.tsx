@@ -35,6 +35,22 @@ export function LabelGenerator({
   const methodPreset = DECARB_METHODS.find(m => m.id === decarb.presetId)
   const methodName = methodPreset?.name ?? decarb.presetId
 
+  /* ---- Derive the Material line ----
+   * 2026-07-25 AVB feature: the label prints a Material line
+   * reflecting the active materialMode. The line is suppressed
+   * for concentrate (which already gets a "Decarb Guidance" /
+   * concentrate-type line elsewhere) and for the legacy
+   * `'flower'` default — adding it there would mean every
+   * existing label gets a new "Cannabis flower" line, which is
+   * a visible regression. We only show the line when there's
+   * something different from the legacy default to say.
+   */
+  const materialLabel: string | null = (() => {
+    if (decarb.materialMode === 'avb') return 'AVB (already vaped bud)'
+    if (decarb.materialMode === 'flower') return null
+    return null // 'concentrate' falls through — already covered
+  })()
+
   /* ---- Derive CBD per serving ---- */
   const mgCbdPerServing = useMemo(() => {
     // Concentrate mode: no CBD line
@@ -391,6 +407,25 @@ export function LabelGenerator({
                   </span>
                 </div>
               </div>
+
+              {/* Material (2026-07-25 AVB feature). Only renders
+                  for non-default material modes. For AVB the line
+                  reads "AVB (already vaped bud)"; the legacy
+                  'flower' default is suppressed to avoid a
+                  visible regression on every existing label. */}
+              {materialLabel && (
+                <div
+                  className="flex flex-col"
+                  data-testid="label-material-line"
+                >
+                  <span className="text-xs uppercase tracking-wider text-gray-600">
+                    Material
+                  </span>
+                  <span className="text-sm font-semibold text-black">
+                    {materialLabel}
+                  </span>
+                </div>
+              )}
 
               {/* Date Produced */}
               <div className="flex flex-col">

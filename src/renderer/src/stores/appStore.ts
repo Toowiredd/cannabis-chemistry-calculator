@@ -82,8 +82,17 @@ export interface DecarbState {
   bagLengthOverride: string | null
   bagHasStems: boolean
   strainId: string | null
-  /** Toggle between flower and concentrate mode */
-  materialMode: 'flower' | 'concentrate'
+  /**
+   * Toggle between flower, concentrate, and AVB (already-vaped bud) mode.
+   * AVB is the community term for material left in a dry-herb vaporizer
+   * after a session — it is already decarboxylated, so the decarb
+   * calculator skips the heating step and only computes a residual-THC
+   * read using `AVB_RESIDUAL_THC_RANGES` from the engine. Added in the
+   * 2026-07-25 AVB feature round; legacy persisted state (pre-v3) that
+   * lacks the `'avb'` value is left untouched by the v2→v3 migration
+   * (the existing `'flower' | 'concentrate'` union is still valid).
+   */
+  materialMode: 'flower' | 'concentrate' | 'avb'
   /** Selected concentrate type ID (e.g. 'wax', 'shatter') */
   concentrateTypeId: string
 }
@@ -266,6 +275,20 @@ export interface InventoryItem {
   amountGrams: string
   cost?: string
   notes?: string
+  /**
+   * Material semantic: is this AVB (already-vaped bud), raw flower, or
+   * concentrate? Distinct from `type` (transaction semantic: did I buy
+   * or use this item — `type` is unchanged). Added in the 2026-07-25
+   * AVB feature round. Optional on the interface so legacy call sites
+   * (Dashboard inventory form) keep typechecking before ui-tabs wires
+   * each save site to pass the correct literal. The v2→v3 persist
+   * migration (`appStore.ts` migrate) backfills any legacy item that
+   * pre-dates the field with `kind: 'flower'`, so consumers can rely
+   * on a present-but-default value after a one-time upgrade. The
+   * migration is idempotent — items that already have a valid `kind`
+   * (including `'avb'`) are preserved unchanged.
+   */
+  kind?: 'flower' | 'concentrate' | 'avb'
 }
 
 export interface InventoryState {
@@ -280,7 +303,8 @@ const DEFAULT_INVENTORY: InventoryState = {
 /**
  * Provenance tag for a `JournalEntry`. Records which UI surface
  * saved the entry so the Journal tab can label entries by source
- * (Quick Batch, First-Timer Guide, Journal form, Advanced Tools).
+ * (Quick Batch, First-Timer Guide, Journal form, Advanced Tools,
+ * AVB — already-vaped bud batches).
  *
  * `'unknown'` is the legacy sentinel: it is stamped on any entry
  * that pre-dates the v1→v2 persist migration (see appStore.ts
@@ -288,12 +312,18 @@ const DEFAULT_INVENTORY: InventoryState = {
  * known source. The 2026-07-25 ccc-uiux-reviewer (BLOCKER B1) and
  * ccc-workflow-validator reports both flagged that `JournalEntry`
  * had no `source` field — every save was dropping provenance.
+ *
+ * `'avb'` was added in the 2026-07-25 AVB feature round so the
+ * Journal tab can group / colour-code AVB-originated batches. The
+ * v2→v3 migration does NOT stamp `'avb'` on legacy entries — it
+ * is intentionally write-only from the AVB save site in ui-tabs.
  */
 export type JournalEntrySource =
   | 'quickbatch'
   | 'first_timer_guide'
   | 'journal_form'
   | 'advanced_tools'
+  | 'avb'
   | 'unknown'
 
 export interface JournalEntry {
@@ -923,8 +953,16 @@ export const useAppStore = create<AppStore>()(
                 ? di.bagHasStems
                 : DEFAULT_DECARB.bagHasStems,
             strainId: nullableStringish(di.strainId),
+            // 2026-07-25 AVB feature: 'avb' is now a valid materialMode
+            // (Already Vaped Bud — already-decarboxylated material, see
+            // the DecarbState.materialMode JSDoc). Legacy persisted
+            // state (pre-v3) has no 'avb' value; a non-matching value
+            // falls back to the runtime default 'flower' so a corrupted
+            // snapshot can't sneak an invalid mode into the calculator.
             materialMode:
-              di.materialMode === 'flower' || di.materialMode === 'concentrate'
+              di.materialMode === 'flower' ||
+              di.materialMode === 'concentrate' ||
+              di.materialMode === 'avb'
                 ? di.materialMode
                 : DEFAULT_DECARB.materialMode,
             concentrateTypeId: stringish(
@@ -1005,6 +1043,18 @@ export const useAppStore = create<AppStore>()(
     }),
     {
       name: 'cannabis-chem-units',
+      // Bumped to v3 in the 2026-07-25 AVB feature round when
+      // `InventoryItem.kind` was added. The migration backfills
+      // `kind: 'flower'` on every legacy inventory item that pre-dates
+      // the field, so consumers can rely on a present value after a
+      // one-time upgrade. The migration is idempotent — items that
+      // already have a valid `kind` (including `'avb'`) are preserved
+      // unchanged. The v3 partialize shape is otherwise unchanged from
+      // v2: `decarb.materialMode` widening to include `'avb'` is
+      // shape-compatible (a v2 reader that sees a v3 envelope with
+      // `materialMode: 'avb'` will simply fall back to the default in
+      // the loadFromPreset guard).
+      //
       // Bumped to v2 when `JournalEntry.source` (provenance) was added.
       // The v1 partialize never persisted `journalEntries` (they live on
       // disk in localStorage / IPC), but the migration defensively
@@ -1018,7 +1068,7 @@ export const useAppStore = create<AppStore>()(
       // to defend against `undefined`. Partializing only `dismissed` +
       // `selections` keeps the on-disk shape minimal and the runtime fields
       // (`active`, `stepIndex`) reset to defaults on every reload.
-      version: 2,
+      version: 3,
       migrate: (persistedState: unknown, version: number): unknown => {
         if (!isRecord(persistedState)) return persistedState
 
@@ -1112,6 +1162,70 @@ export const useAppStore = create<AppStore>()(
                     : ('unknown' as JournalEntrySource),
                 }
               }),
+            }
+          }
+        }
+
+        // v2 -> v3: `InventoryItem.kind` (material semantic) is new in
+        // the 2026-07-25 AVB feature round. Backfill any existing
+        // inventory item that lacks a valid `kind` with `'flower'`
+        // (the safe legacy default — a v2 user can only have raw
+        // flower or concentrate in stock, never AVB, because AVB is a
+        // new concept). The migration is idempotent: items that
+        // already have a valid `kind` literal (including `'avb'`,
+        // which can be injected manually for testing or by a future
+        // build that beat the migration) are preserved unchanged.
+        //
+        // We intentionally do NOT stamp `source: 'avb'` on legacy
+        // journal entries here — the v1→v2 source backfill already
+        // stamped `'unknown'` on every pre-provenance entry, and the
+        // AVB source is a forward-only value written by the AVB save
+        // site in ui-tabs. Reclassifying old journal entries as
+        // `'avb'` would be a data-integrity bug, not a migration.
+        //
+        // We also do NOT touch `decarb.materialMode` here — a v2
+        // snapshot with `materialMode: 'flower' | 'concentrate'` is
+        // still a valid v3 value, and the v2→v3 type widening in
+        // `DecarbState` is purely additive. The v3 partialize shape
+        // is otherwise unchanged from v2.
+        if (version < 3) {
+          if (
+            isRecord(state.inventory) &&
+            Array.isArray(state.inventory.items)
+          ) {
+            const rawItems = state.inventory.items as unknown[]
+            state = {
+              ...state,
+              inventory: {
+                ...state.inventory,
+                items: rawItems.map(item => {
+                  if (!isRecord(item)) {
+                    // Defensive: a non-object item shouldn't appear in
+                    // a well-formed snapshot. Leave it alone rather
+                    // than stamp a fake `kind` on something that
+                    // isn't an object — the runtime will surface a
+                    // type error sooner this way.
+                    return item
+                  }
+                  const existing = item.kind
+                  if (
+                    existing === 'flower' ||
+                    existing === 'concentrate' ||
+                    existing === 'avb'
+                  ) {
+                    // Already a v3-shaped item (or a v2 snapshot
+                    // that was hand-edited to inject `kind`).
+                    // Preserve the existing value — this makes the
+                    // migration idempotent. Running it twice on a
+                    // v3-shaped snapshot is a no-op.
+                    return item
+                  }
+                  // Legacy v2 item (no `kind` field) or invalid
+                  // value: stamp `'flower'` so consumers can rely
+                  // on a present value.
+                  return { ...item, kind: 'flower' as const }
+                }),
+              },
             }
           }
         }

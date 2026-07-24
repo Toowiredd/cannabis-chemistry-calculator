@@ -114,3 +114,39 @@ describe('KnowledgeTab — audit B8 (doneness-curve slider uses display unit)', 
     expect(useAppStore.getState().decarb.tempOverrideUnit).toBe('F')
   })
 })
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-25 AVB feature round — ui-tabs                               */
+/*                                                                     */
+/* The AVB card on the Knowledge tab is the discoverability surface   */
+/* for users who land in the Knowledge tab wondering what AVB is.    */
+/* The card title + body text are user-facing; the test pins that    */
+/* the card is in the rendered output.                                 */
+/* ------------------------------------------------------------------ */
+
+describe('KnowledgeTab — AVB (already vaped bud) card', () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      decarb: {
+        ...useAppStore.getState().decarb,
+        presetId: 'oven_sealed',
+      },
+      activeTab: 'knowledge',
+    })
+  })
+
+  it('renders the "AVB (Already Vaped Bud)" card with a body explaining the feature', () => {
+    render(<KnowledgeTab />)
+    // The SectionCard title is rendered in an <h3>. The
+    // SectionCard component puts the title in an h3, so we
+    // assert the title text is in the rendered output.
+    const container = document.body
+    // Title — case-insensitive substring match on the card title.
+    expect(container.textContent).toMatch(/AVB \(Already Vaped Bud\)/i)
+    // The body should mention key concepts: decarboxylation
+    // (AVB is already decarbed) and the color → residual THC
+    // mapping. Either of these strings is enough to confirm
+    // the new card body landed in the rendered tree.
+    expect(container.textContent).toMatch(/already decarboxylated/i)
+  })
+})
