@@ -95,16 +95,23 @@ function resetCalculator() {
  * label & save. Click the Next button 4 times.
  */
 function advanceToFinalStep() {
-  // The Next button has a right-arrow icon and is the only enabled
-  // forward-nav button on the screen. Find by role to avoid coupling
-  // to testids that may or may not be added later.
-  for (let i = 0; i < 4; i++) {
+  advanceToStep(4)
+}
+
+/**
+ * Advance the QuickBatch wizard to step `n` (0..4). Steps 0=Material
+ * & Lab, 1=Decarb Method, 2=Fat & Volume, 3=Servings & Dose,
+ * 4=Label & Save. Clicks the Next button `n` times.
+ */
+function advanceToStep(n: number) {
+  for (let i = 0; i < n; i++) {
     const buttons = screen.getAllByRole('button')
     // Find the next-step button: it's the one with the ArrowRight
     // icon. The Back button has ArrowLeft, the Save has BookOpen.
-    const nextBtn = buttons.find(b =>
-      b.querySelector('svg.lucide-arrow-right') !== null &&
-      !b.hasAttribute('disabled')
+    const nextBtn = buttons.find(
+      b =>
+        b.querySelector('svg.lucide-arrow-right') !== null &&
+        !b.hasAttribute('disabled')
     )
     if (!nextBtn) {
       throw new Error(
@@ -196,5 +203,267 @@ describe('QuickBatchTab — save-to-journal discipline', () => {
       expect(useAppStore.getState().journalEntries.length).toBe(1)
     })
     expect(useAppStore.getState().activeTab).toBe('journal')
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-25 dose-units audit B1, B2, MAJOR (workflow)                */
+/*                                                                    */
+/* The audit's per-field-unit refactor needs pinned behavior for:    */
+/* - The weight + volume onChange must set per-field unit             */
+/* - The weight + volume input value must convert to display unit     */
+/* - The engine calc must use the per-field unit (weight in grams,    */
+/*   volume in mL)                                                    */
+/* - The journal save must record the per-field unit, not the         */
+/*   display unit                                                     */
+/* - Cross-tab carry-forward (Infusion -> QuickBatch) must work       */
+/* ------------------------------------------------------------------ */
+
+describe('QuickBatchTab — per-field unit refactor (audit B1, B2, MAJOR)', () => {
+  beforeEach(() => resetCalculator())
+
+  it('mounts with the default weight + volume values from the store', () => {
+    render(<QuickBatchTab />)
+    // The weight input is on step 0 (Material & Lab); the volume
+    // input is on step 2 (Fat & Volume). Step 1 is the Decarb
+    // Method card grid which has no inputs the test cares about.
+    const weightInput = screen.getByTestId(
+      'quickbatch-weight-input'
+    ) as HTMLInputElement
+    // The resetCalculator seed has weight='3.5'.
+    expect(weightInput.value).toBe('3.5')
+
+    // Advance to step 2 to reveal the volume input.
+    advanceToStep(2)
+    const volumeInput = screen.getByTestId(
+      'quickbatch-volume-input'
+    ) as HTMLInputElement
+    // The resetCalculator seed has volume='100'.
+    expect(volumeInput.value).toBe('100')
+  })
+
+  it('weight toggle round-trip: stored value + per-field unit are preserved across toggles', () => {
+    render(<QuickBatchTab />)
+    const weightInput = screen.getByTestId(
+      'quickbatch-weight-input'
+    ) as HTMLInputElement
+    // Display=g (default). Type "3.5" — onChange should set BOTH
+    // decarb.weight AND decarb.weightUnit = 'g' (the unit the user
+    // typed in).
+    fireEvent.change(weightInput, { target: { value: '3.5' } })
+    expect(useAppStore.getState().decarb.weight).toBe('3.5')
+    expect(useAppStore.getState().decarb.weightUnit).toBe('g')
+
+    // Click the "oz" toggle. The toggle handler should ONLY flip
+    // units.weightUnit; the per-field decarb.weightUnit + decarb.weight
+    // stay untouched. The displayed value converts to oz (2 dp).
+    fireEvent.click(screen.getByTestId('quickbatch-weight-toggle-oz'))
+    expect(useAppStore.getState().units.weightUnit).toBe('oz')
+    expect(useAppStore.getState().decarb.weight).toBe('3.5')
+    expect(useAppStore.getState().decarb.weightUnit).toBe('g')
+    // 3.5g -> 0.12 oz (2 dp). The user can see the converted value
+    // without losing the original grams.
+    expect(weightInput.value).toBe('0.12')
+
+    // Click back to g. Stored value + per-field unit still untouched.
+    fireEvent.click(screen.getByTestId('quickbatch-weight-toggle-g'))
+    expect(useAppStore.getState().units.weightUnit).toBe('g')
+    expect(useAppStore.getState().decarb.weight).toBe('3.5')
+    expect(useAppStore.getState().decarb.weightUnit).toBe('g')
+    expect(weightInput.value).toBe('3.5')
+  })
+
+  it('volume toggle round-trip: stored value + per-field unit are preserved across toggles', () => {
+    render(<QuickBatchTab />)
+    // The volume input is on step 2 (Fat & Volume). Advance.
+    advanceToStep(2)
+    const volumeInput = screen.getByTestId(
+      'quickbatch-volume-input'
+    ) as HTMLInputElement
+    // Display=mL (default). Type "100" — onChange should set BOTH
+    // infusion.volume AND infusion.volumeUnit = 'mL'.
+    fireEvent.change(volumeInput, { target: { value: '100' } })
+    expect(useAppStore.getState().infusion.volume).toBe('100')
+    expect(useAppStore.getState().infusion.volumeUnit).toBe('mL')
+
+    // Click the "cup" toggle. Toggle handler ONLY flips
+    // units.volumeUnit; the per-field infusion.volumeUnit +
+    // infusion.volume stay untouched. Display converts 100 mL to
+    // 0.42 cup (2 dp).
+    fireEvent.click(screen.getByTestId('quickbatch-volume-toggle-cup'))
+    expect(useAppStore.getState().units.volumeUnit).toBe('cup')
+    expect(useAppStore.getState().infusion.volume).toBe('100')
+    expect(useAppStore.getState().infusion.volumeUnit).toBe('mL')
+    expect(volumeInput.value).toBe('0.42')
+
+    // Click back to mL. Stored value + per-field unit still untouched.
+    fireEvent.click(screen.getByTestId('quickbatch-volume-toggle-ml'))
+    expect(useAppStore.getState().units.volumeUnit).toBe('mL')
+    expect(useAppStore.getState().infusion.volume).toBe('100')
+    expect(useAppStore.getState().infusion.volumeUnit).toBe('mL')
+    expect(volumeInput.value).toBe('100')
+  })
+
+  it('weight calc uses per-field unit: typing oz then toggling to g computes from grams, not oz', () => {
+    // Set the store to: 0.12 oz, thca 20%, oven_sealed preset. We
+    // do this through the store (faster + more deterministic than
+    // walking the UI). The onChange path is covered by the
+    // round-trip test above; here we want to pin that the engine
+    // call uses per-field grams.
+    useAppStore.setState({
+      decarb: {
+        ...useAppStore.getState().decarb,
+        weight: '0.12',
+        weightUnit: 'oz',
+        thcaPct: '20',
+        thcPct: '0',
+        cbdaPct: '0',
+        cbdPct: '0',
+        presetId: 'oven_sealed',
+      },
+      units: { ...useAppStore.getState().units, weightUnit: 'oz' },
+    })
+    render(<QuickBatchTab />)
+    const weightInput = screen.getByTestId(
+      'quickbatch-weight-input'
+    ) as HTMLInputElement
+    // Display still 'oz' from the store. Input shows "0.12" (per-field
+    // == display, no conversion).
+    expect(weightInput.value).toBe('0.12')
+
+    // Toggle to g. The toggle handler only flips units.weightUnit.
+    fireEvent.click(screen.getByTestId('quickbatch-weight-toggle-g'))
+    expect(useAppStore.getState().units.weightUnit).toBe('g')
+    // Per-field weight + per-field unit are unchanged.
+    expect(useAppStore.getState().decarb.weight).toBe('0.12')
+    expect(useAppStore.getState().decarb.weightUnit).toBe('oz')
+    // Display converts 0.12 oz -> 3.40 g (2 dp).
+    expect(weightInput.value).toBe('3.40')
+
+    // Advance to save and click. The journal entry's
+    // totalInfusedThc must be based on 3.40 g (not 0.12 g).
+    // Per-field fix: 3.4g * 20% THCA -> ~596 mg theoretical ->
+    // ~566 mg decarbed (95% efficiency oven_sealed) -> ~464 mg
+    // infused (82% coconut).
+    // Buggy (pre-fix): 0.12g * 20% THCA -> ~21 mg theoretical ->
+    // ~20 mg decarbed -> ~16.4 mg infused.
+    delete (window as unknown as { App?: unknown }).App
+    advanceToFinalStep()
+    clickSaveBatch()
+    const entry = useAppStore.getState().journalEntries[0]
+    // 464 mg is the per-field-correct value (sanity range: > 400).
+    // If the per-field fix is missing, this would be ~16.
+    const infused = Number(entry.totalInfusedThc)
+    expect(infused).toBeGreaterThan(400)
+    expect(infused).toBeLessThan(550)
+  })
+
+  it('save-to-journal uses per-field volume unit, not display unit (audit MAJOR #2 workflow)', async () => {
+    // User typed 100 in mL, then toggled display to cup before
+    // saving. The journal entry must record 100 mL — the per-field
+    // unit — not 100 cup. A later reader of the journal entry would
+    // mis-interpret 100 cup as ~23.6 L of fat.
+    useAppStore.setState({
+      infusion: {
+        ...useAppStore.getState().infusion,
+        volume: '100',
+        volumeUnit: 'mL',
+      },
+      units: { ...useAppStore.getState().units, volumeUnit: 'cup' },
+    })
+    delete (window as unknown as { App?: unknown }).App
+    render(<QuickBatchTab />)
+    advanceToFinalStep()
+    clickSaveBatch()
+    await waitFor(() => {
+      expect(useAppStore.getState().journalEntries.length).toBe(1)
+    })
+    const entry = useAppStore.getState().journalEntries[0]
+    expect(entry.volume).toBe('100')
+    // The per-field unit is the source of truth, not the display.
+    expect(entry.volumeUnit).toBe('mL')
+    expect(entry.volumeUnit).not.toBe('cup')
+  })
+
+  it('save-to-journal preserves weight + per-field weight unit (audit MAJOR #2 workflow)', async () => {
+    // User typed 3.5 in g, then toggled display to oz before
+    // saving. The journal entry must record 3.5 g — the per-field
+    // weight + unit — not 0.12 oz.
+    useAppStore.setState({
+      decarb: {
+        ...useAppStore.getState().decarb,
+        weight: '3.5',
+        weightUnit: 'g',
+      },
+      units: { ...useAppStore.getState().units, weightUnit: 'oz' },
+    })
+    delete (window as unknown as { App?: unknown }).App
+    render(<QuickBatchTab />)
+    advanceToFinalStep()
+    clickSaveBatch()
+    await waitFor(() => {
+      expect(useAppStore.getState().journalEntries.length).toBe(1)
+    })
+    const entry = useAppStore.getState().journalEntries[0]
+    expect(entry.materialWeight).toBe('3.5')
+    // QuickBatchTab doesn't currently stamp weightUnit on the
+    // journal entry (it only has materialWeight, not weightUnit).
+    // What we ARE asserting here is that the engine call for the
+    // totalInfusedThc used 3.5g (per-field), not 0.12 oz (display).
+    // Same numeric check as the per-field calc test above:
+    // 3.5g * 20% THCA -> ~614 mg theoretical -> ~583 mg decarbed ->
+    // ~478 mg infused (coconut 82%). Buggy pre-fix: 0.12 * ... ->
+    // ~17 mg infused.
+    const infused = Number(entry.totalInfusedThc)
+    expect(infused).toBeGreaterThan(400)
+    expect(infused).toBeLessThan(550)
+  })
+
+  it('cross-tab carry-forward: values typed on Infusion tab display correctly in QuickBatchTab', () => {
+    // Simulate the user having typed values on the Infusion tab
+    // (which writes to infusion.volume + infusion.volumeUnit) and
+    // a weight on the Decarb tab. When the user navigates to
+    // QuickBatchTab, the inputs should reflect the per-field value
+    // (with display-unit conversion if needed).
+    useAppStore.setState({
+      decarb: {
+        ...useAppStore.getState().decarb,
+        weight: '7',
+        weightUnit: 'g',
+      },
+      infusion: {
+        ...useAppStore.getState().infusion,
+        volume: '250',
+        volumeUnit: 'mL',
+        fatId: 'olive',
+      },
+      units: {
+        ...useAppStore.getState().units,
+        weightUnit: 'g',
+        volumeUnit: 'mL',
+      },
+    })
+    render(<QuickBatchTab />)
+    const weightInput = screen.getByTestId(
+      'quickbatch-weight-input'
+    ) as HTMLInputElement
+    // Display unit matches per-field unit — no conversion needed.
+    expect(weightInput.value).toBe('7')
+
+    // Volume input is on step 2 (Fat & Volume). Advance.
+    advanceToStep(2)
+    const volumeInput = screen.getByTestId(
+      'quickbatch-volume-input'
+    ) as HTMLInputElement
+    expect(volumeInput.value).toBe('250')
+
+    // Now toggle volume display to cup. The per-field value
+    // (250 mL) is preserved; the display shows 1.06 cup (250 / 236.588).
+    fireEvent.click(screen.getByTestId('quickbatch-volume-toggle-cup'))
+    expect(useAppStore.getState().units.volumeUnit).toBe('cup')
+    expect(useAppStore.getState().infusion.volume).toBe('250')
+    expect(useAppStore.getState().infusion.volumeUnit).toBe('mL')
+    // 250 / 236.588 = 1.056... -> "1.06"
+    expect(volumeInput.value).toBe('1.06')
   })
 })

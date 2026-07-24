@@ -11,7 +11,13 @@ import {
 } from 'renderer/src/engine/infusion'
 import { calculateMgPerServing, classifyDose } from 'renderer/src/engine/dosing'
 import { scaleRecipe } from 'renderer/src/engine/recipe'
-import { cToF, ozToG, volumeToMl } from 'renderer/src/engine/units'
+import {
+  cToF,
+  convertVolume,
+  convertWeight,
+  ozToG,
+  volumeToMl,
+} from 'renderer/src/engine/units'
 import { fmt1, round1n } from 'renderer/src/engine/formatting'
 import { cn } from 'renderer/lib/utils'
 import {
@@ -67,6 +73,14 @@ export function QuickBatchTab() {
   /* ---- Engine results (computed live) ---- */
   const results = useMemo(() => {
     const weight = parseFloat(decarb.weight)
+    // 2026-07-25 dose-units audit B1: convert from the per-field
+    // `decarb.weightUnit` (the unit the user typed in) to grams for
+    // engine calls. The display unit `units.weightUnit` is only for
+    // showing the converted value. Previously this passed the raw
+    // `decarb.weight` to the engine, which expected grams — toggling
+    // display from g to oz then sent oz to the engine and the
+    // theoretical max jumped 28.35x.
+    const weightGrams = decarb.weightUnit === 'oz' ? ozToG(weight) : weight
     const thca = parseFloat(decarb.thcaPct)
     const thc = parseFloat(decarb.thcPct)
     const _cbda = parseFloat(decarb.cbdaPct)
@@ -86,7 +100,7 @@ export function QuickBatchTab() {
     const hasDecarb =
       !Number.isNaN(weight) && !Number.isNaN(thca) && !Number.isNaN(thc)
     const theoreticalMax = hasDecarb
-      ? calculateTheoreticalMax(weight, thca, thc)
+      ? calculateTheoreticalMax(weightGrams, thca, thc)
       : 0
     const decarbedLow = hasDecarb
       ? calculateDecarbedThc(theoreticalMax, effLow)
@@ -229,7 +243,17 @@ export function QuickBatchTab() {
       totalInfusedThc: fmt1(results.infusedThc),
       concentration: fmt1(results.mgPerMl),
       volume: infusion.volume,
-      volumeUnit: units.volumeUnit,
+      // 2026-07-25 dose-units audit MAJOR (workflow): use the
+      // per-field `infusion.volumeUnit` (the unit the user typed
+      // in) for the journal entry, not the display
+      // `units.volumeUnit`. If the user typed 100 in mL and then
+      // toggled display to 'cup' before saving, this used to stamp
+      // the entry as "100 cup" (≈23.6 L) when the user actually
+      // meant 100 mL. A later reader of the journal entry would
+      // mis-interpret it as 23.6 L of fat and a wildly inflated
+      // dose. The per-field unit is the source of truth for what
+      // the user typed.
+      volumeUnit: infusion.volumeUnit,
       notes: `Quick Batch saved. Theoretical max: ${fmt1(results.theoreticalMax)} mg. Decarb expected: ${fmt1(results.decarbedExpected)} mg.`,
     }
 
@@ -456,11 +480,44 @@ export function QuickBatchTab() {
                 <div className="flex min-w-0 flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center">
                   <input
                     className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-                    onChange={e => setDecarb({ weight: e.target.value })}
+                    data-testid="quickbatch-weight-input"
+                    // 2026-07-25 dose-units audit B1: set per-field
+                    // `decarb.weightUnit` to the current display unit.
+                    // The toggle handler only flips `units.weightUnit`;
+                    // it does not touch the stored value. The engine
+                    // reads `decarb.weightUnit` (per-field) to
+                    // interpret the value, so without this set the
+                    // per-field unit stays at its pre-toggle value
+                    // and the next render computes the wrong grams.
+                    onChange={e =>
+                      setDecarb({
+                        weight: e.target.value,
+                        weightUnit: units.weightUnit,
+                      })
+                    }
                     placeholder="0.0"
                     step="0.1"
                     type="number"
-                    value={decarb.weight}
+                    // Display: convert the stored value from the
+                    // per-field unit to the current display unit,
+                    // rounded to 2 decimals (so 0.12 oz doesn't
+                    // render as 3.4019435...). See DecarbTab.tsx:861
+                    // for the same pattern.
+                    value={
+                      decarb.weight === ''
+                        ? ''
+                        : decarb.weightUnit === units.weightUnit
+                          ? decarb.weight
+                          : (() => {
+                              const n = parseFloat(decarb.weight)
+                              if (Number.isNaN(n)) return decarb.weight
+                              return convertWeight(
+                                n,
+                                decarb.weightUnit,
+                                units.weightUnit
+                              ).toFixed(2)
+                            })()
+                    }
                   />
                   <div className="inline-flex w-full shrink-0 rounded-lg border border-foreground/20 bg-foreground/5 p-0.5 min-[420px]:w-auto">
                     {(['g', 'oz'] as const).map(u => (
@@ -471,6 +528,7 @@ export function QuickBatchTab() {
                             ? 'bg-foreground/15 text-foreground'
                             : 'text-foreground/70 hover:text-foreground/80'
                         )}
+                        data-testid={`quickbatch-weight-toggle-${u}`}
                         key={u}
                         onClick={() => setUnits({ weightUnit: u })}
                         type="button"
@@ -722,11 +780,44 @@ export function QuickBatchTab() {
               <div className="flex min-w-0 flex-col gap-2 min-[460px]:flex-row min-[460px]:items-center">
                 <input
                   className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-                  onChange={e => setInfusion({ volume: e.target.value })}
+                  data-testid="quickbatch-volume-input"
+                  // 2026-07-25 dose-units audit B2: set per-field
+                  // `infusion.volumeUnit` to the current display unit
+                  // when the user types. The toggle handler only flips
+                  // `units.volumeUnit`; it does not touch the stored
+                  // value. The engine reads `infusion.volumeUnit`
+                  // (per-field) to interpret the value, so without
+                  // this set the per-field unit stays at its
+                  // pre-toggle value and the mg/mL display drifts by
+                  // the unit-conversion factor.
+                  onChange={e =>
+                    setInfusion({
+                      volume: e.target.value,
+                      volumeUnit: units.volumeUnit,
+                    })
+                  }
                   placeholder="0.0"
                   step="0.1"
                   type="number"
-                  value={infusion.volume}
+                  // Display: convert the stored value from the
+                  // per-field unit to the current display unit,
+                  // rounded to 2 decimals. See InfusionTab.tsx:511
+                  // for the same pattern.
+                  value={
+                    infusion.volume === ''
+                      ? ''
+                      : infusion.volumeUnit === units.volumeUnit
+                        ? infusion.volume
+                        : (() => {
+                            const n = parseFloat(infusion.volume)
+                            if (Number.isNaN(n)) return infusion.volume
+                            return convertVolume(
+                              n,
+                              infusion.volumeUnit,
+                              units.volumeUnit
+                            ).toFixed(2)
+                          })()
+                  }
                 />
                 <div className="inline-flex w-full shrink-0 rounded-lg border border-foreground/20 bg-foreground/5 p-0.5 min-[460px]:w-auto">
                   {(['mL', 'tsp', 'tbsp', 'cup'] as const).map(u => (
@@ -737,6 +828,7 @@ export function QuickBatchTab() {
                           ? 'bg-foreground/15 text-foreground'
                           : 'text-foreground/70 hover:text-foreground/80'
                       )}
+                      data-testid={`quickbatch-volume-toggle-${u.toLowerCase()}`}
                       key={u}
                       onClick={() => setUnits({ volumeUnit: u })}
                       type="button"
@@ -1023,6 +1115,7 @@ export function QuickBatchTab() {
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-success/20 bg-success/10 px-4 py-2 text-sm font-medium text-success transition-colors hover:bg-success/20 sm:w-auto"
+                  data-testid="quickbatch-save-button"
                   onClick={handleSaveBatch}
                   type="button"
                 >
