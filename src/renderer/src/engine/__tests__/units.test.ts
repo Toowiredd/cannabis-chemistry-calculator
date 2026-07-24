@@ -11,6 +11,9 @@ import {
   mlToCup,
   cupToMl,
   volumeToMl,
+  displayVolumeToMl,
+  convertWeight,
+  convertVolume,
   round1,
 } from '../units'
 
@@ -189,6 +192,72 @@ describe('units', () => {
       expect(() =>
         volumeToMl(1, 'unknown' as unknown as 'mL')
       ).toThrow(/Unknown volume unit/)
+    })
+  })
+
+  describe('displayVolumeToMl', () => {
+    it('parses "100" in mL to 100', () => {
+      expect(displayVolumeToMl('100', 'mL')).toBe(100)
+    })
+    it('returns NaN for empty string (blank input field)', () => {
+      expect(displayVolumeToMl('', 'mL')).toBeNaN()
+    })
+    it('returns NaN for non-numeric string (invalid input field)', () => {
+      expect(displayVolumeToMl('abc', 'mL')).toBeNaN()
+    })
+  })
+
+  describe('convertWeight', () => {
+    it('converts 3.5 g to oz (3.5 / 28.3495)', () => {
+      // 3.5 / 28.3495 = 0.12345886...
+      expect(convertWeight(3.5, 'g', 'oz')).toBeCloseTo(0.12345886, 5)
+    })
+    it('round-trips g → oz → g with no drift (uses computed value)', () => {
+      // The brief's "0.123458 oz → 3.5 g" is a 6-decimal truncation of the
+      // true 0.12345886... — testing with the truncated value drops one ULP
+      // and fails at 5-decimal precision. Test the round-trip property
+      // directly: g → oz → g must be ≈ original.
+      const oz = convertWeight(3.5, 'g', 'oz')
+      expect(convertWeight(oz, 'oz', 'g')).toBeCloseTo(3.5, 5)
+    })
+    it('returns the input unchanged for g → g (identity)', () => {
+      expect(convertWeight(3.5, 'g', 'g')).toBe(3.5)
+    })
+    it('converts 0.1 oz to g (0.1 * 28.3495)', () => {
+      expect(convertWeight(0.1, 'oz', 'g')).toBeCloseTo(2.83495, 5)
+    })
+  })
+
+  describe('convertVolume', () => {
+    it('converts 100 mL to cup (100 / 236.588)', () => {
+      // 100 / 236.588 = 0.42267528...
+      expect(convertVolume(100, 'mL', 'cup')).toBeCloseTo(0.42267528, 5)
+    })
+    it('round-trips mL → cup → mL with no drift (uses computed value)', () => {
+      // The brief's "0.422675 cup → 100 mL" is a 6-decimal truncation of
+      // the true 0.42267528... — same drop-one-ULP issue as the weight
+      // round-trip. Test the round-trip property directly.
+      const cup = convertVolume(100, 'mL', 'cup')
+      expect(convertVolume(cup, 'cup', 'mL')).toBeCloseTo(100, 5)
+    })
+    it('returns the input unchanged for mL → mL (identity)', () => {
+      expect(convertVolume(100, 'mL', 'mL')).toBe(100)
+    })
+    it('converts 1 tsp to 4.929 mL (engine uses rounded constant)', () => {
+      // The US-customary teaspoon is 4.92892 mL in FDA 1930 re-measurement,
+      // but `engine/units.ts:33` rounds this to 4.929 (3-decimal). The test
+      // pins the engine's actual constant — if a future engineer tightens
+      // the constant to 4.92892, this test will fail and force an update
+      // to the source of truth.
+      expect(convertVolume(1, 'tsp', 'mL')).toBe(4.929)
+    })
+    it('converts 1 tbsp to 14.787 mL (engine uses rounded constant)', () => {
+      // The US-customary tablespoon is 14.7868 mL, but
+      // `engine/units.ts:43` rounds to 14.787. Pin the engine's constant.
+      expect(convertVolume(1, 'tbsp', 'mL')).toBe(14.787)
+    })
+    it('converts 1 cup to 236.588 mL', () => {
+      expect(convertVolume(1, 'cup', 'mL')).toBe(236.588)
     })
   })
 })

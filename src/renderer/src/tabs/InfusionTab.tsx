@@ -8,12 +8,10 @@ import {
 import { INFUSION_FATS } from 'renderer/src/engine/models'
 import {
   convertVolume,
-  cupToMl,
+  displayVolumeToMl,
   mlToCup,
   mlToTbsp,
   mlToTsp,
-  tbspToMl,
-  tspToMl,
   volumeToMl,
 } from 'renderer/src/engine/units'
 import { round1n, fmt1 } from 'renderer/src/engine/formatting'
@@ -84,23 +82,11 @@ function validateInfusionFields(
 /* Unit helpers                                                       */
 /* ------------------------------------------------------------------ */
 
-function displayVolumeToMl(
-  value: string,
-  unit: 'mL' | 'tsp' | 'tbsp' | 'cup'
-): number {
-  const n = parseFloat(value)
-  if (Number.isNaN(n)) return NaN
-  switch (unit) {
-    case 'mL':
-      return n
-    case 'tsp':
-      return tspToMl(n)
-    case 'tbsp':
-      return tbspToMl(n)
-    case 'cup':
-      return cupToMl(n)
-  }
-}
+// `displayVolumeToMl` and `volumeToMl` are imported from
+// `renderer/src/engine/units` (canonical helpers — the local copies
+// previously defined here and in `AdvancedToolsTab.tsx` were removed
+// 2026-07-25 to close calc-auditor MINOR #2 + NIT #2; see
+// `validation_report_dose_units.md` §7).
 
 function mlToDisplayVolume(
   ml: number,
@@ -116,15 +102,6 @@ function mlToDisplayVolume(
     case 'cup':
       return mlToCup(ml)
   }
-}
-
-function unitFactor(unit: 'mL' | 'tsp' | 'tbsp' | 'cup'): number {
-  // The per-unit magic numbers (4.929 / 14.787 / 236.588) are owned by
-  // engine/units.ts (volumeToMl). Calling volumeToMl(1, unit) is the
-  // canonical way to read them. The local copy was flagged by the 2026-07-25
-  // ccc Infusion audit as NIT #1 — drift risk if the US-customary teaspoon
-  // figure ever changes (last re-measured in 1930 by the FDA).
-  return volumeToMl(1, unit)
 }
 
 function unitLabel(unit: 'mL' | 'tsp' | 'tbsp' | 'cup'): string {
@@ -247,7 +224,11 @@ export function InfusionTab() {
 
         const infusedThc = calculateInfusedThc(decarbedThc, eff)
         const mgPerMl = calculateMgPerMl(infusedThc, volumeMl)
-        const factor = unitFactor(units.volumeUnit)
+        // `volumeToMl(1, units.volumeUnit)` is the canonical "how many mL
+        // are in 1 of the user's selected unit" — the previous local
+        // `unitFactor` wrapper around this was inlined 2026-07-25 to close
+        // calc-auditor NIT #1 (`validation_report_dose_units.md` §7).
+        const factor = volumeToMl(1, units.volumeUnit)
         const mgPerUnit = round1n(mgPerMl * factor)
 
         let simplifiedEstimate: number | null = null
