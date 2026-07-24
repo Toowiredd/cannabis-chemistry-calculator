@@ -45,6 +45,7 @@ export function QuickBatchTab() {
   const setDose = useAppStore(s => s.setDose)
   const units = useAppStore(s => s.units)
   const setUnits = useAppStore(s => s.setUnits)
+  const setActiveTab = useAppStore(s => s.setActiveTab)
   const resetDecarb = useAppStore(s => s.resetDecarb)
   const resetInfusion = useAppStore(s => s.resetInfusion)
   const resetDose = useAppStore(s => s.resetDose)
@@ -201,7 +202,14 @@ export function QuickBatchTab() {
     [units, decarb, infusion, dose, setDecarb, setInfusion, setDose]
   )
 
-  /* Save to journal */
+  /* Save to journal — matches the FirstTimerGuide.handleSaveToJournal
+   * discipline: persist to disk FIRST, only add to the local store on
+   * success. The catch-block fallback used to silently add to the
+   * local store even when the IPC threw, which meant a failed save
+   * would show a "saved" entry that vanished on the next Journal-tab
+   * mount-time reload. The 2026-07-24 user-journey verification
+   * caught this — see FirstTimerGuide.tsx:555-582 for the matching
+   * fix. */
   const handleSaveBatch = async () => {
     const method = results.method
     const fat = results.fat
@@ -230,20 +238,41 @@ export function QuickBatchTab() {
       notes: `Quick Batch saved. Theoretical max: ${fmt1(results.theoreticalMax)} mg. Decarb expected: ${fmt1(results.decarbedExpected)} mg.`,
     }
 
+    // No IPC bridge (browser-only / dev-renderer audit). Fall back to
+    // local-store-only so the user can still see the entry. This is a
+    // distinct code path from the IPC-throw case below — the user
+    // knows their environment can't persist, and there's no disk to
+    // be out-of-sync with.
+    if (typeof window.App?.saveJournalEntry !== 'function') {
+      addJournalEntry(entry)
+      recordSuccessfulPath('make_batch', 'quickbatch')
+      showToast('Batch saved to Journal (local only — no IPC bridge)')
+      setActiveTab('journal')
+      return
+    }
+
     try {
       const result = await window.App.saveJournalEntry(entry)
       if (result.success) {
         addJournalEntry(entry)
         recordSuccessfulPath('make_batch', 'quickbatch')
         showToast('Batch saved to Journal')
+        // Switch to the journal tab so the user can see their new
+        // entry — same UX as the First-Timer Guide's save action.
+        setActiveTab('journal')
       } else {
         showToast(result.error ?? 'Save failed')
       }
-    } catch {
-      // Fallback: just add to local store if IPC fails
-      addJournalEntry(entry)
-      recordSuccessfulPath('make_batch', 'quickbatch')
-      showToast('Batch saved to Journal (local)')
+    } catch (err) {
+      // Disk write failed (or the IPC bridge threw for a real reason,
+      // not just "undefined"). Do NOT add to the local store — that
+      // would be a phantom entry, lost on the next Journal-tab mount.
+      console.warn(
+        '[QuickBatchTab] saveJournalEntry IPC threw',
+        entry.id,
+        err
+      )
+      showToast('Could not save — your data is still in the calculator')
     }
   }
 
