@@ -495,10 +495,48 @@ describe('FirstTimerGuide — step 6 matrix', () => {
     const state = useAppStore.getState()
     expect(state.journalEntries[0].methodId).toBe('oven_sealed')
     expect(state.journalEntries[0].fatId).toBe('coconut')
+    // The 2026-07-25 ccc Infusion audit MINOR #3 fix: the journal entry's
+    // `volume` field must match the wizard's fatVolume step, not the
+    // Infusion tab's default 100 mL.
+    expect(state.journalEntries[0].volume).toBe('100')
+    expect(state.journalEntries[0].volumeUnit).toBe('mL')
     expect(state.wizard.dismissed).toBe(true)
     expect(state.wizard.active).toBe(false)
     // Also switched the active tab to journal so the user sees the entry.
     expect(state.activeTab).toBe('journal')
+  })
+
+  it('Save to Journal honors a non-default fatVolume (regression for stale-closure bug)', async () => {
+    // The 2026-07-25 user-journey verification found that
+    // handleSaveToJournal captured `selections.fatVolume` in a closure
+    // that was missing the dep — every save used the first-render
+    // fatVolume. This test fails on the old code (volume='100') and
+    // passes on the fix (volume='250').
+    openWizard({
+      stepIndex: 7,
+      selections: {
+        equipment: [],
+        decarbMethodIds: ['oven_sealed'],
+        fatIds: ['coconut'],
+        formatIds: ['brownie_9x13'],
+        grams: 3.5,
+        thcaPct: 20,
+        servings: 16,
+        fatVolume: 250,
+      },
+    })
+    render(<FirstTimerGuide />)
+    fireEvent.click(screen.getByTestId('wizard-save-journal'))
+    await waitFor(() => {
+      expect(useAppStore.getState().journalEntries.length).toBe(1)
+    })
+    const entry = useAppStore.getState().journalEntries[0]
+    expect(entry.volume).toBe('250')
+    // Concentration = infused (mg) / volume (mL) should also reflect 250,
+    // not 100. The engine produces a different value when the divisor
+    // changes — this is the user-visible payoff of the MINOR #3 fix.
+    expect(Number(entry.concentration)).toBeGreaterThan(0)
+    expect(entry.concentration).not.toBe('0')
   })
 
   it('Open in Quick Batch switches tab and dismisses the wizard', () => {

@@ -580,7 +580,12 @@ export function FirstTimerGuide(): ReactNode {
     } catch (err) {
       console.warn('[FirstTimerGuide] saveJournalEntry IPC threw', entry.id, err)
     }
-  }, [matrix, grams, thcaPct, infusionDefaults.volume, addJournalEntry, setActiveTab, dismissWizard])
+    // 2026-07-25 user-journey verification: selections.fatVolume is read
+    // inside this closure. Without it in the dep array, the callback
+    // would capture the fatVolume from the first render and the journal
+    // entry's `volume` field would always be the Infusion-tab default
+    // (100 mL) — exactly the bug MINOR #3 was supposed to fix.
+  }, [matrix, grams, thcaPct, selections.fatVolume, infusionDefaults.volume, addJournalEntry, setActiveTab, dismissWizard])
 
   /* ---- CTA: open in Quick Batch ---- */
   const handleOpenQuickBatch = useCallback(() => {
