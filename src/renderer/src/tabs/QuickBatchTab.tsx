@@ -435,8 +435,13 @@ export function QuickBatchTab() {
       }
       return Math.max(s - 1, 0)
     })
+  // 2026-07-25 ccc-workflow-validator audit (MINOR m2): in AVB mode the
+  // "Next" button label was hardcoded to `STEPS[step + 1].label` even
+  // though `nextStep` jumps 0 → 2 (skipping step 1). Derive from the
+  // actual destination so the label matches the real hop.
+  const nextStepIndex = isAvbMode && step === 0 ? 2 : step + 1
   const nextStepLabel =
-    step < STEPS.length - 1 ? `Next: ${STEPS[step + 1].label}` : 'Next'
+    nextStepIndex < STEPS.length ? `Next: ${STEPS[nextStepIndex].label}` : 'Next'
 
   /* Temp override display */
   const _tempDisplay = useMemo(() => {
@@ -577,24 +582,45 @@ export function QuickBatchTab() {
           />
         </div>
         <div className="grid grid-cols-1 gap-1 min-[380px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-          {STEPS.map((s, i) => (
-            <button
-              aria-current={i === step ? 'step' : undefined}
-              className={cn(
-                'min-h-10 min-w-0 rounded-lg px-2 py-2 text-xs font-medium transition-colors',
-                i === step
-                  ? 'bg-foreground/15 text-foreground border border-foreground/20'
-                  : i < step
-                    ? 'bg-success/10 text-success border border-success/20'
-                    : 'bg-foreground/5 text-foreground/70 border border-foreground/10'
-              )}
-              key={s.key}
-              onClick={() => setStep(i)}
-              type="button"
-            >
-              <span className="block truncate">{s.label}</span>
-            </button>
-          ))}
+          {STEPS.map((s, i) => {
+            // 2026-07-25 ccc-workflow-validator audit (MAJOR M1): in
+            // AVB mode the Decarb Method step (index 1) is intentionally
+            // skipped, but the pill onClick was unguarded so the user
+            // could click pill 1, set `step === 1`, and land on a
+            // null-rendered body with no Next/Back. Disable the pill
+            // in AVB mode so the user cannot enter the dead-end state.
+            const pillDisabled = isAvbMode && i === 1
+            return (
+              <button
+                aria-current={i === step ? 'step' : undefined}
+                aria-disabled={pillDisabled || undefined}
+                className={cn(
+                  'min-h-10 min-w-0 rounded-lg px-2 py-2 text-xs font-medium transition-colors',
+                  pillDisabled
+                    ? 'bg-foreground/5 text-foreground/30 border border-foreground/10 cursor-not-allowed'
+                    : i === step
+                      ? 'bg-foreground/15 text-foreground border border-foreground/20'
+                      : i < step
+                        ? 'bg-success/10 text-success border border-success/20'
+                        : 'bg-foreground/5 text-foreground/70 border border-foreground/10'
+                )}
+                disabled={pillDisabled}
+                key={s.key}
+                onClick={() => {
+                  if (pillDisabled) return
+                  setStep(i)
+                }}
+                title={
+                  pillDisabled
+                    ? 'Skipped in AVB mode — AVB is already decarboxylated'
+                    : undefined
+                }
+                type="button"
+              >
+                <span className="block truncate">{s.label}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
 

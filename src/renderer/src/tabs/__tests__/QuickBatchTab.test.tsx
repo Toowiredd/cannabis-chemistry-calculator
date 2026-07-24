@@ -875,6 +875,42 @@ describe('QuickBatchTab — AVB (already vaped bud) feature', () => {
     expect(screen.getByText(/Step 3 of 5/)).toBeTruthy()
   })
 
+  it('AVB mode disables the Decarb Method progress pill (MAJOR M1 from the 2026-07-25 ccc-workflow-validator audit)', () => {
+    render(<QuickBatchTab />)
+    // Switch to AVB.
+    fireEvent.click(screen.getByTestId('quickbatch-material-avb'))
+    // Find the Decarb Method progress pill by its visible label.
+    const decarbPill = screen.getByRole('button', { name: /Decarb Method/i })
+    // The pill is disabled in AVB mode — clicking it must NOT advance
+    // the user into the null-rendered step body. This is the
+    // dead-end regression the audit caught.
+    expect(decarbPill.hasAttribute('disabled')).toBe(true)
+    expect(decarbPill.getAttribute('aria-disabled')).toBe('true')
+    // Clicking the disabled pill is a no-op (browsers suppress the
+    // event, but we fire it anyway to assert the handler is guarded).
+    fireEvent.click(decarbPill)
+    // We should still be on step 0 (Material), not on step 1.
+    expect(screen.getByText(/Step 1 of 5/)).toBeTruthy()
+    // The helper text on the disabled pill explains why.
+    expect(
+      decarbPill.getAttribute('title') ?? ''
+    ).toMatch(/Skipped in AVB mode/i)
+  })
+
+  it('AVB mode Next button reads "Next: Fat & Volume" at step 0 (MINOR m2 from the 2026-07-25 ccc-workflow-validator audit)', () => {
+    render(<QuickBatchTab />)
+    fireEvent.click(screen.getByTestId('quickbatch-material-avb'))
+    // In AVB mode at step 0, the Next button must announce the actual
+    // destination (step 2, Fat & Volume) — not the visually-next step
+    // (step 1, Decarb Method) which the wizard actually skips.
+    const nextBtn = screen
+      .getAllByRole('button')
+      .find(b => /Next:/i.test(b.textContent ?? ''))
+    expect(nextBtn).toBeTruthy()
+    expect(nextBtn?.textContent ?? '').toMatch(/Fat & Volume/i)
+    expect(nextBtn?.textContent ?? '').not.toMatch(/Decarb Method/i)
+  })
+
   it('AVB save stamps `source: "avb"` on the journal entry (vs source: "quickbatch" in flower mode)', async () => {
     useAppStore.setState({
       decarb: {

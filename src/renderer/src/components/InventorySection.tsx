@@ -780,8 +780,19 @@ export function InventorySection() {
                       />
                     </div>
                     <div className="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3">
-                      <span className="text-xs font-medium text-foreground/70">
+                      <span className="flex items-center gap-1 text-xs font-medium text-foreground/70">
                         Material
+                        {/*
+                          2026-07-25 ccc-uiux-reviewer audit (NIT n2): the
+                          add form has a "What is AVB?" TooltipIcon on
+                          this label (line ~484); the edit form was
+                          missing it. Keep the two forms consistent so a
+                          user editing a legacy item learns the same
+                          thing as a user adding a new one.
+                        */}
+                        <TooltipIcon
+                          text="What is AVB? Already Vaped Bud — the material left in your vaporizer after a session. It's already decarboxylated, so skip the oven step. Pick the color closest to your AVB to estimate residual potency."
+                        />
                       </span>
                       <div
                         aria-label="Material kind"
@@ -874,6 +885,16 @@ export function InventorySection() {
                             )
                           })}
                         </div>
+                        {/*
+                          2026-07-25 ccc-uiux-reviewer audit (MINOR m1):
+                          the add form, QuickBatch, and Decarb all show
+                          this helper text below the color picker. The
+                          edit form was missing it. Add for consistency.
+                        */}
+                        <span className="text-[11px] text-foreground/60">
+                          Lighter AVB retains more THC; darker AVB has
+                          been vaped longer and is less potent.
+                        </span>
                       </div>
                     )}
 

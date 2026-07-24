@@ -197,9 +197,10 @@ export function calculateAvbTheoreticalMax(
   }
   // Delegate to the canonical theoretical-max function so the THCA→THC
   // factor, input validation, and 1-decimal rounding are all reused
-  // consistently with the flower / concentrate paths. The `* 1.0` documents
-  // that AVB is already decarboxylated (efficiency = 1.0).
-  return calculateTheoreticalMax(grams, 0, residualThcPct) * 1.0
+  // consistently with the flower / concentrate paths. The AVB efficiency
+  // is implicitly 1.0 because the residual THC passed in is already-active
+  // (THCA→THC factor is multiplied by 0 on the thcaPct argument).
+  return calculateTheoreticalMax(grams, 0, residualThcPct)
 }
 
 /**

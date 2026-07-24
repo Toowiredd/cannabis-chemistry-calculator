@@ -538,8 +538,15 @@ export function MethodsTab() {
                   explains the flow and points the user to the
                   AVB-aware surfaces (QuickBatch / Decarb). */}
               {isAvbMode ? (
+                /*
+                 * 2026-07-25 ccc-uiux-reviewer audit (NIT n3): the callout
+                 * was text-only. Make it actionable with a button that
+                 * jumps the user to the Quick Batch wizard, which is the
+                 * only AVB-aware flow that auto-routes through the
+                 * residual THC + color picker.
+                 */
                 <div
-                  className="mt-auto flex flex-col gap-1 rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-xs text-info"
+                  className="mt-auto flex flex-col gap-2 rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-xs text-info"
                   data-testid="methods-avb-callout"
                 >
                   <span className="font-semibold">
@@ -550,6 +557,14 @@ export function MethodsTab() {
                     Go to Quick Batch or Decarb to set up the
                     residual THC %.
                   </span>
+                  <button
+                    className="mt-1 self-start rounded-md border border-info/40 bg-info/20 px-2 py-1 text-xs font-medium text-info transition-colors hover:bg-info/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-info/60"
+                    data-testid="methods-avb-go-to-quickbatch"
+                    onClick={() => setActiveTab('quickbatch')}
+                    type="button"
+                  >
+                    Open in Quick Batch
+                  </button>
                 </div>
               ) : (
                 <button
