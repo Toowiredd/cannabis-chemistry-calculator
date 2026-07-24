@@ -36,6 +36,7 @@ const advancedToolsBase: AdvancedToolsState = {
 const storeFixture = {
   decarb: {
     weight: '3.5',
+    weightUnit: 'g' as const,
     thcaPct: '20',
     thcPct: '0',
     cbdaPct: '0',
@@ -59,6 +60,7 @@ const storeFixture = {
   infusion: {
     decarbedThc: '500',
     volume: '100',
+    volumeUnit: 'mL' as const,
     fatId: 'coconut',
     customEfficiency: '0.82',
   },

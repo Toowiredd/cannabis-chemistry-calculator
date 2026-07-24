@@ -7,6 +7,7 @@ import {
 } from 'renderer/src/engine/infusion'
 import { INFUSION_FATS } from 'renderer/src/engine/models'
 import {
+  convertVolume,
   cupToMl,
   mlToCup,
   mlToTbsp,
@@ -197,8 +198,11 @@ export function InfusionTab() {
   /* ---------------------------------------------------------------- */
 
   const volumeMl = useMemo(() => {
-    return displayVolumeToMl(infusion.volume, units.volumeUnit)
-  }, [infusion.volume, units.volumeUnit])
+    // Convert from the per-field unit (infusion.volumeUnit — the
+    // unit the user typed) to mL for engine calls. Previously used
+    // `units.volumeUnit` which was wrong post-toggle.
+    return displayVolumeToMl(infusion.volume, infusion.volumeUnit)
+  }, [infusion.volume, infusion.volumeUnit])
 
   const extractionEff = useMemo(() => {
     if (isCustom) {
@@ -305,14 +309,9 @@ export function InfusionTab() {
 
   const handleVolumeUnitToggle = (newUnit: 'mL' | 'tsp' | 'tbsp' | 'cup') => {
     if (newUnit === units.volumeUnit) return
-    const current = parseFloat(infusion.volume)
-    if (!Number.isNaN(current)) {
-      const currentMl = displayVolumeToMl(infusion.volume, units.volumeUnit)
-      const newDisplay = fmt1(round1n(mlToDisplayVolume(currentMl, newUnit)))
-      setInfusion({ volume: newDisplay })
-    } else if (infusion.volume.trim() === '') {
-      setInfusion({ volume: '' })
-    }
+    // 2026-07-24 user-journey verification round 3: don't touch
+    // the stored value on toggle — the per-field `infusion.volumeUnit`
+    // tracks the unit the user typed in. See DecarbState.weightUnit.
     setUnits({ volumeUnit: newUnit })
   }
 
@@ -500,11 +499,30 @@ export function InfusionTab() {
                       : 'border-foreground/20 focus:border-foreground/40'
                   )}
                   data-testid="infusion-volume-input"
-                  onChange={e => setInfusion({ volume: e.target.value })}
+                  onChange={e =>
+                    setInfusion({
+                      volume: e.target.value,
+                      volumeUnit: units.volumeUnit,
+                    })
+                  }
                   placeholder="0.0"
                   step="0.1"
                   type="number"
-                  value={infusion.volume}
+                  value={
+                    infusion.volume === ''
+                      ? ''
+                      : infusion.volumeUnit === units.volumeUnit
+                        ? infusion.volume
+                        : (() => {
+                            const n = parseFloat(infusion.volume)
+                            if (Number.isNaN(n)) return infusion.volume
+                            return convertVolume(
+                              n,
+                              infusion.volumeUnit,
+                              units.volumeUnit
+                            ).toFixed(2)
+                          })()
+                  }
                 />
                 <UnitToggle
                   onChange={handleVolumeUnitToggle}

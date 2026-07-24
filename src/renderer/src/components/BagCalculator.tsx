@@ -234,9 +234,11 @@ export function BagCalculator({ tempC }: { tempC: number }) {
   const weightGrams = useMemo(() => {
     const w = parseFloat(decarb.weight)
     if (Number.isNaN(w)) return 0
-    if (units.weightUnit === 'oz') return w * 28.3495
+    // Convert from the per-field unit to grams. Previously used
+    // `units.weightUnit` which was wrong post-toggle.
+    if (decarb.weightUnit === 'oz') return w * 28.3495
     return w
-  }, [decarb.weight, units.weightUnit])
+  }, [decarb.weight, decarb.weightUnit])
 
   /* Debounced recalculation */
   useEffect(() => {

@@ -11,7 +11,7 @@ import {
 } from 'renderer/src/engine/infusion'
 import { calculateMgPerServing, classifyDose } from 'renderer/src/engine/dosing'
 import { scaleRecipe } from 'renderer/src/engine/recipe'
-import { ozToG, cToF } from 'renderer/src/engine/units'
+import { cToF, ozToG, volumeToMl } from 'renderer/src/engine/units'
 import { fmt1, round1n } from 'renderer/src/engine/formatting'
 import { cn } from 'renderer/lib/utils'
 import {
@@ -114,14 +114,9 @@ export function QuickBatchTab() {
         : 0
 
     const vol = parseFloat(infusion.volume)
-    const volMl =
-      units.volumeUnit === 'mL'
-        ? vol
-        : units.volumeUnit === 'tsp'
-          ? vol * 4.929
-          : units.volumeUnit === 'tbsp'
-            ? vol * 14.787
-            : vol * 236.588
+    // Convert from the per-field unit to mL for engine calls.
+    // Previously used `units.volumeUnit` which was wrong post-toggle.
+    const volMl = volumeToMl(vol, infusion.volumeUnit)
     const mgPerMl =
       volMl > 0 && !Number.isNaN(volMl)
         ? calculateMgPerMl(infusedThc, volMl)
@@ -358,7 +353,8 @@ export function QuickBatchTab() {
       setInventoryWarning(null)
       return
     }
-    const weightGrams = units.weightUnit === 'oz' ? ozToG(w) : w
+    // Use the per-field unit. See DecarbState.weightUnit.
+    const weightGrams = decarb.weightUnit === 'oz' ? ozToG(w) : w
     const onHand = inventory.items.reduce((sum, i) => {
       const g = parseFloat(i.amountGrams) || 0
       return i.type === 'purchase' ? sum + g : sum - g

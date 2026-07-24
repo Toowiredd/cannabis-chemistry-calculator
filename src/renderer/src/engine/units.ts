@@ -88,3 +88,58 @@ export function cmToIn(cm: number): number {
 export function inToCm(inch: number): number {
   return inch * 2.54
 }
+
+/**
+ * Convert a weight value from one unit to another. Pure math — caller
+ * is responsible for parsing/formatting the string. Used by the
+ * calculator tabs when the user toggles weight units: the field's
+ * stored value is always in `decarb.weightUnit`; this helper
+ * converts it for display in `units.weightUnit` and for engine
+ * calls (which expect grams).
+ */
+export function convertWeight(
+  value: number,
+  from: 'g' | 'oz',
+  to: 'g' | 'oz'
+): number {
+  if (from === to) return value
+  return to === 'oz' ? gToOz(value) : ozToG(value)
+}
+
+/**
+ * Convert a volume value from one unit to another. Used by
+ * InfusionTab and QuickBatchTab to display the volume in the
+ * user's current unit without mutating the stored value.
+ */
+export function convertVolume(
+  value: number,
+  from: 'mL' | 'tsp' | 'tbsp' | 'cup',
+  to: 'mL' | 'tsp' | 'tbsp' | 'cup'
+): number {
+  if (from === to) return value
+  let ml: number
+  switch (from) {
+    case 'mL':
+      ml = value
+      break
+    case 'tsp':
+      ml = tspToMl(value)
+      break
+    case 'tbsp':
+      ml = tbspToMl(value)
+      break
+    case 'cup':
+      ml = cupToMl(value)
+      break
+  }
+  switch (to) {
+    case 'mL':
+      return ml
+    case 'tsp':
+      return mlToTsp(ml)
+    case 'tbsp':
+      return mlToTbsp(ml)
+    case 'cup':
+      return mlToCup(ml)
+  }
+}

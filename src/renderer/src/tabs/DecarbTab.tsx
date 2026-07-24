@@ -15,7 +15,7 @@ import {
 } from 'renderer/src/engine/concentrate'
 import { DECARB_METHODS } from 'renderer/src/engine/models'
 import type { Strain } from 'renderer/src/engine/models'
-import { cToF, fToC, gToOz, ozToG } from 'renderer/src/engine/units'
+import { cToF, fToC, convertWeight, gToOz, ozToG } from 'renderer/src/engine/units'
 import { minSigFigs, formatWithSigFigs, round1n, fmt1 } from 'renderer/src/engine/formatting'
 import { cn } from 'renderer/lib/utils'
 import {
@@ -249,7 +249,12 @@ export function DecarbTab() {
       setInventoryWarning(null)
       return
     }
-    const weightGrams = units.weightUnit === 'oz' ? ozToG(w) : w
+    // Convert the stored value (which is in `decarb.weightUnit`, the
+    // unit the user typed it in) to grams for the inventory check.
+    // Previously this used `units.weightUnit` (the display unit) —
+    // which is wrong post-toggle because the stored value is in the
+    // per-field unit, not the display unit.
+    const weightGrams = decarb.weightUnit === 'oz' ? ozToG(w) : w
     const onHand = inventory.items.reduce((sum, i) => {
       const g = parseFloat(i.amountGrams) || 0
       return i.type === 'purchase' ? sum + g : sum - g
@@ -299,9 +304,11 @@ export function DecarbTab() {
   const weightGrams = useMemo(() => {
     const w = parseFloat(decarb.weight)
     if (Number.isNaN(w)) return 0
-    if (units.weightUnit === 'oz') return ozToG(w)
+    // Convert from the per-field unit (decarb.weightUnit — the unit
+    // the user typed the value in) to grams for engine calls.
+    if (decarb.weightUnit === 'oz') return ozToG(w)
     return w
-  }, [decarb.weight, units.weightUnit])
+  }, [decarb.weight, decarb.weightUnit])
 
   const hasBlockingErrors = useCallback(
     (errs: FieldErrors) =>
@@ -561,13 +568,13 @@ export function DecarbTab() {
 
   const handleWeightUnitToggle = (newUnit: 'g' | 'oz') => {
     if (newUnit === units.weightUnit) return
-    const current = parseFloat(decarb.weight)
-    if (!Number.isNaN(current)) {
-      const converted = newUnit === 'oz' ? gToOz(current) : ozToG(current)
-      setDecarb({ weight: fmt1(round1n(converted)) })
-    } else if (decarb.weight.trim() === '') {
-      setDecarb({ weight: '' })
-    }
+    // 2026-07-24 user-journey verification round 3: the old
+    // implementation converted-and-rounded `decarb.weight` on every
+    // toggle, which lost precision (3.5g → 0.1oz → 2.8g). The fix
+    // is to NOT touch the stored value — only change the display
+    // unit preference. The value stays in the unit the user typed
+    // it in (tracked by `decarb.weightUnit`); display converts for
+    // read. See DecarbState.weightUnit docs.
     setUnits({ weightUnit: newUnit })
   }
 
@@ -820,11 +827,40 @@ export function DecarbTab() {
                       : 'border-foreground/20 focus:border-foreground/40'
                   )}
                   data-testid="decarb-weight-input"
-                  onChange={e => setDecarb({ weight: e.target.value })}
+                  // The user types in the current display unit. We
+                  // track the unit on the field itself so the
+                  // value is preserved across toggles. If the
+                  // user toggles, the input re-renders with the
+                  // value converted to the new display unit (1
+                  // decimal rounded) while the stored value
+                  // stays untouched.
+                  onChange={e => {
+                    const raw = e.target.value
+                    setDecarb({ weight: raw, weightUnit: units.weightUnit })
+                  }}
                   placeholder="0.00"
                   step="0.01"
                   type="number"
-                  value={decarb.weight}
+                  // Display: convert from the stored unit to the
+                  // current display unit, round to 2 decimals for
+                  // readability (so 0.1 oz doesn't display as
+                  // 0.123456789).
+                  value={
+                    decarb.weight === ''
+                      ? ''
+                      : decarb.weightUnit === units.weightUnit
+                        ? decarb.weight
+                        : (() => {
+                            const n = parseFloat(decarb.weight)
+                            if (Number.isNaN(n)) return decarb.weight
+                            const converted = convertWeight(
+                              n,
+                              decarb.weightUnit,
+                              units.weightUnit
+                            )
+                            return converted.toFixed(2)
+                          })()
+                  }
                 />
                 <UnitToggle
                   onChange={handleWeightUnitToggle}

@@ -5,7 +5,7 @@ import {
   calculateDecarbedThc,
 } from 'renderer/src/engine/decarb'
 import { DECARB_METHODS } from 'renderer/src/engine/models'
-import { gToOz, ozToG } from 'renderer/src/engine/units'
+import { convertWeight, gToOz, ozToG } from 'renderer/src/engine/units'
 import { fmt1, round1n } from 'renderer/src/engine/formatting'
 import { cn } from 'renderer/lib/utils'
 import { RotateCcw } from 'lucide-react'
@@ -128,9 +128,11 @@ export function MethodsTab() {
   const weightGrams = useMemo(() => {
     const w = parseFloat(decarb.weight)
     if (Number.isNaN(w)) return 0
-    if (units.weightUnit === 'oz') return ozToG(w)
+    // Convert from the per-field unit to grams. Previously used
+    // `units.weightUnit` which was wrong post-toggle.
+    if (decarb.weightUnit === 'oz') return ozToG(w)
     return w
-  }, [decarb.weight, units.weightUnit])
+  }, [decarb.weight, decarb.weightUnit])
 
   const hasBlockingErrors = useCallback(
     (errs: FieldErrors) => !!(errs.weight || errs.thcaPct || errs.thcPct),
@@ -241,13 +243,9 @@ export function MethodsTab() {
 
   const handleWeightUnitToggle = (newUnit: 'g' | 'oz') => {
     if (newUnit === units.weightUnit) return
-    const current = parseFloat(decarb.weight)
-    if (!Number.isNaN(current)) {
-      const converted = newUnit === 'oz' ? gToOz(current) : ozToG(current)
-      setDecarb({ weight: fmt1(round1n(converted)) })
-    } else if (decarb.weight.trim() === '') {
-      setDecarb({ weight: '' })
-    }
+    // 2026-07-24 user-journey verification round 3: don't touch
+    // the stored value on toggle — the per-field `decarb.weightUnit`
+    // tracks the unit the user typed in. See DecarbTab.
     setUnits({ weightUnit: newUnit })
   }
 
@@ -324,11 +322,30 @@ export function MethodsTab() {
                       ? 'border-danger/60 focus:border-danger'
                       : 'border-foreground/20 focus:border-foreground/40'
                   )}
-                  onChange={e => setDecarb({ weight: e.target.value })}
+                  onChange={e =>
+                    setDecarb({
+                      weight: e.target.value,
+                      weightUnit: units.weightUnit,
+                    })
+                  }
                   placeholder="0.00"
                   step="0.01"
                   type="number"
-                  value={decarb.weight}
+                  value={
+                    decarb.weight === ''
+                      ? ''
+                      : decarb.weightUnit === units.weightUnit
+                        ? decarb.weight
+                        : (() => {
+                            const n = parseFloat(decarb.weight)
+                            if (Number.isNaN(n)) return decarb.weight
+                            return convertWeight(
+                              n,
+                              decarb.weightUnit,
+                              units.weightUnit
+                            ).toFixed(2)
+                          })()
+                  }
                 />
                 <UnitToggle
                   onChange={handleWeightUnitToggle}

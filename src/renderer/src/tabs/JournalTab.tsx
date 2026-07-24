@@ -104,10 +104,11 @@ function buildFormFromStore(
     const infused = decarbed * fatEff
     totalInfused = fmt1(infused)
 
-    // Engine: any-volume-unit → mL
+    // Engine: any-volume-unit → mL. Use the per-field unit, not
+    // the display unit — the stored value is in infusion.volumeUnit.
     const vol = parseFloat(infusion.volume)
     if (!Number.isNaN(vol) && vol > 0) {
-      const volMl = volumeToMl(vol, units.volumeUnit)
+      const volMl = volumeToMl(vol, infusion.volumeUnit)
       if (volMl > 0) {
         concentration = fmt1(infused / volMl)
       }

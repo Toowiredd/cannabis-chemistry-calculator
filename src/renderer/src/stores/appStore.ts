@@ -35,6 +35,17 @@ export interface UnitPreferences {
 
 export interface DecarbState {
   weight: string
+  /**
+   * Unit the stored `weight` value is in. The 2026-07-24 user-journey
+   * verification round 3 found the weight-unit toggle was losing
+   * precision because the value was converted-and-rounded on every
+   * toggle. The fix: store the value in whatever unit the user typed
+   * it in, and convert for display only. The toggle changes
+   * `units.weightUnit` for the next display, but `weight` itself is
+   * preserved. Defaults to 'g'; migrated to 'g' on first read for
+   * legacy state that doesn't have the field.
+   */
+  weightUnit: 'g' | 'oz'
   thcaPct: string
   thcPct: string
   cbdaPct: string
@@ -61,6 +72,12 @@ export interface DecarbState {
 export interface InfusionState {
   decarbedThc: string
   volume: string
+  /**
+   * Unit the stored `volume` value is in. See `DecarbState.weightUnit`
+   * for the rationale — same per-field unit tracking to prevent
+   * precision loss on toggle. Defaults to 'mL'.
+   */
+  volumeUnit: 'mL' | 'tsp' | 'tbsp' | 'cup'
   fatId: string
   customEfficiency: string
 }
@@ -274,6 +291,7 @@ export interface TimerState {
 
 export const DEFAULT_DECARB: DecarbState = {
   weight: '3.5',
+  weightUnit: 'g',
   thcaPct: '20',
   thcPct: '0',
   cbdaPct: '0',
@@ -298,6 +316,7 @@ export const DEFAULT_DECARB: DecarbState = {
 export const DEFAULT_INFUSION: InfusionState = {
   decarbedThc: '',
   volume: '100',
+  volumeUnit: 'mL',
   fatId: 'coconut',
   customEfficiency: '0.82',
 }
@@ -806,6 +825,14 @@ export const useAppStore = create<AppStore>()(
           const di = isRecord(d.inputs) ? d.inputs : d
           loadedDecarb = {
             weight: stringish(di.weight, DEFAULT_DECARB.weight),
+            // 2026-07-24 user-journey verification round 3: weightUnit
+            // added to fix precision loss on weight toggle. Legacy
+            // persisted state (pre-fix) has no field — default to
+            // 'g' so the value interprets as the user typed it.
+            weightUnit:
+              di.weightUnit === 'g' || di.weightUnit === 'oz'
+                ? di.weightUnit
+                : DEFAULT_DECARB.weightUnit,
             thcaPct: stringish(di.thcaPct, DEFAULT_DECARB.thcaPct),
             thcPct: stringish(di.thcPct, DEFAULT_DECARB.thcPct),
             cbdaPct: stringish(di.cbdaPct, DEFAULT_DECARB.cbdaPct),
@@ -850,6 +877,15 @@ export const useAppStore = create<AppStore>()(
               DEFAULT_INFUSION.decarbedThc
             ),
             volume: stringish(ii.volume, DEFAULT_INFUSION.volume),
+            // Same migration story as weightUnit above. Legacy
+            // state defaults to 'mL'.
+            volumeUnit:
+              ii.volumeUnit === 'mL' ||
+              ii.volumeUnit === 'tsp' ||
+              ii.volumeUnit === 'tbsp' ||
+              ii.volumeUnit === 'cup'
+                ? ii.volumeUnit
+                : DEFAULT_INFUSION.volumeUnit,
             fatId: stringish(ii.fatId, DEFAULT_INFUSION.fatId),
             customEfficiency: stringish(
               ii.customEfficiency,

@@ -63,6 +63,7 @@ function resetCalculator() {
     decarb: {
       ...DEFAULT_DECARB,
       weight: '3.5',
+      weightUnit: 'g' as const,
       thcaPct: '20',
       thcPct: '0',
       cbdaPct: '0',
@@ -72,6 +73,7 @@ function resetCalculator() {
     infusion: {
       decarbedThc: '',
       volume: '100',
+      volumeUnit: 'mL' as const,
       fatId: 'coconut',
       customEfficiency: '0.82',
     },

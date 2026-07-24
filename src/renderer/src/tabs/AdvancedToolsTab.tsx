@@ -118,8 +118,10 @@ function FatsSection() {
   const [isCalculating, setIsCalculating] = useState(false)
 
   const volumeMl = useMemo(
-    () => displayVolumeToMl(infusion.volume, units.volumeUnit),
-    [infusion.volume, units.volumeUnit]
+    // Convert from the per-field unit. See DecarbState.weightUnit
+    // for the rationale.
+    () => displayVolumeToMl(infusion.volume, infusion.volumeUnit),
+    [infusion.volume, infusion.volumeUnit]
   )
 
   const hasBlockingErrors = useCallback(
