@@ -517,18 +517,26 @@ export function DoseTab() {
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
           <TabActions tabId="dose" />
           <button
+            aria-label={
+              isReverse
+                ? 'Switch to forward mode (calculate mg per serving from total THC)'
+                : 'Switch to reverse mode (calculate required material from desired mg per serving)'
+            }
+            aria-pressed={isReverse}
             className={cn(
               'inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors sm:flex-none',
               isReverse
                 ? 'border-accent/40 bg-accent/10 text-accent-foreground hover:bg-accent/20'
                 : 'border-foreground/20 bg-foreground/5 text-foreground/80 hover:bg-foreground/10 hover:text-foreground'
             )}
+            data-testid="dose-reverse-mode-toggle"
             onClick={() => setDose({ reverseMode: !isReverse })}
             type="button"
           >
             <ArrowDownUp className="size-3.5" />
             {isReverse ? 'Reverse Mode (on)' : 'Reverse Mode'}
           </button>
+          <TooltipIcon text="Reverse mode flips the calculator: instead of computing mg per serving from a known total, you specify the mg per serving you want and the calculator solves backward for the amount of starting material required. Uses the currently selected decarb method and fat efficiency." />
           <button
             className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground sm:flex-none"
             onClick={handleReset}
@@ -572,6 +580,7 @@ export function DoseTab() {
                         ? 'border-danger/60 focus:border-danger'
                         : 'border-foreground/20 focus:border-foreground/40'
                     )}
+                    data-testid="dose-total-thc-input"
                     onChange={e => setDose({ totalThc: e.target.value })}
                     placeholder="0.0"
                     step="0.1"
@@ -605,6 +614,7 @@ export function DoseTab() {
                           ? 'border-danger/60 focus:border-danger'
                           : 'border-foreground/20 focus:border-foreground/40'
                       )}
+                      data-testid="dose-desired-mg-input"
                       onChange={e =>
                         setDose({ desiredMgPerServing: e.target.value })
                       }
@@ -619,7 +629,11 @@ export function DoseTab() {
               </InputRow>
 
               {/* Reverse result card — inline in input panel */}
-              <div className="rounded-xl border border-accent/30 bg-accent/10 p-4">
+              <div
+                aria-live="polite"
+                className="rounded-xl border border-accent/30 bg-accent/10 p-4"
+                data-testid="dose-reverse-result"
+              >
                 <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Required Material
                 </span>
@@ -697,6 +711,7 @@ export function DoseTab() {
                     ? 'border-danger/60 focus:border-danger'
                     : 'border-foreground/20 focus:border-foreground/40'
                 )}
+                data-testid="dose-servings-input"
                 onChange={e => setDose({ servings: e.target.value })}
                 placeholder="0"
                 ref={servingsInputRef}
@@ -773,7 +788,10 @@ export function DoseTab() {
 
         {/* ------------------- RESULTS PANEL ------------------- */}
         {!isReverse && (
-          <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5">
+          <div
+            className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:p-5"
+            data-testid="dose-forward-result"
+          >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
                 Results
@@ -818,6 +836,7 @@ export function DoseTab() {
               </span>
               <span
                 className="result-bloom mt-1 text-2xl font-bold text-success"
+                data-testid="dose-classification"
                 key={
                   results
                     ? `dose-class-${displayClassification(results.classification)}`
