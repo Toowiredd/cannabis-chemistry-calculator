@@ -61,13 +61,18 @@ function UnitToggle<T extends string>({
   value,
   options,
   onChange,
+  'data-testid': dataTestId,
 }: {
   value: T
   options: readonly T[]
   onChange: (v: T) => void
+  'data-testid'?: string
 }) {
   return (
-    <div className="inline-flex shrink-0 rounded-lg border border-foreground/20 bg-foreground/5 p-0.5">
+    <div
+      className="inline-flex shrink-0 rounded-lg border border-foreground/20 bg-foreground/5 p-0.5"
+      data-testid={dataTestId}
+    >
       {options.map(opt => (
         <button
           className={cn(
@@ -379,6 +384,7 @@ export function BagCalculator({ tempC }: { tempC: number }) {
             Reset
           </button>
           <UnitToggle
+            data-testid="bag-unit-toggle"
             onChange={handleBagUnitToggle}
             options={['cm', 'in'] as const}
             value={units.bagUnit ?? 'cm'}
@@ -543,7 +549,10 @@ export function BagCalculator({ tempC }: { tempC: number }) {
                 <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Material Volume
                 </span>
-                <span className="text-sm font-semibold text-foreground">
+                <span
+                  className="text-sm font-semibold text-foreground"
+                  data-testid="bag-material-volume"
+                >
                   {fmt1(bagResults.materialVolume)} cm³
                 </span>
               </div>
@@ -553,7 +562,10 @@ export function BagCalculator({ tempC }: { tempC: number }) {
                 <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Fill Depth
                 </span>
-                <span className="text-sm font-semibold text-foreground">
+                <span
+                  className="text-sm font-semibold text-foreground"
+                  data-testid="bag-fill-depth"
+                >
                   {round3(bagResults.fillDepth)} cm
                 </span>
               </div>
@@ -576,7 +588,7 @@ export function BagCalculator({ tempC }: { tempC: number }) {
               )}
 
               {/* Best bag recommendation */}
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1" data-testid="bag-recommendation">
                 <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Recommended Bag
                 </span>
