@@ -1,6 +1,6 @@
 # Cannabis Chemistry Calculator
 
-A local-first Electron desktop app for cannabis decarboxylation, fat infusion, and dose estimation calculations. Built with React 19, TypeScript 5, and Tailwind CSS v4.
+A local-first Electron desktop app + Progressive Web App for cannabis decarboxylation, fat infusion, and dose estimation calculations. Built with React 19, TypeScript 5, and Tailwind CSS v4.
 
 ## Overview
 
@@ -22,13 +22,16 @@ All calculations are heuristic estimates, not laboratory results. The math is ro
 - Four fat infusion presets (Ghee, Coconut Oil, MCT Oil, Custom)
 - Expert mode with editable temperature, time, and efficiency overrides
 - Visual override highlighting (amber border + badge)
-- Unit toggles: Celsius / Fahrenheit, grams / ounces, mL / tsp / tbsp / cups
+- Per-field unit tracking: weight, volume, temperature, and bag dimensions each carry the unit the user actually typed in. Display toggles only change how the value is *shown*, not what's stored. Switch between Celsius / Fahrenheit, grams / ounces, mL / tsp / tbsp / cups without losing precision on re-toggle.
 - Inline Zod input validation with clear error messages
 - Glassmorphism dark-mode UI with translucent panels
-- Cross-tab data flow — upstream results carry forward to downstream tabs
-- Export reports (human-readable .txt + structured .json)
+- Cross-tab data flow - upstream results carry forward to downstream tabs
+- Export reports (human-readable .txt + structured .json) - labels honor per-field units, JSON payload records both
 - Copy summary to clipboard with toast confirmation
-- Save and load custom presets (persistent JSON files)
+- Save and load custom presets (lossless round-trip including per-field units + full state)
+- **Inventory tracking** on the Dashboard tab - track material on hand, see real "Material on Hand" stat (not always 0), and the "Insufficient material" warning on Decarb/QuickBatch fires correctly when you'd exceed your stock.
+- **First-Timer Guide** wizard (8 steps: equipment, material, prep, decarb, fats, fat volume, formats, review) - multi-select throughout, live math previews, walk a beginner from "I have nothing" to "save to journal" with a sensible 1 oz (28g) starting amount as the empty-state suggestion.
+- **Progressive Web App** build target - same React renderer served at `https://laptop.tail646a73.ts.net/ccc/` via Tailscale Funnel, installable on the iPad via Safari Share > Add to Home Screen. PWA bundle is a separate Vite build that uses a web shim for the `window.App` Electron IPC surface (localStorage for presets/journal/strains, Blob URLs for downloads, navigator.clipboard).
 - Responsive design from 1024x640 up to 4K
 - Keyboard navigation (Tab order, Enter to trigger, Escape is benign)
 
@@ -37,14 +40,16 @@ All calculations are heuristic estimates, not laboratory results. The math is ro
 | Layer | Technology |
 |-------|------------|
 | Desktop shell | Electron 39 + Electron Vite |
+| PWA build | Vite + vite-plugin-pwa (separate web build at `vite.web.config.ts`) |
 | UI framework | React 19 + TypeScript 5 |
 | Styling | Tailwind CSS v4 |
 | Components | shadcn/ui (source-copied, not npm-dep) |
 | Icons | lucide-react |
-| State | Zustand + persist middleware |
+| State | Zustand + persist middleware (electron localStorage via electron-vite, browser localStorage via web shim) |
 | Forms | React Hook Form + Zod |
-| Testing | vitest (engine unit tests) |
+| Testing | vitest (engine + tabs + components + stores) |
 | Build | Vite + electron-builder |
+| PWA hosting | Tailscale Funnel (public URL: `https://laptop.tail646a73.ts.net/ccc/`) |
 | Verification | agent-browser (Electron CDP automation) |
 
 ## Prerequisites
