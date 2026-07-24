@@ -23,7 +23,7 @@ import {
   DECARB_METHODS,
   type EfficiencyRange,
 } from 'renderer/src/engine/models'
-import { cupToMl, tbspToMl, tspToMl } from 'renderer/src/engine/units'
+import { volumeToMl } from 'renderer/src/engine/units'
 import { fmt1 } from 'renderer/src/engine/formatting'
 import {
   fatCompareInputSchema,
@@ -72,28 +72,6 @@ function fmt2(value: number | null | undefined): string {
   return value.toFixed(2)
 }
 
-/* ------------------------------------------------------------------ */
-/* Unit helpers                                                        */
-/* ------------------------------------------------------------------ */
-
-function displayVolumeToMl(
-  value: string,
-  unit: 'mL' | 'tsp' | 'tbsp' | 'cup'
-): number {
-  const n = parseFloat(value)
-  if (Number.isNaN(n)) return NaN
-  switch (unit) {
-    case 'mL':
-      return n
-    case 'tsp':
-      return tspToMl(n)
-    case 'tbsp':
-      return tbspToMl(n)
-    case 'cup':
-      return cupToMl(n)
-  }
-}
-
 /* ================================================================== */
 /* FAT COMPARISON                                                      */
 /* ================================================================== */
@@ -101,7 +79,6 @@ function displayVolumeToMl(
 function FatsSection() {
   const infusion = useAppStore(s => s.infusion)
   const setInfusion = useAppStore(s => s.setInfusion)
-  const units = useAppStore(s => s.units)
   const setActiveTab = useAppStore(s => s.setActiveTab)
 
   const [fieldErrors, setFieldErrors] = useState<{
@@ -118,9 +95,17 @@ function FatsSection() {
   const [isCalculating, setIsCalculating] = useState(false)
 
   const volumeMl = useMemo(
-    // Convert from the per-field unit. See DecarbState.weightUnit
-    // for the rationale.
-    () => displayVolumeToMl(infusion.volume, infusion.volumeUnit),
+    // Convert from the per-field unit (`infusion.volumeUnit` — the unit
+    // the user TYPED in), NOT the display unit (`units.volumeUnit`).
+    // 2026-07-25 ccc-validation audit B3: using the display unit here
+    // would re-interpret the stored value after every toggle, producing
+    // 6.76x-236x off results. The engine's `volumeToMl` is the single
+    // canonical converter (engine/units.ts) — drift-proof.
+    () => {
+      const n = parseFloat(infusion.volume)
+      if (Number.isNaN(n)) return NaN
+      return volumeToMl(n, infusion.volumeUnit)
+    },
     [infusion.volume, infusion.volumeUnit]
   )
 
@@ -178,11 +163,18 @@ function FatsSection() {
     infusion.decarbedThc,
     infusion.customEfficiency,
     infusion.volume,
-    units.volumeUnit,
     volumeMl,
     hasBlockingErrors,
   ])
 
+  // contract: cross-tab handoff to the Infusion tab. Documented at
+  // docs/experience-topology/cannabis-chemistry-calculator-topology.json
+  // (`reference_tools → infusion_calculator`, `data_contract:
+  // FatSelection { fatId: string }`). Writes the chosen `fatId` into the
+  // infusion slice via `setInfusion`, then switches the active tab so the
+  // user lands on the Infusion screen with the new fat applied. Do NOT
+  // call `setInfusion` with a stale `fatId` from a closed-over loop
+  // variable — always re-read `fatId` from the click handler's argument.
   const handleUseThis = (fatId: string) => {
     setInfusion({ fatId })
     setActiveTab('infusion')
@@ -276,6 +268,7 @@ function FatsSection() {
                 'flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/5 p-5 transition-colors',
                 isBest && 'border-2 border-success/50 bg-success/10'
               )}
+              data-testid={`fat-card-${fat.id}`}
               key={fat.id}
             >
               <div className="flex items-start justify-between gap-2">
@@ -283,7 +276,12 @@ function FatsSection() {
                   {fat.name}
                 </h4>
                 {isBest && (
-                  <span className="inline-flex items-center rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-success">
+                  <span
+                    aria-label="Best extraction for this volume"
+                    className="inline-flex items-center rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-success"
+                    data-testid="fat-best-badge"
+                    role="status"
+                  >
                     Best Extraction
                   </span>
                 )}
@@ -304,7 +302,10 @@ function FatsSection() {
                   Final THC
                 </span>
                 {fatResults ? (
-                  <span className="text-2xl font-bold text-foreground">
+                  <span
+                    className="text-2xl font-bold text-foreground"
+                    data-testid={`fat-thc-${fat.id}`}
+                  >
                     {fmt1(fatResults.infusedThc)} mg
                   </span>
                 ) : (
@@ -318,7 +319,10 @@ function FatsSection() {
                   Concentration
                 </span>
                 {fatResults && fatResults.mgPerMl != null ? (
-                  <span className="text-2xl font-bold text-success">
+                  <span
+                    className="text-2xl font-bold text-success"
+                    data-testid={`fat-mgperml-${fat.id}`}
+                  >
                     {fmt1(fatResults.mgPerMl)} mg/mL
                   </span>
                 ) : (
@@ -333,7 +337,9 @@ function FatsSection() {
                 </p>
               )}
               <button
+                aria-label={`Use ${fat.name}`}
                 className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                data-testid={`fat-use-${fat.id}`}
                 onClick={() => handleUseThis(fat.id)}
                 type="button"
               >
