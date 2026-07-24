@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="color-scheme" content="dark light" />
+    <meta
+      name="description"
+      content="Cannabis chemistry calculations: decarboxylation, fat infusion, and dose estimation."
+    />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="CCC" />
+    <meta
+      name="format-detection"
+      content="telephone=no, date=no, address=no, email=no, url=no"
+    />
+    <!--
+      CSP for the web build. The Electron build's CSP allows
+      'unsafe-eval' + ws: + http://localhost:* because electron-vite
+      uses HMR over websockets. None of that applies to the PWA
+      build, so this is tighter: no 'unsafe-eval', no ws:, no
+      connect-src to private hosts. The web entry has no eval-time
+      dynamic compilation, so 'unsafe-eval' is not needed.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'self'; form-action 'self';"
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
+  </head>
+
+  <body class="bg-background text-foreground">
+    <app></app>
+    <script type="module" src="/src/web-entry.tsx"></script>
+  </body>
+</html>
