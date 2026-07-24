@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { cn } from 'renderer/lib/utils'
 import {
@@ -10,6 +10,7 @@ import {
   calculateCostPerMg,
   calculateCostPerDose,
 } from 'renderer/src/engine/costAnalysis'
+import { InventorySection } from 'renderer/src/components/InventorySection'
 import {
   LayoutDashboard,
   BarChart3,
@@ -21,6 +22,7 @@ import {
   Scissors,
   ChevronUp,
   ChevronDown,
+  Plus,
 } from 'lucide-react'
 
 function fmt1(value: number | null | undefined): string {
@@ -206,6 +208,19 @@ export function DashboardTab() {
 
   const [showMoreStats, setShowMoreStats] = useState(false)
 
+  // 2026-07-25 inventory audit: the inventory section is rendered
+  // inline on the Dashboard, and the empty-state "Material on Hand"
+  // stat card scrolls the user down to it. We track a ref to the
+  // section so the scrollIntoView call focuses the right element
+  // (the CTA inside the section), not just the next heading.
+  const inventorySectionRef = useRef<HTMLDivElement | null>(null)
+  const scrollToInventory = () => {
+    inventorySectionRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    })
+  }
+
   const currentMonth = currentMonthKey()
 
   const stats = useMemo(() => {
@@ -348,31 +363,79 @@ export function DashboardTab() {
     value,
     icon,
     accentClass,
+    onClick,
+    ariaLabel,
   }: {
     label: string
-    value: string
+    value?: string
     icon: React.ReactNode
     accentClass?: string
-  }) => (
-    <div className="flex min-w-0 flex-col gap-2 rounded-2xl border border-foreground/10 bg-foreground/5 p-4">
-      <div className="flex items-center gap-2">
-        <span
-          className={cn(
-            'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
-            accentClass || 'bg-foreground/5'
-          )}
+    /**
+     * Optional click handler — when present, the card becomes a
+     * button. Used by the "Material on Hand" stat to scroll to the
+     * inventory section when the inventory is empty.
+     */
+    onClick?: () => void
+    /**
+     * Accessible name for the button-mode card. The default
+     * `<span>` mode reads the visible text; the button mode needs
+     * an explicit name so screen-readers don't read "button" with
+     * no context. (Audit M7 pattern: icon-only / button-only
+     * affordances must be unambiguous.)
+     */
+    ariaLabel?: string
+  }) => {
+    const inner = (
+      <>
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
+              accentClass || 'bg-foreground/5'
+            )}
+          >
+            {icon}
+          </span>
+          <span className="min-w-0 text-xs font-medium uppercase tracking-wider text-foreground/70">
+            {label}
+          </span>
+        </div>
+        {value !== undefined ? (
+          <span className="break-words text-2xl font-bold leading-tight text-foreground">
+            {value}
+          </span>
+        ) : (
+          <div className="flex items-center gap-1.5 self-start text-sm font-semibold text-success">
+            <Plus aria-hidden="true" className="size-3.5" />
+            Add your first batch
+          </div>
+        )}
+      </>
+    )
+
+    if (onClick) {
+      return (
+        <button
+          aria-label={ariaLabel ?? `Add your first ${label.toLowerCase()}`}
+          className="flex min-h-[88px] min-w-0 cursor-pointer flex-col items-start gap-2 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 text-left transition-colors hover:bg-foreground/10"
+          data-testid={`dashboard-stat-${label.toLowerCase().replace(/\s+/g, '-')}`}
+          onClick={onClick}
+          type="button"
         >
-          {icon}
-        </span>
-        <span className="min-w-0 text-xs font-medium uppercase tracking-wider text-foreground/70">
-          {label}
-        </span>
+          {inner}
+        </button>
+      )
+    }
+
+    return (
+      <div
+        className="flex min-w-0 flex-col gap-2 rounded-2xl border border-foreground/10 bg-foreground/5 p-4"
+        data-testid={`dashboard-stat-${label.toLowerCase().replace(/\s+/g, '-')}`}
+      >
+        {inner}
       </div>
-      <span className="break-words text-2xl font-bold leading-tight text-foreground">
-        {value}
-      </span>
-    </div>
-  )
+    )
+  }
 
   return (
     <div className="flex min-w-0 flex-col gap-5 p-2 sm:p-4">
@@ -434,10 +497,33 @@ export function DashboardTab() {
         />
         <StatCard
           accentClass="bg-success/10"
+          ariaLabel="Add your first batch to inventory"
           icon={<Package className="size-4 text-success" />}
           label="Material on Hand"
-          value={`${fmt1(inventoryTotals.onHand)} g`}
+          // 2026-07-25 inventory audit (BLOCKER B4): the audit
+          // found this stat was always 0.0g because the inventory
+          // was empty. Don't lie to the user — when the inventory
+          // is empty, surface the empty-state CTA here AND in the
+          // inventory section itself. The same CTA scrolls the
+          // user down to the form; the inventory section is
+          // rendered below this grid (see the `inventorySectionRef`
+          // hook above).
+          onClick={inventory.items.length === 0 ? scrollToInventory : undefined}
+          value={
+            inventory.items.length === 0
+              ? undefined
+              : `${fmt1(inventoryTotals.onHand)} g`
+          }
         />
+      </div>
+
+      {/* Inventory section — the write-side UI for the
+          `addInventoryItem` / `deleteInventoryItem` /
+          `setInventory` store actions. The 2026-07-25 audit
+          (BLOCKER B4) flagged this as the last missing UI on the
+          write side of the inventory slice. */}
+      <div ref={inventorySectionRef}>
+        <InventorySection />
       </div>
 
       {/* More Stats toggle */}
