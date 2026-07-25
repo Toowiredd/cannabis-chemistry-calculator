@@ -198,6 +198,69 @@ describe('InfusionTab — concentration wiring', () => {
   })
 })
 
+describe('InfusionTab - simplified estimate (per-field weight unit)', () => {
+  beforeEach(() => {
+    resetInfusion()
+    // resetInfusion only seeds the `infusion` slice; the decarb
+    // slice needs an explicit setState per test. UseAppStore's
+    // partial state merge makes this safe.
+  })
+
+  function seedDecarbAndInfusion(
+    weight: string,
+    weightUnit: 'g' | 'oz',
+    thcaPct: string,
+    fatId: 'coconut' | 'ghee' | 'mct' = 'coconut'
+  ): void {
+    useAppStore.setState(state => ({
+      decarb: { ...state.decarb, weight, weightUnit, thcaPct },
+      // decarbedThc is required by infusionInputSchema (`.min(1)`); without
+      // it the validation aborts before the simplified estimate is computed.
+      // Use a fixed 500 mg so the primary infused/concentration panels
+      // render with a known baseline; these tests are about the
+      // simplified-estimate panel which uses the Decarb-tab weight + THCA%,
+      // not the decarbedThc field.
+      infusion: {
+        ...DEFAULT_INFUSION,
+        decarbedThc: '500',
+        fatId,
+        volume: '100',
+        volumeUnit: 'mL',
+      },
+    }))
+  }
+
+  it('treats per-field weight as grams when weightUnit is "g"', async () => {
+    // weight=10 g, thca=18, multiplier (coconut)=7.19
+    // 10 * 18 * 7.19 = 1294.2 mg
+    seedDecarbAndInfusion('10', 'g', '18', 'coconut')
+    render(<InfusionTab />)
+    await waitFor(() => {
+      const txt = document.body.textContent ?? ''
+      // The panel shows the simplified estimate in mg (1294.2). The
+      // concentration would be 12.94 mg/mL (1294.2/100). The pre-fix
+      // value 1294 must appear (it's correct for the g case).
+      expect(txt).toMatch(/1294|12\.94/)
+    })
+  })
+
+  it('treats per-field weight as ounces when weightUnit is "oz" (2026-07-25 cross-tab audit fix)', async () => {
+    // weight=10 oz, thca=18, multiplier (coconut)=7.19
+    // 10 oz = 283.495 g -> 283.495 * 18 * 7.19 = 36689.93 mg
+    // Pre-fix bug: 10 (oz) was treated as 10 g -> 1294.2 mg (~28x under)
+    seedDecarbAndInfusion('10', 'oz', '18', 'coconut')
+    render(<InfusionTab />)
+    await waitFor(() => {
+      const txt = document.body.textContent ?? ''
+      // The panel should show the oz-correct value (~36690 mg total,
+      // ~366.9 mg/mL concentration). The pre-fix value 1294 must NOT
+      // appear.
+      expect(txt).toMatch(/36689|366\.9/)
+      expect(txt).not.toMatch(/1294/)
+    })
+  })
+})
+
 describe('InfusionTab — empty state', () => {
   beforeEach(() => resetInfusion())
 

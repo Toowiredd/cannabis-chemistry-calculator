@@ -12,6 +12,7 @@ import {
   mlToCup,
   mlToTbsp,
   mlToTsp,
+  ozToG,
   volumeToMl,
 } from 'renderer/src/engine/units'
 import { round1n, fmt1 } from 'renderer/src/engine/formatting'
@@ -233,17 +234,26 @@ export function InfusionTab() {
 
         let simplifiedEstimate: number | null = null
         if (!isCustom) {
-          const weight = parseFloat(decarb.weight)
+          // 2026-07-25 cross-tab audit follow-up: simplified estimate
+          // must read the per-field weightUnit. The user's per-field
+          // weight is in their typing unit (g or oz); the engine
+          // expects grams. Convert at the boundary (same pattern as
+          // QuickBatchTab.tsx:89, DecarbTab.tsx:385). Per-field wins
+          // over display: even if the user toggles units.weightUnit
+          // AFTER typing, the per-field value stays correct.
+          const weightRaw = parseFloat(decarb.weight)
           const thca = parseFloat(decarb.thcaPct)
+          const weightGrams =
+            decarb.weightUnit === 'oz' ? ozToG(weightRaw) : weightRaw
           if (
-            !Number.isNaN(weight) &&
+            !Number.isNaN(weightGrams) &&
             !Number.isNaN(thca) &&
-            weight >= 0 &&
+            weightGrams >= 0 &&
             thca >= 0 &&
             thca <= 100
           ) {
             simplifiedEstimate = calculateSimplifiedEstimate(
-              weight,
+              weightGrams,
               thca,
               preset.simplifiedMultiplier
             )
