@@ -1,19 +1,62 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { cn } from 'renderer/lib/utils'
 import { StartupChooser } from 'renderer/src/components/StartupChooser'
 import { GroupedTabNav } from 'renderer/src/components/GroupedTabNav'
 import { TitleBar } from 'renderer/src/components/TitleBar'
 import { TransformationCanvas } from 'renderer/src/components/TransformationCanvas'
-import { DecarbTab } from 'renderer/src/tabs/DecarbTab'
-import { InfusionTab } from 'renderer/src/tabs/InfusionTab'
-import { DoseTab } from 'renderer/src/tabs/DoseTab'
-import { MethodsTab } from 'renderer/src/tabs/MethodsTab'
-import { AdvancedToolsTab } from 'renderer/src/tabs/AdvancedToolsTab'
-import { KnowledgeTab } from 'renderer/src/tabs/KnowledgeTab'
-import { JournalTab } from 'renderer/src/tabs/JournalTab'
-import { DashboardTab } from 'renderer/src/tabs/DashboardTab'
-import { QuickBatchTab } from 'renderer/src/tabs/QuickBatchTab'
 import { FirstTimerGuide } from 'renderer/src/tabs/FirstTimerGuide'
+
+/**
+ * Lazy-loaded tab components.
+ *
+ * Each tab is split into its own dynamic-import chunk by Vite. The first-paint
+ * bundle no longer pays for all 9 tabs up-front — the workflow group's 5
+ * chunks fetch as the carousel mounts its first in-window face, and the
+ * reference group's 4 chunks fetch when the user first clicks a reference
+ * card. The PWA target benefits most (the service worker caches the
+ * shared chunks; only the per-tab chunks come down on first visit).
+ *
+ * Note: `React.lazy` requires the import promise at module-init time, so
+ * these refs are defined here (not inside `MainScreen`) and the `<Suspense>`
+ * boundary that gates their fallback lives just below the carousel mount.
+ */
+const DecarbTab = lazy(() =>
+  import('renderer/src/tabs/DecarbTab').then(m => ({ default: m.DecarbTab }))
+)
+const InfusionTab = lazy(() =>
+  import('renderer/src/tabs/InfusionTab').then(m => ({
+    default: m.InfusionTab,
+  }))
+)
+const DoseTab = lazy(() =>
+  import('renderer/src/tabs/DoseTab').then(m => ({ default: m.DoseTab }))
+)
+const MethodsTab = lazy(() =>
+  import('renderer/src/tabs/MethodsTab').then(m => ({ default: m.MethodsTab }))
+)
+const AdvancedToolsTab = lazy(() =>
+  import('renderer/src/tabs/AdvancedToolsTab').then(m => ({
+    default: m.AdvancedToolsTab,
+  }))
+)
+const KnowledgeTab = lazy(() =>
+  import('renderer/src/tabs/KnowledgeTab').then(m => ({
+    default: m.KnowledgeTab,
+  }))
+)
+const JournalTab = lazy(() =>
+  import('renderer/src/tabs/JournalTab').then(m => ({ default: m.JournalTab }))
+)
+const DashboardTab = lazy(() =>
+  import('renderer/src/tabs/DashboardTab').then(m => ({
+    default: m.DashboardTab,
+  }))
+)
+const QuickBatchTab = lazy(() =>
+  import('renderer/src/tabs/QuickBatchTab').then(m => ({
+    default: m.QuickBatchTab,
+  }))
+)
 import {
   useAppStore,
   type StartupIntent,
@@ -288,41 +331,79 @@ export function MainScreen() {
 
           {/* Layer 2: Content above glass */}
           <div className="relative z-[2] h-full min-w-0 p-3 sm:p-6">
-            <GroupedTabNav
-              reference={[
-                {
-                  id: 'methods',
-                  label: 'Methods',
-                  bullets: ['Oven Decarb', 'Sous Vide · Slow Cooker'],
-                  content: <MethodsTab />,
-                },
-                {
-                  id: 'advanced',
-                  label: 'Advanced',
-                  bullets: ['Cost Analysis', 'Strain Blending'],
-                  content: <AdvancedToolsTab />,
-                },
-                {
-                  id: 'knowledge',
-                  label: 'Knowledge',
-                  bullets: ['Chemistry 101', 'AVB Guide'],
-                  content: <KnowledgeTab />,
-                },
-                {
-                  id: 'journal',
-                  label: 'Journal',
-                  bullets: ['Recent Batches', 'Saved Recipes'],
-                  content: <JournalTab />,
-                },
-              ]}
-              workflow={[
-                { id: 'dashboard', label: 'Dashboard', subtitle: 'overview', content: <DashboardTab /> },
-                { id: 'quickbatch', label: 'Quick Batch', subtitle: 'wizard', content: <QuickBatchTab /> },
-                { id: 'decarb', label: 'Decarb', subtitle: 'stage 1', content: <DecarbTab /> },
-                { id: 'infusion', label: 'Infusion', subtitle: 'stage 2', content: <InfusionTab /> },
-                { id: 'dose', label: 'Dose', subtitle: 'stage 3', content: <DoseTab /> },
-              ]}
-            />
+            <Suspense
+              fallback={
+                <div
+                  aria-busy="true"
+                  aria-live="polite"
+                  className="flex h-full w-full items-center justify-center p-8 text-sm text-muted-foreground"
+                  role="status"
+                >
+                  Loading tab…
+                </div>
+              }
+            >
+              <GroupedTabNav
+                reference={[
+                  {
+                    id: 'methods',
+                    label: 'Methods',
+                    bullets: ['Oven Decarb', 'Sous Vide · Slow Cooker'],
+                    content: <MethodsTab />,
+                  },
+                  {
+                    id: 'advanced',
+                    label: 'Advanced',
+                    bullets: ['Cost Analysis', 'Strain Blending'],
+                    content: <AdvancedToolsTab />,
+                  },
+                  {
+                    id: 'knowledge',
+                    label: 'Knowledge',
+                    bullets: ['Chemistry 101', 'AVB Guide'],
+                    content: <KnowledgeTab />,
+                  },
+                  {
+                    id: 'journal',
+                    label: 'Journal',
+                    bullets: ['Recent Batches', 'Saved Recipes'],
+                    content: <JournalTab />,
+                  },
+                ]}
+                workflow={[
+                  {
+                    id: 'dashboard',
+                    label: 'Dashboard',
+                    subtitle: 'overview',
+                    content: <DashboardTab />,
+                  },
+                  {
+                    id: 'quickbatch',
+                    label: 'Quick Batch',
+                    subtitle: 'wizard',
+                    content: <QuickBatchTab />,
+                  },
+                  {
+                    id: 'decarb',
+                    label: 'Decarb',
+                    subtitle: 'stage 1',
+                    content: <DecarbTab />,
+                  },
+                  {
+                    id: 'infusion',
+                    label: 'Infusion',
+                    subtitle: 'stage 2',
+                    content: <InfusionTab />,
+                  },
+                  {
+                    id: 'dose',
+                    label: 'Dose',
+                    subtitle: 'stage 3',
+                    content: <DoseTab />,
+                  },
+                ]}
+              />
+            </Suspense>
           </div>
         </div>
       </main>

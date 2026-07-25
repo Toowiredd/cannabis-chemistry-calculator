@@ -58,42 +58,64 @@ import {
 
 import { MultiSelectGroup } from 'renderer/components/MultiSelectGroup'
 import grindCoarse from 'renderer/src/assets/wizard/grind-coarse.png'
+import grindCoarseWebp from 'renderer/src/assets/wizard/grind-coarse.webp'
 import grindMedium from 'renderer/src/assets/wizard/grind-medium.png'
+import grindMediumWebp from 'renderer/src/assets/wizard/grind-medium.webp'
 import grindFine from 'renderer/src/assets/wizard/grind-fine.png'
+import grindFineWebp from 'renderer/src/assets/wizard/grind-fine.webp'
 import bagQuart from 'renderer/src/assets/wizard/bag-quart.png'
+import bagQuartWebp from 'renderer/src/assets/wizard/bag-quart.webp'
 import bagGallon from 'renderer/src/assets/wizard/bag-gallon.png'
+import bagGallonWebp from 'renderer/src/assets/wizard/bag-gallon.webp'
 import bag2Gallon from 'renderer/src/assets/wizard/bag-2gallon.png'
+import bag2GallonWebp from 'renderer/src/assets/wizard/bag-2gallon.webp'
 import bagSmallVac from 'renderer/src/assets/wizard/bag-small-vac.png'
-import packLoose from 'renderer/src/assets/wizard/pack-loose.png'
-import packMedium from 'renderer/src/assets/wizard/pack-medium.png'
+import bagSmallVacWebp from 'renderer/src/assets/wizard/bag-small-vac.webp'
+// Pack density — 2026-07-25 dedupe: pack-loose.png and pack-medium.png
+// were byte-identical copies of pack-tight.png. Both were deleted; the
+// three PackId options now all render pack-tight.png so the visual variance
+// between loose/medium/tight lives in the captions and "why pick this" prose
+// (the AI image-to-image pipeline couldn't produce visually consistent
+// fill-state variants). See F3.24 in the architecture review.
 import packTight from 'renderer/src/assets/wizard/pack-tight.png'
-// All three are the same canonical reference image (byte-identical copies
-// of pack-tight.png). The variance between loose/medium/tight is
-// described in the captions and "why pick this" prose rather than
-// rendered as three different visuals — AI image-to-image couldn't
-// produce visually consistent fill-state variants, so we ship one
-// reference image and let the text do the work.
+import packTightWebp from 'renderer/src/assets/wizard/pack-tight.webp'
 // Decarb visuals — one image per method, all share the same kitchen style
 // (1024x1024 light-gray background, US quarter or ruler for scale, no text).
 import decarbSvDry from 'renderer/src/assets/wizard/decarb-sv-dry.png'
+import decarbSvDryWebp from 'renderer/src/assets/wizard/decarb-sv-dry.webp'
 import decarbSvFast from 'renderer/src/assets/wizard/decarb-sv-fast.png'
+import decarbSvFastWebp from 'renderer/src/assets/wizard/decarb-sv-fast.webp'
 import decarbSvCombined from 'renderer/src/assets/wizard/decarb-sv-combined.png'
+import decarbSvCombinedWebp from 'renderer/src/assets/wizard/decarb-sv-combined.webp'
 import decarbSvLowtemp from 'renderer/src/assets/wizard/decarb-sv-lowtemp.png'
+import decarbSvLowtempWebp from 'renderer/src/assets/wizard/decarb-sv-lowtemp.webp'
 import decarbOvenSealed from 'renderer/src/assets/wizard/decarb-oven-sealed.png'
+import decarbOvenSealedWebp from 'renderer/src/assets/wizard/decarb-oven-sealed.webp'
 import decarbOvenOpen from 'renderer/src/assets/wizard/decarb-oven-open.png'
+import decarbOvenOpenWebp from 'renderer/src/assets/wizard/decarb-oven-open.webp'
 // Fat visuals — one image per carrier fat, jar + spoon + US quarter.
 import fatGhee from 'renderer/src/assets/wizard/fat-ghee.png'
+import fatGheeWebp from 'renderer/src/assets/wizard/fat-ghee.webp'
 import fatCoconut from 'renderer/src/assets/wizard/fat-coconut.png'
+import fatCoconutWebp from 'renderer/src/assets/wizard/fat-coconut.webp'
 import fatMct from 'renderer/src/assets/wizard/fat-mct.png'
+import fatMctWebp from 'renderer/src/assets/wizard/fat-mct.webp'
 import fatCustom from 'renderer/src/assets/wizard/fat-custom.png'
+import fatCustomWebp from 'renderer/src/assets/wizard/fat-custom.webp'
 // Format visuals — finished product at scale (ruler for brownies/gummies,
 // US quarter for capsules/8x8/custom).
 import formatBrownie9x13 from 'renderer/src/assets/wizard/format-brownie-9x13.png'
+import formatBrownie9x13Webp from 'renderer/src/assets/wizard/format-brownie-9x13.webp'
 import formatBrownie8x8 from 'renderer/src/assets/wizard/format-brownie-8x8.png'
+import formatBrownie8x8Webp from 'renderer/src/assets/wizard/format-brownie-8x8.webp'
 import formatGummy80 from 'renderer/src/assets/wizard/format-gummy-80.png'
+import formatGummy80Webp from 'renderer/src/assets/wizard/format-gummy-80.webp'
 import formatGummy160 from 'renderer/src/assets/wizard/format-gummy-160.png'
+import formatGummy160Webp from 'renderer/src/assets/wizard/format-gummy-160.webp'
 import formatCapsule00 from 'renderer/src/assets/wizard/format-capsule-00.png'
+import formatCapsule00Webp from 'renderer/src/assets/wizard/format-capsule-00.webp'
 import formatCustom from 'renderer/src/assets/wizard/format-custom.png'
+import formatCustomWebp from 'renderer/src/assets/wizard/format-custom.webp'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import {
   calculateTheoreticalMax,
@@ -1065,11 +1087,10 @@ function StepEquipment({
               universal and got confused. The critical detail is
               method-specific (oven vs sous vide vs combined) and
               lives on the per-method cards in step 4. */}
-          Every method has a critical detail that affects potency — the
-          oven doesn't like an open door, sous vide doesn't like a
-          bag above the water line. We'll show the right one when you
-          pick your method in step 4. For now, just check what you
-          have on hand.
+          Every method has a critical detail that affects potency — the oven
+          doesn't like an open door, sous vide doesn't like a bag above the
+          water line. We'll show the right one when you pick your method in step
+          4. For now, just check what you have on hand.
         </p>
       </div>
     </div>
@@ -1118,10 +1139,9 @@ function StepMaterial({
           Already vaped bud? You can skip the decarb step.
         </span>
         <span>
-          If you have AVB (already vaped bud) from a vaporizer,
-          you can skip the decarb step and go straight to
-          infusion. Pick AVB on the Material step in Quick Batch
-          to see the flow.
+          If you have AVB (already vaped bud) from a vaporizer, you can skip the
+          decarb step and go straight to infusion. Pick AVB on the Material step
+          in Quick Batch to see the flow.
         </span>
       </div>
 
@@ -1227,6 +1247,15 @@ interface PrepOption {
   id: string
   label: string
   image: string
+  /**
+   * Optional WebP companion. When set, the card renders a
+   * `<picture><source srcset={imageWebp} type="image/webp"><img src={image}>`
+   * so modern browsers ship the ~10x-smaller WebP while older browsers
+   * (or a busted WebP) fall back to the PNG. The WebP files are
+   * generated from the PNGs by the F3.24 conversion pass and live
+   * alongside them in `src/renderer/src/assets/wizard/`.
+   */
+  imageWebp?: string
   caption: string
   /** Reason to pick this. First-timer-facing, anti-worry tone. */
   why: string
@@ -1249,6 +1278,7 @@ const GRIND_OPTIONS: readonly PrepOption[] = [
     id: 'coarse',
     label: 'Coarse',
     image: grindCoarse,
+    imageWebp: grindCoarseWebp,
     caption:
       'Peppercorn-sized chunks. For 3.5 g: ~21 cm³ — easily fits in the Quart bag.',
     why: 'Forgiving. Hard to over-decarb. Good if this is your first time.',
@@ -1257,6 +1287,7 @@ const GRIND_OPTIONS: readonly PrepOption[] = [
     id: 'medium',
     label: 'Medium',
     image: grindMedium,
+    imageWebp: grindMediumWebp,
     caption:
       'Grinder-dial texture. For 3.5 g: ~12 cm³ — fits comfortably in the Quart bag.',
     why: 'The middle of the road. Most home cooks land here.',
@@ -1265,6 +1296,7 @@ const GRIND_OPTIONS: readonly PrepOption[] = [
     id: 'fine',
     label: 'Fine',
     image: grindFine,
+    imageWebp: grindFineWebp,
     caption:
       'Powdery, like ground coffee. For 3.5 g: ~8 cm³ — leaves plenty of room in any bag.',
     why: 'Maximum surface area. Burns through faster — watch your timer.',
@@ -1276,6 +1308,7 @@ const BAG_OPTIONS: readonly PrepOption[] = [
     id: 'quart',
     label: 'Quart Bag',
     image: bagQuart,
+    imageWebp: bagQuartWebp,
     caption: '17.8 × 20.3 cm — fits up to ~10 g ground material.',
     why: 'Smallest bag. Pick this for a single 3.5 g batch.',
   },
@@ -1283,6 +1316,7 @@ const BAG_OPTIONS: readonly PrepOption[] = [
     id: 'gallon',
     label: 'Gallon Bag',
     image: bagGallon,
+    imageWebp: bagGallonWebp,
     caption: '28.0 × 27.9 cm — fits up to ~28 g ground material.',
     why: 'Plenty of room for one or two batches side by side.',
   },
@@ -1290,6 +1324,7 @@ const BAG_OPTIONS: readonly PrepOption[] = [
     id: '2gallon',
     label: '2-Gallon Bag',
     image: bag2Gallon,
+    imageWebp: bag2GallonWebp,
     caption: '40.6 × 42.9 cm — fits up to ~60 g ground material.',
     why: 'Big batch territory. Double-bag it before decarbing.',
   },
@@ -1297,6 +1332,7 @@ const BAG_OPTIONS: readonly PrepOption[] = [
     id: 'small_vac',
     label: 'Small Vacuum',
     image: bagSmallVac,
+    imageWebp: bagSmallVacWebp,
     caption: '16.5 × 21.0 cm — vacuum-seal style with depthCm 0.167.',
     why: 'Best air-removal. If you have a vacuum sealer, use this.',
   },
@@ -1306,7 +1342,8 @@ const PACK_OPTIONS: readonly PrepOption[] = [
   {
     id: 'loose',
     label: 'Loose',
-    image: packLoose,
+    image: packTight,
+    imageWebp: packTightWebp,
     caption:
       'The image shows a fully-packed reference. Loose means: the bag is about 30 percent full — material sits in a few loose clumps with most of the bag interior empty.',
     why: 'Avoid this if you can. The empty space is air, and air is what makes decarbing uneven.',
@@ -1314,7 +1351,8 @@ const PACK_OPTIONS: readonly PrepOption[] = [
   {
     id: 'medium',
     label: 'Medium',
-    image: packMedium,
+    image: packTight,
+    imageWebp: packTightWebp,
     caption:
       'The image shows a fully-packed reference. Medium means: about 85 percent fill — nearly a single continuous layer with only tiny gaps here and there.',
     why: 'Reasonable default. Press flat with a spatula before sealing.',
@@ -1323,6 +1361,7 @@ const PACK_OPTIONS: readonly PrepOption[] = [
     id: 'tight',
     label: 'Tight',
     image: packTight,
+    imageWebp: packTightWebp,
     caption:
       'About 100 percent fill, single flat layer, no visible air gaps. The image is the actual reference.',
     why: 'Best for even conversion. Press flat with a spatula before sealing.',
@@ -1343,6 +1382,7 @@ const DECARB_VISUAL_OPTIONS: readonly WizardCardOption[] = [
     id: 'sv_dry',
     label: 'Sous Vide — Dry',
     image: decarbSvDry,
+    imageWebp: decarbSvDryWebp,
     caption:
       'Vacuum-sealed bag submerged in a water bath held at 95°C by an immersion circulator.',
     why: 'Highest terpene retention of any method. The water bath also buffers against hot spots in the oven.',
@@ -1354,6 +1394,7 @@ const DECARB_VISUAL_OPTIONS: readonly WizardCardOption[] = [
     id: 'sv_fast',
     label: 'Sous Vide — Fast',
     image: decarbSvFast,
+    imageWebp: decarbSvFastWebp,
     caption:
       'Same setup as Sous Vide — Dry, with a slightly longer hold to nudge the last few percent of THCA across.',
     why: 'A small time premium in exchange for ~97% conversion on the first pass.',
@@ -1365,6 +1406,7 @@ const DECARB_VISUAL_OPTIONS: readonly WizardCardOption[] = [
     id: 'sv_combined',
     label: 'Sous Vide — Combined',
     image: decarbSvCombined,
+    imageWebp: decarbSvCombinedWebp,
     caption:
       'Plant material and carrier fat in the same bag. Lower temperature, much longer hold.',
     why: 'One bag, one cleanup. The fat protects cannabinoids from oxidation during the long hold.',
@@ -1376,6 +1418,7 @@ const DECARB_VISUAL_OPTIONS: readonly WizardCardOption[] = [
     id: 'sv_lowtemp',
     label: 'Sous Vide — Low Temp',
     image: decarbSvLowtemp,
+    imageWebp: decarbSvLowtempWebp,
     caption:
       'Larger stockpot, gentler 73°C bath, an 8 to 12 hour window. Maximum flavor, minimum conversion.',
     why: 'For when the flavor profile of the flower is the whole point.',
@@ -1387,6 +1430,7 @@ const DECARB_VISUAL_OPTIONS: readonly WizardCardOption[] = [
     id: 'oven_sealed',
     label: 'Oven — Sealed',
     image: decarbOvenSealed,
+    imageWebp: decarbOvenSealedWebp,
     caption:
       'Glass baking dish covered tightly with aluminum foil, on the middle rack.',
     why: 'The familiar kitchen workflow. The foil seal keeps enough vapor in to retain most of the terpenes.',
@@ -1398,6 +1442,7 @@ const DECARB_VISUAL_OPTIONS: readonly WizardCardOption[] = [
     id: 'oven_open',
     label: 'Oven — Open',
     image: decarbOvenOpen,
+    imageWebp: decarbOvenOpenWebp,
     caption:
       'Same dish, uncovered. Faster conversion, more terpene loss, more CBN formation.',
     why: 'When speed is the priority and you are OK with a flatter flavor profile.',
@@ -1412,6 +1457,7 @@ const FAT_VISUAL_OPTIONS: readonly WizardCardOption[] = [
     id: 'ghee',
     label: 'Ghee',
     image: fatGhee,
+    imageWebp: fatGheeWebp,
     caption:
       'Clarified butter. Golden, high smoke point, rich flavor. Solid at room temperature, melts clean.',
     why: 'Excellent cannabinoid solubility and a flavor that pairs well with baked goods.',
@@ -1423,6 +1469,7 @@ const FAT_VISUAL_OPTIONS: readonly WizardCardOption[] = [
     id: 'coconut',
     label: 'Coconut Oil',
     image: fatCoconut,
+    imageWebp: fatCoconutWebp,
     caption:
       'Virgin coconut oil. White and solid at room temperature. Mild coconut aroma.',
     why: 'The classic for solid-at-room-temp end products — capsules, candy, fudge.',
@@ -1434,6 +1481,7 @@ const FAT_VISUAL_OPTIONS: readonly WizardCardOption[] = [
     id: 'mct',
     label: 'MCT Oil',
     image: fatMct,
+    imageWebp: fatMctWebp,
     caption:
       'Fractionated coconut oil. Clear, colorless, stays liquid. Neutral flavor.',
     why: 'Highest extraction efficiency. The default for tinctures, capsules, and gummies.',
@@ -1445,6 +1493,7 @@ const FAT_VISUAL_OPTIONS: readonly WizardCardOption[] = [
     id: 'custom',
     label: 'Custom',
     image: fatCustom,
+    imageWebp: fatCustomWebp,
     caption:
       'A generic carrier-fat option. Bring your own oil and set the extraction efficiency yourself.',
     why: 'When you already have a fat you trust, and a number you can defend.',
@@ -1459,6 +1508,7 @@ const FORMAT_VISUAL_OPTIONS: readonly WizardCardOption[] = [
     id: 'brownie_9x13',
     label: 'Brownie (9×13 pan)',
     image: formatBrownie9x13,
+    imageWebp: formatBrownie9x13Webp,
     caption:
       'Classic rectangular 9×13 pan of baked brownies, cut into 12 visible squares.',
     why: 'The most familiar end product for a first timer. Stir your infused fat in last so the batter stays cool.',
@@ -1470,6 +1520,7 @@ const FORMAT_VISUAL_OPTIONS: readonly WizardCardOption[] = [
     id: 'brownie_8x8',
     label: 'Brownie (8×8 pan)',
     image: formatBrownie8x8,
+    imageWebp: formatBrownie8x8Webp,
     caption:
       'Thicker 8×8 pan of brownies, cut into 9 squares. Fewer, more potent pieces.',
     why: 'Same workflow as 9×13, but each piece carries a noticeably bigger dose.',
@@ -1481,6 +1532,7 @@ const FORMAT_VISUAL_OPTIONS: readonly WizardCardOption[] = [
     id: 'gummy_80',
     label: 'Gummy mold (80 cavities)',
     image: formatGummy80,
+    imageWebp: formatGummy80Webp,
     caption:
       'Silicone 8×10 mold with bear-shape cavities, filled with translucent amber gummies.',
     why: 'Keep the gelatin-oil mixture under 82°C (180°F) at all times so the THC does not degrade.',
@@ -1492,6 +1544,7 @@ const FORMAT_VISUAL_OPTIONS: readonly WizardCardOption[] = [
     id: 'gummy_160',
     label: 'Gummy mold (160 cavities)',
     image: formatGummy160,
+    imageWebp: formatGummy160Webp,
     caption:
       'Larger silicone mold with 160 smaller cavities. Same workflow as 80-cavity, roughly half the dose per piece.',
     why: 'For high-volume runs where each piece should be a smaller dose.',
@@ -1503,6 +1556,7 @@ const FORMAT_VISUAL_OPTIONS: readonly WizardCardOption[] = [
     id: 'capsule_00',
     label: 'Size 00 capsules',
     image: formatCapsule00,
+    imageWebp: formatCapsule00Webp,
     caption:
       'Size 00 gelatin capsules filled with infused MCT oil. About 24 per batch.',
     why: 'Most precise per-piece dose, most discreet to store, longest shelf life.',
@@ -1514,6 +1568,7 @@ const FORMAT_VISUAL_OPTIONS: readonly WizardCardOption[] = [
     id: 'custom',
     label: 'Custom',
     image: formatCustom,
+    imageWebp: formatCustomWebp,
     caption:
       'An empty plate. Pick this when you already know your batch size and serving count.',
     why: 'Skip the curated defaults and enter grams, THCA%, and servings directly.',
@@ -1551,11 +1606,22 @@ function VisualCard({
       type="button"
     >
       <span className="relative aspect-square w-full overflow-hidden bg-[color-mix(in_oklab,var(--foreground)_5%,transparent)]">
-        <img
-          alt={option.caption}
-          className="absolute inset-0 size-full object-cover"
-          src={option.image}
-        />
+        {option.imageWebp ? (
+          <picture>
+            <source srcSet={option.imageWebp} type="image/webp" />
+            <img
+              alt={option.caption}
+              className="absolute inset-0 size-full object-cover"
+              src={option.image}
+            />
+          </picture>
+        ) : (
+          <img
+            alt={option.caption}
+            className="absolute inset-0 size-full object-cover"
+            src={option.image}
+          />
+        )}
         {selected ? (
           <span className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-foreground)] shadow-sm">
             <Check className="size-3.5" />

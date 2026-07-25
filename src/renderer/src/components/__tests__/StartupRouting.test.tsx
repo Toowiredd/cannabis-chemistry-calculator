@@ -1,4 +1,4 @@
-import { flushSync } from 'react-dom'
+import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MainScreen } from 'renderer/screens/main'
@@ -140,7 +140,7 @@ describe('MainScreen startup flow', () => {
     vi.useRealTimers()
   })
 
-  it('puts first-run users on quick batch and opens the guide', () => {
+  it('puts first-run users on quick batch and opens the guide', async () => {
     useAppStore.setState({
       firstRunDismissed: false,
     })
@@ -149,7 +149,11 @@ describe('MainScreen startup flow', () => {
     document.body.appendChild(container)
     const root = createRoot(container)
 
-    flushSync(() => {
+    // MainScreen now uses React.lazy() for the 9 tabs; `<Suspense>` shows
+    // the fallback until each tab's chunk resolves. `await act(async)`
+    // flushes the microtask queue so the mocked lazy modules land before
+    // we read the DOM.
+    await act(async () => {
       root.render(<MainScreen />)
     })
 
@@ -160,19 +164,22 @@ describe('MainScreen startup flow', () => {
     root.unmount()
   })
 
-  it('opens the chooser on ambiguous return and lets the user pick history', () => {
+  it('opens the chooser on ambiguous return and lets the user pick history', async () => {
     const container = document.createElement('div')
     document.body.appendChild(container)
     const root = createRoot(container)
 
-    flushSync(() => {
+    await act(async () => {
       root.render(<MainScreen />)
     })
 
     expect(container.textContent).toContain('Choose where to start')
     expect(container.textContent).toContain('Quick Batch Tab')
 
-    flushSync(() => {
+    // Clicking switches to the Journal reference tab, which is lazy-loaded.
+    // Wrap the click in `await act(async)` so the lazy chunk resolves before
+    // we assert on the rendered JournalTab text.
+    await act(async () => {
       findButton(container, 'History / learn').click()
     })
 

@@ -1,5 +1,6 @@
-import { createRoot } from 'react-dom/client'
+import { act } from 'react'
 import { flushSync } from 'react-dom'
+import { createRoot } from 'react-dom/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MainScreen } from 'renderer/screens/main'
 import { useAppStore } from 'renderer/src/stores/appStore'
@@ -121,12 +122,16 @@ describe('Advanced Tools integration', () => {
     })
   })
 
-  it('mounts the intended advanced surface and exposes each tool tab', () => {
+  it('mounts the intended advanced surface and exposes each tool tab', async () => {
     const container = document.createElement('div')
     document.body.appendChild(container)
     const root = createRoot(container)
 
-    flushSync(() => {
+    // The MainScreen now uses React.lazy() to code-split the 9 tabs;
+    // `<Suspense>` shows the "Loading tab…" fallback until each tab's
+    // chunk resolves. `await act(async)` flushes the microtask queue so
+    // the lazy modules (mocked above) resolve before we read the DOM.
+    await act(async () => {
       root.render(<MainScreen />)
     })
 
