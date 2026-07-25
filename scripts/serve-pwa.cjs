@@ -38,20 +38,31 @@ const HOST = process.env.HOST ?? '127.0.0.1'
 
 // Resolve the parent process info via WMI. Task Scheduler launches
 // children via svchost.exe, while the legacy HKCU\Run key uses a
-// cmd /c wrapper — the parent process name lets the operator
+// cmd /c wrapper -- the parent process name lets the operator
 // confirm which autostart mechanism actually fired.
 function getParentProcessInfo() {
   if (process.platform !== 'win32') return { ppid: null, name: null }
+  // Use single-quoted PS strings + string concat to avoid
+  // $-expansion. The CJS template literal interpolates
+  // ${process.pid}; everything else is PS code that gets
+  // passed through unchanged.
+  const psCmd = [
+    `$p = Get-CimInstance Win32_Process -Filter 'ProcessId=${process.pid}';`,
+    `$pp = Get-CimInstance Win32_Process -Filter ('ProcessId=' + $p.ParentProcessId);`,
+    `Write-Output ('Ppid=' + $p.ParentProcessId + '|Name=' + $pp.Name)`
+  ].join(' ')
   try {
     const out = execSync(
-      `powershell -NoProfile -NonInteractive -Command "$p = Get-CimInstance Win32_Process -Filter 'ProcessId=${process.pid}'; $pp = Get-CimInstance Win32_Process -Filter \\"ProcessId=$($p.ParentProcessId)\\"; Write-Output (\\"$($p.ParentProcessId)|$($pp.Name)\\")"`,
-      { encoding: 'utf8', timeout: 2000, stdio: ['ignore', 'pipe', 'ignore'] }
+      'powershell.exe -NoProfile -NonInteractive -Command ' +
+        JSON.stringify(psCmd),
+      { encoding: 'utf8', timeout: 10000, stdio: ['ignore', 'pipe', 'ignore'] }
     ).trim()
-    const sep = out.indexOf('|')
-    if (sep < 0) return { ppid: null, name: null }
-    const ppid = Number.parseInt(out.slice(0, sep), 10)
-    const name = out.slice(sep + 1) || null
-    return { ppid: Number.isFinite(ppid) ? ppid : null, name }
+    const ppidMatch = /^Ppid=(\d+)\|Name=(.+)$/.exec(out)
+    if (!ppidMatch) return { ppid: null, name: null }
+    return {
+      ppid: Number.parseInt(ppidMatch[1], 10),
+      name: ppidMatch[2] || null,
+    }
   } catch {
     return { ppid: null, name: null }
   }

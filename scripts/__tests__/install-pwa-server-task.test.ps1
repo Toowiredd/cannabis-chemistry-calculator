@@ -11,6 +11,11 @@
     Run from the repo root:
         Invoke-Pester -Path scripts/__tests__\install-pwa-server-task.test.ps1
 
+    The tests verify END STATE (what Get-ScheduledTask returns
+    after the script runs) rather than parsing the script's
+    output, because Pester's stream handling makes output
+    capture unreliable for in-process `&` calls.
+
     The tests are self-cleaning: AfterAll re-installs the task
     so the user's PWA server is back in its expected state when
     the run finishes. The legacy HKCU\Run value is snapshotted
@@ -18,13 +23,6 @@
     transition test is reversible.
 
     File encoding: pure ASCII for Windows PowerShell 5.1 parsing.
-
-    Note on exit-code checks: PowerShell's `& $script` call
-    operator does NOT propagate the script's exit code to
-    `$LASTEXITCODE` in the caller when the output is captured
-    (this is a known behavior, not a bug). We verify success
-    by checking the captured output for the expected success
-    message instead.
 #>
 Describe 'CccPwaServer Task Scheduler scripts' {
     BeforeAll {
@@ -81,10 +79,12 @@ Describe 'CccPwaServer Task Scheduler scripts' {
             $pre = Get-ScheduledTask -TaskName $script:TaskName -ErrorAction SilentlyContinue
             $pre | Should -BeNullOrEmpty
 
-            $output = & $script:InstallScript 2>&1
-            $outputText = $output | Out-String
-            $outputText | Should -Match "registered task '$($script:TaskName)'"
+            # Run the install script. Discard output (Pester's stream
+            # handling makes reliable capture non-trivial; we verify
+            # success via the end state below).
+            & $script:InstallScript | Out-Null
 
+            # Verify the end state: task exists with the right name and description.
             $task = Get-ScheduledTask -TaskName $script:TaskName -ErrorAction SilentlyContinue
             $task | Should -Not -BeNullOrEmpty
             $task.TaskName | Should -Be $script:TaskName
@@ -92,11 +92,9 @@ Describe 'CccPwaServer Task Scheduler scripts' {
         }
 
         It 'is idempotent - running twice does not duplicate the task' {
-            $output = & $script:InstallScript 2>&1
-            $outputText = $output | Out-String
-            # Second run should also report "registered" (Register-ScheduledTask
-            # with -Force replaces, not appends).
-            $outputText | Should -Match "registered task '$($script:TaskName)'"
+            # Re-run the install script. With -Force the second run
+            # should replace the existing task, not create a second one.
+            & $script:InstallScript | Out-Null
 
             # PowerShell's Get-ScheduledTask returns a single object
             # even if multiple tasks with the same name exist; query
@@ -124,9 +122,7 @@ Describe 'CccPwaServer Task Scheduler scripts' {
             $pre = Get-ScheduledTask -TaskName $script:TaskName -ErrorAction SilentlyContinue
             $pre | Should -Not -BeNullOrEmpty
 
-            $output = & $script:UninstallScript 2>&1
-            $outputText = $output | Out-String
-            $outputText | Should -Match "removed task '$($script:TaskName)'"
+            & $script:UninstallScript | Out-Null
 
             $post = Get-ScheduledTask -TaskName $script:TaskName -ErrorAction SilentlyContinue
             $post | Should -BeNullOrEmpty
