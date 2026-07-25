@@ -558,6 +558,22 @@ export function FirstTimerGuide(): ReactNode {
           ? fallbackVol
           : 0
     const infusionVol = infusionVolNum.toString()
+    // 2026-07-25 ccc cross-tab data flow audit (MAJOR M2 / M3): the
+    // journal entry's `volumeUnit` must come from the path that
+    // authored the volume, not be hardcoded to 'mL'.
+    // - If the user filled in the wizard's own `StepFatVolume` (which
+    //   is mL-by-design — see StepFatVolume UI), the value is in mL.
+    // - If they skipped that step and the entry fell back to
+    //   `infusionDefaults.volume`, the per-field unit is whatever the
+    //   user typed on the Infusion tab (`infusionDefaults.volumeUnit`).
+    // The previous hardcoded 'mL' caused a user who typed 100 in 'cup'
+    // on the Infusion tab to see their journal entry stamped as
+    // "100 mL" — a 1/236.588 of the actual volume they used.
+    const usedWizardVolume =
+      wizardVol != null && wizardVol > 0 && Number.isFinite(wizardVol)
+    const infusionVolUnit = usedWizardVolume
+      ? 'mL'
+      : (infusionDefaults.volumeUnit ?? 'mL')
     // Concentration = infused THC (mg) / volume (mL). Was hardcoded '0'
     // before, which made the journal display show "0 mg/mL" even when the
     // math clearly should produce a real number.
@@ -579,6 +595,16 @@ export function FirstTimerGuide(): ReactNode {
       strainName: '',
       strainId: null,
       materialWeight: grams.toString(),
+      // 2026-07-25 ccc cross-tab data flow audit (MAJOR M1 follow-up):
+      // the First-Timer Guide's StepMaterial is grams-only (the input
+      // label is hardcoded to "g", no toggle). The journal entry must
+      // record the per-field authoring unit so the Journal card can
+      // render the weight with the correct unit on display. Without
+      // this, a 3.5 g entry would be indistinguishable from a
+      // 3.5 oz entry on the card, and the migration backfill would
+      // default it to 'g' (correct in practice here, but the producer
+      // should still own the truth).
+      materialWeightUnit: 'g' as const,
       thcaPct: thcaPct.toString(),
       thcPct: '0',
       cbdaPct: '0',
@@ -593,7 +619,7 @@ export function FirstTimerGuide(): ReactNode {
       totalInfusedThc: _fmt1(topRow.infused),
       concentration,
       volume: infusionVol,
-      volumeUnit: 'mL',
+      volumeUnit: infusionVolUnit,
       notes: `Saved from First-Timer Guide. Top recommendation: ${topRow.method} + ${topRow.fat} + ${topRow.format}.`,
     }
     // Persist to disk FIRST; only add to the local store if the disk write
@@ -643,6 +669,7 @@ export function FirstTimerGuide(): ReactNode {
     thcaPct,
     selections.fatVolume,
     infusionDefaults.volume,
+    infusionDefaults.volumeUnit,
     addJournalEntry,
     setActiveTab,
     dismissWizard,

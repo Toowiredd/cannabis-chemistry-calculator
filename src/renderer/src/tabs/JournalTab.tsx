@@ -246,7 +246,39 @@ export function JournalTab() {
       })
   }, [setJournalEntries])
 
+  // 2026-07-25 ccc cross-tab data flow audit (MAJOR M4): the
+  // "Save current calculator values to journal" button used to
+  // unconditionally overwrite the in-progress form. A user who had
+  // started a journal entry by hand and then clicked this button
+  // would lose every field they had typed (name, weight, THCA %,
+  // fat volume, servings, notes) without warning. Now we check
+  // whether the form has any user-entered values that would be
+  // discarded, and ask for confirmation. The user can still
+  // proceed (the values will be replaced with the auto-populated
+  // ones) or cancel (the form keeps whatever they had typed).
+  //
+  // We compare against the default empty form so that auto-populated
+  // fields (which have the same shape as the store) also count as
+  // "user has content". The simplest correct check is "is any of
+  // the user-editable fields non-empty?".
+  const isFormDirty = (current: JournalFormData): boolean => {
+    return (
+      current.strainName.trim() !== '' ||
+      current.materialWeight.trim() !== '' ||
+      current.thcPct.trim() !== '' ||
+      current.thcaPct.trim() !== '' ||
+      current.volume.trim() !== '' ||
+      current.servings.trim() !== ''
+    )
+  }
+
   const handleAutoPopulate = () => {
+    if (isFormDirty(form)) {
+      const ok = window.confirm(
+        'Discard your current entry and auto-populate from the last batch?'
+      )
+      if (!ok) return
+    }
     setForm(buildFormFromStore(store))
     setShowForm(true)
   }
@@ -821,9 +853,26 @@ export function JournalTab() {
             {(entry.concentration || entry.volume || entry.notes) && (
               <div className="flex flex-col gap-1 rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
                 {entry.concentration && (
-                  <span className="text-xs text-foreground/70">
-                    Concentration: {entry.concentration} mg/mL in {entry.volume}{' '}
-                    {entry.volumeUnit}
+                  // 2026-07-25 ccc cross-tab data flow audit (MINOR m2):
+                  // the previous "5 mg/mL in 100 mL" phrasing read
+                  // ambiguously — "5 mg per mL cup" instead of "5 mg
+                  // of THC per mL of fat, in a 100 mL batch". Split
+                  // into two pieces of information so the user sees
+                  // them as separate facts, not a single ratio
+                  // mis-attached to a container.
+                  <span
+                    className="text-xs text-foreground/70"
+                    data-testid="journal-concentration"
+                  >
+                    Concentration: {entry.concentration} mg/mL
+                  </span>
+                )}
+                {entry.volume && (
+                  <span
+                    className="text-xs text-foreground/70"
+                    data-testid="journal-volume"
+                  >
+                    Volume: {entry.volume} {entry.volumeUnit}
                   </span>
                 )}
                 {entry.notes && (

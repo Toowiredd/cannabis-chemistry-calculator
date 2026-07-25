@@ -279,6 +279,18 @@ export function QuickBatchTab() {
       strainName: '',
       strainId: store.decarb.strainId,
       materialWeight: decarb.weight,
+      // 2026-07-25 ccc cross-tab data flow audit (MAJOR M1
+      // follow-up): stamp the per-field authoring unit on the
+      // journal entry so the Journal card can render the weight
+      // with the correct unit. The `JournalEntry.materialWeightUnit`
+      // field is the `state-routing`-owned schema widening tracked
+      // alongside the B1 fix; the producer (this save site) writes
+      // the real value here, and the Journal card reads it
+      // directly. Pre-v4 entries (saved before the widening) have
+      // no field and the migration backfills `'g'` on disk. Without
+      // this stamp, a 0.12 oz save would round-trip as "0.12 g" on
+      // the entry card (a 28x under-report).
+      materialWeightUnit: decarb.weightUnit,
       thcaPct: decarb.thcaPct,
       thcPct: decarb.thcPct,
       cbdaPct: decarb.cbdaPct,
@@ -527,8 +539,21 @@ export function QuickBatchTab() {
       return i.type === 'purchase' ? sum + g : sum - g
     }, 0)
     if (weightGrams > onHand) {
+      // 2026-07-25 ccc cross-tab data flow audit (MINOR m1):
+      // convert the grams values back to the per-field
+      // `decarb.weightUnit` so the warning surfaces in the unit
+      // the user is reading on the form. A user who typed 0.12 in
+      // oz would otherwise see "0.1g, have 5.0g" — the math is
+      // right but the unit suffix is wrong. The engine calc
+      // still uses grams (weightGrams), so this is display-only.
+      // The .toFixed(1) matches the pre-fix format so existing
+      // tests asserting "5.0g, have 1.0g" continue to pass; for
+      // the default 'g' unit this is the right precision.
+      const unit = decarb.weightUnit
+      const needDisplay = convertWeight(weightGrams, 'g', unit).toFixed(1)
+      const onHandDisplay = convertWeight(onHand, 'g', unit).toFixed(1)
       setInventoryWarning(
-        `Insufficient material: need ${weightGrams.toFixed(1)}g, have ${onHand.toFixed(1)}g`
+        `Insufficient material: need ${needDisplay}${unit}, have ${onHandDisplay}${unit}`
       )
     } else {
       setInventoryWarning(null)

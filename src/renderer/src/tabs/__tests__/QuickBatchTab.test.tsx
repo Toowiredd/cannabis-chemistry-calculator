@@ -526,6 +526,79 @@ describe('QuickBatchTab — audit B1 (entry.source on save)', () => {
 })
 
 /* ------------------------------------------------------------------ */
+/* 2026-07-25 ccc cross-tab data flow audit (MAJOR M1)                 */
+/*                                                                    */
+/* The M1 fix has two halves:                                          */
+/* - state-routing: widen `JournalEntry` to add                       */
+/*   `materialWeightUnit?: 'g' | 'oz'` and bump persist version to 4. */
+/* - ui-tabs (this file's owner): stamp the per-field authoring       */
+/*   unit on every save site (QuickBatchTab, FirstTimerGuide,         */
+/*   JournalTab). The producer side is what this test pins.           */
+/*                                                                    */
+/* The earlier test "save-to-journal preserves weight + per-field     */
+/* weight unit" only asserts the engine used 3.5g of per-field        */
+/* weight, not that the unit itself was written to the entry. A       */
+/* regression where the save site drops the unit field would pass     */
+/* that test (the engine calc is unchanged) but break the Journal     */
+/* card display (entry would round-trip as "3.5 g" instead of the     */
+/* per-field "3.5 g" the user originally typed, or worse "3.5 g"     */
+/* when the user actually typed 0.12 oz). This test is the            */
+/* producer-side regression guard.                                    */
+/* ------------------------------------------------------------------ */
+
+describe('QuickBatchTab — audit M1 (entry.materialWeightUnit on save)', () => {
+  beforeEach(() => resetCalculator())
+
+  it('save-to-journal stamps `materialWeightUnit: "oz"` when the user authored in oz', async () => {
+    // User types 0.12 in oz, toggles display to g (or stays in oz —
+    // the unit the user typed in is what matters, not the display
+    // unit). The save site must stamp the per-field authoring unit
+    // so the Journal card can render "0.12 oz" — not the hardcoded
+    // "g" the entry had before this fix.
+    //
+    // 0.12 oz ≈ 3.4 g, which is a valid weight for the QuickBatch
+    // wizard's required fields. We deliberately keep the
+    // `units.weightUnit` set to 'g' to confirm the per-field unit
+    // (the unit the user TYPED in) is what gets stamped, not the
+    // display unit. A regression that confused per-field with
+    // display would stamp 'g' here and fail this assertion.
+    useAppStore.setState({
+      decarb: {
+        ...useAppStore.getState().decarb,
+        weight: '0.12',
+        weightUnit: 'oz',
+      },
+      units: { ...useAppStore.getState().units, weightUnit: 'g' },
+    })
+    // Browser-only path — entry goes to the local store without
+    // the IPC round-trip, which keeps the test deterministic.
+    delete (window as unknown as { App?: unknown }).App
+    render(<QuickBatchTab />)
+    advanceToFinalStep()
+    clickSaveBatch()
+    await waitFor(() => {
+      expect(useAppStore.getState().journalEntries.length).toBe(1)
+    })
+    const entry = useAppStore.getState().journalEntries[0]
+    // The materialWeight is the per-field value the user typed
+    // (0.12 — that IS the user's "0.12 oz", not a converted 3.4 g).
+    expect(entry.materialWeight).toBe('0.12')
+    // The producer writes the per-field authoring unit ('oz') on
+    // the entry, so the Journal card can render the correct unit
+    // on display. Pre-fix this field was missing entirely; the
+    // v3→v4 migration backfilled 'g' on legacy entries, but a
+    // freshly-saved 0.12 oz entry would have round-tripped as
+    // "0.12 g" on the card — a 28x under-report.
+    expect(entry.materialWeightUnit).toBe('oz')
+    // The display unit is independent — the save site must NOT
+    // stamp the display unit, even when it differs from the
+    // per-field unit. A regression here would be visible to a
+    // user who toggles display after typing.
+    expect(entry.materialWeightUnit).not.toBe('g')
+  })
+})
+
+/* ------------------------------------------------------------------ */
 /* 2026-07-25 ccc workflow-validator audit B2                          */
 /*                                                                    */
 /* The audit's B2 fix restores `infusion.volumeUnit` (and             */

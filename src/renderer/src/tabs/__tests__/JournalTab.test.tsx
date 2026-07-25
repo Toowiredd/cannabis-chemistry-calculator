@@ -20,7 +20,7 @@
  *   0.12 oz would otherwise see "0.12 g" on the card — a 28x
  *   under-report.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 import { JournalTab } from '../JournalTab'
@@ -50,6 +50,16 @@ beforeEach(() => {
       }),
     })
   }
+})
+
+/* 2026-07-25 ccc cross-tab data flow audit (MAJOR M4): the
+ * auto-populate confirm-guard uses `vi.spyOn(window, 'confirm')`
+ * — the M4 test group. Without restoring the spy after each
+ * test, the spy stack accumulates across tests and a second
+ * `vi.spyOn` wraps the first. Restore between tests so each
+ * spy starts fresh. */
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 /**
@@ -252,5 +262,104 @@ describe('JournalTab — audit workflow B7 (entry card renders per-field materia
     const { container } = render(<JournalTab />)
     expect(container.textContent).toContain('3.5')
     expect(container.textContent).toContain('g')
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-25 ccc cross-tab data flow audit (MAJOR M4)                 */
+/*                                                                    */
+/* The M4 fix adds a confirm-guard to the "Save current calculator    */
+/* values to the journal" button (a.k.a. auto-populate). Pre-fix,     */
+/* clicking the button while the form had user-entered values         */
+/* silently overwrote every field — the user lost their entry.        */
+/* Post-fix, the button asks "Discard your current entry and          */
+/* auto-populate from the last batch?" before clobbering.             */
+/*                                                                    */
+/* The three properties that must hold:                               */
+/* - Empty form (or the form already populated by the store): no      */
+/*   confirm dialog.                                                  */
+/* - Dirty form + confirm accept: form is replaced by the             */
+/*   auto-populated values.                                           */
+/* - Dirty form + confirm cancel: form is preserved (the user keeps    */
+/*   what they had typed).                                            */
+/* ------------------------------------------------------------------ */
+
+describe('JournalTab — audit M4 (auto-populate confirm-guard)', () => {
+  beforeEach(() => {
+    resetJournal()
+    ;(window as unknown as { App: unknown }).App = {
+      saveJournalEntry: vi.fn().mockResolvedValue({ success: true }),
+      loadJournalEntries: vi
+        .fn()
+        .mockResolvedValue({ success: true, entries: [] }),
+    }
+  })
+
+  it('does NOT prompt when the form is empty', () => {
+    // jsdom's window.confirm returns undefined by default; a spy
+    // that never fires confirms the confirm-dialog was never
+    // reached. An empty form is the "no data to lose" case — the
+    // user can't be surprised by the auto-populate.
+    const confirmSpy = vi.spyOn(window, 'confirm')
+    render(<JournalTab />)
+    clickAutoPopulate()
+    expect(confirmSpy).not.toHaveBeenCalled()
+    // Sanity: the form is now open with the auto-populated values.
+    const nameInput = screen.getByLabelText(/Strain name/i) as HTMLInputElement
+    // The default empty seed has no strain name, so the input is
+    // still empty after auto-populate (no name in the store).
+    expect(nameInput.value).toBe('')
+  })
+
+  it('prompts when the form has user-entered values, and CANCEL preserves them', () => {
+    const confirmSpy = vi
+      .spyOn(window, 'confirm')
+      .mockReturnValue(false)
+    render(<JournalTab />)
+    // Open the form first.
+    clickAutoPopulate()
+    // Now the user types a strain name. The form is "dirty".
+    fireEvent.change(screen.getByLabelText(/Strain name/i), {
+      target: { value: 'OG Kush' },
+    })
+    // Click auto-populate again. The handler must call confirm().
+    clickAutoPopulate()
+    expect(confirmSpy).toHaveBeenCalledTimes(1)
+    // The exact text the user sees — the brief mandates this copy.
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'Discard your current entry and auto-populate from the last batch?'
+    )
+    // User cancelled. The form is unchanged — the user-typed name
+    // is still there.
+    const nameInput = screen.getByLabelText(/Strain name/i) as HTMLInputElement
+    expect(nameInput.value).toBe('OG Kush')
+  })
+
+  it('prompts when the form has user-entered values, and ACCEPT replaces them', () => {
+    const confirmSpy = vi
+      .spyOn(window, 'confirm')
+      .mockReturnValue(true)
+    // Seed: a strain name in the store. The auto-populate
+    // would (in the journal form's buildFormFromStore) put the
+    // store's decarb.strainId onto strainId but NOT onto
+    // strainName (the form is blank for strainName). So after
+    // an accepted auto-populate, the strain name input should
+    // be empty even though the user had typed "OG Kush" — the
+    // user explicitly accepted the discard.
+    render(<JournalTab />)
+    clickAutoPopulate()
+    fireEvent.change(screen.getByLabelText(/Strain name/i), {
+      target: { value: 'OG Kush' },
+    })
+    // Confirm the form is currently dirty.
+    const nameInput = screen.getByLabelText(/Strain name/i) as HTMLInputElement
+    expect(nameInput.value).toBe('OG Kush')
+    // Click auto-populate and accept.
+    clickAutoPopulate()
+    expect(confirmSpy).toHaveBeenCalledTimes(1)
+    // The form has been re-populated from the store; the
+    // user-typed "OG Kush" is gone (strainName defaults to
+    // '' in buildFormFromStore).
+    expect(nameInput.value).toBe('')
   })
 })

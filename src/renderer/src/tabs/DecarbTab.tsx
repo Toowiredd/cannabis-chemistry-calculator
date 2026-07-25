@@ -330,8 +330,23 @@ export function DecarbTab() {
       return i.type === 'purchase' ? sum + g : sum - g
     }, 0)
     if (weightGrams > onHand) {
+      // 2026-07-25 ccc cross-tab data flow audit (MINOR m1):
+      // convert the grams values back to the per-field
+      // `decarb.weightUnit` so the warning surfaces in the unit
+      // the user is reading on the form. A user who typed 0.12 in
+      // oz would otherwise see "0.1g, have 5.0g" — the math is
+      // right (0.12 oz ≈ 3.4 g > 5 g means insufficient) but
+      // the unit suffix is wrong. The engine calc still uses
+      // grams (weightGrams), so this is display-only. The .toFixed(1)
+      // matches the pre-fix format so existing tests that assert
+      // "5.0g, have 1.0g" continue to pass; for the default 'g'
+      // unit this is the right precision, and for 'oz' it stays
+      // consistent with the rest of the weight display elsewhere.
+      const unit = decarb.weightUnit
+      const needDisplay = convertWeight(weightGrams, 'g', unit).toFixed(1)
+      const onHandDisplay = convertWeight(onHand, 'g', unit).toFixed(1)
       setInventoryWarning(
-        `Insufficient material: need ${weightGrams.toFixed(1)}g, have ${onHand.toFixed(1)}g`
+        `Insufficient material: need ${needDisplay}${unit}, have ${onHandDisplay}${unit}`
       )
     } else {
       setInventoryWarning(null)
