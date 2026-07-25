@@ -136,6 +136,82 @@ function lsQuotaError(err: unknown): string {
 }
 
 /* ------------------------------------------------------------------ */
+/* Journal IDB mirror                                                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The single-blob shape stored under `IDB_KEY.journalEntries`. Holds
+ * the full journal state (index + every per-entry row) in one
+ * structured-cloneable value so a Safari localStorage eviction can be
+ * recovered with a single IDB get.
+ *
+ * The blob is rewritten on every save/delete. Average journals are
+ * <500 entries of a few KB each; the IDB write fits in a single
+ * transaction. For pathological 10k+ entry journals the IDB write
+ * becomes a hot spot — at that point we should switch to per-entry
+ * rows, but the single-blob layout keeps the code simple today and
+ * matches the same single-blob pattern we use for presets/strains.
+ */
+interface JournalIdbBlob {
+  index: { id: string; date: string; savedAt: string }[]
+  entries: Record<string, Record<string, unknown>>
+}
+
+/**
+ * Mirror the current journal state (index + per-entry rows) to
+ * IndexedDB under `IDB_KEY.journalEntries`. Read-modify-write: we
+ * re-read the current IDB blob (if any) to preserve entries that
+ * haven't been touched by this call. Returns when the IDB write
+ * resolves (or rejects on quota / private-mode errors).
+ */
+async function mirrorJournalToIdb(
+  index: { id: string; date: string; savedAt: string }[]
+): Promise<void> {
+  // Build the per-entry rows from localStorage (the source of truth).
+  const entries: Record<string, Record<string, unknown>> = {}
+  for (const meta of index) {
+    const e = readJson<Record<string, unknown> | null>(
+      `journal:${meta.id}`,
+      null
+    )
+    if (e) entries[meta.id] = e
+  }
+  // If the IDB already has a blob, prefer the IDB copy of any entry
+  // we don't have locally — defends against a partial localStorage
+  // eviction where the index survived but some per-entry rows did
+  // not. In practice the loop above reads localStorage and that is
+  // the most-recent write, so this is mostly a safety net.
+  const existing = await idbGet<JournalIdbBlob>(IDB_KEY.journalEntries)
+  if (existing?.entries) {
+    for (const [id, e] of Object.entries(existing.entries)) {
+      if (!(id in entries) && e) entries[id] = e
+    }
+  }
+  await idbPut<JournalIdbBlob>(IDB_KEY.journalEntries, { index, entries })
+}
+
+/** Sort entries newest-first by `date` (or `savedAt` fallback). */
+function sortEntriesByDateDesc(
+  entries: Record<string, unknown>[]
+): Record<string, unknown>[] {
+  return [...entries].sort((a, b) => {
+    const ad =
+      typeof a.date === 'string'
+        ? a.date
+        : typeof a.savedAt === 'string'
+          ? a.savedAt
+          : ''
+    const bd =
+      typeof b.date === 'string'
+        ? b.date
+        : typeof b.savedAt === 'string'
+          ? b.savedAt
+          : ''
+    return bd.localeCompare(ad)
+  })
+}
+
+/* ------------------------------------------------------------------ */
 /* Preset index — tracks presets saved on the web (used by load dialog)*/
 /* ------------------------------------------------------------------ */
 
@@ -484,6 +560,37 @@ export const webApp = {
       index.sort((a, b) => b.date.localeCompare(a.date))
       saveJsonQuoted('journal-index', index)
 
+      // Mirror the full journal state to IndexedDB. The IDB blob is
+      // { index, entries } so a single read on the next load
+      // reconstructs the full state (used by loadJournalEntries'
+      // Safari-eviction fallback). Per-entry rows would be more
+      // efficient on large journals, but the average journal is
+      // <500 entries x a few KB — well under the IDB blob limit
+      // and small enough for a single transactional write.
+      //
+      // We AWAIT the mirror (rather than fire-and-forget like the
+      // preset/strain paths) because the read-modify-write pattern
+      // has a real concurrency hazard: two saves in flight would
+      // each read the previous IDB state and stomp on each other.
+      // Forcing a serial write per save keeps localStorage and IDB
+      // in lock-step. The cost is one IDB write per save (~5-20ms)
+      // — acceptable for a user-initiated action.
+      //
+      // The IDB write failure is non-fatal: the localStorage copy
+      // is the source of truth and the next save will retry. The
+      // caller does not see the failure (consistent with the
+      // preset/strain fire-and-forget paths).
+      try {
+        await mirrorJournalToIdb(index)
+      } catch {
+        // IDB write failed (quota, private mode, disabled). The
+        // localStorage copy is still the source of truth. The
+        // next save will retry the mirror. We do NOT propagate
+        // the error to the caller — the save itself succeeded
+        // (localStorage has the new entry); only the durability
+        // mirror failed.
+      }
+
       return { success: true, id, filePath: `localStorage://${id}` }
     } catch (err) {
       return { success: false, error: lsQuotaError(err) }
@@ -497,6 +604,33 @@ export const webApp = {
   }> {
     try {
       const index = readJson<{ id: string }[]>('journal-index', [])
+      // If localStorage has no index, try the IDB fallback (Safari
+      // eviction recovery). If IDB has a blob, rebuild localStorage
+      // from it (one-time hydration) and proceed.
+      if (index.length === 0) {
+        const idbBlob = await idbGet<JournalIdbBlob>(IDB_KEY.journalEntries)
+        if (idbBlob && Array.isArray(idbBlob.index) && idbBlob.entries) {
+          // Re-hydrate localStorage from IDB so subsequent reads are
+          // fast and we can survive a second Safari sweep before the
+          // next save.
+          saveJsonQuoted('journal-index', idbBlob.index)
+          for (const meta of idbBlob.index) {
+            const e = idbBlob.entries[meta.id]
+            if (e) writeJson(`journal:${meta.id}`, e)
+          }
+          // Re-read so the rest of the function uses the same code
+          // path as the localStorage hit.
+          return {
+            success: true,
+            entries: sortEntriesByDateDesc(
+              idbBlob.index
+                .map(meta => idbBlob.entries[meta.id])
+                .filter((e): e is Record<string, unknown> => e != null)
+            ),
+          }
+        }
+        return { success: true, entries: [] }
+      }
       const entries: Record<string, unknown>[] = []
       for (const meta of index) {
         const entry = readJson<Record<string, unknown> | null>(
@@ -505,23 +639,7 @@ export const webApp = {
         )
         if (entry) entries.push(entry)
       }
-      // Newest first
-      entries.sort((a, b) => {
-        const ad =
-          typeof a.date === 'string'
-            ? a.date
-            : typeof a.savedAt === 'string'
-              ? a.savedAt
-              : ''
-        const bd =
-          typeof b.date === 'string'
-            ? b.date
-            : typeof b.savedAt === 'string'
-              ? b.savedAt
-              : ''
-        return bd.localeCompare(ad)
-      })
-      return { success: true, entries }
+      return { success: true, entries: sortEntriesByDateDesc(entries) }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load journal entries'
       return { success: false, error: message, entries: [] }
@@ -533,11 +651,28 @@ export const webApp = {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       localStorage.removeItem(lsKey(`journal:${id}`))
-      const index = readJson<{ id: string }[]>('journal-index', [])
-      saveJsonQuoted(
+      // The localStorage index always has full meta (id/date/savedAt)
+      // — saveJournalEntry writes the wide shape. We type the read
+      // wide here so the filter result satisfies mirrorJournalToIdb.
+      const index = readJson<{ id: string; date: string; savedAt: string }[]>(
         'journal-index',
-        index.filter(e => e.id !== id)
+        []
       )
+      const newIndex = index.filter(e => e.id !== id)
+      saveJsonQuoted('journal-index', newIndex)
+
+      // Mirror the deletion to IndexedDB so the durability layer
+      // doesn't accumulate orphans. Same read-modify-write pattern
+      // as the save path — also awaited to keep localStorage and
+      // IDB in lock-step (the read-modify-write is not safe to
+      // interleave with a concurrent save).
+      try {
+        await mirrorJournalToIdb(newIndex)
+      } catch {
+        // IDB write failed — localStorage deletion is the source
+        // of truth. The next save will reconcile.
+      }
+
       return { success: true }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete journal entry'

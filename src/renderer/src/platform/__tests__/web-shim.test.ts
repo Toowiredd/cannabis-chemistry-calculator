@@ -11,7 +11,7 @@
 import "fake-indexeddb/auto"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
-import { idbGet, IDB_KEY } from "../idb-store"
+import { idbDelete, idbGet, IDB_KEY } from "../idb-store"
 import { webApp } from "../web-shim"
 
 describe("web-shim (presets + strains persistence + IDB mirror)", () => {
@@ -102,5 +102,120 @@ describe("web-shim (presets + strains persistence + IDB mirror)", () => {
     const r = await webApp.savePreset({ name: "   ", presetData: {} })
     expect(r.success).toBe(false)
     expect(r.error).toMatch(/empty/i)
+  })
+})
+
+describe("web-shim (journal entries persistence + IDB mirror)", () => {
+  beforeEach(async () => {
+    try {
+      localStorage.clear()
+    } catch {
+      // ignore
+    }
+    // Clear the journal IDB blob too — the journal IDB mirror
+    // survives across tests (fake-indexeddb persists in the same
+    // process), so a previous test that left entries behind would
+    // leak into this one via the IDB fallback path.
+    await idbDelete(IDB_KEY.journalEntries)
+  })
+
+  afterEach(() => {
+    try {
+      localStorage.clear()
+    } catch {
+      // ignore
+    }
+  })
+
+  it("saveJournalEntry round-trips a single entry through localStorage", async () => {
+    const r = await webApp.saveJournalEntry({
+      date: "2026-07-25",
+      material: { grams: 3.5, thcPct: 4 },
+      classification: "low",
+    })
+    expect(r.success).toBe(true)
+    expect(r.id).toMatch(/^entry_/)
+    const load = await webApp.loadJournalEntries()
+    expect(load.success).toBe(true)
+    expect(load.entries).toHaveLength(1)
+    expect(load.entries[0].classification).toBe("low")
+  })
+
+  it("saveJournalEntry mirrors the index + entries to IndexedDB", async () => {
+    await webApp.saveJournalEntry({
+      date: "2026-07-25",
+      material: { grams: 3.5, thcPct: 4 },
+    })
+    await webApp.saveJournalEntry({
+      date: "2026-07-24",
+      material: { grams: 7, thcPct: 18 },
+    })
+    // Allow the fire-and-forget IDB writes to complete.
+    await new Promise(r => setTimeout(r, 50))
+    const blob = await idbGet<{
+      index: { id: string; date: string; savedAt: string }[]
+      entries: Record<string, Record<string, unknown>>
+    }>(IDB_KEY.journalEntries)
+    expect(blob).not.toBeNull()
+    expect(blob?.index).toHaveLength(2)
+    expect(Object.keys(blob?.entries ?? {})).toHaveLength(2)
+    // Index should be newest-first (date-descending).
+    expect(blob?.index[0].date).toBe("2026-07-25")
+  })
+
+  it("loadJournalEntries recovers from a Safari localStorage eviction (IDB fallback)", async () => {
+    // 1. Save two entries — populates localStorage + IDB.
+    await webApp.saveJournalEntry({
+      date: "2026-07-25",
+      material: { grams: 3.5 },
+    })
+    await webApp.saveJournalEntry({
+      date: "2026-07-24",
+      material: { grams: 7 },
+    })
+    await new Promise(r => setTimeout(r, 50))
+    // 2. Simulate a Safari sweep: clear localStorage but leave IDB.
+    localStorage.clear()
+    // 3. Next read should hydrate from IDB and return both entries.
+    const load = await webApp.loadJournalEntries()
+    expect(load.success).toBe(true)
+    expect(load.entries).toHaveLength(2)
+    // 4. localStorage should now be re-hydrated from IDB.
+    expect(localStorage.getItem("ccc:journal-index")).not.toBeNull()
+  })
+
+  it("deleteJournalEntry removes from localStorage and the IDB blob", async () => {
+    const r1 = await webApp.saveJournalEntry({
+      date: "2026-07-25",
+      tag: "first",
+    })
+    const r2 = await webApp.saveJournalEntry({
+      date: "2026-07-24",
+      tag: "second",
+    })
+    expect(r1.id).toBeDefined()
+    expect(r2.id).toBeDefined()
+    await new Promise(r => setTimeout(r, 50))
+    // Delete the first entry
+    const del = await webApp.deleteJournalEntry(r1.id!)
+    expect(del.success).toBe(true)
+    await new Promise(r => setTimeout(r, 50))
+    // IDB blob should now only contain the second entry.
+    const blob = await idbGet<{
+      index: { id: string }[]
+      entries: Record<string, Record<string, unknown>>
+    }>(IDB_KEY.journalEntries)
+    expect(blob?.index).toHaveLength(1)
+    expect(blob?.index[0].id).toBe(r2.id)
+    // loadJournalEntries should return only the remaining entry.
+    const load = await webApp.loadJournalEntries()
+    expect(load.entries).toHaveLength(1)
+    expect(load.entries[0].tag).toBe("second")
+  })
+
+  it("loadJournalEntries returns empty array when both localStorage and IDB are empty", async () => {
+    const load = await webApp.loadJournalEntries()
+    expect(load.success).toBe(true)
+    expect(load.entries).toEqual([])
   })
 })
