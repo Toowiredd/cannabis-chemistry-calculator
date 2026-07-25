@@ -346,11 +346,24 @@ describe('AdvancedToolsTab — audit M11 (Apply to Decarb Tab preserves weightUn
       },
     }))
     render(<AdvancedToolsTab />)
-    // The "Apply to Decarb Tab" button only renders once the
-    // debounced calculation has produced a result. Wait for it.
-    const applyBtn = await screen.findByRole('button', {
-      name: /Apply to Decarb Tab/i,
-    })
+    // 2026-07-25 ccc-uiux-reviewer audit M11 regression fix: the
+    // "Apply to Decarb Tab" button only renders after a 300ms
+    // `setTimeout` debounce (see AdvancedToolsTab.tsx:118/388/739/952
+    // — four 300ms debounced calculations). Under parallel-suite
+    // load the default `findByRole` timeout (1000ms) was
+    // intermittently insufficient — the suite's event loop
+    // would not service the debounce before the poll gave up.
+    // Switch to `waitFor` with a 5s ceiling + the real-time debounce
+    // (3 * 300ms + buffer = 1000ms minimum) — the debounce runs
+    // in real time under real timers, the test just polls longer.
+    // Earlier fake-timers attempt failed because `findByRole` /
+    // `waitFor` poll via an internal setInterval that fake timers
+    // also block; real timers + longer poll is the cleanest fix.
+    const applyBtn = await screen.findByRole(
+      'button',
+      { name: /Apply to Decarb Tab/i },
+      { timeout: 5000 }
+    )
     fireEvent.click(applyBtn)
     // The handler must preserve the user's existing weightUnit.
     expect(useAppStore.getState().decarb.weightUnit).toBe('oz')
@@ -377,9 +390,11 @@ describe('AdvancedToolsTab — audit M11 (Apply to Decarb Tab preserves weightUn
       },
     }))
     render(<AdvancedToolsTab />)
-    const applyBtn = await screen.findByRole('button', {
-      name: /Apply to Decarb Tab/i,
-    })
+    const applyBtn = await screen.findByRole(
+      'button',
+      { name: /Apply to Decarb Tab/i },
+      { timeout: 5000 }
+    )
     fireEvent.click(applyBtn)
     expect(useAppStore.getState().decarb.weightUnit).toBe('g')
   })

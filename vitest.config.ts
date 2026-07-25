@@ -26,6 +26,11 @@ export default defineConfig({
       'src/renderer/src/stores/__tests__/**/*.test.ts',
       'src/renderer/src/stores/__tests__/**/*.test.tsx',
       'src/renderer/src/tabs/__tests__/**/*.test.tsx',
+      // PWA web shim + IndexedDB platform layer (2026-07-25 follow-up).
+      // Single-file path because the platform layer only has these
+      // two test files today; widen to a glob if more land.
+      'src/renderer/src/platform/__tests__/idb-store.test.ts',
+      'src/renderer/src/platform/__tests__/web-shim.test.ts',
       // New shared primitives (design-system rein) — explicit single-file
       // paths so the existing orphan OptionCard.test.tsx (whose source is
       // not on disk) does not get picked up and break the run.

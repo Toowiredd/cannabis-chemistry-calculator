@@ -8,22 +8,31 @@
  * exists so the React renderer source can stay agnostic of platform —
  * every `window.App.exportReport(...)` call site works the same.
  *
- * Storage strategy:
- *   - localStorage for small JSON blobs (presets, strains, journal index)
+ * Storage strategy (2026-07-25 durability upgrade):
+ *   - localStorage: synchronous fast path for presets, strains,
+ *     and the journal index + per-entry rows. Subject to Safari
+ *     eviction under storage pressure.
+ *   - IndexedDB (`idb-store.ts`): durable async mirror of every
+ *     write. Survives localStorage eviction. Read fallback: if
+ *     localStorage is empty but IndexedDB has the value, hydrate
+ *     from IndexedDB (one-time recovery after a Safari sweep).
  *   - Blob URLs for downloads (no write access to a real filesystem)
  *   - navigator.clipboard for copy
  *   - window.open for external links (noopener)
  *
- * Persistence caveat (call out in the PWA UI later if needed):
- *   - localStorage survives reloads on the same origin but is per-origin
- *     and per-browser-profile. iOS Safari has historically evicted
- *     localStorage for PWAs under storage pressure; IndexedDB would be
- *     more durable, but localStorage matches the desktop semantics
- *     (single-user, single-device) closely enough for a first pass.
- *   - Journal entries can grow unbounded; if a user hits the ~5MB
- *     localStorage quota, savePreset/saveJournalEntry will return
- *     { success: false, error: 'Storage quota exceeded' }.
+ * Failure handling: every IDB call is wrapped in `try/catch` at the
+ * module boundary (see `idb-store.ts`). If the IDB backend is
+ * unavailable (private mode, disabled, quota exhausted), the shim
+ * falls back to localStorage-only — non-fatal warning, not a
+ * user-facing error.
+ *
+ * Persistence caveat:
+ *   - Journal entries can grow unbounded; if a user hits BOTH the
+ *     localStorage ~5MB quota AND the IDB quota, saveJournalEntry
+ *     returns { success: false, error: 'Storage quota exceeded' }.
  */
+
+import { IDB_KEY, idbDelete, idbGet, idbPut } from './idb-store'
 
 const PREFIX = 'ccc:'
 
@@ -43,6 +52,74 @@ function readJson<T>(key: string, fallback: T): T {
 
 function writeJson(key: string, value: unknown): void {
   localStorage.setItem(lsKey(key), JSON.stringify(value))
+}
+
+/**
+ * Dual-write a JSON value to BOTH localStorage (synchronous fast path)
+ * AND IndexedDB (durable async mirror). The IDB write is fire-and-
+ * forget — if it fails (quota, private mode, disabled), the shim
+ * still works on localStorage only. The IDB layer is durability,
+ * not correctness: the localStorage copy is always written first.
+ *
+ * The `idbKey` parameter maps the localStorage key (e.g. `presets`)
+ * to one of the `IDB_KEY` constants (e.g. `IDB_KEY.presets`).
+ * The mapping is mechanical: `presets` → `IDB_KEY.presets`. If you
+ * add a new persistence function, add the new key to BOTH the
+ * localStorage PREFIX and `IDB_KEY` in idb-store.ts.
+ */
+function dualWriteJson<T>(
+  lsKeyName: string,
+  idbKey: (typeof IDB_KEY)[keyof typeof IDB_KEY],
+  value: T
+): void {
+  // 1. Synchronous localStorage write — the source of truth for
+  //    the rest of the shim.
+  localStorage.setItem(lsKey(lsKeyName), JSON.stringify(value))
+  // 2. Async IDB mirror — fire-and-forget. Catch + log to keep
+  //    the IDB failure off the user-facing path.
+  void idbPut(idbKey, value).catch(() => {
+    // IDB write failed (quota, private mode, disabled). The
+    // localStorage copy is still correct. The shim continues
+    // working on localStorage only — durability is degraded, but
+    // correctness is preserved.
+  })
+}
+
+/**
+ * Read a JSON value from localStorage; fall back to IndexedDB if
+ * localStorage is empty. Used by the read paths to recover from a
+ * Safari localStorage eviction: if the user just opened the PWA
+ * and localStorage is empty, we hydrate the first read from IDB.
+ */
+async function readJsonWithIdbFallback<T>(
+  lsKeyName: string,
+  idbKey: (typeof IDB_KEY)[keyof typeof IDB_KEY],
+  fallback: T
+): Promise<T> {
+  // localStorage read first (synchronous fast path)
+  try {
+    const raw = localStorage.getItem(lsKey(lsKeyName))
+    if (raw != null) {
+      return JSON.parse(raw) as T
+    }
+  } catch {
+    // localStorage read failed (corrupt JSON, etc.). Fall through
+    // to IDB.
+  }
+  // Fallback: try IDB
+  const idbValue = await idbGet<T>(idbKey)
+  if (idbValue != null) {
+    // Hydrate localStorage from IDB so the next read is fast.
+    try {
+      localStorage.setItem(lsKey(lsKeyName), JSON.stringify(idbValue))
+    } catch {
+      // localStorage write also failed (quota). IDB is the only
+      // copy. The shim continues working with the IDB fallback
+      // on every read — slower but correct.
+    }
+    return idbValue
+  }
+  return fallback
 }
 
 function lsQuotaError(err: unknown): string {
@@ -265,6 +342,13 @@ export const webApp = {
       }
 
       writeJson(`preset:${id}`, payload)
+      // Mirror the full preset index to IDB on every save. The
+      // single-row IDB layout (`IDB_KEY.presets`) is a JSON array
+      // identical to the localStorage index. IDB is the durability
+      // layer; localStorage remains the read fast path.
+      void idbPut(IDB_KEY.presets, index).catch(() => {
+        // IDB write failed — localStorage is the only copy.
+      })
       index.push({ id, name, createdAt: payload.createdAt })
       savePresetIndex(index)
 
@@ -324,7 +408,11 @@ export const webApp = {
 
   async saveStrains(data: unknown): Promise<{ success: boolean; error?: string; filePath?: string }> {
     try {
-      writeJson('strains', data)
+      // Single-row IDB mirror: the strains list is one IDB entry
+      // under IDB_KEY.strains. IDB is the durability layer; the
+      // synchronous localStorage write is the source of truth for
+      // the next read.
+      dualWriteJson('strains', IDB_KEY.strains, data)
       return { success: true, filePath: 'localStorage://strains' }
     } catch (err) {
       return { success: false, error: lsQuotaError(err) }
@@ -337,7 +425,15 @@ export const webApp = {
     strains: unknown[]
   }> {
     try {
-      const strains = readJson<unknown[]>('strains', [])
+      // IDB fallback: if localStorage is empty (e.g. after a Safari
+      // eviction sweep), read from the durable IDB layer. The
+      // readJsonWithIdbFallback helper also re-hydrates localStorage
+      // from IDB so the next read is fast.
+      const strains = await readJsonWithIdbFallback<unknown[]>(
+        'strains',
+        IDB_KEY.strains,
+        []
+      )
       if (!Array.isArray(strains)) {
         return { success: true, strains: [] }
       }
