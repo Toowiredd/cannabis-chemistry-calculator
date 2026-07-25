@@ -29,11 +29,33 @@
 const http = require('node:http')
 const fs = require('node:fs')
 const path = require('node:path')
+const { execSync } = require('node:child_process')
 
 const DIST = path.resolve(__dirname, '..', 'dist')
 const ENTRY = 'index.web.html'
 const PORT = Number.parseInt(process.env.PORT ?? '8765', 10)
 const HOST = process.env.HOST ?? '127.0.0.1'
+
+// Resolve the parent process info via WMI. Task Scheduler launches
+// children via svchost.exe, while the legacy HKCU\Run key uses a
+// cmd /c wrapper — the parent process name lets the operator
+// confirm which autostart mechanism actually fired.
+function getParentProcessInfo() {
+  if (process.platform !== 'win32') return { ppid: null, name: null }
+  try {
+    const out = execSync(
+      `powershell -NoProfile -NonInteractive -Command "$p = Get-CimInstance Win32_Process -Filter 'ProcessId=${process.pid}'; $pp = Get-CimInstance Win32_Process -Filter \\"ProcessId=$($p.ParentProcessId)\\"; Write-Output (\\"$($p.ParentProcessId)|$($pp.Name)\\")"`,
+      { encoding: 'utf8', timeout: 2000, stdio: ['ignore', 'pipe', 'ignore'] }
+    ).trim()
+    const sep = out.indexOf('|')
+    if (sep < 0) return { ppid: null, name: null }
+    const ppid = Number.parseInt(out.slice(0, sep), 10)
+    const name = out.slice(sep + 1) || null
+    return { ppid: Number.isFinite(ppid) ? ppid : null, name }
+  } catch {
+    return { ppid: null, name: null }
+  }
+}
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -148,10 +170,19 @@ const server = http.createServer((req, res) => {
 })
 
 server.listen(PORT, HOST, () => {
+  const parent = getParentProcessInfo()
   console.log(`[serve-pwa] serving ${DIST} on http://${HOST}:${PORT}`)
   console.log('[serve-pwa] entry:', `http://${HOST}:${PORT}/`)
   console.log('[serve-pwa] PWA install URL:')
   console.log('[serve-pwa]   https://laptop.tail646a73.ts.net/ccc/  (via Tailscale Funnel)')
+  console.log(
+    `[serve-pwa] started — pid=${process.pid} ppid=${parent.ppid ?? '?'} parent=${parent.name ?? '?'}` +
+      (parent.name === 'svchost.exe'
+        ? ' (started via Task Scheduler)'
+        : parent.name === 'cmd.exe'
+          ? ' (started via cmd wrapper — likely HKCU\\Run)'
+          : '')
+  )
 })
 
 // Graceful shutdown — Tailscale Funnel will stop working without a

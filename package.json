@@ -38,7 +38,11 @@
     "dev:web": "vite dev --config vite.web.config.ts",
     "preview:web": "vite preview --config vite.web.config.ts",
     "serve:pwa": "node scripts/serve-pwa.cjs",
-    "validate:pwa": "node scripts/validate-pwa.cjs"
+    "validate:pwa": "node scripts/validate-pwa.cjs",
+    "pwa:install-task": "powershell -ExecutionPolicy Bypass -File scripts/install-pwa-server-task.ps1",
+    "pwa:uninstall-task": "powershell -ExecutionPolicy Bypass -File scripts/uninstall-pwa-server-task.ps1",
+    "pwa:task-status": "powershell -ExecutionPolicy Bypass -Command \"Get-ScheduledTask -TaskName CccPwaServer | Format-List\"",
+    "pwa:task-run-now": "powershell -ExecutionPolicy Bypass -Command \"Start-ScheduledTask -TaskName CccPwaServer\""
   },
   "dependencies": {
     "@fontsource-variable/space-grotesk": "^5.2.10",
