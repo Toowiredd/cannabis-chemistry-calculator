@@ -221,18 +221,23 @@ describe('appStore wizard persistence (round-trip)', () => {
     expect(persistedWizard).toHaveProperty('selections')
   })
 
-  it('version=3 is set on the persisted envelope (was bumped again in the 2026-07-25 AVB feature round for InventoryItem.kind)', async () => {
+  it('version=4 is set on the persisted envelope (was bumped again in the 2026-07-25 ccc-validation-orchestrator MAJOR M1 fix for JournalEntry.materialWeightUnit)', async () => {
     useAppStore
       .getState()
       .toggleWizardSelection('decarbMethodIds', 'oven_sealed')
     await waitForPersisted()
-    // Bumped from 1 → 2 in the 2026-07-25 BLOCKER B1 fix
-    // (JournalEntry.source backfill) and again 2 → 3 in the
-    // 2026-07-25 AVB feature round (InventoryItem.kind backfill,
-    // see appStore.journalMigration.test.ts). The wizard slice
-    // contract is unchanged across both bumps — only the on-disk
-    // envelope version moved.
-    expect(readPersisted()?.version).toBe(3)
+    // Bumped 1 → 2 in the 2026-07-25 BLOCKER B1 fix
+    // (JournalEntry.source backfill), again 2 → 3 in the
+    // 2026-07-25 AVB feature round (InventoryItem.kind
+    // backfill), and a third time 3 → 4 in the 2026-07-25
+    // ccc-validation-orchestrator MAJOR M1 fix
+    // (JournalEntry.materialWeightUnit backfill — the b02a259
+    // commit message claimed the field was added but it was
+    // never actually landed on the interface, see
+    // appStore.journalMigration.test.ts). The wizard slice
+    // contract is unchanged across all three bumps — only the
+    // on-disk envelope version moved.
+    expect(readPersisted()?.version).toBe(4)
   })
 
   it('round-trip: wizard.dismissed=true survives reload (rehydration)', async () => {

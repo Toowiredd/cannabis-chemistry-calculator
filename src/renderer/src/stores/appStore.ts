@@ -360,6 +360,29 @@ export interface JournalEntry {
    * present-but-default value after a one-time upgrade.
    */
   source?: JournalEntrySource
+  /**
+   * The unit the material weight was authored in. Required for
+   * correct display on the Journal card — without this field, the
+   * display side has to guess, and a 0.12 oz entry shows as
+   * "0.12 g" (a 28x under-report). The b02a259 commit message
+   * claimed this field was added as "new optional field on
+   * JournalEntry; legacy falls back to 'g'", but the field was
+   * never actually landed on the interface (the Journal card
+   * was reading it via a type cast on `entry as unknown as {
+   * materialWeightUnit?: ... }`). The 2026-07-25
+   * ccc-validation-orchestrator cross-tab data flow audit
+   * caught the gap as MAJOR M1. This declaration is the real
+   * landing site. The v3→v4 persist migration backfills
+   * `'g'` on every legacy entry that lacks a valid value, so
+   * consumers can rely on a present-but-default value after a
+   * one-time upgrade. The migration is idempotent — entries
+   * that already have a valid `'g' | 'oz'` are preserved
+   * unchanged. Legacy entries (pre-v4) default to `'g'` on the
+   * migration (safe default — assumes pre-v4 users saved in
+   * grams, which was the only well-tested path before the
+   * per-field unit refactor).
+   */
+  materialWeightUnit?: 'g' | 'oz'
 }
 
 export interface TimerState {
@@ -1043,6 +1066,26 @@ export const useAppStore = create<AppStore>()(
     }),
     {
       name: 'cannabis-chem-units',
+      // Bumped to v4 in the 2026-07-25 ccc-validation-orchestrator
+      // audit cycle (MAJOR M1) — `JournalEntry.materialWeightUnit`
+      // was claimed in the b02a259 commit message but never actually
+      // landed on the interface. The Journal card was reading the
+      // field via a type cast, and no save site wrote it, so a 0.12
+      // oz entry would round-trip as "0.12 g" on the card (a 28x
+      // under-report). The v3→v4 migration backfills
+      // `materialWeightUnit: 'g'` on every legacy journal entry that
+      // lacks a valid value, so consumers can rely on a present-but-
+      // default value after a one-time upgrade. The migration is
+      // idempotent — entries that already have a valid `'g' | 'oz'`
+      // are preserved unchanged. The v4 partialize shape is otherwise
+      // unchanged from v3: the field is a new optional member of
+      // `JournalEntry` and ui-tabs's parallel dispatch is responsible
+      // for writing it at the save sites (QuickBatchTab,
+      // FirstTimerGuide, JournalTab). Once ui-tabs's parallel
+      // dispatch lands, a v4 reader will start seeing real values
+      // from new saves; the migration handles everything in the
+      // meantime.
+      //
       // Bumped to v3 in the 2026-07-25 AVB feature round when
       // `InventoryItem.kind` was added. The migration backfills
       // `kind: 'flower'` on every legacy inventory item that pre-dates
@@ -1068,7 +1111,7 @@ export const useAppStore = create<AppStore>()(
       // to defend against `undefined`. Partializing only `dismissed` +
       // `selections` keeps the on-disk shape minimal and the runtime fields
       // (`active`, `stepIndex`) reset to defaults on every reload.
-      version: 3,
+      version: 4,
       migrate: (persistedState: unknown, version: number): unknown => {
         if (!isRecord(persistedState)) return persistedState
 
@@ -1226,6 +1269,79 @@ export const useAppStore = create<AppStore>()(
                   return { ...item, kind: 'flower' as const }
                 }),
               },
+            }
+          }
+        }
+
+        // v3 -> v4: `JournalEntry.materialWeightUnit` (per-entry
+        // authoring unit) is new. The b02a259 commit message
+        // claimed the field was added but it was never actually
+        // landed on the `JournalEntry` interface — the Journal
+        // card was reading it via a type cast, and no save site
+        // was writing it, so a 0.12 oz entry would round-trip as
+        // "0.12 g" on the card (a 28x under-report). The
+        // 2026-07-25 ccc-validation-orchestrator cross-tab data
+        // flow audit caught the gap as MAJOR M1. Backfill every
+        // legacy journal entry that lacks a valid value with
+        // `'g'` (the safe legacy default — pre-v4 users only
+        // had a well-tested path that saved in grams; ounce
+        // support is a v4-era write by ui-tabs's parallel
+        // dispatch). The migration is idempotent — entries
+        // that already have a valid `'g' | 'oz'` literal are
+        // preserved unchanged. Invalid values (e.g. `'lb'`,
+        // `42`, `null`) are coerced to `'g'` rather than
+        // propagated, so consumers never have to defend against
+        // a value outside the literal union.
+        //
+        // We intentionally do NOT pull from `units.weightUnit`
+        // (the global unit preference) on the migration. The
+        // global pref and the per-entry authoring unit are
+        // independent signals — a user who toggled the global
+        // pref to `'oz'` may still have legacy entries saved
+        // in `'g'` (the only path that wrote entries pre-v4).
+        // Treating the global pref as authoritative would
+        // over-write that distinction. `'g'` is the safe
+        // pre-v4 default; v4+ saves from ui-tabs write the
+        // real value.
+        //
+        // Like the v1→v2 source backfill, the v3 partialize
+        // never persisted `journalEntries` to disk (they live on
+        // disk in localStorage / IPC via the Journal tab's
+        // load-on-mount), but the migration runs defensively
+        // in case a future snapshot or a hand-edited local dev
+        // envelope has the field. If `state.journalEntries` is
+        // missing or not an array, this block is a no-op.
+        if (version < 4) {
+          if (Array.isArray(state.journalEntries)) {
+            const rawEntries = state.journalEntries as unknown[]
+            state = {
+              ...state,
+              journalEntries: rawEntries.map(entry => {
+                if (!isRecord(entry)) {
+                  // Defensive: a non-object entry shouldn't appear
+                  // in a well-formed snapshot. Stamping a sentinel
+                  // so downstream code never has to defend against
+                  // `undefined`.
+                  return {
+                    materialWeightUnit: 'g' as JournalEntry['materialWeightUnit'],
+                  }
+                }
+                const existing = entry.materialWeightUnit
+                if (existing === 'g' || existing === 'oz') {
+                  // Already a v4-shaped entry (or a v3 snapshot
+                  // that was hand-edited to inject the field).
+                  // Preserve the existing value — this makes the
+                  // migration idempotent. Running it twice on a
+                  // v4-shaped entry is a no-op.
+                  return entry
+                }
+                // Legacy v3 entry (no `materialWeightUnit` field)
+                // or invalid value: stamp `'g'` so consumers can
+                // rely on a present value. The pre-v4 save path
+                // was grams-only, so this is the correct default
+                // for entries that didn't record the unit.
+                return { ...entry, materialWeightUnit: 'g' as const }
+              }),
             }
           }
         }
