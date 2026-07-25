@@ -22,3 +22,20 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Local dev artifacts (Cluster E hygiene, see audit 40-ARCH-REVIEW-20260725 F4.1)
+temp-dev.log
+snapshot.yml
+h.textContent)
+lint_*.txt
+validation_report_post_fix.md
+
+# Root-level screenshots from manual QA (move to evidence/ if you want to keep them)
+/*-first-launch.png
+/decarb-default.png
+/main-first-launch.png
+
+# Tooling backup files (timestamped vite configs, ad-hoc verify scripts)
+/*.1778*.mjs
+/verify-*.ts
+/contrast-inputs.mjs

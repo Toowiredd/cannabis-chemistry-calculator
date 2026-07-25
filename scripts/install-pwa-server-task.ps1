@@ -67,7 +67,10 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 # --- Paths ------------------------------------------------------------------
-$RepoRoot        = 'C:\Users\LEWIS\ccc\cannabis_chemistry_calculator'
+# Resolve repo root relative to this script so the task installer is
+# portable: anyone running scripts/install-pwa-server-task.ps1 from a
+# fresh clone gets the correct path without editing the literal.
+$RepoRoot        = Split-Path -Parent $PSScriptRoot
 $ScriptPath      = Join-Path $RepoRoot 'scripts\serve-pwa.cjs'
 $TaskName        = 'CccPwaServer'
 $TaskDescription = 'Cannabis Chemistry Calculator PWA static server (node serve-pwa.cjs on 127.0.0.1:8765)'
@@ -77,12 +80,14 @@ $NodeExe         = (Get-Command node.exe -ErrorAction Stop).Source
 $CurrentUser     = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 
 function Remove-CccPwaServerTask {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param()
     $existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
     if ($existing) {
-        Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
-        Write-Host "[install-pwa-server-task] removed task '$TaskName'"
+        if ($PSCmdlet.ShouldProcess("Scheduled task '$TaskName'", 'Unregister-ScheduledTask')) {
+            Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
+            Write-Host "[install-pwa-server-task] removed task '$TaskName'"
+        }
     } else {
         Write-Host "[install-pwa-server-task] no task '$TaskName' to remove"
     }
