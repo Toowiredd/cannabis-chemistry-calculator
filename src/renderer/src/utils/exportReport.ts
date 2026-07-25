@@ -11,6 +11,7 @@ import {
   calculateConcentrateDecarbedThc,
   calculateConcentrateTheoreticalMax,
 } from 'renderer/src/engine/concentrate'
+import { calculateTheoreticalMax as calculateDecarbTheoreticalMax } from 'renderer/src/engine/decarb'
 import { calculateBlend } from 'renderer/src/engine/blend'
 import {
   calculateCostPerDose,
@@ -24,7 +25,7 @@ import {
   ozToG,
   volumeToMl,
 } from 'renderer/src/engine/units'
-import { fmt1 } from 'renderer/src/engine/formatting'
+import { fmt1, round1n } from 'renderer/src/engine/formatting'
 import { version as appVersion } from '~/package.json'
 
 // fmt1 is the canonical 1-decimal display helper from
@@ -111,12 +112,13 @@ function decarbSummary(
     const thca = parseFloat(state.thcaPct)
     const thc = parseFloat(state.thcPct)
     if (!Number.isNaN(grams) && !Number.isNaN(thca) && !Number.isNaN(thc)) {
-      theoreticalMax = grams * ((thca / 100) * 0.877 + thc / 100) * 1000
-      theoreticalMax = Math.round((theoreticalMax + 1e-9) * 10) / 10
-      decarbedLow = Math.round((theoreticalMax * effLow + 1e-9) * 10) / 10
-      decarbedExpected =
-        Math.round((theoreticalMax * effExpected + 1e-9) * 10) / 10
-      decarbedHigh = Math.round((theoreticalMax * effHigh + 1e-9) * 10) / 10
+      // Delegate to the canonical decarb engine for theoretical max
+      // (uses the shared THCA→THC factor from cannabinoidConstants.ts).
+      // The try/catch above covers any ValidationError from the engine.
+      theoreticalMax = calculateDecarbTheoreticalMax(grams, thca, thc)
+      decarbedLow = round1n(theoreticalMax * effLow)
+      decarbedExpected = round1n(theoreticalMax * effExpected)
+      decarbedHigh = round1n(theoreticalMax * effHigh)
     }
   } catch {
     // leave null

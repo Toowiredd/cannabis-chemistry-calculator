@@ -17,11 +17,7 @@
  *     claims without independent lab validation.
  */
 import { ValidationError } from './errors'
-
-/** Round to at most 1 decimal place with epsilon compensation */
-function round1(value: number): number {
-  return Math.round((value + 1e-9) * 10) / 10
-}
+import { round1n as round1 } from './formatting'
 
 /** Degradation rate preset at a given temperature */
 export interface DegradationRate {

@@ -7,12 +7,7 @@
  * potency. Uses a two-strain bracketing algorithm for determinism.
  */
 import { ValidationError } from './errors'
-
-/** Round to at most 1 decimal place with epsilon compensation for floating-point error */
-function round1(value: number): number {
-  if (value === 0) return 0.0
-  return Math.round((value + 1e-9) * 10) / 10
-}
+import { round1n as round1 } from './formatting'
 
 /** Input description for a single strain */
 export interface BlendStrain {

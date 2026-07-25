@@ -4,6 +4,7 @@
  */
 
 import { INFUSION_FATS } from './models'
+import { CBDA_TO_CBD_FACTOR } from './cannabinoidConstants'
 
 /* ------------------------------------------------------------------ */
 /* Types                                                              */
@@ -95,8 +96,9 @@ export function cbdDoseScore(
   )
     return 0
   // 0.877 MW ratio per Filer 2022 (#1, see research/academic-references.md).
+  // Same THCA→THC / CBDA→CBD MW factor — see cannabinoidConstants.ts.
   const cbdTheoreticalMax =
-    weight * ((cbdaPct / 100) * 0.877 + cbdPct / 100) * 1000
+    weight * ((cbdaPct / 100) * CBDA_TO_CBD_FACTOR + cbdPct / 100) * 1000
   const cbdMgPerServing = (cbdTheoreticalMax * extractionEff) / servings
   if (!Number.isFinite(cbdMgPerServing) || cbdMgPerServing <= 0) return 0
   return Math.min(10, Math.max(0, cbdMgPerServing))
@@ -227,9 +229,10 @@ export function computeRadarScores(params: {
 
   // Estimate CBD mg/serving for body/head load calculations
   // 0.877 MW ratio per Filer 2022 (#1, see research/academic-references.md).
+  // Same THCA→THC / CBDA→CBD MW factor — see cannabinoidConstants.ts.
   const cbdTheoreticalMax =
     weight > 0 && servings > 0
-      ? weight * ((cbdaPct / 100) * 0.877 + cbdPct / 100) * 1000
+      ? weight * ((cbdaPct / 100) * CBDA_TO_CBD_FACTOR + cbdPct / 100) * 1000
       : 0
   const cbdMgPerServing =
     weight > 0 && servings > 0

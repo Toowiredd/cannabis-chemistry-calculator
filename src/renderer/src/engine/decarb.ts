@@ -4,15 +4,11 @@
  */
 import { ValidationError } from './errors'
 import type { EfficiencyRange } from './models'
-
-/** Molecular weight ratio: THC / THCA ≈ 0.877 (314.45 / 358.47).
- *  Source: Filer 2022 (#1, see research/academic-references.md). */
-const THCA_TO_THC_FACTOR = 0.877
-
-/** Round to at most 1 decimal place with epsilon compensation for floating-point error */
-function round1(value: number): number {
-  return Math.round((value + 1e-9) * 10) / 10
-}
+import {
+  THCA_TO_THC_FACTOR,
+  theoreticalMaxCannabinoid,
+} from './cannabinoidConstants'
+import { round1n as round1 } from './formatting'
 
 /**
  * Calculate the theoretical maximum THC (in mg) from raw material.
@@ -37,8 +33,12 @@ export function calculateTheoreticalMax(
     throw new ValidationError('thcaPct + thcPct cannot exceed 100%')
   }
 
-  const result =
-    grams * ((thcaPct / 100) * THCA_TO_THC_FACTOR + thcPct / 100) * 1000
+  const result = theoreticalMaxCannabinoid(
+    grams,
+    thcaPct,
+    thcPct,
+    THCA_TO_THC_FACTOR
+  )
   return round1(result)
 }
 

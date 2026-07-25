@@ -7,16 +7,11 @@
  */
 import { ValidationError } from './errors'
 import type { EfficiencyRange } from './models'
-
-/** Molecular weight ratio: CBD / CBDA ≈ 0.877 (same as THC / THCA).
- *  Source: Filer 2022 (see research/academic-references.md #1) for the THCA→THC MW ratio of 314.45/358.47.
- *  CBDA and THCA are isomers (C22H30O4, MW 358.47) — see also Citti 2018 (#14). */
-const CBDA_TO_CBD_FACTOR = 0.877
-
-/** Round to at most 1 decimal place with epsilon compensation for floating-point error */
-function round1(value: number): number {
-  return Math.round((value + 1e-9) * 10) / 10
-}
+import {
+  CBDA_TO_CBD_FACTOR,
+  theoreticalMaxCannabinoid,
+} from './cannabinoidConstants'
+import { round1n as round1 } from './formatting'
 
 /**
  * Calculate the theoretical maximum CBD (in mg) from raw material.
@@ -41,8 +36,12 @@ export function calculateTheoreticalMaxCbd(
     throw new ValidationError('cbdaPct + cbdPct cannot exceed 100%')
   }
 
-  const result =
-    grams * ((cbdaPct / 100) * CBDA_TO_CBD_FACTOR + cbdPct / 100) * 1000
+  const result = theoreticalMaxCannabinoid(
+    grams,
+    cbdaPct,
+    cbdPct,
+    CBDA_TO_CBD_FACTOR
+  )
   return round1(result)
 }
 

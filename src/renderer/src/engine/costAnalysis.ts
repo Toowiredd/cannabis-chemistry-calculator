@@ -3,6 +3,11 @@
  * Pure TypeScript math — zero UI imports.
  */
 import { ValidationError } from './errors'
+import {
+  THCA_TO_THC_FACTOR,
+  theoreticalMaxCannabinoid,
+} from './cannabinoidConstants'
+import { round1n as round1 } from './formatting'
 
 /** Round to at most 2 decimal places with epsilon compensation for floating-point error */
 function round2(value: number): number {
@@ -15,15 +20,6 @@ function round3(value: number): number {
   if (value === 0) return 0.0
   return Math.round((value + 1e-9) * 1000) / 1000
 }
-
-/** Round to at most 1 decimal place */
-function round1(value: number): number {
-  if (value === 0) return 0.0
-  return Math.round((value + 1e-9) * 10) / 10
-}
-
-/** Molecular weight ratio: THC / THCA ≈ 0.877 — Filer 2022 (#1, see research/academic-references.md). */
-const THCA_TO_THC_FACTOR = 0.877
 
 /**
  * Calculate cost per dose in currency units.
@@ -157,8 +153,12 @@ export function compareMethodCosts(
     }
   }
 
-  const theoreticalMax =
-    grams * ((thcaPct / 100) * THCA_TO_THC_FACTOR + thcPct / 100) * 1000
+  const theoreticalMax = theoreticalMaxCannabinoid(
+    grams,
+    thcaPct,
+    thcPct,
+    THCA_TO_THC_FACTOR
+  )
 
   return methods.map(method => {
     const decarbedThc = theoreticalMax * method.efficiency
