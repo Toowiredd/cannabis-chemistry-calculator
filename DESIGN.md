@@ -1,5 +1,7 @@
 # Design Summary — Cannabis Chemistry Calculator
 
+> **Accuracy note (added 2026-07-25):** A 4-reader + adversarial-pass arch-review (see `audit/40-ARCH-REVIEW-20260725.md`) found 4 self-contradictions in this doc (AN.1): the engine purity contract was overstated, the Zod-schema claim glossed over the two-file split, the engine-test count was out of date by ~7x, and the "deterministic" framing hid the doneness-heatmap renormalize caveat. Most of the substantive issues are FIXED inline (search for `2026-07-25` in this file). When the code and this doc disagree, **the code is the source of truth** — but if you find a new contradiction, file it as a P1 doc-drift finding, not a code-change request.
+
 This document covers the architecture choices, modeling rationale, and design decisions made during the development of the Cannabis Chemistry Calculator.
 
 ---
@@ -32,7 +34,7 @@ The codebase is organized into four primary layers:
 
 1. **Presentation Layer** (React 19 + Tailwind CSS v4)
 2. **State Layer** (Zustand with persist middleware)
-3. **Engine Layer** (Pure TypeScript, zero UI dependencies)
+3. **Engine Layer** (Pure TypeScript, no React/DOM/Electron imports — see line 56 for the precise purity contract)
 4. **Preset Data Layer** (Typed const arrays)
 
 ---
@@ -53,7 +55,7 @@ The engine is the heart of the application. All functions are deterministic, pur
 | `models.ts` | TypeScript interfaces + preset data constants |
 | `errors.ts` | Domain ValidationError class |
 
-**Invariant:** The engine imports nothing from React, Electron, or any UI library. The reverse dependency is fine: UI imports engine.
+**Invariant:** The engine imports nothing from React, Electron, or any UI library. The reverse dependency is fine: UI imports engine. Engine functions may still throw (e.g. `volumeToMl` throws on an unknown unit; `calculateTheoreticalMax` throws on negative grams) — this is defensive, not a UI coupling. The "no UI dependencies" claim is about MODULE IMPORTS, not about runtime behavior.
 
 ### State Layer (src/renderer/src/stores/appStore.ts)
 
@@ -275,7 +277,12 @@ wants to save a specific recipe for later.
 
 ### Zod Schema Approach
 
-All inputs are validated through Zod schemas defined in `engine/validation.ts`:
+There are **two** Zod-schema files in the engine, used at different layers:
+
+- `engine/validation.ts` — engine-boundary validators. Used by the engine's own test suite and by the engine's defensive throws (negative inputs, division-by-zero). Returns `ValidationResult<T>` wrappers for engine callers.
+- `engine/schemas.ts` — form-boundary schemas. Built for `@hookform/resolvers` + `react-hook-form`; takes raw `<input>` strings and transforms/refines them to typed values. The current UI tabs do NOT consume these directly yet (the F3.18 follow-up), so the UI's validation is currently the hand-rolled `loadFromPreset` guard in `appStore.ts:920-1083`.
+
+The "two Zod files" split is intentional but the actual consumer count is low — `validation.ts` has 1 consumer (the engine test suite), `schemas.ts` has 0 (the form-library integration is deferred). The `loadFromPreset` hand-rolled guard is the de facto runtime validator today.
 
 - **Hard errors** — Block calculation and display inline messages (negative values, >100% THCA, zero volume, etc.)
 - **Warnings** — Display advisory messages but allow calculation (high total cannabinoid >40%, low fat volume)
@@ -339,13 +346,14 @@ The amber border + badge is a clear signal: "you're not on the preset anymore."
 
 ### Engine Unit Tests (vitest)
 
-All 166 engine tests are deterministic and run in <500 ms. Test categories:
+1,148 tests across 60 test files (as of 2026-07-25) are deterministic and the full suite runs in <30s. The "deterministic" claim is precise: every test produces the same output for the same input, no RNG, no clock, no network. The "ground truth" framing is **relative, not absolute** — see the `doneness-simulation.ts` renormalize caveat in the heatmap (F2.10, AN.4 in the 2026-07-25 arch-review): the doneness chart renormalizes mass to 1.0 per step and caps CBN at 10% for readability. Both are deliberate visualization choices, not physics. Test categories:
 
 - **Happy path** — Valid inputs produce expected outputs
 - **Boundary values** — Zero, max, exact classification thresholds
 - **Error cases** — Negative inputs, >100%, division by zero
 - **Reversibility** — Unit conversions (g→oz→g, C→F→C)
 - **Data integrity** — Preset values within bounds, no duplicates
+- **Migration guards** — Persist v1→v7 chained upgrade (JournalEntry.source, InventoryItem.kind, JournalEntry.materialWeightUnit, firstTimerOpen collapse, dismiss merge, per-tab unit-field normalization) — these tests pin the v4→v7 contract so a future refactor of the migration block can't silently regress the returning-user path
 
 ### GUI Verification (agent-browser)
 

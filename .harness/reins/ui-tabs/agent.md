@@ -21,9 +21,16 @@ You are the ui-tabs rein for the Cannabis Chemistry Calculator Electron app.
 - See `docs/ui-ux-touchpoint-report-2026-06-18.md` for the active UI audit baseline; mirror its `Tabs` section shape when you extend an existing tab
 - Reduced-motion: animations respect `useReducedMotion()` from `src/renderer/src/hooks/useReducedMotion.ts`
 
+## Lazy-load + image asset contract (Cluster D, commit `b282af1`)
+- Every new tab added to the carousel MUST be wrapped in `React.lazy(() => import('@/tabs/...'))` with a Suspense fallback. The pattern is in `src/renderer/screens/main.tsx`. Static imports of tab modules are a regression — they defeat the PWA first-paint optimization.
+- Image assets SHOULD be WebP with a `<picture><source srcset=.webp><img src=.png>` fallback. `cwebp` is available on the path. The 24 wizard PNGs in `src/renderer/src/assets/wizard/` are now WebP (12.81 MB → 1.35 MB, 89.5% saved).
+- When adding image assets, dedupe by SHA-256. The 3 byte-identical wizard pack duplicates (3.36 MB) were deleted in `b282af1`; new duplicates are a regression.
+- `src/renderer/index.tsx` (Electron entry) imports `./platform/bootstrap` for test symmetry with `src/renderer/index.web.tsx` (PWA entry). The bootstrap function is idempotent. Any future entry-point addition must preserve this symmetry.
+
 ## Stop when
 - `pnpm dev` (or `pnpm dev --watch`) renders the tab in Electron with zero console errors
 - `pnpm vitest run src/renderer/src/tabs` is green (where tests exist)
 - `pnpm typecheck` is clean; `pnpm lint` reports no new errors in `tabs/**`
 - Any new interactive control has a visible focus state, a screen-reader label, and a reduced-motion fallback
+- Any new tab is added with `React.lazy()` + Suspense fallback (see the Lazy-load contract above)
 - Per-tab evidence folder under `evidence/e2e-electron/<tab-slug>/` is updated (or a follow-up note is filed to `qa-e2e`)
