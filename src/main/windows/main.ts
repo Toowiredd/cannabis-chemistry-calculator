@@ -38,6 +38,9 @@ function getStrainsDir(): string {
 }
 
 export async function MainWindow() {
+  const ALLOWED_EXTERNAL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:'])
+  const SAFE_ID_RE = /^[A-Za-z0-9_-]{1,128}$/
+
   const window = createWindow({
     id: 'main',
     title: displayName,
@@ -56,6 +59,14 @@ export async function MainWindow() {
 
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
+      // Defensive explicit flags — Electron 39 defaults are already safe
+      // (contextIsolation:true, nodeIntegration:false, sandbox:false,
+      // webSecurity:true) but we set them so a future Electron default
+      // flip cannot silently downgrade the security posture.
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+      webSecurity: true,
     },
   })
 
@@ -254,10 +265,14 @@ export async function MainWindow() {
       }
 
       const entry = data as Record<string, unknown>
+      const rendererId =
+        typeof entry.id === 'string' && entry.id ? entry.id : null
+      if (rendererId !== null && !SAFE_ID_RE.test(rendererId)) {
+        return { success: false, error: 'invalid id' }
+      }
       const id =
-        typeof entry.id === 'string' && entry.id
-          ? entry.id
-          : `entry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+        rendererId ??
+        `entry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
       const filePath = join(dir, `${id}.json`)
 
       const payload = {
@@ -324,6 +339,9 @@ export async function MainWindow() {
 
   ipcMain.handle('delete-journal-entry', async (_event, id: string) => {
     try {
+      if (typeof id !== 'string' || !SAFE_ID_RE.test(id)) {
+        return { success: false, error: 'invalid id' }
+      }
       const dir = getJournalDir()
       const filePath = join(dir, `${id}.json`)
       if (existsSync(filePath)) {
@@ -383,8 +401,17 @@ export async function MainWindow() {
   /* ---------------------------------------------------------------- */
 
   ipcMain.handle('open-external', async (_event, url: string) => {
+    let parsed: URL
     try {
-      const result = await shell.openExternal(url)
+      parsed = new URL(url)
+    } catch {
+      return { success: false, error: 'invalid url' }
+    }
+    if (!ALLOWED_EXTERNAL_PROTOCOLS.has(parsed.protocol)) {
+      return { success: false, error: 'protocol not allowed' }
+    }
+    try {
+      const result = await shell.openExternal(parsed.toString())
       return { success: result }
     } catch {
       return { success: false }

@@ -13,9 +13,41 @@
 
 const https = require('node:https')
 const http = require('node:http')
+const fs = require('node:fs')
 
 const PWA_URL = (process.env.PWA_URL || 'https://laptop.tail646a73.ts.net/ccc/').replace(/\/$/, '')
-const HTTP_AGENT = new https.Agent({ rejectUnauthorized: false })
+
+// Refuse to run if the user has globally disabled TLS verification — the
+// validator fetches manifest + SW + icons, and a MITM-safe posture is the
+// point. Set NODE_TLS_REJECT_UNAUTHORIZED=0 in a parent shell and you would
+// otherwise silently bypass cert checks for every Node child.
+if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') {
+  console.error(
+    'validate-pwa: NODE_TLS_REJECT_UNAUTHORIZED=0 is set; refusing to run ' +
+      'with cert verification disabled. Unset the env var to validate.'
+  )
+  process.exit(2)
+}
+
+// Build an https.Agent that honors NODE_EXTRA_CA_CERTS (e.g. the
+// Tailscale root CA) and always requires a valid cert. Without the env
+// var, we use the OS trust store (rejectUnauthorized:true, no ca).
+const caPath = process.env.NODE_EXTRA_CA_CERTS
+let HTTP_AGENT
+if (caPath) {
+  let ca
+  try {
+    ca = fs.readFileSync(caPath)
+  } catch (err) {
+    console.error(
+      `validate-pwa: failed to read NODE_EXTRA_CA_CERTS=${caPath}: ${err.message}`
+    )
+    process.exit(2)
+  }
+  HTTP_AGENT = new https.Agent({ ca, rejectUnauthorized: true })
+} else {
+  HTTP_AGENT = new https.Agent({ rejectUnauthorized: true })
+}
 
 const errors = []
 const warnings = []
