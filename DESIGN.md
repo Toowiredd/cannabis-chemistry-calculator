@@ -409,6 +409,21 @@ Recomputed from **Jaidee 2022** Table 3 (DOI 10.1089/can.2021.0004, pH-2 solutio
 
 The `Ea₁/A₁` pair (THCA→THC) still uses the engineering overestimate on top of Wang 2016 (`#2`); a separate cleanup pass is planned.
 
+### Arrhenius kinetics — Wang 2016 recompute (2026-07-25)
+
+The THCA→THC step in `doneness-simulation.ts` previously used `Ea₁ = 92 kJ/mol` (upper end of Wang 2016's reported range, engineering choice) and `A₁ = 1.5×10¹² s⁻¹` — a 10⁴× overestimate of Wang 2016's published k₀, chosen to favor visible activity in the simulated UI at the 30-min/120 °C decarb window. Audit table rows 13 & 15 in `research/academic-references.md` flagged this for years.
+
+Recomputed from **Wang 2016** Table 2 (DOI 10.1089/can.2016.0020, p. 270, 1(1):262–271), 3 first-order rate constants for THCA-A in cannabis extracts at 80 °C, 95 °C, 110 °C (k = 0.18, 0.66, 1.83 × 10⁻³ s⁻¹):
+
+- `Ea₁ = 87.06 kJ/mol`
+- `A₁ = 1.40 × 10⁹ s⁻¹` (stored as 8.4 × 10¹⁰ min⁻¹ to match the engine's minute-scale time axis)
+- Fit quality: R² = 0.998 over the 3 measured points
+- Wang 2016's own rounded summary in Table 2 reads `Ea = 88 kJ/mol, k₀ = 8.7 × 10⁸ s⁻¹` — internally inconsistent with their own data (gives ~55 % underestimate at all 3 measured points, because k₀ was computed from the rounded EA). The regression is the more honest fit.
+
+The 2026-07-25 cleanup pass replaced the engineering estimate with a Wang 2016 Arrhenius fit. The decarb window is now physically grounded rather than fitted. Test coverage in `doneness-simulation.test.ts` pins the new constants to the cited measurements (3 measured-point tests at 80/95/110 °C, 3 regression-consistency tests at 100/120/140 °C, Q10 test, 25 °C extrapolation band, and an integration test for the 30-min/120 °C window).
+
+**Extrapolation caveat.** The Arrhenius fit is from 80–110 °C only. At 25 °C it predicts k ≈ 7.8 × 10⁻⁷ s⁻¹ → halflife ≈ 10 days. The 1–100 year room-temperature stability of THCA in plant material is an empirical observation that is NOT supported by Wang 2016 alone — it would require a different Ea at low T (curved Arrhenius plot, distinct mechanism, or a low-T-specific citation such as Trofin 2012 / Lindholst 2010, both currently flagged ⚠ unverified). See `doneness-simulation.ts` header and the 25 °C halflife test in `doneness-simulation.test.ts` for the full caveat.
+
 ---
 
 ## Future Considerations

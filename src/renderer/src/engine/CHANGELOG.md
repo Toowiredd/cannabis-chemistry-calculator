@@ -4,6 +4,32 @@ Changes specific to the chemistry engine (`src/renderer/src/engine/`). For proje
 
 ## Unreleased
 
+### Changed — 2026-07-25 — Arrhenius kinetics recompute (Wang 2016, THCA → THC)
+
+- `doneness-simulation.ts`
+  - `Ea₁` 92 kJ/mol (engineering estimate) → **87.06 kJ/mol** (Wang 2016 Table 2, p. 270, 3-point Arrhenius fit of THCA-A rate constants at 80/95/110 °C; R² = 0.998)
+  - `A₁` 1.5×10¹² s⁻¹ (engineering 10⁴× overestimate) → **1.40 × 10⁹ s⁻¹ = 8.4 × 10¹⁰ min⁻¹** from the same regression; engine stores A₁ per-minute to match the minute-scale time axis (no `*60` conversion needed)
+  - New exported helper `k1ThcaToThcPerMin(tempC): number` for test/audit access (returns k₁ in per-minute units)
+  - Header doc-block rewritten: full derivation of the 3-point fit, note that Wang 2016's own rounded summary (88 kJ/mol, 8.7 × 10⁸ s⁻¹) is internally inconsistent with their 3 measured points, and explicit 25 °C extrapolation caveat (predicted halflife ≈ 10 days — much shorter than the empirical 1–100 year room-T stability; would require a low-T-specific citation or a curved Arrhenius plot)
+  - File-level drift warning removed (audit rows 13 & 15 closed)
+
+- `doneness-simulation.test.ts`
+  - +9 Vitest cases in a new `describe('THCA → THC Arrhenius recompute (Wang 2016)')` block:
+    - `k₁(80/95/110 °C)` matches the Wang 2016 Table 2 measured k within 10 % relative (3 anchor tests)
+    - `k₁(100/120/140 °C)` is consistent with the regression prediction within 5 % (3 self-consistency tests at non-measured temperatures)
+    - Q10 ≈ 2 ± 0.4 between 100 °C and 140 °C
+    - `k₁(25 °C)` halflife band test (1 day to 100 years — actual Arrhenius prediction ≈ 10 days; the 1–100 year band from the task spec is NOT supported by Wang 2016 alone, see 25 °C caveat in code)
+    - `simulateDoneness(120 °C, 30 min)` reaches > 90 % THC, preserving the 30-min/120 °C decarb window that the prior engineering estimate was tuned to
+
+- `research/academic-references.md`
+  - Wang 2016 (#2) entry expanded: page/table for rate data (Table 2, p. 270), explicit citation as the source of the recomputed `Ea₁`/`A₁`
+  - Audit table rows 13 & 15 updated to "resolved 2026-07-25" with full fit derivation
+  - Header note: 2 drift flags resolved (rows 13 & 15)
+  - Drift #2 note: closed for `Ea₁`/`A₁`
+
+- `DESIGN.md`
+  - "Engine Citations & Audit" section: new subsection "Arrhenius kinetics — Wang 2016 recompute (2026-07-25)" with full derivation, prior-value rationale, and 25 °C extrapolation caveat
+
 ### Changed — 2026-07-09 — Arrhenius kinetics recompute (Jaidee 2022)
 
 - `doneness-simulation.ts`
@@ -33,3 +59,4 @@ Changes specific to the chemistry engine (`src/renderer/src/engine/`). For proje
 ### Test counts
 
 - 166 tests across 6 files → **601 tests across 23 files** (post-recompute: 23 files, 601 tests, typecheck clean)
+- 2026-07-25 update: **1046 tests across 27 files** (post-Wang-2016-recompute: 27 files, 1046 tests, typecheck clean) — added 9 new tests in `doneness-simulation.test.ts`.
