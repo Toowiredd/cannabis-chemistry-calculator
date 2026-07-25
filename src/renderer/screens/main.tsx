@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { cn } from 'renderer/lib/utils'
 import { StartupChooser } from 'renderer/src/components/StartupChooser'
-import { TabCarousel } from 'renderer/src/components/TabCarousel'
+import { GroupedTabNav } from 'renderer/src/components/GroupedTabNav'
 import { TitleBar } from 'renderer/src/components/TitleBar'
 import { TransformationCanvas } from 'renderer/src/components/TransformationCanvas'
 import { DecarbTab } from 'renderer/src/tabs/DecarbTab'
@@ -269,11 +269,17 @@ export function MainScreen() {
         </div>
       )}
 
-      {/* Main content — 3D coverflow carousel of all 9 tabs.
-          The current face is in front, the others are arranged
-          around a vertical cylinder so the user can see them
-          peeking from behind. See TabCarousel.tsx for the 3D
-          math + perf characteristics. */}
+      {/* Main content — the 2-level navigation surface (2026-07-25
+          design refresh). The 9 tabs are split into 2 groups per
+          the existing touchpoint topology:
+          - Workflow (5): 3D coverflow carousel — the chemistry
+            pipeline the user is on a journey through
+          - Reference (4): flat row of cards — the "library" the
+            user consults
+          A "Next" indicator between the two groups suggests the
+          natural next step. The carousel handles 5 faces, within
+          Apple's 6-item sidebar cap. See GroupedTabNav.tsx for
+          the 3D math + the next-step mapping. */}
       <main className="relative z-[10] min-h-0 flex-1 overflow-hidden p-2 sm:p-4">
         <div className="relative mx-auto h-full w-full max-w-[1400px] overflow-hidden rounded-2xl">
           {/* Layer 0: Background animation filling the panel */}
@@ -284,17 +290,39 @@ export function MainScreen() {
 
           {/* Layer 2: Content above glass */}
           <div className="relative z-[2] h-full min-w-0 p-3 sm:p-6">
-            <TabCarousel
-              items={[
+            <GroupedTabNav
+              reference={[
+                {
+                  id: 'methods',
+                  label: 'Methods',
+                  bullets: ['Oven Decarb', 'Sous Vide · Slow Cooker'],
+                  content: <MethodsTab />,
+                },
+                {
+                  id: 'advanced',
+                  label: 'Advanced',
+                  bullets: ['Cost Analysis', 'Strain Blending'],
+                  content: <AdvancedToolsTab />,
+                },
+                {
+                  id: 'knowledge',
+                  label: 'Knowledge',
+                  bullets: ['Chemistry 101', 'AVB Guide'],
+                  content: <KnowledgeTab />,
+                },
+                {
+                  id: 'journal',
+                  label: 'Journal',
+                  bullets: ['Recent Batches', 'Saved Recipes'],
+                  content: <JournalTab />,
+                },
+              ]}
+              workflow={[
                 { id: 'dashboard', label: 'Dashboard', subtitle: 'overview', content: <DashboardTab /> },
                 { id: 'quickbatch', label: 'Quick Batch', subtitle: 'wizard', content: <QuickBatchTab /> },
                 { id: 'decarb', label: 'Decarb', subtitle: 'stage 1', content: <DecarbTab /> },
                 { id: 'infusion', label: 'Infusion', subtitle: 'stage 2', content: <InfusionTab /> },
                 { id: 'dose', label: 'Dose', subtitle: 'stage 3', content: <DoseTab /> },
-                { id: 'methods', label: 'Methods', subtitle: 'compare', content: <MethodsTab /> },
-                { id: 'advanced', label: 'Advanced', subtitle: 'tools', content: <AdvancedToolsTab /> },
-                { id: 'knowledge', label: 'Knowledge', subtitle: 'learn', content: <KnowledgeTab /> },
-                { id: 'journal', label: 'Journal', subtitle: 'history', content: <JournalTab /> },
               ]}
             />
           </div>
