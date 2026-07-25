@@ -233,7 +233,41 @@ React Context would require a Provider at the app root and would trigger re-rend
 
 ### Persist Strategy
 
-Only `units` is persisted across restarts. Tab input values are intentionally **not persisted** — users may not want their last calculation to reappear on the next launch. Presets provide explicit persistence when desired.
+Ten slices are persisted across restarts under the localStorage key
+`ccc-app-state` (renamed from the misleading `cannabis-chem-units` in
+the 2026-07-25 Cluster C refactor — F2.1 — the old name implied only
+the `units` slice was persisted, but the partialize has long carried
+9 other slices too). The persisted slices are:
+
+- `decarb` (Decarb tab inputs, preset ID, override values)
+- `infusion` (Infusion tab inputs, fat ID, custom efficiency)
+- `dose` (Dose tab inputs, format ID)
+- `advancedTools` (Advanced Tools sub-tab state)
+- `startupRouting` (last-successful-path routing heuristic counters
+  and the last-successful intent/tab pair — used by the startup
+  chooser heuristic in `utils/startupRouting.ts`)
+- `units` (global unit preferences: temperature, weight, volume, bag)
+- `theme` (`dark` | `light`)
+- `label` (batch label inputs: product name, ingredients, storage, etc.)
+- `inventory` (Dashboard inventory items + low-stock threshold)
+- `firstRunDismissed` (bootstrap gate flag for the first-run wizard)
+- `wizard` (the multi-select kit configurator: `dismissed` boolean +
+  `selections` object — `active` and `stepIndex` are runtime-only and
+  reset to defaults on every reload by the custom `merge` function
+  in `appStore.ts`)
+
+Journal entries are NOT persisted by the Zustand store — they live
+on disk via the Electron `window.App.saveJournalEntry` IPC bridge
+and are loaded on demand by the Journal tab's mount effect. AVB
+inventory items have a `kind` field that is backfilled to `'flower'`
+on legacy v2 envelopes (the v2→v3 migration).
+
+Tab input values for the OTHER tabs (Decarb, Infusion, Dose) ARE
+persisted, but the user can always hit a "Reset" button to clear
+them — so the "users may not want their last calculation to reappear"
+caveat is honored via the explicit Reset, not via "don't persist".
+Presets provide an additional, opt-in persistence layer when a user
+wants to save a specific recipe for later.
 
 ---
 

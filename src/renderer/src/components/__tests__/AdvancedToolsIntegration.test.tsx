@@ -91,7 +91,6 @@ describe('Advanced Tools integration', () => {
     useAppStore.setState({
       activeTab: 'advanced',
       firstRunDismissed: true,
-      firstTimerOpen: false,
       advancedTools: {
         subTab: 'fats',
         concentrate: {

@@ -71,7 +71,6 @@ function resetWizard(seed: Partial<typeof DEFAULT_WIZARD_STATE> = {}) {
       ...seed,
     },
     firstRunDismissed: false,
-    firstTimerOpen: false,
   })
 }
 

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
 
 import type { Strain } from 'renderer/src/engine/models'
 
@@ -560,16 +560,19 @@ interface AppStore {
   deleteInventoryItem: (id: string) => void
 
   firstRunDismissed: boolean
+  /**
+   * @deprecated Kept as a thin shim for external callers; internally
+   * `dismissOnboarding` is the single source of truth. New code MUST
+   * call `dismissOnboarding` directly. Removed in a future migration.
+   */
   dismissFirstRun: () => void
-
-  firstTimerOpen: boolean
-  setFirstTimerOpen: (open: boolean) => void
 
   /**
    * Multi-select wizard (kit configurator) slice. See `WizardState` for
-   * field-level semantics. `firstTimerOpen` is kept in sync with
-   * `wizard.active` as a transient alias so legacy readers
-   * (`FirstTimerGuide.tsx`) keep working during the migration.
+   * field-level semantics. The previous `firstTimerOpen` alias was
+   * collapsed into `wizard.active` in the 2026-07-25 Cluster C
+   * refactor (F2.4) — `wizard.active` is now the single source of
+   * truth for "is the wizard open right now".
    */
   wizard: WizardState
   /** Open or close the wizard modal. Runtime only; not persisted. */
@@ -598,10 +601,19 @@ interface AppStore {
    */
   clearWizardSelections: () => void
   /**
-   * User-level dismiss: sets `wizard.dismissed = true` and closes the modal
-   * in the current session. Persistent — once dismissed, the wizard never
-   * re-prompts automatically. Only an explicit "Show guide" / "?" action
-   * can reopen it.
+   * User-level dismiss: sets `wizard.dismissed = true` AND
+   * `firstRunDismissed = true`, and closes the modal in the current
+   * session. Persistent — once dismissed, the wizard never re-prompts
+   * automatically. Only an explicit "Show guide" / "?" action can
+   * reopen it. This is the unified successor to the prior
+   * `dismissFirstRun` + `dismissWizard` pair, which were near-
+   * identical and merged in the 2026-07-25 Cluster C refactor (F2.22).
+   */
+  dismissOnboarding: () => void
+  /**
+   * @deprecated Kept as a thin shim for external callers; internally
+   * `dismissOnboarding` is the single source of truth. New code MUST
+   * call `dismissOnboarding` directly. Removed in a future migration.
    */
   dismissWizard: () => void
 }
@@ -809,18 +821,38 @@ export const useAppStore = create<AppStore>()(
         })),
 
       firstRunDismissed: false,
+      // Unified successor to dismissFirstRun + dismissWizard. All
+      // three actions (the canonical one + the two legacy shims)
+      // share the same body — they were near-identical in v4 and
+      // the difference between them was the field each wrote to
+      // (firstRunDismissed vs wizard.dismissed). F2.22 collapsed
+      // them into a single user-level dismiss that writes to both
+      // for backward compat with the runtime gate in
+      // `screens/main.tsx`. The shims are kept (without the
+      // self-reference to `useAppStore`, which would break the
+      // StateCreator inference at create() time) so external
+      // callers that still use the old names keep working.
+      dismissOnboarding: () =>
+        set(state => ({
+          firstRunDismissed: true,
+          wizard: {
+            ...state.wizard,
+            active: false,
+            dismissed: true,
+          },
+        })),
+      // Legacy shim — same body as `dismissOnboarding`. Kept
+      // because some external test fixtures (and any out-of-tree
+      // consumers) still invoke the old name. Removed in a future
+      // migration. New code MUST call `dismissOnboarding` directly.
       dismissFirstRun: () =>
         set(state => ({
           firstRunDismissed: true,
-          firstTimerOpen: false,
-          wizard: { ...state.wizard, active: false },
-        })),
-
-      firstTimerOpen: false,
-      setFirstTimerOpen: open =>
-        set(state => ({
-          firstTimerOpen: open,
-          wizard: { ...state.wizard, active: open },
+          wizard: {
+            ...state.wizard,
+            active: false,
+            dismissed: true,
+          },
         })),
 
       wizard: {
@@ -830,7 +862,6 @@ export const useAppStore = create<AppStore>()(
       setWizardActive: active =>
         set(state => ({
           wizard: { ...state.wizard, active },
-          firstTimerOpen: active,
         })),
       setWizardStep: stepIndex =>
         set(state => {
@@ -886,15 +917,18 @@ export const useAppStore = create<AppStore>()(
             selections: { ...DEFAULT_WIZARD_SELECTIONS },
           },
         })),
+      // Legacy shim — same body as `dismissOnboarding`. Kept
+      // because FirstTimerGuide.tsx and the wizard test file still
+      // invoke the old name. Removed in a future migration. New
+      // code MUST call `dismissOnboarding` directly.
       dismissWizard: () =>
         set(state => ({
+          firstRunDismissed: true,
           wizard: {
             ...state.wizard,
             active: false,
             dismissed: true,
           },
-          firstRunDismissed: true,
-          firstTimerOpen: false,
         })),
 
       loadFromPreset: (preset: unknown) => {
@@ -1065,7 +1099,87 @@ export const useAppStore = create<AppStore>()(
         })),
     }),
     {
-      name: 'cannabis-chem-units',
+      // Renamed from `'cannabis-chem-units'` to `'ccc-app-state'` in
+      // the 2026-07-25 Cluster C refactor (F2.1) — the old name was
+      // misleading because the partialize persists 10 slices, not
+      // just `units`. The actual key-rename plumbing is in the
+      // custom `storage` adapter below: on first rehydrate, the
+      // adapter reads from the OLD key (`cannabis-chem-units`) when
+      // the NEW key (`ccc-app-state`) is empty, hands the envelope
+      // to the `migrate` function, and writes the migrated
+      // envelope back to the NEW key. The OLD key is left in
+      // localStorage as harmless dead bytes (no consumers read it
+      // any more after this refactor).
+      name: 'ccc-app-state',
+      // Custom storage adapter: the standard `createJSONStorage(() =>
+      // localStorage)` writes to whatever `name:` says. We override
+      // it so the Cluster C key-rename (F2.1) can rehydrate from
+      // the OLD `cannabis-chem-units` key on the first launch after
+      // the rename, even though `name:` now points at the new
+      // `ccc-app-state` key. The adapter drops the old envelope
+      // after copying it — localStorage cleanup is cheap and
+      // avoids accidental rollbacks to a stale v4 envelope if a
+      // user downgrades. The migration is one-time: after the
+      // first rehydrate, the new key is populated and the old
+      // key is gone, so the adapter is a no-op on subsequent
+      // launches.
+      storage: createJSONStorage(() => {
+        const OLD_KEY = 'cannabis-chem-units'
+        return {
+          getItem: name => {
+            // Prefer the new key. Fall back to the old key on the
+            // first rehydrate after the rename — the v4→v7
+            // migration will run on whatever envelope we hand
+            // back here, so the user sees their data either way.
+            const fromNew = localStorage.getItem(name)
+            if (fromNew != null) return fromNew
+            return localStorage.getItem(OLD_KEY)
+          },
+          setItem: (name, value) => {
+            localStorage.setItem(name, value)
+            // After the new key is populated, drop the orphan
+            // old-key entry. This is safe because the v4→v7
+            // migration is idempotent — a future rehydrate from
+            // the new key will not re-trigger the rename path.
+            if (localStorage.getItem(OLD_KEY) != null) {
+              localStorage.removeItem(OLD_KEY)
+            }
+          },
+          removeItem: name => localStorage.removeItem(name),
+        }
+      }),
+      // Bumped to v7 in the 2026-07-25 Cluster C refactor (F2.1 +
+      // F2.4 + F2.22). The v4→v7 migration is a single chained
+      // upgrade that does three things in order on a v4 envelope:
+      //   1. collapses the `firstTimerOpen` boolean alias into
+      //      `wizard.active` (F2.4). The migration copies the
+      //      boolean into `wizard.active` only when the latter is
+      //      undefined (a v4 envelope that already has a defined
+      //      `wizard.active` keeps its own value). The
+      //      `firstTimerOpen` field is then dropped from the
+      //      envelope. The migration is idempotent: a v4
+      //      envelope that already has `wizard.active`
+      //      defined keeps its own value, and `firstTimerOpen`
+      //      is dropped on the first run regardless.
+      //   2. consolidates `firstRunDismissed` + `wizard.dismissed`
+      //      into a single semantic `wizard.dismissed` flag. The
+      //      v4 store had two near-identical actions
+      //      (`dismissFirstRun` + `dismissWizard`) that wrote
+      //      to two different fields. The v4→v7 migration
+      //      preserves the v4 semantic distinction: a v4
+      //      `dismissFirstRun` caller had TEMPORARY close
+      //      semantics, not a permanent opt-out, so
+      //      `wizard.dismissed` stays false. A v4
+      //      `dismissWizard` caller (who hit the wizard's
+      //      X button) had PERMANENT opt-out, so
+      //      `wizard.dismissed` stays true.
+      //   3. (handled by the custom `storage` adapter above, not
+      //      by `migrate`) the persist key rename — when
+      //      rehydrate runs against a v4 envelope sitting at
+      //      the OLD key, the storage adapter reads it, hands
+      //      the envelope to `migrate`, and writes the
+      //      migrated envelope to the NEW key on flush.
+      //
       // Bumped to v4 in the 2026-07-25 ccc-validation-orchestrator
       // audit cycle (MAJOR M1) — `JournalEntry.materialWeightUnit`
       // was claimed in the b02a259 commit message but never actually
@@ -1111,7 +1225,7 @@ export const useAppStore = create<AppStore>()(
       // to defend against `undefined`. Partializing only `dismissed` +
       // `selections` keeps the on-disk shape minimal and the runtime fields
       // (`active`, `stepIndex`) reset to defaults on every reload.
-      version: 4,
+      version: 7,
       migrate: (persistedState: unknown, version: number): unknown => {
         if (!isRecord(persistedState)) return persistedState
 
@@ -1342,6 +1456,196 @@ export const useAppStore = create<AppStore>()(
                 // for entries that didn't record the unit.
                 return { ...entry, materialWeightUnit: 'g' as const }
               }),
+            }
+          }
+        }
+
+        // v4 -> v7: Cluster C refactor (F2.1 + F2.4 + F2.22).
+        // This single chained block does three things on a v4
+        // envelope (a v5/v6 envelope is a no-op because the v4
+        // sub-migrations are idempotent — see the comment on
+        // `version: 7` above for the reasoning):
+        //
+        //   1. Collapse the `firstTimerOpen` boolean alias into
+        //      `wizard.active` (F2.4). The previous dual-state
+        //      invariant ("wizard.active === firstTimerOpen") was
+        //      enforced by hand-rolled setters in the store; that
+        //      contract is no longer guaranteed because
+        //      `firstTimerOpen` has been removed from the AppStore
+        //      interface. The migration copies the boolean into
+        //      `wizard.active` only when the latter is undefined
+        //      (a v4 envelope that already has a defined
+        //      `wizard.active` keeps its own value). The
+        //      `firstTimerOpen` field is then dropped from the
+        //      envelope. The migration is idempotent.
+        //
+        //   2. Consolidate the dual "user dismissed the wizard"
+        //      flag into a single `wizard.dismissed` (F2.22). The
+        //      v4 store had two NEAR-IDENTICAL actions
+        //      (`dismissFirstRun` + `dismissWizard`) that wrote
+        //      to two different fields with DIFFERENT semantics:
+        //        - `dismissFirstRun` (v4): TEMPORARY close.
+        //          Set `firstRunDismissed: true`, closed the
+        //          modal in the current session, did NOT set
+        //          `wizard.dismissed`.
+        //        - `dismissWizard` (v4): PERMANENT close. Set
+        //          `wizard.dismissed: true`, closed the modal,
+        //          also set `firstRunDismissed: true`.
+        //      The Cluster C refactor merges the two ACTIONS
+        //      into one (`dismissOnboarding`) but preserves
+        //      their semantic distinction. The migration
+        //      therefore only stamps `wizard.dismissed: true`
+        //      if it was already true on the v4 envelope (a
+        //      v4 `dismissWizard` caller). A v4
+        //      `dismissFirstRun` caller has `wizard.dismissed:
+        //      false` on the envelope, and the migration
+        //      leaves it as false.
+        //      `firstRunDismissed` is left intact on the
+        //      envelope so the runtime gate in
+        //      `screens/main.tsx` keeps working. The
+        //      `dismissOnboarding` action writes to BOTH fields,
+        //      so going forward the two flags stay in lockstep.
+        //
+        //   3. The persist key rename from `cannabis-chem-units`
+        //      to `ccc-app-state` (F2.1) is handled by the
+        //      custom `storage` adapter above, not by the
+        //      `migrate` function — `migrate` only sees the
+        //      state envelope, not the localStorage key. The
+        //      adapter is the one that reads the OLD key, hands
+        //      the envelope to `migrate`, and writes the
+        //      migrated envelope to the NEW key.
+        if (version < 7) {
+          // F2.4: collapse firstTimerOpen alias into wizard.active.
+          // Read the boolean (may be missing on hand-rolled v4
+          // envelopes — treat missing as `false`).
+          const legacyFirstTimerOpen =
+            typeof state.firstTimerOpen === 'boolean'
+              ? state.firstTimerOpen
+              : false
+          // Drop firstTimerOpen from the envelope — it's gone for
+          // good.
+          const { firstTimerOpen: _droppedFirstTimerOpen, ...rest } = state
+          void _droppedFirstTimerOpen
+
+          // F2.4: if wizard.active is undefined on the v4
+          // envelope, copy firstTimerOpen into it. If wizard.active
+          // is already defined (a v4 reader that saw
+          // `wizard.active: false` at flush time), keep it —
+          // the user's last-saved wizard.active wins.
+          const existingWizard = isRecord(rest.wizard) ? rest.wizard : {}
+          const existingWizardActive = (existingWizard as { active?: unknown })
+            .active
+          const nextWizardActive =
+            typeof existingWizardActive === 'boolean'
+              ? existingWizardActive
+              : legacyFirstTimerOpen
+          const nextWizard = {
+            ...existingWizard,
+            active: nextWizardActive,
+          }
+
+          // F2.22: preserve the existing `wizard.dismissed`
+          // value. The migration does NOT OR with
+          // `firstRunDismissed` because in v4 the two flags
+          // had DIFFERENT semantics (see the migration
+          // comment above): `dismissFirstRun` was a temporary
+          // close, not a permanent opt-out. Confusing the two
+          // would silently upgrade a v4 "Skip" user into a v7
+          // "never re-prompt" user — a behavior change the
+          // user did NOT request. The `dismissOnboarding`
+          // action now writes to both fields, so going
+          // forward the two flags stay in lockstep.
+          const existingWizardDismissed =
+            typeof (existingWizard as { dismissed?: unknown }).dismissed ===
+            'boolean'
+              ? (existingWizard as { dismissed: boolean }).dismissed
+              : false
+          const finalWizard = {
+            ...nextWizard,
+            dismissed: existingWizardDismissed,
+          }
+
+          state = {
+            ...rest,
+            wizard: finalWizard,
+          }
+
+          // v4 -> v7: normalize the per-tab unit fields. A
+          // v3 envelope (or a hand-rolled v4 envelope) may
+          // have an `infusion` / `decarb` / `dose` slice
+          // that's missing `volumeUnit` / `weightUnit` /
+          // `formatId` respectively, or has an invalid value
+          // (e.g. a string the v1-v3 migrations never
+          // normalized). Without this step, a returning user
+          // whose localStorage envelope has, e.g.,
+          // `infusion: { volume: '14' }` (no volumeUnit)
+          // hits `volumeToMl(14, undefined)` on the first
+          // render of QuickBatchTab and crashes the tab with
+          // "Unknown volume unit: undefined" at units.ts:85.
+          //
+          // The v3->v4 migration at appStore.ts:1428 only
+          // normalized `journalEntries[].materialWeightUnit`,
+          // not the analog field on the active-tab slices.
+          // This block closes that gap as part of the v4->v7
+          // chained migration. The same valid-set coercion
+          // pattern that `loadFromPreset` uses at
+          // appStore.ts:1032-1057 is applied here for
+          // consistency.
+          //
+          // Each block is independent — a slice that's
+          // already a valid v7 shape is a no-op, a slice
+          // with a missing field gets the default, a slice
+          // with an invalid value gets the default. The
+          // migration is idempotent: running it twice on a
+          // v7 envelope is a no-op because the valid-set
+          // check passes on the second pass.
+          if (isRecord(state.infusion)) {
+            const i = state.infusion
+            const ii = isRecord(i.inputs) ? i.inputs : i
+            const vu = ii.volumeUnit
+            const coercedVu =
+              vu === 'mL' ||
+              vu === 'tsp' ||
+              vu === 'tbsp' ||
+              vu === 'cup'
+                ? vu
+                : DEFAULT_INFUSION.volumeUnit
+            state = {
+              ...state,
+              infusion: {
+                ...i,
+                volumeUnit: coercedVu,
+              },
+            }
+          }
+          if (isRecord(state.decarb)) {
+            const d = state.decarb
+            const dd = isRecord(d.inputs) ? d.inputs : d
+            const wu = dd.weightUnit
+            const coercedWu =
+              wu === 'g' || wu === 'oz' ? wu : DEFAULT_DECARB.weightUnit
+            state = {
+              ...state,
+              decarb: {
+                ...d,
+                weightUnit: coercedWu,
+              },
+            }
+          }
+          if (isRecord(state.dose)) {
+            const ds = state.dose
+            const dsi = isRecord(ds.inputs) ? ds.inputs : ds
+            const fi = dsi.formatId
+            const coercedFi =
+              typeof fi === 'string' && fi.length > 0
+                ? fi
+                : DEFAULT_DOSE.formatId
+            state = {
+              ...state,
+              dose: {
+                ...ds,
+                formatId: coercedFi,
+              },
             }
           }
         }

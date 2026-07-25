@@ -63,8 +63,6 @@ export function MainScreen() {
   )
   const recordStartupIntent = useAppStore(s => s.recordStartupIntent)
   const firstRunDismissed = useAppStore(s => s.firstRunDismissed)
-  const _dismissFirstRun = useAppStore(s => s.dismissFirstRun)
-  const _firstTimerOpen = useAppStore(s => s.firstTimerOpen)
   const wizardDismissed = useAppStore(s => s.wizard.dismissed)
   const setWizardActive = useAppStore(s => s.setWizardActive)
 

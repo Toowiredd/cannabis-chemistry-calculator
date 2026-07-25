@@ -5,7 +5,10 @@ import {
   type WizardSelections,
 } from '../appStore'
 
-const STORAGE_KEY = 'cannabis-chem-units'
+// Renamed from 'cannabis-chem-units' to 'ccc-app-state' in the
+// 2026-07-25 Cluster C refactor (F2.1). The persist key reflects
+// the partialize shape (10 slices), not just the `units` slice.
+const STORAGE_KEY = 'ccc-app-state'
 
 /**
  * Helper: read the persisted JSON envelope from localStorage.
@@ -44,7 +47,6 @@ function resetWizard(): void {
       },
     },
     firstRunDismissed: false,
-    firstTimerOpen: false,
   })
 }
 
@@ -71,21 +73,18 @@ describe('appStore wizard slice — setters', () => {
     })
   })
 
-  it('setWizardActive updates wizard.active and the legacy firstTimerOpen alias', () => {
+  it('setWizardActive opens and closes the wizard', () => {
     useAppStore.getState().setWizardActive(true)
     expect(useAppStore.getState().wizard.active).toBe(true)
-    expect(useAppStore.getState().firstTimerOpen).toBe(true)
 
     useAppStore.getState().setWizardActive(false)
     expect(useAppStore.getState().wizard.active).toBe(false)
-    expect(useAppStore.getState().firstTimerOpen).toBe(false)
   })
 
-  it('setFirstTimerOpen aliases setWizardActive (legacy transition shim)', () => {
-    useAppStore.getState().setFirstTimerOpen(true)
-    expect(useAppStore.getState().wizard.active).toBe(true)
-    expect(useAppStore.getState().firstTimerOpen).toBe(true)
-  })
+  // The `firstTimerOpen` + `setFirstTimerOpen` legacy aliases were collapsed
+  // into `wizard.active` + `setWizardActive` in the 2026-07-25 Cluster C
+  // refactor (F2.4). The previous test that asserted the alias is gone with
+  // the field — verifying it now would test dead code.
 
   it('setWizardStep clamps negative values to 0', () => {
     useAppStore.getState().setWizardStep(3)
@@ -177,21 +176,16 @@ describe('appStore wizard slice — setters', () => {
     const w = useAppStore.getState().wizard
     expect(w.dismissed).toBe(true)
     expect(w.active).toBe(false)
-    // dismissWizard also closes the legacy firstTimerOpen alias.
-    expect(useAppStore.getState().firstTimerOpen).toBe(false)
   })
 
-  it('dismissFirstRun keeps firstRunDismissed=true and also closes the wizard', () => {
+  it('dismissOnboarding (the unified successor) flips both flags and closes the modal', () => {
     useAppStore.getState().setWizardActive(true)
-    useAppStore.getState().dismissFirstRun()
+    useAppStore.getState().dismissOnboarding()
 
     const s = useAppStore.getState()
     expect(s.firstRunDismissed).toBe(true)
     expect(s.wizard.active).toBe(false)
-    expect(s.firstTimerOpen).toBe(false)
-    // wizard.dismissed is intentionally NOT set by the legacy dismiss — the
-    // user can still re-open the wizard via the "?" nav button.
-    expect(s.wizard.dismissed).toBe(false)
+    expect(s.wizard.dismissed).toBe(true)
   })
 })
 
@@ -221,23 +215,26 @@ describe('appStore wizard persistence (round-trip)', () => {
     expect(persistedWizard).toHaveProperty('selections')
   })
 
-  it('version=4 is set on the persisted envelope (was bumped again in the 2026-07-25 ccc-validation-orchestrator MAJOR M1 fix for JournalEntry.materialWeightUnit)', async () => {
+  it('version=7 is set on the persisted envelope (bumped in the 2026-07-25 Cluster C refactor for F2.1 persist rename + F2.4 firstTimerOpen collapse + F2.22 dismiss merge)', async () => {
     useAppStore
       .getState()
       .toggleWizardSelection('decarbMethodIds', 'oven_sealed')
     await waitForPersisted()
     // Bumped 1 → 2 in the 2026-07-25 BLOCKER B1 fix
-    // (JournalEntry.source backfill), again 2 → 3 in the
+    // (JournalEntry.source backfill), 2 → 3 in the
     // 2026-07-25 AVB feature round (InventoryItem.kind
-    // backfill), and a third time 3 → 4 in the 2026-07-25
+    // backfill), 3 → 4 in the 2026-07-25
     // ccc-validation-orchestrator MAJOR M1 fix
-    // (JournalEntry.materialWeightUnit backfill — the b02a259
-    // commit message claimed the field was added but it was
-    // never actually landed on the interface, see
-    // appStore.journalMigration.test.ts). The wizard slice
-    // contract is unchanged across all three bumps — only the
-    // on-disk envelope version moved.
-    expect(readPersisted()?.version).toBe(4)
+    // (JournalEntry.materialWeightUnit backfill — the
+    // b02a259 commit message claimed the field was added
+    // but it was never actually landed on the interface,
+    // see appStore.journalMigration.test.ts), and 4 → 7
+    // in the 2026-07-25 Cluster C refactor (F2.1 + F2.4
+    // + F2.22 collapsed into a single chained v4→v7
+    // migration). The wizard slice contract is unchanged
+    // across all four bumps — only the on-disk envelope
+    // version moved.
+    expect(readPersisted()?.version).toBe(7)
   })
 
   it('round-trip: wizard.dismissed=true survives reload (rehydration)', async () => {

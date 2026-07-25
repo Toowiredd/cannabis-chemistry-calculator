@@ -57,8 +57,8 @@ vi.mock('renderer/src/tabs/QuickBatchTab', () => ({
 
 vi.mock('renderer/src/tabs/FirstTimerGuide', () => ({
   FirstTimerGuide: () => {
-    const { firstTimerOpen } = useAppStore.getState()
-    return firstTimerOpen ? <div>First-Timer Guide Modal</div> : null
+    const { wizard } = useAppStore.getState()
+    return wizard.active ? <div>First-Timer Guide Modal</div> : null
   },
 }))
 
@@ -133,7 +133,6 @@ describe('MainScreen startup flow', () => {
       dose: { ...DEFAULT_DOSE },
       startupRouting: { ...DEFAULT_STARTUP_ROUTING },
       firstRunDismissed: true,
-      firstTimerOpen: false,
     })
   })
 

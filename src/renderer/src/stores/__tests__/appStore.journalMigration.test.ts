@@ -102,9 +102,15 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { useAppStore } from '../appStore'
+import { useAppStore, DEFAULT_WIZARD_STATE } from '../appStore'
 
-const STORAGE_KEY = 'cannabis-chem-units'
+// Renamed from 'cannabis-chem-units' to 'ccc-app-state' in the
+// 2026-07-25 Cluster C refactor (F2.1). The persist key reflects
+// the partialize shape (10 slices), not just the `units` slice.
+// See appStore.ts for the custom `storage` adapter that copies
+// the old key's envelope into the new key on first rehydrate
+// after the rename.
+const STORAGE_KEY = 'ccc-app-state'
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                              */
@@ -358,10 +364,10 @@ describe('appStore persist — v1 → v2 migration (JournalEntry.source backfill
     // Give the debounced persist writer a moment to flush.
     for (let i = 0; i < 50; i++) {
       const persisted = readPersisted()
-      if (persisted?.version === 4) break
+      if (persisted?.version === 7) break
       await new Promise(resolve => setTimeout(resolve, 10))
     }
-    expect(readPersisted()?.version).toBe(4)
+    expect(readPersisted()?.version).toBe(7)
   })
 })
 
@@ -722,13 +728,13 @@ describe('appStore persist — v2 → v3 migration (InventoryItem.kind backfill)
 
     await useAppStore.persist.rehydrate()
 
-    // Envelope upgrades to version 4 (v3→v4 migration ran).
+    // Envelope upgrades to version 7 (v3→v4→v7 migration chain ran).
     for (let i = 0; i < 50; i++) {
       const persisted = readPersisted()
-      if (persisted?.version === 4) break
+      if (persisted?.version === 7) break
       await new Promise(resolve => setTimeout(resolve, 10))
     }
-    expect(readPersisted()?.version).toBe(4)
+    expect(readPersisted()?.version).toBe(7)
 
     // materialMode: 'avb' survives rehydrate.
     expect(useAppStore.getState().decarb.materialMode).toBe('avb')
@@ -1009,14 +1015,18 @@ describe('appStore persist — v3 to v4 migration (JournalEntry.materialWeightUn
     expect(entries[0]?.materialWeight).toBe('0.12')
     expect(entries[0]?.source).toBe('quickbatch')
 
-    // 3. The envelope must stay at version 4 (no migration runs
-    //    on a v4-shaped snapshot).
+    // 3. The envelope must stay at version 7 (the v4→v7
+    //    migration is a no-op on a v4-shaped snapshot — it
+    //    just stamps the new version on the envelope and
+    //    drops the orphan `firstTimerOpen` field if present;
+    //    a v4 entry that has no `firstTimerOpen` is
+    //    untouched).
     for (let i = 0; i < 50; i++) {
       const persisted = readPersisted()
-      if (persisted?.version === 4) break
+      if (persisted?.version === 7) break
       await new Promise(resolve => setTimeout(resolve, 10))
     }
-    expect(readPersisted()?.version).toBe(4)
+    expect(readPersisted()?.version).toBe(7)
   })
 
   it('chained v2 → v3 → v4 migration: source, kind, AND materialWeightUnit all backfilled on a legacy v2 entry', async () => {
@@ -1095,5 +1105,122 @@ describe('appStore persist — v3 to v4 migration (JournalEntry.materialWeightUn
     expect(entries[0]?.id).toBe('entry_v2_chain')
     expect(entries[0]?.source).toBe('quickbatch')
     expect(entries[0]?.materialWeightUnit).toBe('g')
+  })
+})
+
+/**
+ * The 2026-07-25 Cluster C refactor (F2.1 + F2.4 + F2.22) bumps
+ * the persist version 4 → 7. The chained v4→v7 migration does
+ * three things: collapses the `firstTimerOpen` alias into
+ * `wizard.active`, merges `dismissFirstRun` + `dismissWizard` into
+ * `dismissOnboarding`, and — most importantly for this describe
+ * block — normalizes the per-tab unit fields
+ * (`infusion.volumeUnit`, `decarb.weightUnit`, `dose.formatId`)
+ * that the v3→v4 migration skipped.
+ *
+ * The unit-field normalization closes a returning-user crash:
+ * without it, a v3/v4 envelope whose `infusion` slice is missing
+ * `volumeUnit` (or has an invalid value) lands on
+ * `infusion.volumeUnit === undefined` after rehydrate, and the
+ * first render of QuickBatchTab calls `volumeToMl(14, undefined)`
+ * which throws at units.ts:85 ("Unknown volume unit: undefined").
+ *
+ * These tests lock in the normalization so a future refactor of
+ * the migration block can't silently regress the crash.
+ */
+describe('appStore persist - v4 to v7 migration (per-tab unit field normalization)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    useAppStore.setState({
+      journalEntries: [],
+      inventory: { items: [], lowStockThreshold: '3.5' },
+      wizard: { ...DEFAULT_WIZARD_STATE },
+      firstRunDismissed: false,
+    })
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+  })
+
+  it('infusion.volumeUnit is backfilled to "mL" when the v4 envelope is missing it', async () => {
+    const v4Envelope = {
+      state: {
+        infusion: {
+          decarbedThc: '50',
+          volume: '14',
+          fatId: 'butter',
+          // volumeUnit intentionally missing — reproduces
+          // the returning-user crash at units.ts:85.
+        },
+      },
+      version: 4,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(v4Envelope))
+    await useAppStore.persist.rehydrate()
+
+    const infusion = useAppStore.getState().infusion
+    expect(infusion.volumeUnit).toBe('mL')
+    // The other fields are preserved through the merge.
+    expect(infusion.decarbedThc).toBe('50')
+    expect(infusion.volume).toBe('14')
+  })
+
+  it('decarb.weightUnit is backfilled to "g" when the v4 envelope is missing it', async () => {
+    const v4Envelope = {
+      state: {
+        decarb: {
+          weight: '3',
+          temperatureF: '240',
+          timeMin: '40',
+          // weightUnit intentionally missing.
+        },
+      },
+      version: 4,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(v4Envelope))
+    await useAppStore.persist.rehydrate()
+
+    const decarb = useAppStore.getState().decarb
+    expect(decarb.weightUnit).toBe('g')
+  })
+
+  it('infusion.volumeUnit coerces an invalid value (e.g. "cups") back to the default', async () => {
+    const v4Envelope = {
+      state: {
+        infusion: {
+          decarbedThc: '50',
+          volume: '14',
+          fatId: 'butter',
+          volumeUnit: 'cups', // invalid — not in the literal union
+        },
+      },
+      version: 4,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(v4Envelope))
+    await useAppStore.persist.rehydrate()
+
+    const infusion = useAppStore.getState().infusion
+    expect(infusion.volumeUnit).toBe('mL')
+  })
+
+  it('dose.formatId is backfilled to the default when the v4 envelope has an empty string', async () => {
+    const v4Envelope = {
+      state: {
+        dose: {
+          totalThc: '100',
+          servings: '10',
+          formatId: '', // empty string is a hostile default — coerce to a real id
+        },
+      },
+      version: 4,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(v4Envelope))
+    await useAppStore.persist.rehydrate()
+
+    const dose = useAppStore.getState().dose
+    // The exact default value is a string id, not undefined.
+    expect(typeof dose.formatId).toBe('string')
+    expect(dose.formatId.length).toBeGreaterThan(0)
   })
 })
