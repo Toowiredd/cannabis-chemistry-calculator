@@ -28,6 +28,32 @@ vi.mock('renderer/src/tabs/MethodsTab', () => ({
   MethodsTab: () => <div>Methods Tab</div>,
 }))
 
+// Mock that uses React state for the sub-tab so click→re-render works
+// the way the real component would. The mock only needs to demonstrate
+// that the carousel mounts the active face and the active face's
+// content is interactive — it doesn't need to reproduce the real
+// sub-tab state model (which lives in the appStore).
+vi.mock('renderer/src/tabs/AdvancedToolsTab', () => ({
+  AdvancedToolsTab: () => {
+    const React = require('react') as typeof import('react')
+    const [sub, setSub] = React.useState('fats')
+    return (
+      <div>
+        <h2>Advanced Tools</h2>
+        <div>Shared Input</div>
+        <button onClick={() => setSub('concentrates')}>Concentrates</button>
+        <button onClick={() => setSub('blending')}>Strain Blending</button>
+        <button onClick={() => setSub('cost')}>Cost Analysis</button>
+        <button onClick={() => setSub('fats')}>Fat Comparison</button>
+        {sub === 'concentrates' && <div>Concentrate Calculator</div>}
+        {sub === 'blending' && <div>Strains</div>}
+        {sub === 'cost' && <div>Cost Inputs</div>}
+        {sub === 'fats' && <div>Shared Input</div>}
+      </div>
+    )
+  },
+}))
+
 vi.mock('renderer/src/tabs/KnowledgeTab', () => ({
   KnowledgeTab: () => <div>Knowledge Tab</div>,
 }))

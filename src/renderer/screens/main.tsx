@@ -1,6 +1,7 @@
-import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cn } from 'renderer/lib/utils'
 import { StartupChooser } from 'renderer/src/components/StartupChooser'
+import { TabCarousel } from 'renderer/src/components/TabCarousel'
 import { TitleBar } from 'renderer/src/components/TitleBar'
 import { TransformationCanvas } from 'renderer/src/components/TransformationCanvas'
 import { DecarbTab } from 'renderer/src/tabs/DecarbTab'
@@ -13,7 +14,6 @@ import { JournalTab } from 'renderer/src/tabs/JournalTab'
 import { DashboardTab } from 'renderer/src/tabs/DashboardTab'
 import { QuickBatchTab } from 'renderer/src/tabs/QuickBatchTab'
 import { FirstTimerGuide } from 'renderer/src/tabs/FirstTimerGuide'
-import { SwipeDeck, WORKFLOW_TABS } from 'renderer/src/components/SwipeDeck'
 import {
   useAppStore,
   type StartupIntent,
@@ -24,22 +24,6 @@ import {
   evaluateStartupRouting,
 } from 'renderer/src/utils/startupRouting'
 import { BookOpen, Loader2, Route } from 'lucide-react'
-
-const TAB_ITEMS: {
-  id: TabId
-  label: string
-  group: 'workflow' | 'calculator' | 'reference'
-}[] = [
-  { id: 'dashboard', label: 'Dashboard', group: 'workflow' },
-  { id: 'quickbatch', label: 'Quick Batch', group: 'workflow' },
-  { id: 'decarb', label: 'Decarb', group: 'calculator' },
-  { id: 'infusion', label: 'Infusion', group: 'calculator' },
-  { id: 'dose', label: 'Dose', group: 'calculator' },
-  { id: 'methods', label: 'Methods', group: 'reference' },
-  { id: 'advanced', label: 'Advanced Tools', group: 'reference' },
-  { id: 'knowledge', label: 'Knowledge', group: 'reference' },
-  { id: 'journal', label: 'Journal', group: 'reference' },
-]
 
 function BrandGlyph({ className }: { className?: string }) {
   return (
@@ -62,42 +46,6 @@ function BrandGlyph({ className }: { className?: string }) {
       <circle cx="12" cy="12" r="1.5" />
       <path d="M12 8V6M12 16v2M8 12H6M16 12h2" />
     </svg>
-  )
-}
-
-function TabPanel({
-  active,
-  children,
-  _index,
-}: {
-  active: boolean
-  children: ReactNode
-  _index: number
-}) {
-  const [mounted, setMounted] = useState(active)
-
-  useEffect(() => {
-    if (active) {
-      setMounted(true)
-    } else {
-      const timer = setTimeout(() => setMounted(false), 220)
-      return () => clearTimeout(timer)
-    }
-  }, [active])
-
-  if (!mounted) return null
-
-  return (
-    <div
-      className={cn(
-        'absolute inset-0 overflow-auto',
-        active
-          ? 'tab-enter pointer-events-auto'
-          : 'tab-exit pointer-events-none'
-      )}
-    >
-      {children}
-    </div>
   )
 }
 
@@ -252,55 +200,27 @@ export function MainScreen() {
     setStartupChooserOpen(false)
   }
 
-  const isWorkflow: boolean = WORKFLOW_TABS.includes(
-    activeTab as (typeof WORKFLOW_TABS)[number]
-  )
-
   return (
     <div className="flex h-screen w-screen min-w-0 flex-col overflow-hidden bg-background text-foreground">
       <TitleBar />
 
-      {/* Nav bar - opaque glass, no animation behind it */}
-      <nav className="relative z-[10] flex shrink-0 items-center gap-1 overflow-x-auto px-2 py-2 glass glass-shine sm:px-4">
-        {/* Brand glyph left */}
-        <div className="app-region-no-drag mr-2 flex items-center gap-2 border-r border-foreground/10 pr-3">
+      {/* Top bar: brand glyph + First-Timer Guide entry only.
+          The 9 tabs are no longer a flat nav — they're faces of
+          the carousel below, navigated via swipe, arrow keys,
+          wheel, or the pagination dots. The top bar stays
+          minimal so the carousel is the main attraction. */}
+      <header className="relative z-[10] flex shrink-0 items-center gap-2 px-3 py-2 sm:px-4">
+        <div className="app-region-no-drag flex items-center gap-2">
           <BrandGlyph className="size-5 text-accent" />
           <span className="hidden lg:inline text-sm font-semibold tracking-tight font-[family-name:var(--font-display)]">
             CCC
           </span>
         </div>
 
-        {TAB_ITEMS.map((tab, i) => (
-          <Fragment key={tab.id}>
-            {/* Group divider */}
-            {i > 0 && tab.group !== TAB_ITEMS[i - 1].group && (
-              <div className="mx-1 h-6 w-px bg-foreground/20" />
-            )}
-            <button
-              className={cn(
-                'app-region-no-drag whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 sm:px-4',
-                activeTab === tab.id
-                  ? 'bg-foreground/15 text-foreground border border-foreground/20 shadow-sm'
-                  : 'text-foreground/70 hover:bg-foreground/5 hover:text-foreground/80'
-              )}
-              onClick={() => setActiveTab(tab.id)}
-              style={
-                activeTab === tab.id
-                  ? { color: 'var(--stage-accent)' }
-                  : undefined
-              }
-              type="button"
-            >
-              {tab.label}
-            </button>
-          </Fragment>
-        ))}
-
-        {/* First-Timer Guide link */}
         {firstRunDismissed && (
           <div className="app-region-no-drag ml-auto flex items-center gap-2">
             <button
-              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-foreground/20 bg-foreground/5 px-2.5 py-2 text-xs font-medium text-foreground/80 transition-all duration-200 hover:bg-foreground/10 hover:text-foreground xl:px-3"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-foreground/20 bg-foreground/5 px-2.5 py-1.5 text-xs font-medium text-foreground/80 transition-all duration-200 hover:bg-foreground/10 hover:text-foreground xl:px-3"
               onClick={openStartupChooser}
               type="button"
             >
@@ -308,7 +228,7 @@ export function MainScreen() {
               <span className="hidden xl:inline">Choose Start</span>
             </button>
             <button
-              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-info/30 bg-info/10 px-2.5 py-2 text-xs font-medium text-info transition-all duration-200 hover:bg-info/20 hover:-translate-y-px xl:px-3"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-info/30 bg-info/10 px-2.5 py-1.5 text-xs font-medium text-info transition-all duration-200 hover:bg-info/20 hover:-translate-y-px xl:px-3"
               onClick={() => setWizardActive(true)}
               type="button"
             >
@@ -317,7 +237,7 @@ export function MainScreen() {
             </button>
           </div>
         )}
-      </nav>
+      </header>
 
       <FirstTimerGuide />
       {startupDecision && (
@@ -349,7 +269,11 @@ export function MainScreen() {
         </div>
       )}
 
-      {/* Main content */}
+      {/* Main content — 3D coverflow carousel of all 9 tabs.
+          The current face is in front, the others are arranged
+          around a vertical cylinder so the user can see them
+          peeking from behind. See TabCarousel.tsx for the 3D
+          math + perf characteristics. */}
       <main className="relative z-[10] min-h-0 flex-1 overflow-hidden p-2 sm:p-4">
         <div className="relative mx-auto h-full w-full max-w-[1400px] overflow-hidden rounded-2xl">
           {/* Layer 0: Background animation filling the panel */}
@@ -360,29 +284,19 @@ export function MainScreen() {
 
           {/* Layer 2: Content above glass */}
           <div className="relative z-[2] h-full min-w-0 p-3 sm:p-6">
-            {/* IA note:
-                The app currently mixes three entry models:
-                1. raw workflow calculators (Decarb / Infusion / Dose)
-                2. guided wizard (Quick Batch)
-                3. reference/history surfaces (Journal / Knowledge / Dashboard)
-                The startup chooser should route into one of those human intents
-                before we render a hardcoded default tab. */}
-            {isWorkflow ? (
-              <SwipeDeck>
-                <DecarbTab />
-                <InfusionTab />
-                <DoseTab />
-              </SwipeDeck>
-            ) : (
-              <TabPanel _index={0} active={true}>
-                {activeTab === 'dashboard' && <DashboardTab />}
-                {activeTab === 'quickbatch' && <QuickBatchTab />}
-                {activeTab === 'methods' && <MethodsTab />}
-                {activeTab === 'advanced' && <AdvancedToolsTab />}
-                {activeTab === 'knowledge' && <KnowledgeTab />}
-                {activeTab === 'journal' && <JournalTab />}
-              </TabPanel>
-            )}
+            <TabCarousel
+              items={[
+                { id: 'dashboard', label: 'Dashboard', subtitle: 'overview', content: <DashboardTab /> },
+                { id: 'quickbatch', label: 'Quick Batch', subtitle: 'wizard', content: <QuickBatchTab /> },
+                { id: 'decarb', label: 'Decarb', subtitle: 'stage 1', content: <DecarbTab /> },
+                { id: 'infusion', label: 'Infusion', subtitle: 'stage 2', content: <InfusionTab /> },
+                { id: 'dose', label: 'Dose', subtitle: 'stage 3', content: <DoseTab /> },
+                { id: 'methods', label: 'Methods', subtitle: 'compare', content: <MethodsTab /> },
+                { id: 'advanced', label: 'Advanced', subtitle: 'tools', content: <AdvancedToolsTab /> },
+                { id: 'knowledge', label: 'Knowledge', subtitle: 'learn', content: <KnowledgeTab /> },
+                { id: 'journal', label: 'Journal', subtitle: 'history', content: <JournalTab /> },
+              ]}
+            />
           </div>
         </div>
       </main>
