@@ -36,6 +36,13 @@ export default defineConfig({
       // not on disk) does not get picked up and break the run.
       'src/renderer/components/__tests__/OptionRow.test.tsx',
       'src/renderer/components/__tests__/MultiSelectGroup.test.tsx',
+      // Main-process security tests (electron-shell rein). The renderer
+      // include glob is scoped to src/renderer/**; main/** has its own
+      // security test directory that exercises the F1.1 / F1.2 / F1.3
+      // fixes (URL allowlist, journal-id regex, explicit webPreferences)
+      // shipped in commit 7e7c2f0. Without this glob those tests would
+      // be silently skipped — a false PASS.
+      'src/main/**/__tests__/**/*.test.ts',
     ],
   },
 })
