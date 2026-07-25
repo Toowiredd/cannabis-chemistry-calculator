@@ -375,6 +375,54 @@ describe('FirstTimerGuide — numeric inputs persist to the store', () => {
   })
 })
 
+/* ------------------------------------------------------------------ */
+/* Wizard selections survive a dismiss + reopen (regression guard for  */
+/* the 2026-07-25 ccc user's "if I enter fat volume then close the    */
+/* guide, the value is lost" report. The fix is upstream: the wizard   */
+/* partialize persists `selections`, and dismissWizard does not clear  */
+/* them. This test pins both contracts.                                  */
+/* ------------------------------------------------------------------ */
+
+describe('FirstTimerGuide — selections survive dismiss + reopen', () => {
+  beforeEach(() => resetWizard())
+
+  it('fat volume entered on the wizard persists across dismiss + reopen', () => {
+    // 1. Open the wizard via the production action and navigate
+    //    to the fat-volume step. Use production actions (not the
+    //    `resetWizard` test helper, which intentionally wipes
+    //    selections) — the real reopen path goes through
+    //    `setWizardActive(true)` and must NOT clear selections.
+    useAppStore.getState().setWizardActive(true)
+    useAppStore.getState().setWizardStep(5)
+    useAppStore.getState().setWizardNumberField('grams', 3.5)
+    useAppStore.getState().setWizardNumberField('thcaPct', 18)
+    const { unmount } = render(<FirstTimerGuide />)
+    fireEvent.change(screen.getByTestId('wizard-fat-volume-input'), {
+      target: { value: '50' },
+    })
+    expect(wizardState().selections.fatVolume).toBe(50)
+
+    // 2. Dismiss the wizard via the production action. `dismissed`
+    //    flips to true; selections (including fatVolume) must NOT
+    //    be cleared.
+    useAppStore.getState().dismissWizard()
+    expect(wizardState().dismissed).toBe(true)
+    expect(wizardState().active).toBe(false)
+    expect(wizardState().selections.fatVolume).toBe(50)
+    unmount()
+
+    // 3. Reopen the wizard via the production action. The
+    //    fat-volume input should be pre-populated with the
+    //    persisted value (the user's last batch's volume, ready
+    //    to be reused or edited).
+    useAppStore.getState().setWizardActive(true)
+    useAppStore.getState().setWizardStep(5)
+    render(<FirstTimerGuide />)
+    const input = screen.getByTestId('wizard-fat-volume-input') as HTMLInputElement
+    expect(input.value).toBe('50')
+  })
+})
+
 describe('FirstTimerGuide — live previews', () => {
   beforeEach(() => resetWizard())
 
