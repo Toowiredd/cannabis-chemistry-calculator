@@ -399,3 +399,95 @@ describe('AdvancedToolsTab — audit M11 (Apply to Decarb Tab preserves weightUn
     expect(useAppStore.getState().decarb.weightUnit).toBe('g')
   })
 })
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-26 userstory-audit P2.3 (Fats sub-tab volume input)         */
+/*                                                                    */
+/* Pins the contract: the Fats sub-tab has a `volume + volumeUnit`    */
+/* input row at the top. Setting the volume + unit updates the per-fat */
+/* mg/mL output. The local state is EPHEMERAL — not persisted to the  */
+/* store. The optional "Use in Infusion" button writes the local      */
+/* state into the global infusion slice.                              */
+/* ------------------------------------------------------------------ */
+
+describe('AdvancedToolsTab — audit P2.3 (Fats sub-tab volume input)', () => {
+  beforeEach(() => {
+    // Seed: a known decarbedThc. The local Fats state defaults to
+    // the infusion store's volume/unit on mount. Existing tests
+    // already verify that path; this block tests the LOCAL input
+    // path (changing the Fats sub-tab input changes the output).
+    resetInfusion({ decarbedThc: '500' })
+  })
+
+  it('renders the new fat volume input + unit toggles', () => {
+    render(<AdvancedToolsTab />)
+    expect(screen.getByTestId('fats-volume-input')).toBeTruthy()
+    // 4 unit options + the "Use in Infusion" button.
+    expect(screen.getByTestId('fats-volume-unit-mL')).toBeTruthy()
+    expect(screen.getByTestId('fats-volume-unit-tsp')).toBeTruthy()
+    expect(screen.getByTestId('fats-volume-unit-tbsp')).toBeTruthy()
+    expect(screen.getByTestId('fats-volume-unit-cup')).toBeTruthy()
+    expect(screen.getByTestId('fats-use-volume-in-infusion')).toBeTruthy()
+  })
+
+  it('setting volume=120, volumeUnit="mL" updates the per-fat mg/mL output', async () => {
+    // Seed: 500 mg decarbed (defaults from beforeEach). The local
+    // Fats state defaults to the infusion store on mount
+    // (volume='100', volumeUnit='mL'). The Fats output reflects
+    // 100 mL initially.
+    render(<AdvancedToolsTab />)
+    await waitForFatsResults()
+    // Update the local state to 120 mL.
+    const volumeInput = screen.getByTestId(
+      'fats-volume-input'
+    ) as HTMLInputElement
+    fireEvent.change(volumeInput, { target: { value: '120' } })
+    // mL is the default unit — no toggle click needed.
+    // Re-wait for the debounced calc to settle.
+    await waitFor(
+      () => {
+        // 500 mg * 0.82 (coconut eff) / 120 mL = 3.42 mg/mL
+        const text =
+          screen.getByTestId('fat-mgperml-coconut').textContent ?? ''
+        const match = text.match(/([0-9]+(?:\.[0-9]+)?)\s*mg\/mL/)
+        expect(match).toBeTruthy()
+        const mgPerMl = Number(match![1])
+        expect(mgPerMl).toBeCloseTo(3.42, 1)
+      },
+      { timeout: 3000 }
+    )
+  })
+
+  it('changing the Fats volume unit (mL → tbsp) reflects in the per-fat mg/mL output', async () => {
+    // 100 tbsp = 100 * 14.787 = 1478.7 mL. With 500 mg decarbed
+    // and coconut (0.82), expected mg/mL = 500 * 0.82 / 1478.7
+    // ≈ 0.28.
+    render(<AdvancedToolsTab />)
+    await waitForFatsResults()
+    // Click the tbsp unit toggle in the Fats sub-tab.
+    fireEvent.click(screen.getByTestId('fats-volume-unit-tbsp'))
+    await waitFor(
+      () => {
+        const text =
+          screen.getByTestId('fat-mgperml-coconut').textContent ?? ''
+        const match = text.match(/([0-9]+(?:\.[0-9]+)?)\s*mg\/mL/)
+        expect(match).toBeTruthy()
+        const mgPerMl = Number(match![1])
+        expect(mgPerMl).toBeCloseTo(0.28, 1)
+      },
+      { timeout: 3000 }
+    )
+  })
+
+  it('"Use in Infusion" writes the local Fats volume into the global infusion slice', () => {
+    render(<AdvancedToolsTab />)
+    // Default local state: from infusion.volume (which is "100" per
+    // DEFAULT_INFUSION). Click the "Use in Infusion" button — the
+    // infusion slice should now have volume="100" + volumeUnit
+    // matching the local unit.
+    fireEvent.click(screen.getByTestId('fats-use-volume-in-infusion'))
+    const after = useAppStore.getState().infusion
+    expect(after.volume).toBe('100')
+    expect(after.volumeUnit).toBe('mL')
+  })
+})

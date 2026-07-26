@@ -94,18 +94,30 @@ function FatsSection() {
   } | null>(null)
   const [isCalculating, setIsCalculating] = useState(false)
 
+  // 2026-07-26 P2.3 — local Fats sub-tab volume state. The audit
+  // found the Fats sub-tab's mg/mL output was only meaningful if
+  // the user pre-set `infusion.volume` in the Infusion tab. Now the
+  // Fats sub-tab has its own `volume + volumeUnit` input row that
+  // drives the calculation directly. The state is EPHEMERAL (local
+  // useState, NOT persisted to the store). The default seeds from
+  // the infusion store slice on mount so existing tests that
+  // drive the calculation via `infusion.volume` continue to work
+  // unchanged.
+  const [fatsVolume, setFatsVolume] = useState<string>(
+    () => infusion.volume || '120'
+  )
+  const [fatsVolumeUnit, setFatsVolumeUnit] = useState<
+    'mL' | 'tsp' | 'tbsp' | 'cup'
+  >(() => infusion.volumeUnit)
+
+  // The Fats section's volume is the local state (NOT the infusion
+  // store). Per the audit's P2.3 contract: the Fats sub-tab's
+  // per-fat mg/mL output is driven by this local state. The
+  // canonical `displayVolumeToMl` helper handles the per-field
+  // unit conversion (engine/units.ts:103-110).
   const volumeMl = useMemo(
-    // Convert from the per-field unit (`infusion.volumeUnit` — the unit
-    // the user TYPED in), NOT the display unit (`units.volumeUnit`).
-    // 2026-07-25 ccc-validation audit B3: using the display unit here
-    // would re-interpret the stored value after every toggle, producing
-    // 6.76x-236x off results. The engine's `displayVolumeToMl` is the
-    // canonical helper (engine/units.ts:103-110) — drift-proof.
-    // 2026-07-25 ccc-verify-final NEW-2: replaced the local
-    // `parseFloat + volumeToMl(NaN-on-invalid)` pattern with the
-    // canonical helper to close the duplication.
-    () => displayVolumeToMl(infusion.volume, infusion.volumeUnit),
-    [infusion.volume, infusion.volumeUnit]
+    () => displayVolumeToMl(fatsVolume, fatsVolumeUnit),
+    [fatsVolume, fatsVolumeUnit]
   )
 
   const hasBlockingErrors = useCallback(
@@ -192,6 +204,79 @@ function FatsSection() {
               Calculating&hellip;
             </span>
           )}
+        </div>
+        {/* 2026-07-26 P2.3 — Fat Comparison volume input. The
+            per-fat mg/mL output is driven by this local state (NOT
+            the global infusion store). EPHEMERAL: not persisted.
+            The optional "Use This Volume in Infusion" button writes
+            the local state into the infusion store so the user can
+            hand off the chosen volume to the Infusion tab. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <InputRow
+            label={
+              <>
+                Fat Volume
+                <TooltipIcon text="Volume of fat you're infusing into. Drives the per-fat mg/mL output below. Local to this sub-tab — not persisted." />
+              </>
+            }
+          >
+            {
+              <div className="flex min-w-0 items-center gap-2">
+                <input
+                  className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                  data-testid="fats-volume-input"
+                  onChange={e => setFatsVolume(e.target.value)}
+                  placeholder="0"
+                  step="0.1"
+                  type="number"
+                  value={fatsVolume}
+                />
+                <span className="text-sm text-foreground/70">
+                  {fatsVolumeUnit}
+                </span>
+              </div>
+            }
+          </InputRow>
+          <InputRow
+            label={
+              <>
+                Volume Unit
+                <TooltipIcon text="Unit the volume above is in. Per-field unit — the Fats sub-tab interprets the value in this unit, independent of the global display unit." />
+              </>
+            }
+          >
+            {
+              <div className="flex flex-wrap gap-2">
+                {(['mL', 'tsp', 'tbsp', 'cup'] as const).map(u => (
+                  <button
+                    aria-pressed={fatsVolumeUnit === u}
+                    className={cn(
+                      'rounded-md border px-2.5 py-1 text-xs font-medium transition-colors',
+                      fatsVolumeUnit === u
+                        ? 'border-foreground/40 bg-foreground/15 text-foreground'
+                        : 'border-foreground/20 bg-foreground/5 text-foreground/70 hover:text-foreground/80'
+                    )}
+                    data-testid={`fats-volume-unit-${u}`}
+                    key={u}
+                    onClick={() => setFatsVolumeUnit(u)}
+                    type="button"
+                  >
+                    {u}
+                  </button>
+                ))}
+                <button
+                  className="ml-auto inline-flex items-center gap-1 rounded-lg border border-info/30 bg-info/10 px-2.5 py-1 text-xs font-medium text-info transition-colors hover:bg-info/20"
+                  data-testid="fats-use-volume-in-infusion"
+                  onClick={() =>
+                    setInfusion({ volume: fatsVolume, volumeUnit: fatsVolumeUnit })
+                  }
+                  type="button"
+                >
+                  Use in Infusion
+                </button>
+              </div>
+            }
+          </InputRow>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <InputRow
