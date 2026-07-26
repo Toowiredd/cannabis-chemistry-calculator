@@ -31,6 +31,7 @@ All calculations are heuristic estimates, not laboratory results. The math is ro
 - Save and load custom presets (lossless round-trip including per-field units + full state)
 - **Inventory tracking** on the Dashboard tab - track material on hand, see real "Material on Hand" stat (not always 0), and the "Insufficient material" warning on Decarb/QuickBatch fires correctly when you'd exceed your stock.
 - **First-Timer Guide** wizard (8 steps: equipment, material, prep, decarb, fats, fat volume, formats, review) - multi-select throughout, live math previews, walk a beginner from "I have nothing" to "save to journal" with a sensible 1 oz (28g) starting amount as the empty-state suggestion.
+- **Wizard (opt-in)** - Two-stage guided workflow for the hand-hold-it-for-me user. Stage 1 = Configuration (product-type picker → branch-specific sequence of selection steps). Stage 2 = Execution (live timer + heatmap + transition for decarb/infusion). 4 branches (Flower, Concentrate, AVB, Edible, Topical); 5 stock recipes on the Dashboard as "Try a starter recipe"; `Resume last` for in-flight wizards, `Save recipe` + `Run again` for completed runs. Behind the `wizardEnabled` feature flag in DevTools (`window.localStorage.setItem('ccc-wizard-enabled', 'true')`) — opt in to see it. Architecture: `docs/wizard-architecture-2026-07-26.md`; build log: `docs/wizard-build-handoff-2026-07-27.md`.
 - **Progressive Web App** build target - same React renderer served at `https://laptop.tail646a73.ts.net/ccc/` via Tailscale Funnel, installable on the iPad via Safari Share > Add to Home Screen. PWA bundle is a separate Vite build that uses a web shim for the `window.App` Electron IPC surface (localStorage for presets/journal/strains, Blob URLs for downloads, navigator.clipboard).
 - Responsive design from 1024x640 up to 4K
 - Keyboard navigation (Tab order, Enter to trigger, Escape is benign)
@@ -93,7 +94,7 @@ Run the full engine unit test suite:
 pnpm test
 ```
 
-Expect **601 tests** across 23 test files:
+Expect **1,559 tests** across 85 test files (was 601 / 23 at the start of the wizard build):
 
 - `decarb.test.ts` — Theoretical max, decarb-adjusted ranges, error handling
 - `infusion.test.ts` — Infused THC, mg/mL concentration, simplified estimates

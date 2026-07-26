@@ -431,6 +431,16 @@ dist/v1.0.0/
 
 ---
 
+## Wizard (opt-in, behind `wizardEnabled`)
+
+The Wizard is a two-stage guided workflow that ships behind the `wizardEnabled` feature flag in DevTools. Stage 1 = Configuration (product-type picker → branch-specific sequence of selection steps); Stage 2 = Execution (live timer + heatmap + transition for the user's chosen decarb/infusion). 4 branches cover the user journeys: Flower, Concentrate, AVB (already vaped bud), Edible (infused fat/oil), Topical.
+
+The Wizard is the project's "hand-hold-it-for-me" surface — the open-form tabs (Decarb / Infusion / Dose / Quick Batch) remain the canonical power-user interface. The Wizard is rendered as `WizardScreen` on top of the tab surface when the flag is on; the engine math is shared with the open-form tabs (no duplicated chemistry).
+
+Full architecture rationale (state machine, branch taxonomy, Stage 2 stepper contract, re-edit recalculating UX, plain-language product-type labels) lives in `docs/wizard-architecture-2026-07-26.md` (10 sections, signed off by the user). Build log (54 commits across Weeks 1-7, Week 8 plan, 5 deferred follow-ups) lives in `docs/wizard-build-handoff-2026-07-27.md`.
+
+**Why a separate doc, not a section here:** DESIGN.md is the engine + architecture rationale for the open-form tab surface; the Wizard is a parallel surface with its own state machine (`wizard` slice), branch taxonomy, and execution runtime (`execution` slice). Inlining the full design here would duplicate the wizard doc and risk drift. A pointer keeps both documents in sync by reference.
+
 ## Engine Citations & Audit
 
 Every numeric / qualitative constant in `src/renderer/src/engine/*.ts` is traceable to either:
