@@ -19,7 +19,7 @@
  * picked.
  *
  * The badges below are the brief-mandated `badge` field on
- * `WizardOption` (Week 1 spec) — the wizard renders them as
+ * `WizardOption` — the wizard renders them as
  * "Beginner-friendly" / "Best match" pills on the option tile.
  *
  * Pure TypeScript — zero UI / React / Electron imports.

@@ -6,15 +6,18 @@
  * (see `branchSequences.ts`); the product-type picker is a special
  * step 0 that every branch shares.
  *
- * Week 1 scope (§7 of docs/wizard-architecture-2026-07-26.md):
+ * Scope (per `docs/wizard-architecture-2026-07-26.md` §7 + the
+ * Week 2 build of `branchSequences.ts`):
  * - Product-type step: 5 plain-language options with tooltips
- *   (§8.4). All 5 are shown — picking a branch other than 'flower'
- *   routes to a "Coming in week 2" placeholder.
- * - Flower Method step: the 6 real decarb methods from
- *   `engine/models.ts DECARB_METHODS`, with the brief's plain-
- *   language display names and the engine's tempC / time / efficiency
- *   data as the canonical subtitle. Badges ("Beginner-friendly",
- *   "Best match") are stamped where the engine data supports them.
+ *   (§8.4). All 5 are shown — every branch is end-to-end wired.
+ * - Per-branch steps: 5 real decarb methods from
+ *   `engine/models.ts DECARB_METHODS` (Flower + Edible), the
+ *   AVB color picker, the Topical application area, etc.
+ *   The "Coming in week 2" placeholder was removed in
+ *   Week 7's full-codebase-review once all 5 branches
+ *   were wired (Week 2 deliverable).
+ *   Badges ("Beginner-friendly", "Best match") are stamped
+ *   where the engine data supports them.
  */
 import {
   Cloud,
@@ -190,28 +193,6 @@ export const flowerMethodStep: WizardStep = {
     })
   },
   getSelectedOptionId: (state: WizardState) => state.selections.method ?? null,
-}
-
-/* ------------------------------------------------------------------ */
-/* "Coming in week 2" placeholder                                       */
-/* ------------------------------------------------------------------ */
-
-/**
- * Week-1 placeholder for any step beyond the Flower Method step.
- * The brief says: "For Week 1, only the Flower branch is
- * end-to-end. Other branches get a 'Coming in week 2' placeholder
- * step." This is the placeholder.
- *
- * `validate` and `skipIf` are not used by the Week-1 runtime, so
- * this step is a static step with a single "OK" option (no
- * selection) and no `selections` key.
- */
-export const comingSoonStep: WizardStep = {
-  id: 'coming-soon',
-  title: 'Coming in week 2',
-  description:
-    'This branch is wired up next week. The product type you picked is saved; the rest of the steps will appear in build order §7.',
-  getOptions: (_state: WizardState): WizardOption[] => [],
 }
 
 /* ------------------------------------------------------------------ */

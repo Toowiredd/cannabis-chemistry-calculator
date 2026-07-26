@@ -1,16 +1,15 @@
 /**
  * Wizard types — shared contract for the Stage 1 configuration wizard.
  *
- * This file is the import target for both ui-tabs (this week's work) and
- * state-routing (parallel slice work). ui-tabs owns this initial cut.
- * When state-routing lands their `wizard` slice + `wizardTypes.ts` in
- * `src/renderer/src/stores/`, this file becomes the downstream surface —
- * either re-exported by their module or moved outright. The contract
- * (field names + types) is what matters; the file location is fluid.
+ * The canonical contract lives in `src/renderer/src/stores/wizardTypes.ts`
+ * (owned by state-routing). This file mirrors the wizard rein's
+ * local types for components that don't need the store-side
+ * helpers (e.g. `validateWizardSelections`, `ExecutionStepState`).
  *
- * Week 1 scope (§7 of docs/wizard-architecture-2026-07-26.md): the
- * Flower branch end-to-end (product-type step + Method step). Other
- * branches get a "Coming in week 2" placeholder.
+ * Scope (per `docs/wizard-architecture-2026-07-26.md` §7): all 5
+ * branches are end-to-end wired (Flower / Concentrate / AVB /
+ * Edible / Topical). The "Coming in week 2" placeholder was
+ * removed in Week 7's full-codebase-review.
  */
 import type { LucideIcon } from 'lucide-react'
 
@@ -35,12 +34,16 @@ export type WizardBranchId =
 
 /**
  * `selections` is the per-step user input. The shape mirrors the
- * section-3.3 architecture doc; for Week 1 we only wire `method`
- * (the Flower branch's first decision after product type).
+ * section-3.3 architecture doc. All 5 branches are end-to-end
+ * wired (see `branchSequences.ts` for the per-branch step lists).
  *
- * The "Name this recipe" step (§8.5) is a placeholder text field for
- * Week 1 — full implementation lands in week 5 alongside
- * `appStore.recipes[]`.
+ * The `name` field is the §8.5 "Name this recipe" value (the
+ * Stage 1 inline card the user fills in before the Begin
+ * batch CTA). It's part of the local wizard rein's
+ * `WizardSelections` shape but is also wired into the
+ * `Recipe` slice when the user saves a batch (see
+ * `src/renderer/src/stores/wizardTypes.ts` + the
+ * `NameRecipeStep` component for the canonical contract).
  */
 export interface WizardSelections {
   method?: string
@@ -61,14 +64,20 @@ export interface WizardSelections {
   color?: 'light' | 'medium' | 'dark'
   applicationArea?: string
   carrier?: string
-  /** Week-1 placeholder for the §8.5 "Name this recipe" step. */
+  /** The §8.5 "Name this recipe" value the user typed into
+   *  the NameRecipeStep card. */
   name?: string
 }
 
 /**
- * The Stage 1 wizard state. For Week 1 this is held in a local
- * React state in the WizardScreen — when state-routing lands their
- * `appStore.wizard` slice, this exact shape migrates there.
+ * The Stage 1 wizard state. The persistent copy lives in the
+ * `appStore.wizard` slice (state-routing rein — see
+ * `src/renderer/src/stores/appStore.ts`); this local type
+ * mirrors the slice shape for components that don't need
+ * the store's actions. The store-side `WizardState` adds
+ * runtime-only fields (the `execution` sub-slice, the
+ * `stepHistory` for back-button support, the Stage 2
+ * routing).
  */
 export interface WizardState {
   branch: WizardBranchId | null
@@ -111,10 +120,11 @@ export interface WizardOption {
  * §3.4 — the wizard's step sequence is `branches[state.branch].steps`,
  * and the wizard can reconfigure per branch without code changes.
  *
- * For Week 1, the runtime doesn't call `validate` / `skipIf` (the
- * architecture doc's smart-skip rules land in week 2). They are
- * declared on the type so week-2 code can call them without
- * changing the type.
+ * `validate` and `skipIf` are called by the runtime on every
+ * `getEffectiveBranchSequence` invocation (the smart-skip
+ * projection in `branchSequences.ts`). They are declared on
+ * the type so the wizard can reconfigure per branch without
+ * changing the container.
  */
 export interface WizardStep {
   id: string
@@ -139,7 +149,7 @@ export interface WizardStep {
   /** Returns true if the step's selection is valid. */
   validate?: (state: WizardState) => boolean
   /** Returns true if the step should be hidden for the current
-   * branch (smart-skip). Week 2+ feature. */
+   * branch (smart-skip per §3.1). */
   skipIf?: (state: WizardState) => boolean
 }
 

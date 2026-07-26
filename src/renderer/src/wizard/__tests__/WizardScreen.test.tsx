@@ -16,7 +16,8 @@
  *  - Concentrate branch: tapping through Potency → Carrier →
  *    Volume → Servings advances the wizard.
  *  - Terminal Start step: tapping the "Begin batch" CTA calls
- *    the local `onWizardComplete` callback (no-op for Week 2).
+ *    `beginExecution('preheat-decarb')` on the store and
+ *    mounts the Stage 2 stepper (Week 3+ wire-up).
  *  - "Reset wizard" link returns the state to the default.
  */
 import { beforeEach, describe, expect, it } from 'vitest'

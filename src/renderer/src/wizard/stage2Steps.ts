@@ -171,8 +171,14 @@ export function buildExecutionSteps(
   selections: WizardSelections
 ): ExecutionStep[] {
   if (branch !== 'flower') {
-    // Week 4: still only the Flower branch has Stage 2 work.
-    // The other branches' step definitions land in weeks 5-6.
+    // Only the Flower branch has Stage 2 work today. The
+    // Concentrate / AVB / Edible / Topical branches' Stage 2
+    // step definitions are tracked in the build order §7 but
+    // haven't been scoped yet. Returning an empty list means
+    // the stepper renders the "No steps to run" empty state
+    // (see `ExecutionStepper.tsx`), which is the desired
+    // behaviour when the user finishes a branch whose Stage 2
+    // work hasn't been defined.
     return []
   }
   const method = lookupDecarbMethod(selections.method)
