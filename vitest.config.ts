@@ -43,6 +43,14 @@ export default defineConfig({
       // OptionTile, ProductTypeTooltip).
       'src/renderer/src/wizard/__tests__/**/*.test.ts',
       'src/renderer/src/wizard/__tests__/**/*.test.tsx',
+      // Week 6 (2026-07-26 wizard build, §8.6): the three
+      // extracted data libraries (`stockRecipes`,
+      // `equipmentOptions`, `decbMethodCards`) and their
+      // canonical-shape tests. Single-file paths to avoid orphan
+      // pickup in case the source files move in a follow-up.
+      'src/renderer/src/data/__tests__/stockRecipes.test.ts',
+      'src/renderer/src/data/__tests__/equipmentOptions.test.ts',
+      'src/renderer/src/data/__tests__/decbMethodCards.test.ts',
       'src/renderer/src/components/__tests__/Wizard.test.tsx',
       'src/renderer/src/components/__tests__/StepCard.test.tsx',
       'src/renderer/src/components/__tests__/OptionTile.test.tsx',

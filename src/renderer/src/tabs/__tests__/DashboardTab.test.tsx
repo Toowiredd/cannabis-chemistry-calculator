@@ -187,3 +187,185 @@ describe('DashboardTab — adding via the InventorySection updates the Material 
     expect(card.textContent).not.toMatch(/Add your first batch/i)
   })
 })
+
+/* ================================================================== */
+/* Week 6 (§8.3) — Resume last batch + Stock recipes                   */
+/* ================================================================== */
+
+describe('DashboardTab — Resume last batch (Week 6, §8.3)', () => {
+  beforeEach(() => {
+    resetInventory()
+    // Clear the recipes slice between tests so a previous test's
+    // addRecipe doesn't leak into the next test's render. The
+    // addRecipe action seeds a new id via crypto.randomUUID, so
+    // a clean reset is required for the "null" assertion below
+    // to be meaningful.
+    useAppStore.setState({ recipes: [] })
+  })
+
+  it('does NOT render the resume card when no saved Recipe exists (default state)', () => {
+    render(<DashboardTab />)
+    // Default state: recipes is `[]`, so the card hides itself.
+    expect(screen.queryByTestId('dashboard-resume-card')).toBeNull()
+  })
+
+  it('renders the resume card when at least one saved Recipe exists', () => {
+    // Seed a saved Recipe. The Dashboard's resume lookup picks
+    // the most recent (sorted by createdAt desc) — a single
+    // entry is enough to surface the card.
+    useAppStore.getState().addRecipe({
+      name: 'My first batch',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+    })
+    render(<DashboardTab />)
+    const card = screen.getByTestId('dashboard-resume-card')
+    expect(card).toBeTruthy()
+    // The summary line carries the recipe's name + branch +
+    // step number. The exact phrasing is implementation-
+    // defined; we just assert the three pieces are present.
+    const summary = screen.getByTestId('dashboard-resume-card-summary')
+    expect(summary.textContent).toMatch(/My first batch/)
+    expect(summary.textContent).toMatch(/flower/)
+    expect(summary.textContent).toMatch(/step\s*0/)
+  })
+
+  it('picks the most recent Recipe when several exist', () => {
+    // Two recipes — the second is more recent. The card should
+    // render the second recipe's name, not the first.
+    useAppStore.getState().addRecipe({
+      name: 'Older batch',
+      branch: 'flower',
+      selections: {},
+      batchJournalEntryId: null,
+    })
+    useAppStore.getState().addRecipe({
+      name: 'Newer batch',
+      branch: 'avb',
+      selections: {},
+      batchJournalEntryId: null,
+    })
+    render(<DashboardTab />)
+    const summary = screen.getByTestId('dashboard-resume-card-summary')
+    expect(summary.textContent).toMatch(/Newer batch/)
+    expect(summary.textContent).toMatch(/avb/)
+    // And the older batch name is NOT on the page.
+    expect(summary.textContent).not.toMatch(/Older batch/)
+  })
+
+  it('tapping the Resume CTA opens the wizard and routes to step 0', () => {
+    useAppStore.getState().addRecipe({
+      name: 'My saved batch',
+      branch: 'flower',
+      selections: { method: 'oven_sealed', weight: { value: 7, unit: 'g' } },
+      batchJournalEntryId: null,
+    })
+    render(<DashboardTab />)
+    // Pre-condition: wizardEnabled is false (the default for
+    // the wire-up memory's defensive read pattern).
+    expect(useAppStore.getState().wizardEnabled).toBe(false)
+    fireEvent.click(screen.getByTestId('dashboard-resume-card-cta'))
+    // The CTA flips wizardEnabled → true, sets the branch, and
+    // restores the recipe's selections. We assert all three.
+    const state = useAppStore.getState()
+    expect(state.wizardEnabled).toBe(true)
+    expect(state.wizard.branch).toBe('flower')
+    expect(state.wizard.stage1Selections.method).toBe('oven_sealed')
+    expect(state.wizard.stage1Selections.weight).toEqual({
+      value: 7,
+      unit: 'g',
+    })
+    // And the wizard is routed to step 0 (the product-type
+    // picker) per §8.3 — the selections are pre-filled but the
+    // user reviews them, they don't skip.
+    expect(state.wizard.currentStep).toBe(0)
+  })
+})
+
+/* ------------------------------------------------------------------ */
+
+describe('DashboardTab — Stock recipes section (Week 6, §8.3)', () => {
+  beforeEach(() => {
+    resetInventory()
+    useAppStore.setState({ recipes: [], wizardEnabled: false })
+    // Reset Stage 1 wizard state so a previous test's setSelection
+    // call doesn't leak into the next test's "no pre-fill" check.
+    useAppStore.getState().resetWizard()
+  })
+
+  it('renders the Stock recipes section + list', () => {
+    render(<DashboardTab />)
+    expect(screen.getByTestId('dashboard-stock-recipes-section')).toBeTruthy()
+    expect(screen.getByTestId('dashboard-stock-recipes-list')).toBeTruthy()
+  })
+
+  it('renders all 5 stock recipe cards', () => {
+    render(<DashboardTab />)
+    // The 5 brief-mandated cards each render a StockRecipeCard
+    // with a `stock-recipe-card-<id>` testid. We assert each id
+    // is present on the page.
+    const expectedIds = [
+      'standard-oven-decarb',
+      'quick-sous-vide',
+      'coconut-oil-infusion',
+      'light-avb-tincture',
+      'beginner-olive-salve',
+    ]
+    for (const id of expectedIds) {
+      expect(screen.getByTestId(`stock-recipe-card-${id}`)).toBeTruthy()
+    }
+  })
+
+  it('tapping a stock recipe pre-fills the wizard + routes to step 0', () => {
+    render(<DashboardTab />)
+    expect(useAppStore.getState().wizardEnabled).toBe(false)
+    // Tap the "Coconut Oil Infusion" card. The handler pre-fills
+    // the wizard with the recipe's selections and opens it.
+    fireEvent.click(
+      screen.getByTestId('stock-recipe-card-coconut-oil-infusion')
+    )
+    const state = useAppStore.getState()
+    // wizardEnabled flipped on
+    expect(state.wizardEnabled).toBe(true)
+    // branch set to the recipe's branch
+    expect(state.wizard.branch).toBe('flower')
+    // selections pre-filled — the recipe carries
+    // method=oven_sealed, weight=14g, efficiency=0.93, fat=coconut,
+    // volume=240mL. The Dashboard wire calls setSelection for
+    // each key.
+    expect(state.wizard.stage1Selections.method).toBe('oven_sealed')
+    expect(state.wizard.stage1Selections.weight).toEqual({
+      value: 14,
+      unit: 'g',
+    })
+    expect(state.wizard.stage1Selections.efficiency).toBe(0.93)
+    expect(state.wizard.stage1Selections.fat).toBe('coconut')
+    expect(state.wizard.stage1Selections.volume).toEqual({
+      value: 240,
+      unit: 'mL',
+    })
+    // And the wizard is at step 0 (per §8.3: pre-fills, doesn't
+    // skip — the user reviews every pre-filled step before
+    // transitioning to Stage 2).
+    expect(state.wizard.currentStep).toBe(0)
+  })
+
+  it('tapping a topical recipe (no decarb method) pre-fills the topical branch + carrier', () => {
+    render(<DashboardTab />)
+    fireEvent.click(
+      screen.getByTestId('stock-recipe-card-beginner-olive-salve')
+    )
+    const state = useAppStore.getState()
+    expect(state.wizardEnabled).toBe(true)
+    expect(state.wizard.branch).toBe('topical')
+    expect(state.wizard.stage1Selections.carrier).toBe('olive')
+    expect(state.wizard.stage1Selections.volume).toEqual({
+      value: 240,
+      unit: 'mL',
+    })
+    expect(state.wizard.stage1Selections.applicationArea).toBe('joints')
+    // No method was set — the topical branch skips decarb.
+    expect(state.wizard.stage1Selections.method).toBeUndefined()
+  })
+})

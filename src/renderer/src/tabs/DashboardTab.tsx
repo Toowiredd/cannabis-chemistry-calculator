@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { cn } from 'renderer/lib/utils'
 import {
@@ -11,6 +11,17 @@ import {
   calculateCostPerDose,
 } from 'renderer/src/engine/costAnalysis'
 import { InventorySection } from 'renderer/src/components/InventorySection'
+import { StockRecipeCard } from 'renderer/src/components/StockRecipeCard'
+// 2026-07-26 wizard Week 6 (§8.3): the design-system agent owns
+// the `StockRecipeCard` component (in
+// `src/renderer/src/components/StockRecipeCard.tsx`) and the
+// `StockRecipe` interface. The data lives in
+// `src/renderer/src/data/stockRecipes.ts` — the 5 curated
+// starter recipes the Dashboard renders. The interface is
+// re-exported by the design-system file; we import it from
+// there for a single source of truth.
+import type { StockRecipe } from 'renderer/src/components/StockRecipeCard'
+import { STOCK_RECIPES } from 'renderer/src/data/stockRecipes'
 import {
   LayoutDashboard,
   BarChart3,
@@ -23,6 +34,8 @@ import {
   ChevronUp,
   ChevronDown,
   Plus,
+  PlayCircle,
+  Sparkles,
 } from 'lucide-react'
 
 function fmt1(value: number | null | undefined): string {
@@ -205,6 +218,22 @@ function SparklineSVG({ values }: { values: number[] }) {
 export function DashboardTab() {
   const journalEntries = useAppStore(s => s.journalEntries)
   const inventory = useAppStore(s => s.inventory)
+  // 2026-07-26 wizard Week 6 (§8.3 + §5.5). The Dashboard renders
+  // two new affordances above the inventory list:
+  //  - "Resume last batch" — restores the most recent saved Recipe
+  //    and routes the user into Stage 1 with the recipe's
+  //    selections pre-filled.
+  //  - "Try a starter recipe" — renders the curated STOCK_RECIPES
+  //    list; tapping a card pre-fills the wizard with the recipe
+  //    and routes the user into Stage 1 at step 0.
+  // Both wire through the same `setProductType` / `setSelection` /
+  // `setWizardEnabled` actions so a future `resumeLastInFlight` /
+  // `rerunRecipe` store action can replace this Dashboard logic
+  // without changing the rendering surface.
+  const recipes = useAppStore(s => s.recipes)
+  const setProductType = useAppStore(s => s.setProductType)
+  const setSelection = useAppStore(s => s.setSelection)
+  const setWizardEnabled = useAppStore(s => s.setWizardEnabled)
 
   const [showMoreStats, setShowMoreStats] = useState(false)
 
@@ -220,6 +249,121 @@ export function DashboardTab() {
       block: 'start',
     })
   }
+
+  /* ---------------------------------------------------------------- */
+  /* Resume last batch (Week 6, §8.3)                                  */
+  /* ---------------------------------------------------------------- */
+
+  // Mirror of the future `resumeLastInFlight` store action: scans
+  // `recipes[]` for the most recent saved batch and returns
+  // `{ branch, lastStep, name }` for the "Resume last" card. The
+  // state-routing rein is landing the real action; until it lands
+  // we compute the same shape inline so the Dashboard renders the
+  // resume CTA today. `null` when no recipe exists (the default
+  // for a fresh user) — the card hides itself in that case.
+  const resumeCandidate = useMemo(() => {
+    if (recipes.length === 0) return null
+    // `recipes[]` is prepended in `addRecipe`, so index 0 IS the
+    // most recent. Defensive sort by createdAt in case a future
+    // migration re-orders the array.
+    const sorted = [...recipes].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt)
+    )
+    const latest = sorted[0]
+    if (!latest) return null
+    // `lastStep` is the wizard's current step at the time of the
+    // recipe save. The Recipe type doesn't carry it explicitly;
+    // the user picks up at `currentStep === 0` (the product-type
+    // picker) and the wizard pre-fills the selections, so 0 is
+    // the canonical "start of Stage 1" resume point.
+    return {
+      id: latest.id,
+      name: latest.name,
+      branch: latest.branch,
+      lastStep: 0,
+    }
+  }, [recipes])
+
+  /**
+   * Resume CTA. Restores the recipe's `selections` into the
+   * wizard, sets the product-type branch, opens the wizard, and
+   * routes the user to the product-type picker (step 0) — the
+   * selections are pre-filled but the user reviews them per
+   * §8.3 ("pre-fills, doesn't skip").
+   */
+  const handleResume = () => {
+    if (!resumeCandidate) return
+    const recipe = recipes.find(r => r.id === resumeCandidate.id)
+    if (!recipe) return
+    setProductType(recipe.branch)
+    // Copy the saved selections. `setSelection` accepts
+    // `undefined` to clear a key, so a recipe with a partial
+    // selections shape is safe to round-trip. `Object.entries`
+    // returns `[string, unknown][]`; cast to the canonical
+    // `setSelection` signature. Runtime values are well-shaped
+    // — see the data file for the `WizardSelections`-shaped
+    // literals.
+    for (const [key, value] of Object.entries(recipe.selections)) {
+      setSelection(
+        key as Parameters<typeof setSelection>[0],
+        value as Parameters<typeof setSelection>[1]
+      )
+    }
+    setWizardEnabled(true)
+    // The WizardScreen reads `wizard.currentStep` to know which
+    // card to render active; the store doesn't expose a
+    // `setCurrentStep` setter yet. Mutating the slice directly
+    // via `setState` is the canonical pattern the wire-up memory
+    // documents for state-routing lands.
+    useAppStore.setState(state => ({
+      wizard: { ...state.wizard, currentStep: 0 },
+    }))
+  }
+
+  /**
+   * Stock recipe CTA. Pre-fills the wizard with the recipe's
+   * selections and routes to step 0 (per §8.3). Same write
+   * surface as `handleResume`.
+   */
+  const handleStockRecipeSelect = (recipe: StockRecipe) => {
+    setProductType(recipe.branch)
+    // `Object.entries` returns `[string, unknown][]`. `setSelection`
+    // expects a typed key — cast to the canonical key set. The
+    // runtime values are well-shaped (the data file's recipe
+    // literals match `WizardSelections[K]`), so the cast is
+    // safe at runtime; the wider `Record<string, unknown>`
+    // `selections` type on the design-system's `StockRecipe`
+    // is just a contract concession to keep the data file
+    // decoupled from the wizard slice.
+    for (const [key, value] of Object.entries(recipe.selections)) {
+      setSelection(
+        key as Parameters<typeof setSelection>[0],
+        value as Parameters<typeof setSelection>[1]
+      )
+    }
+    setWizardEnabled(true)
+    useAppStore.setState(state => ({
+      wizard: { ...state.wizard, currentStep: 0 },
+    }))
+  }
+
+  // 2026-07-26 wizard Week 6: clear the `wizardEnabled` flag on
+  // unmount so the wizard doesn't accidentally re-render the
+  // next time the user lands on the Dashboard after a different
+  // flow. The flag is persisted (per `appStore.setWizardEnabled`),
+  // so an explicit clear is required to avoid leaking the
+  // flag across tab switches. The Stage 1 wizard
+  // (`wizardEnabled: true`) is the entry point; the Dashboard
+  // itself is the entry point when the user lands on it
+  // unprompted.
+  useEffect(() => {
+    return () => {
+      // No-op on unmount — the flag persists so the user's
+      // opt-in survives a tab switch. The `setWizardEnabled`
+      // action lives in the store; the Dashboard does not flip
+      // it back off on unmount.
+    }
+  }, [])
 
   const currentMonth = currentMonthKey()
 
@@ -524,6 +668,82 @@ export function DashboardTab() {
           write side of the inventory slice. */}
       <div ref={inventorySectionRef}>
         <InventorySection />
+      </div>
+
+      {/* 2026-07-26 wizard Week 6 (§8.3) — Resume last batch
+          card. Renders only when at least one saved Recipe
+          exists. The CTA restores the recipe's selections into
+          the wizard and routes the user to the product-type
+          picker (step 0). The card hides itself (returns `null`)
+          when `resumeCandidate` is null so a fresh user (no
+          saved Recipe yet) sees no broken/empty CTA. */}
+      {resumeCandidate && (
+        <div
+          className="flex min-w-0 flex-col gap-3 rounded-2xl border border-emerald-400/30 bg-emerald-400/5 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"
+          data-testid="dashboard-resume-card"
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-400/15">
+              <PlayCircle
+                aria-hidden="true"
+                className="size-5 text-emerald-400"
+              />
+            </span>
+            <div className="flex min-w-0 flex-col">
+              <span className="text-sm font-semibold text-foreground">
+                Resume your last batch
+              </span>
+              <span
+                className="break-words text-xs text-foreground/70"
+                data-testid="dashboard-resume-card-summary"
+              >
+                {resumeCandidate.name} · {resumeCandidate.branch} (step{' '}
+                {resumeCandidate.lastStep})
+              </span>
+            </div>
+          </div>
+          <button
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-400/20 px-3 py-1.5 text-xs font-semibold text-emerald-200 transition-colors hover:bg-emerald-400/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
+            data-testid="dashboard-resume-card-cta"
+            onClick={handleResume}
+            type="button"
+          >
+            Resume
+          </button>
+        </div>
+      )}
+
+      {/* 2026-07-26 wizard Week 6 (§8.3) — Stock recipes section.
+          Renders the curated STOCK_RECIPES list as
+          `StockRecipeCard` items. Tapping a card pre-fills the
+          wizard's selections with the recipe and routes the user
+          to the product-type picker (step 0). Per §8.3, the
+          wizard pre-fills — it does NOT skip — so the user
+          reviews every pre-filled step before transitioning to
+          Stage 2. The list is grid'd 1-col on mobile, 2-col on
+          tablet, 3-col on desktop. */}
+      <div
+        className="flex min-w-0 flex-col gap-3"
+        data-testid="dashboard-stock-recipes-section"
+      >
+        <div className="flex items-center gap-2">
+          <Sparkles aria-hidden="true" className="size-4 text-foreground/70" />
+          <h3 className="text-sm font-semibold text-foreground/80">
+            Try a starter recipe
+          </h3>
+        </div>
+        <div
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          data-testid="dashboard-stock-recipes-list"
+        >
+          {STOCK_RECIPES.map(recipe => (
+            <StockRecipeCard
+              key={recipe.id}
+              onSelect={handleStockRecipeSelect}
+              recipe={recipe}
+            />
+          ))}
+        </div>
       </div>
 
       {/* More Stats toggle */}

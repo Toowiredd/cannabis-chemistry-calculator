@@ -28,8 +28,6 @@
  */
 import { useCallback, useId, useMemo, useState, type ReactNode } from 'react'
 import {
-  Beaker,
-  Carrot,
   Check,
   CheckCircle2,
   ChevronLeft,
@@ -43,9 +41,7 @@ import {
   EyeOff,
   Flame,
   FlaskConical,
-  Layers,
   ListChecks,
-  Package,
   Pill,
   Salad,
   Scale,
@@ -137,6 +133,14 @@ import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useModalA11y } from '../hooks/useModalA11y'
 import { UnitToggle } from 'renderer/src/components/UnitToggle'
 import { GlassCard } from 'renderer/src/components/GlassCard'
+// 2026-07-26 wizard Week 6 (§8.6): the equipment list extracted to
+// a shared library so the new Wizard's per-step explanations can
+// reuse it. FirstTimerGuide still renders the kit-configurator's
+// equipment step, so it imports the data from the new location.
+import {
+  EQUIPMENT_OPTIONS,
+  type EquipmentOption,
+} from '../data/equipmentOptions'
 
 /* ------------------------------------------------------------------ */
 /* Step model                                                         */
@@ -222,117 +226,12 @@ const STEPS: readonly StepDef[] = [
 ] as const
 
 /* ------------------------------------------------------------------ */
-/* Equipment options (curated, ~8-10 real kitchen items)              */
+/* Equipment options — sourced from `data/equipmentOptions.ts`        */
+/* (2026-07-26 wizard Week 6, §8.6). The FirstTimerGuide still        */
+/* renders the equipment step, so it imports the data from the new   */
+/* shared location. The 13-entry list and the `EquipmentOption`      */
+/* type now live alongside the other extracted data libraries.        */
 /* ------------------------------------------------------------------ */
-
-interface EquipmentOption {
-  id: string
-  label: string
-  /** Friendly substitution when the user does not own the item. */
-  subtitle: string
-  Icon: LucideIcon
-}
-
-const EQUIPMENT_OPTIONS: readonly EquipmentOption[] = [
-  {
-    id: 'flower',
-    label: 'Cannabis flower',
-    subtitle: 'Any amount works. Quality matters more than quantity.',
-    Icon: Salad,
-  },
-  {
-    id: 'glass_dish',
-    label: 'Glass baking dish',
-    subtitle: 'A ceramic casserole dish or a pie plate works fine.',
-    Icon: Layers,
-  },
-  {
-    id: 'foil',
-    label: 'Aluminum foil',
-    subtitle:
-      'An oven-safe lid or a tight layer of parchment plus foil will do.',
-    Icon: Layers,
-  },
-  {
-    id: 'fat',
-    label: 'Butter or coconut oil',
-    subtitle: 'Ghee or any oil with some fat content works. Avoid watery oils.',
-    Icon: Carrot,
-  },
-  {
-    id: 'oven',
-    label: 'An oven',
-    subtitle: 'A toaster oven with a temperature dial works too.',
-    Icon: Flame,
-  },
-  {
-    id: 'heat_source',
-    label: 'A stove or slow cooker',
-    subtitle:
-      'A double boiler or even a very low oven holds the right temperature.',
-    Icon: Flame,
-  },
-  // 2026-07-25 FirstTimerGuide equipment gap: the previous list was
-  // oven-centric (oven / foil / glass dish / stove / slow cooker),
-  // but 4 of the 6 decarb methods in METHOD_OPTIONS are sous vide
-  // (sv_dry / sv_fast / sv_combined / sv_lowtemp). A first-timer
-  // planning a sous vide setup had no way to mark the equipment
-  // they own on step 1. The oven warning at line 967-977 also
-  // landed on every user regardless of method (audit M2).
-  // Adding the 4 minimum items needed for a sous vide workflow:
-  // circulator + vacuum sealer + mason jar (sous vide bags go
-  // in jars to keep the water bath out) + probe thermometer
-  // (for temp verification on both oven and sous vide).
-  {
-    id: 'sv_circulator',
-    label: 'A sous vide circulator',
-    subtitle:
-      'An immersion circulator that clips to a pot — required for any sous vide decarb method.',
-    Icon: FlaskConical,
-  },
-  {
-    id: 'vacuum_sealer',
-    label: 'A vacuum sealer',
-    subtitle:
-      'For the sealed sous vide methods. A zip-top bag works in a pinch if you displace the air well.',
-    Icon: Package,
-  },
-  {
-    id: 'mason_jar',
-    label: 'Mason jars (for sous vide)',
-    subtitle:
-      'Wide-mouth pint or quart jars hold the vacuum-sealed bag upright in the water bath.',
-    Icon: Beaker,
-  },
-  {
-    id: 'probe_thermometer',
-    label: 'A probe thermometer',
-    subtitle:
-      'Verifies bath and oven temperature. Sous vide holds within 1°C; ovens drift 10–25°C.',
-    Icon: Thermometer,
-  },
-  {
-    id: 'strainer',
-    label: 'A strainer or cheesecloth',
-    subtitle:
-      'A clean kitchen towel, fine-mesh sieve, or nut-milk bag will do.',
-    Icon: Beaker,
-  },
-  {
-    id: 'bake_vehicle',
-    label: 'Something to bake with',
-    subtitle:
-      'Brownie mix, cookie dough, cake mix, gummies, whatever you like.',
-    Icon: Cookie,
-  },
-  {
-    id: 'kitchen_scale',
-    label: 'A digital kitchen scale',
-    subtitle:
-      'A postal scale or even ½-gram resolution jewellery scales work in a pinch.',
-    Icon: Scale,
-  },
-]
 
 /* ------------------------------------------------------------------ */
 /* Equipment icon lookup                                              */
@@ -839,214 +738,214 @@ export function FirstTimerGuide(): ReactNode {
         role="dialog"
       >
         <GlassCard className="relative flex h-full max-h-[min(880px,calc(100dvh-2rem))] w-full max-w-[min(960px,calc(100dvw-2rem))] flex-col overflow-hidden rounded-2xl border border-foreground/10 shadow-2xl">
-        {/* Header */}
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-foreground/10 px-4 py-3 sm:px-6 sm:py-4">
-          <div className="min-w-0">
-            <h2
-              className="text-lg font-semibold text-foreground/90"
-              id={wizardTitleId}
+          {/* Header */}
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-foreground/10 px-4 py-3 sm:px-6 sm:py-4">
+            <div className="min-w-0">
+              <h2
+                className="text-lg font-semibold text-foreground/90"
+                id={wizardTitleId}
+              >
+                First-Timer Guide
+              </h2>
+              <p className="text-xs text-foreground/60">
+                Your foolproof walkthrough from flower to edible
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                className="rounded-md px-3 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none"
+                data-testid="wizard-skip"
+                onClick={handleDismiss}
+                type="button"
+              >
+                Skip — take me to the full app
+              </button>
+              <button
+                aria-label="Close guide"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/60 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none"
+                data-testid="wizard-close"
+                onClick={handleDismiss}
+                title="Close guide"
+                type="button"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Step indicator + description */}
+          <nav
+            aria-label="Wizard steps"
+            className="flex shrink-0 flex-col gap-2 border-b border-foreground/10 px-4 py-3 sm:px-6"
+          >
+            <div className="flex flex-wrap items-center gap-1">
+              {STEPS.map((s, i) => {
+                const StepIcon = s.Icon
+                const isActive = i === stepIndex
+                const isPast = i < stepIndex
+                return (
+                  <button
+                    aria-current={isActive ? 'step' : undefined}
+                    className={cn(
+                      'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium focus-visible:outline-none',
+                      isActive
+                        ? 'bg-foreground/15 text-foreground border border-foreground/20'
+                        : 'text-foreground/60 hover:bg-foreground/5',
+                      !isActive && !isPast && 'opacity-60'
+                    )}
+                    data-testid={`wizard-pill-${s.id}`}
+                    disabled={!isPast && !isActive}
+                    key={s.id}
+                    onClick={() => gotoStep(i)}
+                    type="button"
+                  >
+                    <StepIcon className="size-3.5" />
+                    {s.label}
+                  </button>
+                )
+              })}
+            </div>
+            <p
+              className={cn(
+                'text-xs text-foreground/65',
+                reducedMotion ? '' : 'transition-opacity duration-200'
+              )}
+              data-testid="wizard-step-description"
             >
-              First-Timer Guide
-            </h2>
-            <p className="text-xs text-foreground/60">
-              Your foolproof walkthrough from flower to edible
+              {step.description}
             </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              className="rounded-md px-3 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none"
-              data-testid="wizard-skip"
-              onClick={handleDismiss}
-              type="button"
-            >
-              Skip — take me to the full app
-            </button>
-            <button
-              aria-label="Close guide"
-              className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/60 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none"
-              data-testid="wizard-close"
-              onClick={handleDismiss}
-              title="Close guide"
-              type="button"
-            >
-              <X className="size-4" />
-            </button>
-          </div>
-        </div>
+          </nav>
 
-        {/* Step indicator + description */}
-        <nav
-          aria-label="Wizard steps"
-          className="flex shrink-0 flex-col gap-2 border-b border-foreground/10 px-4 py-3 sm:px-6"
-        >
-          <div className="flex flex-wrap items-center gap-1">
-            {STEPS.map((s, i) => {
-              const StepIcon = s.Icon
-              const isActive = i === stepIndex
-              const isPast = i < stepIndex
-              return (
-                <button
-                  aria-current={isActive ? 'step' : undefined}
-                  className={cn(
-                    'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium focus-visible:outline-none',
-                    isActive
-                      ? 'bg-foreground/15 text-foreground border border-foreground/20'
-                      : 'text-foreground/60 hover:bg-foreground/5',
-                    !isActive && !isPast && 'opacity-60'
-                  )}
-                  data-testid={`wizard-pill-${s.id}`}
-                  disabled={!isPast && !isActive}
-                  key={s.id}
-                  onClick={() => gotoStep(i)}
-                  type="button"
-                >
-                  <StepIcon className="size-3.5" />
-                  {s.label}
-                </button>
-              )
-            })}
-          </div>
-          <p
-            className={cn(
-              'text-xs text-foreground/65',
-              reducedMotion ? '' : 'transition-opacity duration-200'
-            )}
-            data-testid="wizard-step-description"
-          >
-            {step.description}
-          </p>
-        </nav>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
-          {step.id === 'equipment' && (
-            <StepEquipment
-              onToggle={id => toggleWizardSelection('equipment', id)}
-              selectedIds={Array.from(equipmentSet)}
-            />
-          )}
-
-          {step.id === 'material' && (
-            <StepMaterial
-              grams={grams}
-              onGramsChange={handleGramsChange}
-              onShortcut={handleUseDecarbShortcut}
-              onThcaChange={handleThcaChange}
-              thcaPct={thcaPct}
-            />
-          )}
-
-          {step.id === 'prep' && (
-            <StepPrep
-              bagId={prepBagId}
-              grindId={prepGrindId}
-              onBagChange={setPrepBagId}
-              onGrindChange={setPrepGrindId}
-              onPackChange={setPrepPackId}
-              packId={prepPackId}
-            />
-          )}
-
-          {step.id === 'decarb' && (
-            <StepDecarb
-              onTempUnitChange={unit => setUnits({ tempUnit: unit })}
-              onToggle={id => toggleWizardSelection('decarbMethodIds', id)}
-              perMethodPreview={perMethodPreview}
-              selectedIds={Array.from(methodSet)}
-              tempUnit={units.tempUnit}
-            />
-          )}
-
-          {step.id === 'fats' && (
-            <StepFats
-              onToggle={id => toggleWizardSelection('fatIds', id)}
-              perFatPreview={perFatPreview}
-              selectedIds={Array.from(fatSet)}
-            />
-          )}
-
-          {step.id === 'fat_volume' && (
-            <StepFatVolume
-              fatVolume={selections.fatVolume}
-              onChange={value => setWizardNumberField('fatVolume', value)}
-            />
-          )}
-
-          {step.id === 'formats' && (
-            <StepFormats
-              onServingsChange={handleServingsChange}
-              selectedIds={Array.from(formatSet)}
-              servingsPerFormat={servingsPerFormat ?? 0}
-              setSelectedIds={id => toggleWizardSelection('formatIds', id)}
-              totalServings={totalServings}
-            />
-          )}
-
-          {step.id === 'review' && (
-            <StepReview
-              grams={grams}
-              matrix={matrix}
-              onOpenQuickBatch={handleOpenQuickBatch}
-              onSave={handleSaveToJournal}
-              thcaPct={thcaPct}
-            />
-          )}
-        </div>
-
-        {/* Footer nav */}
-        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-foreground/10 px-4 py-3 sm:px-6 sm:py-4">
-          <button
-            aria-label="Previous step"
-            className={cn(
-              'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none',
-              !isFirstStep
-                ? 'text-foreground/80 hover:bg-foreground/10'
-                : 'cursor-not-allowed text-foreground/30'
-            )}
-            data-testid="wizard-back"
-            disabled={isFirstStep}
-            onClick={goBack}
-            type="button"
-          >
-            <ChevronLeft className="size-4" />
-            Back
-          </button>
-
-          <div aria-hidden="true" className="flex items-center gap-1.5">
-            {STEPS.map((s, i) => (
-              <div
-                className={cn(
-                  'h-1.5 w-1.5 rounded-full transition-colors',
-                  i === stepIndex
-                    ? 'bg-foreground/80'
-                    : i < stepIndex
-                      ? 'bg-foreground/40'
-                      : 'bg-foreground/15'
-                )}
-                data-testid={`wizard-dot-${s.id}`}
-                key={s.id}
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+            {step.id === 'equipment' && (
+              <StepEquipment
+                onToggle={id => toggleWizardSelection('equipment', id)}
+                selectedIds={Array.from(equipmentSet)}
               />
-            ))}
+            )}
+
+            {step.id === 'material' && (
+              <StepMaterial
+                grams={grams}
+                onGramsChange={handleGramsChange}
+                onShortcut={handleUseDecarbShortcut}
+                onThcaChange={handleThcaChange}
+                thcaPct={thcaPct}
+              />
+            )}
+
+            {step.id === 'prep' && (
+              <StepPrep
+                bagId={prepBagId}
+                grindId={prepGrindId}
+                onBagChange={setPrepBagId}
+                onGrindChange={setPrepGrindId}
+                onPackChange={setPrepPackId}
+                packId={prepPackId}
+              />
+            )}
+
+            {step.id === 'decarb' && (
+              <StepDecarb
+                onTempUnitChange={unit => setUnits({ tempUnit: unit })}
+                onToggle={id => toggleWizardSelection('decarbMethodIds', id)}
+                perMethodPreview={perMethodPreview}
+                selectedIds={Array.from(methodSet)}
+                tempUnit={units.tempUnit}
+              />
+            )}
+
+            {step.id === 'fats' && (
+              <StepFats
+                onToggle={id => toggleWizardSelection('fatIds', id)}
+                perFatPreview={perFatPreview}
+                selectedIds={Array.from(fatSet)}
+              />
+            )}
+
+            {step.id === 'fat_volume' && (
+              <StepFatVolume
+                fatVolume={selections.fatVolume}
+                onChange={value => setWizardNumberField('fatVolume', value)}
+              />
+            )}
+
+            {step.id === 'formats' && (
+              <StepFormats
+                onServingsChange={handleServingsChange}
+                selectedIds={Array.from(formatSet)}
+                servingsPerFormat={servingsPerFormat ?? 0}
+                setSelectedIds={id => toggleWizardSelection('formatIds', id)}
+                totalServings={totalServings}
+              />
+            )}
+
+            {step.id === 'review' && (
+              <StepReview
+                grams={grams}
+                matrix={matrix}
+                onOpenQuickBatch={handleOpenQuickBatch}
+                onSave={handleSaveToJournal}
+                thcaPct={thcaPct}
+              />
+            )}
           </div>
 
-          <button
-            aria-label="Next step"
-            className={cn(
-              'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none',
-              canGoNext && !isLastStep
-                ? 'bg-foreground/15 text-foreground hover:bg-foreground/20'
-                : 'cursor-not-allowed text-foreground/30'
-            )}
-            data-testid="wizard-next"
-            disabled={!canGoNext || isLastStep}
-            onClick={goNext}
-            type="button"
-          >
-            Next
-            <ChevronRight className="size-4" />
-          </button>
-        </div>
-      </GlassCard>
+          {/* Footer nav */}
+          <div className="flex shrink-0 items-center justify-between gap-3 border-t border-foreground/10 px-4 py-3 sm:px-6 sm:py-4">
+            <button
+              aria-label="Previous step"
+              className={cn(
+                'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none',
+                !isFirstStep
+                  ? 'text-foreground/80 hover:bg-foreground/10'
+                  : 'cursor-not-allowed text-foreground/30'
+              )}
+              data-testid="wizard-back"
+              disabled={isFirstStep}
+              onClick={goBack}
+              type="button"
+            >
+              <ChevronLeft className="size-4" />
+              Back
+            </button>
+
+            <div aria-hidden="true" className="flex items-center gap-1.5">
+              {STEPS.map((s, i) => (
+                <div
+                  className={cn(
+                    'h-1.5 w-1.5 rounded-full transition-colors',
+                    i === stepIndex
+                      ? 'bg-foreground/80'
+                      : i < stepIndex
+                        ? 'bg-foreground/40'
+                        : 'bg-foreground/15'
+                  )}
+                  data-testid={`wizard-dot-${s.id}`}
+                  key={s.id}
+                />
+              ))}
+            </div>
+
+            <button
+              aria-label="Next step"
+              className={cn(
+                'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none',
+                canGoNext && !isLastStep
+                  ? 'bg-foreground/15 text-foreground hover:bg-foreground/20'
+                  : 'cursor-not-allowed text-foreground/30'
+              )}
+              data-testid="wizard-next"
+              disabled={!canGoNext || isLastStep}
+              onClick={goNext}
+              type="button"
+            >
+              Next
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
+        </GlassCard>
       </div>
     </div>
   )
@@ -1910,7 +1809,8 @@ function StepDecarb({
                   of active THC
                   <span className="text-foreground/55">
                     {' '}
-                    ({tempUnit === 'F'
+                    (
+                    {tempUnit === 'F'
                       ? `${_fmt1(round1n(cToF(p.tempC)))}°F`
                       : `${_fmt1(round1n(p.tempC))}°C`}{' '}
                     · {p.timeMin}–{p.timeMax} min · efficiency{' '}
