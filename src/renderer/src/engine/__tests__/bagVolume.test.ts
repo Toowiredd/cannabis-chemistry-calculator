@@ -1,5 +1,5 @@
 /**
- * Tests for the bag volume calculation engine.
+ * Failing tests (RED) for bag volume calculation engine.
  * Run with: pnpm exec vitest run src/renderer/src/engine/__tests__/bagVolume.test.ts
  */
 import { describe, expect, it } from 'vitest'
@@ -7,6 +7,7 @@ import { ValidationError } from '../errors'
 import {
   estimateMaterialVolume,
   calculateFillDepth,
+  calculateBagVolume,
   calculateHeadspace,
   getHeadspaceStatus,
   recommendDoubleBag,
@@ -80,6 +81,29 @@ describe('calculateFillDepth', () => {
   it('rejects non-positive bag length', () => {
     expect(() => calculateFillDepth(12.3, 17.8, 0)).toThrow(ValidationError)
     expect(() => calculateFillDepth(12.3, 17.8, -1)).toThrow(ValidationError)
+  })
+})
+
+describe('calculateBagVolume', () => {
+  it('quart bag (17.8×20.3×0.17 cm) → 61.4 cm³', () => {
+    // 17.8 × 20.3 × 0.17 = 61.438 → 61.4
+    expect(calculateBagVolume(17.8, 20.3, 0.17)).toBe(61.4)
+  })
+
+  it('gallon bag (28.0×27.9×0.25 cm) → 195.3 cm³', () => {
+    expect(calculateBagVolume(28.0, 27.9, 0.25)).toBe(195.3)
+  })
+
+  it('returns 0.0 when any dimension is zero', () => {
+    expect(calculateBagVolume(0, 20.3, 0.17)).toBe(0.0)
+    expect(calculateBagVolume(17.8, 0, 0.17)).toBe(0.0)
+    expect(calculateBagVolume(17.8, 20.3, 0)).toBe(0.0)
+  })
+
+  it('rejects negative dimensions', () => {
+    expect(() => calculateBagVolume(-1, 20.3, 0.17)).toThrow(ValidationError)
+    expect(() => calculateBagVolume(17.8, -1, 0.17)).toThrow(ValidationError)
+    expect(() => calculateBagVolume(17.8, 20.3, -0.1)).toThrow(ValidationError)
   })
 })
 
