@@ -38,6 +38,8 @@ export interface ReverseFullWorkflowInput {
   extractionEfficiency: number
 }
 
+// FUTURE-API: retained for any future decarb-only reverse flow. See DESIGN.md
+// "Engine Layer".
 /**
  * Reverse decarboxylation: given desired decarbed THC output,
  * solve backward for required material weight in grams.
