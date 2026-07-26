@@ -68,6 +68,26 @@ beforeEach(() => {
   }
 })
 
+/** Override the matchMedia stub so the next render sees a different
+ * `matches` value. Used by the P2.4 reduced-motion tests to flip
+ * `prefers-reduced-motion: reduce` between cases. */
+function setMatchMedia(matches: boolean) {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: (query: string) => ({
+      matches,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  })
+}
+
 /** Reset the calculator slices to a deterministic state. */
 function resetCalculator() {
   useAppStore.setState({
@@ -402,5 +422,40 @@ describe('DoseTab — classification label mapping', () => {
         screen.getByTestId('dose-classification').textContent ?? ''
       ).toMatch(/^Strong$/i)
     })
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-26 userstory-audit P2.4 (reduced-motion respect)            */
+/*                                                                    */
+/* The result-bloom and unit-toggle animations must NOT play when the  */
+/* user has set `prefers-reduced-motion: reduce`. The per-component   */
+/* class swap is the testable contract: with reduced motion on, the   */
+/* `result-bloom` class is conditionally excluded from the result    */
+/* span. The globals.css fallback is owned by the design-system      */
+/* agent; we only assert the per-component class swap here.          */
+/* ------------------------------------------------------------------ */
+
+describe('DoseTab — audit P2.4 (prefers-reduced-motion)', () => {
+  beforeEach(() => {
+    resetCalculator()
+    // Reset to default (matches: false) between tests.
+    setMatchMedia(false)
+  })
+
+  it('omits the result-bloom class on the classification span when reduced motion is on', () => {
+    setMatchMedia(true)
+    render(<DoseTab />)
+    const cls = screen.getByTestId('dose-classification')
+    // With reduced motion on, the `result-bloom` class must NOT
+    // be present (the conditional swap is the testable contract).
+    expect(cls.className).not.toMatch(/result-bloom/)
+  })
+
+  it('carries the result-bloom class on the classification span when reduced motion is off', () => {
+    setMatchMedia(false)
+    render(<DoseTab />)
+    const cls = screen.getByTestId('dose-classification')
+    expect(cls.className).toMatch(/result-bloom/)
   })
 })

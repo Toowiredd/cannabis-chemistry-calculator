@@ -53,6 +53,7 @@ import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
 import { UnitToggle } from 'renderer/src/components/UnitToggle'
 import { OverrideBadge } from 'renderer/src/components/OverrideBadge'
 import { DecarbHeatmap } from 'renderer/src/components/DecarbHeatmap'
+import { useReducedMotion } from '../hooks/useReducedMotion'
 
 /* ------------------------------------------------------------------ */
 /* Small helpers                                                      */
@@ -378,6 +379,15 @@ export function DecarbTab() {
       DECARB_METHODS.find(m => m.id === decarb.presetId) ?? DECARB_METHODS[0],
     [decarb.presetId]
   )
+
+  // 2026-07-26 P2.4 — honor the OS-level prefers-reduced-motion
+  // setting. With reduced motion on, the result-bloom animation is
+  // omitted entirely (the `result-bloom` class is conditionally
+  // excluded). The globals.css fallback also shortens the animation
+  // duration to 0.01ms, but the per-component class swap is the
+  // testable contract. Also drives the UnitToggle class swap
+  // (omit `unit-toggle-transition` when reduced motion is on).
+  const reducedMotion = useReducedMotion()
 
   /* Local UI state */
   const [showFormula, setShowFormula] = useState(false)
@@ -1163,11 +1173,17 @@ export function DecarbTab() {
                           })()
                   }
                 />
-                <UnitToggle
-                  onChange={handleWeightUnitToggle}
-                  options={['g', 'oz'] as const}
-                  value={units.weightUnit}
-                />
+                <span
+                  className={
+                    reducedMotion ? '' : 'unit-toggle-transition inline-flex'
+                  }
+                >
+                  <UnitToggle
+                    onChange={handleWeightUnitToggle}
+                    options={['g', 'oz'] as const}
+                    value={units.weightUnit}
+                  />
+                </span>
               </div>
             }
           </InputRow>
@@ -1462,11 +1478,19 @@ export function DecarbTab() {
                       type="number"
                       value={tempValue}
                     />
-                    <UnitToggle
-                      onChange={handleTempUnitToggle}
-                      options={['C', 'F'] as const}
-                      value={units.tempUnit}
-                    />
+                    <span
+                      className={
+                        reducedMotion
+                          ? ''
+                          : 'unit-toggle-transition inline-flex'
+                      }
+                    >
+                      <UnitToggle
+                        onChange={handleTempUnitToggle}
+                        options={['C', 'F'] as const}
+                        value={units.tempUnit}
+                      />
+                    </span>
                   </div>
                 }
               </InputRow>
@@ -1703,7 +1727,10 @@ export function DecarbTab() {
                   Expected
                 </span>
                 <span
-                  className="result-bloom text-lg font-semibold text-success"
+                  className={cn(
+                    'text-lg font-semibold text-success',
+                    reducedMotion ? '' : 'result-bloom'
+                  )}
                   data-testid="decarb-expected"
                   key={
                     results

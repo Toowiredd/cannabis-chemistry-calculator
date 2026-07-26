@@ -24,6 +24,7 @@ import { InputRow } from 'renderer/src/components/InputRow'
 import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
 import { DoseRadarChart } from 'renderer/src/components/DoseRadarChart'
 import { SmartSuggestPanel } from 'renderer/src/components/SmartSuggestPanel'
+import { useReducedMotion } from '../hooks/useReducedMotion'
 
 /* ------------------------------------------------------------------ */
 /* Small helpers (canonical versions imported from engine/formatting)   */
@@ -277,6 +278,15 @@ export function DoseTab() {
   const decarb = useAppStore(s => s.decarb)
   const infusion = useAppStore(s => s.infusion)
   const isReverse = dose.reverseMode
+
+  // 2026-07-26 P2.4 — honor the OS-level prefers-reduced-motion
+  // setting. The global CSS fallback in globals.css catches the
+  // animations system-wide, but the per-component class swap
+  // ensures tests can pin the contract: with reduced motion on,
+  // the result-bloom span carries `result-bloom-static` (no
+  // animation); with it off, it carries `result-bloom` (the
+  // animated class).
+  const reducedMotion = useReducedMotion()
 
   /* Track the last upstream value we synced, so we can overwrite our own
      auto-fill but NOT a manual user edit. */
@@ -813,7 +823,10 @@ export function DoseTab() {
                 mg per Serving
               </span>
               <span
-                className="result-bloom mt-1 text-2xl font-bold text-foreground"
+                className={cn(
+                  'mt-1 text-2xl font-bold text-foreground',
+                  reducedMotion ? '' : 'result-bloom'
+                )}
                 key={
                   results
                     ? `dose-mg-${fmt1(results.mgPerServing)}`
@@ -835,7 +848,10 @@ export function DoseTab() {
                 Classification
               </span>
               <span
-                className="result-bloom mt-1 text-2xl font-bold text-success"
+                className={cn(
+                  'mt-1 text-2xl font-bold text-success',
+                  reducedMotion ? '' : 'result-bloom'
+                )}
                 data-testid="dose-classification"
                 key={
                   results

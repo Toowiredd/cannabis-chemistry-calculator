@@ -28,6 +28,7 @@ import { InputRow } from 'renderer/src/components/InputRow'
 import { TooltipIcon } from 'renderer/src/components/TooltipIcon'
 import { UnitToggle } from 'renderer/src/components/UnitToggle'
 import { OverrideBadge } from 'renderer/src/components/OverrideBadge'
+import { useReducedMotion } from '../hooks/useReducedMotion'
 
 /* ------------------------------------------------------------------ */
 /* Small helpers (canonical versions imported from engine/formatting)   */
@@ -131,6 +132,14 @@ export function InfusionTab() {
   const setUnits = useAppStore(s => s.setUnits)
   const decarb = useAppStore(s => s.decarb)
   const lastDecarbExpected = useAppStore(s => s.lastDecarbExpected)
+
+  // 2026-07-26 P2.4 — honor the OS-level prefers-reduced-motion
+  // setting. With reduced motion on, the result-bloom animation is
+  // omitted entirely (the `result-bloom` class is conditionally
+  // excluded). The globals.css fallback also shortens the animation
+  // duration to 0.01ms, but the per-component class swap is the
+  // testable contract.
+  const reducedMotion = useReducedMotion()
 
   /* Track the last upstream value we synced, so we can overwrite our own
      auto-fill but NOT a manual user edit. */
@@ -515,11 +524,17 @@ export function InfusionTab() {
                           })()
                   }
                 />
-                <UnitToggle
-                  onChange={handleVolumeUnitToggle}
-                  options={['mL', 'tsp', 'tbsp', 'cup'] as const}
-                  value={units.volumeUnit}
-                />
+                <span
+                  className={
+                    reducedMotion ? '' : 'unit-toggle-transition inline-flex'
+                  }
+                >
+                  <UnitToggle
+                    onChange={handleVolumeUnitToggle}
+                    options={['mL', 'tsp', 'tbsp', 'cup'] as const}
+                    value={units.volumeUnit}
+                  />
+                </span>
               </div>
             }
           </InputRow>
@@ -574,7 +589,10 @@ export function InfusionTab() {
               </span>
             </div>
             <span
-              className="result-bloom mt-1 text-2xl font-bold text-foreground"
+              className={cn(
+                'mt-1 text-2xl font-bold text-foreground',
+                reducedMotion ? '' : 'result-bloom'
+              )}
               data-testid="infusion-thc-result"
               key={
                 results
@@ -601,7 +619,10 @@ export function InfusionTab() {
               Concentration
             </span>
             <span
-              className="result-bloom mt-1 text-2xl font-bold text-success"
+              className={cn(
+                'mt-1 text-2xl font-bold text-success',
+                reducedMotion ? '' : 'result-bloom'
+              )}
               data-testid="infusion-concentration-result"
               key={
                 results
