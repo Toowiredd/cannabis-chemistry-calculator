@@ -364,10 +364,10 @@ describe('appStore persist — v1 → v2 migration (JournalEntry.source backfill
     // Give the debounced persist writer a moment to flush.
     for (let i = 0; i < 50; i++) {
       const persisted = readPersisted()
-      if (persisted?.version === 7) break
+      if (persisted?.version === 8) break
       await new Promise(resolve => setTimeout(resolve, 10))
     }
-    expect(readPersisted()?.version).toBe(7)
+    expect(readPersisted()?.version).toBe(8)
   })
 })
 
@@ -731,10 +731,10 @@ describe('appStore persist — v2 → v3 migration (InventoryItem.kind backfill)
     // Envelope upgrades to version 7 (v3→v4→v7 migration chain ran).
     for (let i = 0; i < 50; i++) {
       const persisted = readPersisted()
-      if (persisted?.version === 7) break
+      if (persisted?.version === 8) break
       await new Promise(resolve => setTimeout(resolve, 10))
     }
-    expect(readPersisted()?.version).toBe(7)
+    expect(readPersisted()?.version).toBe(8)
 
     // materialMode: 'avb' survives rehydrate.
     expect(useAppStore.getState().decarb.materialMode).toBe('avb')
@@ -1023,10 +1023,10 @@ describe('appStore persist — v3 to v4 migration (JournalEntry.materialWeightUn
     //    untouched).
     for (let i = 0; i < 50; i++) {
       const persisted = readPersisted()
-      if (persisted?.version === 7) break
+      if (persisted?.version === 8) break
       await new Promise(resolve => setTimeout(resolve, 10))
     }
-    expect(readPersisted()?.version).toBe(7)
+    expect(readPersisted()?.version).toBe(8)
   })
 
   it('chained v2 → v3 → v4 migration: source, kind, AND materialWeightUnit all backfilled on a legacy v2 entry', async () => {

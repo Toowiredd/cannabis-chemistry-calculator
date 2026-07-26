@@ -2,6 +2,18 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import type { Strain } from 'renderer/src/engine/models'
+// Stage 1 Configuration Wizard types (2026-07-26 wizard Week 1, per
+// docs/wizard-architecture-2026-07-26.md §3.3, §3.4, §6). The new
+// `WizardSelections` shape is aliased to `Stage1WizardSelections` to
+// avoid colliding with the legacy kit-configurator `WizardSelections`
+// in this file (the kit configurator backs FirstTimerGuide and is
+// being deprecated per §8.6 in a later week — for now both shapes
+// coexist on the `wizard` slice, with the Stage 1 fields added as
+// first-class members of `WizardState`).
+import type {
+  ProductType,
+  WizardSelections as Stage1WizardSelections,
+} from './wizardTypes'
 
 export type TabId =
   | 'decarb'
@@ -234,7 +246,50 @@ export interface WizardState {
   dismissed: boolean
   /** Current step (0..5). Session-only. */
   stepIndex: number
+  /** Legacy multi-select kit-configurator selections. See `WizardSelections`. */
   selections: WizardSelections
+  // ---------------------------------------------------------------------
+  // Stage 1 Configuration Wizard (2026-07-26, wizard Week 1).
+  //
+  // The fields below are the persisted state for the new two-stage
+  // flow described in docs/wizard-architecture-2026-07-26.md §3.3.
+  // They live on the same `wizard` slice as the legacy kit configurator
+  // (which backs FirstTimerGuide, being deprecated per §8.6 in a later
+  // week) so the slice name stays stable. The new Stage 1 UI is
+  // feature-flagged behind `wizardEnabled: false` (see the top-level
+  // `wizardEnabled` field on `AppStore`) and is a no-op for users
+  // who haven't opted in. The v7→v8 migration initializes these
+  // fields to a clean empty state so consumers can rely on
+  // present-but-default values after the one-time upgrade.
+  // ---------------------------------------------------------------------
+
+  /**
+   * Which of the 5 product-type branches the user picked at step 0.
+   * `null` = not yet picked (the wizard opens on the product-type
+   * picker). Per §3.1, the branch drives which ordered step list the
+   * wizard renders (`branches[state.branch].steps`).
+   */
+  branch: ProductType | null
+  /**
+   * Current step index in the branch's step list. `0` = product-type
+   * picker. Persisted so a mid-wizard abandon can resume on the same
+   * step (per §3.5).
+   */
+  currentStep: number
+  /**
+   * Per-step selections for the Stage 1 wizard. Distinct from the
+   * legacy `selections` field above (which holds the multi-select
+   * kit-configurator shape). Named to avoid the collision while
+   * both shapes coexist during the deprecation window.
+   */
+  stage1Selections: Stage1WizardSelections
+  /**
+   * Visited step indices, in order. The head is the most recent
+   * step the user was on; the tail is the entry point (step 0).
+   * Backs the "back" button's restore-to-previous-step behaviour
+   * in `prevStep`.
+   */
+  stepHistory: number[]
 }
 
 export const DEFAULT_WIZARD_SELECTIONS: WizardSelections = {
@@ -244,11 +299,19 @@ export const DEFAULT_WIZARD_SELECTIONS: WizardSelections = {
   formatIds: [],
 }
 
+/** Default Stage 1 Configuration Wizard selections (empty object — all fields optional). */
+export const DEFAULT_STAGE1_WIZARD_SELECTIONS: Stage1WizardSelections = {}
+
 export const DEFAULT_WIZARD_STATE: WizardState = {
   active: false,
   dismissed: false,
   stepIndex: 0,
   selections: DEFAULT_WIZARD_SELECTIONS,
+  // Stage 1 Configuration Wizard defaults (2026-07-26, wizard Week 1).
+  branch: null,
+  currentStep: 0,
+  stage1Selections: DEFAULT_STAGE1_WIZARD_SELECTIONS,
+  stepHistory: [],
 }
 
 function todayIso(): string {
@@ -616,10 +679,87 @@ interface AppStore {
    * call `dismissOnboarding` directly. Removed in a future migration.
    */
   dismissWizard: () => void
+
+  // ---------------------------------------------------------------------
+  // Stage 1 Configuration Wizard (2026-07-26, wizard Week 1).
+  //
+  // The new two-stage flow per docs/wizard-architecture-2026-07-26.md
+  // §3.3, §3.4, §6. Behind a feature flag (`wizardEnabled: false` by
+  // default) so the new UI is opt-in while the legacy kit configurator
+  // (above) continues to back FirstTimerGuide. The flag is read in
+  // `src/renderer/screens/main.tsx` to decide whether to render the new
+  // WizardScreen or the existing GroupedTabNav. The Stage 1 actions
+  // are all no-ops for users with the flag off — they only mutate the
+  // new `wizard.branch / currentStep / stage1Selections / stepHistory`
+  // fields, which are isolated from the legacy kit-configurator fields.
+  // ---------------------------------------------------------------------
+
+  /**
+   * Feature flag for the new Stage 1 Configuration Wizard UI. Default
+   * `false` (opt-in). The `main.tsx` boot effect reads this flag and
+   * renders the WizardScreen when `true`, GroupedTabNav otherwise.
+   * Persisted in localStorage so the user's preference survives
+   * reloads (per §7 Week 1: "Behind a feature flag").
+   */
+  wizardEnabled: boolean
+  /** Set the Stage 1 wizard feature flag. */
+  setWizardEnabled: (enabled: boolean) => void
+  /**
+   * Pick a product-type branch at step 0. Resets the rest of the
+   * Stage 1 wizard state (currentStep, stage1Selections, stepHistory)
+   * to a clean empty state so the user starts the new branch from
+   * scratch. Persisted.
+   */
+  setProductType: (branch: ProductType) => void
+  /**
+   * Write a single Stage 1 selection key. `key` is a member of
+   * `Stage1WizardSelections`; `value` must be the non-undefined
+   * shape of that key (e.g. `{ value: 28, unit: 'g' }` for `weight`).
+   * Pass `undefined` to clear the key. Persisted.
+   */
+  setSelection: <K extends keyof Stage1WizardSelections>(
+    key: K,
+    value: NonNullable<Stage1WizardSelections[K]> | undefined
+  ) => void
+  /**
+   * Advance to the next step. Pushes the current `currentStep` onto
+   * `stepHistory` and increments `currentStep` by 1. Persisted.
+   */
+  nextStep: () => void
+  /**
+   * Go back to the previous step. Pops the head of `stepHistory` and
+   * sets `currentStep` to that value. If `stepHistory` is empty, this
+   * is a no-op (we're already at step 0, which has no "back"). Persisted.
+   */
+  prevStep: () => void
+  /**
+   * Reset every Stage 1 field back to the empty defaults. Keeps the
+   * legacy kit-configurator fields (`active`, `dismissed`, `stepIndex`,
+   * legacy `selections`) and the `wizardEnabled` feature flag as-is.
+   * Persisted.
+   */
+  resetWizard: () => void
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+/**
+ * Type-guard for the Stage 1 wizard's product-type branch literal.
+ * Used in the `merge` function and the v7→v8 migration to coerce a
+ * potentially-`undefined` / potentially-corrupted persisted value into
+ * one of the 5 valid `ProductType` literals. Returns `false` for
+ * `null`, `undefined`, or any string outside the union.
+ */
+function isProductType(value: unknown): value is ProductType {
+  return (
+    value === 'flower' ||
+    value === 'concentrate' ||
+    value === 'avb' ||
+    value === 'edible' ||
+    value === 'topical'
+  )
 }
 
 function stringish(value: unknown, fallback: string): string {
@@ -858,6 +998,12 @@ export const useAppStore = create<AppStore>()(
       wizard: {
         ...DEFAULT_WIZARD_STATE,
         selections: { ...DEFAULT_WIZARD_SELECTIONS },
+        // Stage 1 Configuration Wizard defaults (2026-07-26, wizard
+        // Week 1). The new fields are already set on DEFAULT_WIZARD_STATE
+        // but we re-assert the empty selections here for clarity (and
+        // to give a future engineer a single grep target for the
+        // Stage 1 initial state).
+        stage1Selections: { ...DEFAULT_STAGE1_WIZARD_SELECTIONS },
       },
       setWizardActive: active =>
         set(state => ({
@@ -928,6 +1074,110 @@ export const useAppStore = create<AppStore>()(
             ...state.wizard,
             active: false,
             dismissed: true,
+          },
+        })),
+
+      // -----------------------------------------------------------------
+      // Stage 1 Configuration Wizard implementations (2026-07-26,
+      // wizard Week 1). Feature-flagged behind `wizardEnabled: false`
+      // by default; the flag is read by `main.tsx` to decide which
+      // surface to render. The new fields are isolated from the legacy
+      // kit-configurator fields so the old flow keeps working
+      // untouched for users who haven't opted in.
+      // -----------------------------------------------------------------
+
+      // Default the feature flag to `false` so the new UI is opt-in.
+      // The flag is persisted (see partialize below) so a user who
+      // enables it keeps it across reloads. A user who never touches
+      // the flag stays on the legacy GroupedTabNav + FirstTimerGuide
+      // surface indefinitely.
+      wizardEnabled: false,
+      setWizardEnabled: enabled =>
+        set(state => {
+          if (state.wizardEnabled === enabled) return {}
+          return { wizardEnabled: enabled }
+        }),
+      // Picking a branch resets every Stage 1 field so the user
+      // starts the new branch from a clean slate. The legacy
+      // kit-configurator fields are untouched.
+      setProductType: branch =>
+        set(state => ({
+          wizard: {
+            ...state.wizard,
+            branch,
+            currentStep: 0,
+            stage1Selections: DEFAULT_STAGE1_WIZARD_SELECTIONS,
+            stepHistory: [],
+          },
+        })),
+      // Single-key write into `stage1Selections`. Passing `undefined`
+      // deletes the key (Partial<...> semantics). No-op when the new
+      // value === the existing value, so a re-render of the same
+      // selection doesn't trigger a persist flush.
+      setSelection: (key, value) =>
+        set(state => {
+          const current = state.wizard.stage1Selections[key]
+          if (current === value) return {}
+          const nextSelections: Stage1WizardSelections =
+            value === undefined
+              ? { ...state.wizard.stage1Selections }
+              : { ...state.wizard.stage1Selections, [key]: value }
+          if (value === undefined) {
+            delete (nextSelections as Record<string, unknown>)[key as string]
+          }
+          return {
+            wizard: { ...state.wizard, stage1Selections: nextSelections },
+          }
+        }),
+      // Advance: push the current step onto history, then increment.
+      // The push-then-increment order means `stepHistory[head] ===
+      // currentStep` BEFORE the increment, which is the "step the user
+      // is leaving" — the right value to pop on `prevStep` to restore.
+      nextStep: () =>
+        set(state => {
+          const prev = state.wizard.currentStep
+          const next = prev + 1
+          // Guard against runaway increments (defensive — the UI
+          // shouldn't allow advancing past the last step, but the
+          // store is the last line of defense).
+          if (next > 999) return {}
+          return {
+            wizard: {
+              ...state.wizard,
+              currentStep: next,
+              stepHistory: [...state.wizard.stepHistory, prev],
+            },
+          }
+        }),
+      // Go back: pop the head of stepHistory and set currentStep to
+      // that value. If history is empty (we're at step 0), this is a
+      // no-op — there's no "back" from the product-type picker.
+      prevStep: () =>
+        set(state => {
+          const history = state.wizard.stepHistory
+          if (history.length === 0) return {}
+          const newHistory = history.slice(0, -1)
+          const restoredStep = history[history.length - 1] ?? 0
+          return {
+            wizard: {
+              ...state.wizard,
+              currentStep: restoredStep,
+              stepHistory: newHistory,
+            },
+          }
+        }),
+      // Reset every Stage 1 field to its empty default. Keeps the
+      // legacy kit-configurator fields and `wizardEnabled` flag
+      // untouched so the user's "never re-prompt" preference and
+      // feature-flag opt-in survive a reset.
+      resetWizard: () =>
+        set(state => ({
+          wizard: {
+            ...state.wizard,
+            branch: null,
+            currentStep: 0,
+            stage1Selections: DEFAULT_STAGE1_WIZARD_SELECTIONS,
+            stepHistory: [],
           },
         })),
 
@@ -1219,13 +1469,20 @@ export const useAppStore = create<AppStore>()(
       // snapshot with `source: 'unknown'` so consumers can rely on a
       // present-but-default value after a one-time upgrade.
       //
-      // Bumped to v1 when the multi-select wizard slice was added. Older v0
-      // snapshots have no wizard fields at all; the migration backfills
-      // missing array keys with `[]` so `toggleWizardSelection` never has
-      // to defend against `undefined`. Partializing only `dismissed` +
-      // `selections` keeps the on-disk shape minimal and the runtime fields
-      // (`active`, `stepIndex`) reset to defaults on every reload.
-      version: 7,
+      // Bumped to v8 in the 2026-07-26 wizard Week 1 commit. The
+      // v7→v8 migration initializes the Stage 1 Configuration Wizard
+      // fields on the `wizard` slice (`branch: null`, `currentStep: 0`,
+      // `stage1Selections: {}`, `stepHistory: []`) and the top-level
+      // `wizardEnabled: false` feature flag. The migration is
+      // idempotent — running it on a v8-shaped envelope is a no-op
+      // because every field check passes on the second pass.
+      //
+      // The legacy kit-configurator fields (`active`, `dismissed`,
+      // `stepIndex`, `selections`) are untouched by the v7→v8
+      // migration. They were already shaped correctly in v7 and
+      // remain the backing store for FirstTimerGuide until the §8.6
+      // deprecation lands in a later week.
+      version: 8,
       migrate: (persistedState: unknown, version: number): unknown => {
         if (!isRecord(persistedState)) return persistedState
 
@@ -1650,6 +1907,84 @@ export const useAppStore = create<AppStore>()(
           }
         }
 
+        // v7 -> v8: 2026-07-26 wizard Week 1. The Stage 1 Configuration
+        // Wizard is added behind a feature flag (`wizardEnabled: false`).
+        // The migration:
+        //
+        //   1. Initializes the new Stage 1 fields on the `wizard` slice
+        //      — `branch: null`, `currentStep: 0`, `stage1Selections: {}`,
+        //      `stepHistory: []` — so consumers can rely on
+        //      present-but-default values after the one-time upgrade.
+        //      A v7 envelope that already has these fields (a v8
+        //      snapshot that was hand-edited, or a test fixture) keeps
+        //      its own values; the migration only writes the defaults
+        //      when a field is missing. Invalid values (e.g.
+        //      `branch: 'banana'`, `currentStep: -3`) are coerced to
+        //      the default rather than propagated.
+        //
+        //   2. Initializes the top-level `wizardEnabled: false` feature
+        //      flag on the envelope. The flag is read by
+        //      `src/renderer/screens/main.tsx` to decide whether to
+        //      render the new WizardScreen. Default `false` keeps the
+        //      new UI opt-in — existing users see the legacy
+        //      GroupedTabNav + FirstTimerGuide surface until they
+        //      explicitly enable it (a future commit).
+        //
+        // The migration is idempotent: a v8-shaped envelope already has
+        // the new fields, so the second pass is a no-op.
+        if (version < 8) {
+          // Stage 1 wizard fields. Read the existing values defensively
+          // and write them back with defaults applied only where
+          // missing or invalid. The `isProductType` type-guard and the
+          // finite-number check on `currentStep` mirror the coercion
+          // pattern in the `merge` function below.
+          const existingWizard = isRecord(state.wizard) ? state.wizard : {}
+          const existingBranch = (existingWizard as { branch?: unknown }).branch
+          const existingCurrentStep = (existingWizard as { currentStep?: unknown })
+            .currentStep
+          const existingStage1Selections = isRecord(
+            (existingWizard as { stage1Selections?: unknown }).stage1Selections
+          )
+            ? (existingWizard as { stage1Selections: Record<string, unknown> })
+                .stage1Selections
+            : {}
+          const existingStepHistoryValue = (
+            existingWizard as { stepHistory?: unknown }
+          ).stepHistory
+          const existingStepHistory = Array.isArray(existingStepHistoryValue)
+            ? (existingStepHistoryValue as unknown[]).filter(
+                (n): n is number => typeof n === 'number' && Number.isFinite(n)
+              )
+            : []
+
+          const nextBranch = isProductType(existingBranch) ? existingBranch : null
+          const nextCurrentStep =
+            typeof existingCurrentStep === 'number' &&
+            Number.isFinite(existingCurrentStep) &&
+            existingCurrentStep >= 0
+              ? Math.floor(existingCurrentStep)
+              : 0
+
+          state = {
+            ...state,
+            wizard: {
+              ...existingWizard,
+              branch: nextBranch,
+              currentStep: nextCurrentStep,
+              stage1Selections: { ...existingStage1Selections },
+              stepHistory: existingStepHistory,
+            },
+            // `wizardEnabled` is a top-level boolean. Coerce
+            // non-boolean / missing values to `false` (the safe
+            // default — opt-in).
+            wizardEnabled:
+              typeof (state as { wizardEnabled?: unknown }).wizardEnabled ===
+              'boolean'
+                ? (state as { wizardEnabled: boolean }).wizardEnabled
+                : false,
+          }
+        }
+
         return state
       },
       // Custom merge: shallow per-top-level key, BUT the `wizard` slice gets
@@ -1689,13 +2024,58 @@ export const useAppStore = create<AppStore>()(
               : [],
           }
 
+          // Stage 1 Configuration Wizard (2026-07-26, wizard Week 1).
+          // The v7→v8 migration initializes the Stage 1 fields to
+          // clean empty defaults, so a v8-shaped persisted envelope
+          // has all of them. A pre-v8 envelope (or a hand-rolled
+          // envelope from testing) is missing the new fields; the
+          // merge falls back to the runtime defaults so consumers
+          // never see `undefined` on the new keys.
+          const persistedStage1Selections = isRecord(
+            persistedWizard.stage1Selections
+          )
+            ? (persistedWizard.stage1Selections as Stage1WizardSelections)
+            : {}
+          const persistedStepHistory = Array.isArray(
+            persistedWizard.stepHistory
+          )
+            ? (persistedWizard.stepHistory as number[])
+            : []
+
           base.wizard = {
             ...DEFAULT_WIZARD_STATE,
             ...persistedWizard,
             selections: mergedSelections,
             active: false,
             stepIndex: 0,
+            // Stage 1 fields: coerce to the expected shape on rehydrate.
+            // `branch` defaults to null (not yet picked) when missing
+            // or when the persisted value isn't one of the 5 valid
+            // literals. `currentStep` clamps to a non-negative integer.
+            branch: isProductType(persistedWizard.branch)
+              ? persistedWizard.branch
+              : null,
+            currentStep:
+              typeof persistedWizard.currentStep === 'number' &&
+              Number.isFinite(persistedWizard.currentStep) &&
+              persistedWizard.currentStep >= 0
+                ? Math.floor(persistedWizard.currentStep)
+                : 0,
+            stage1Selections: {
+              ...DEFAULT_STAGE1_WIZARD_SELECTIONS,
+              ...persistedStage1Selections,
+            },
+            stepHistory: persistedStepHistory,
           }
+        }
+        // `wizardEnabled` feature flag: coerce to a boolean on
+        // rehydrate so a corrupted snapshot can't sneak a non-boolean
+        // value past the type system. Missing → false (opt-in default).
+        if (isRecord(persistedState)) {
+          const persistedFlag = (persistedState as { wizardEnabled?: unknown })
+            .wizardEnabled
+          ;(base as { wizardEnabled: boolean }).wizardEnabled =
+            typeof persistedFlag === 'boolean' ? persistedFlag : false
         }
         return base
       },
@@ -1715,13 +2095,24 @@ export const useAppStore = create<AppStore>()(
         label: state.label,
         inventory: state.inventory,
         firstRunDismissed: state.firstRunDismissed,
-        // Wizard: only `dismissed` and `selections` are persisted.
+        // Wizard: `dismissed` + legacy `selections` (kit configurator) +
+        // Stage 1 fields (`branch`, `currentStep`, `stage1Selections`,
+        // `stepHistory`) + `wizardEnabled` feature flag are persisted.
         // `active` and `stepIndex` are runtime-only — they must reset to
         // `false` / `0` on every reload so the modal never opens itself.
+        // The Stage 1 fields survive reload so a mid-wizard abandon
+        // resumes on the same step (per §3.5).
         wizard: {
           dismissed: state.wizard.dismissed,
           selections: state.wizard.selections,
+          branch: state.wizard.branch,
+          currentStep: state.wizard.currentStep,
+          stage1Selections: state.wizard.stage1Selections,
+          stepHistory: state.wizard.stepHistory,
         },
+        // Stage 1 Configuration Wizard feature flag (2026-07-26, wizard
+        // Week 1). Persisted so the user's opt-in survives reloads.
+        wizardEnabled: state.wizardEnabled,
       }),
     }
   )
