@@ -91,6 +91,21 @@ function enableWizard() {
 }
 
 /**
+ * Reset `wizardEnabled` to `false` between tests. The Stage 2
+ * tests below flip the flag on via `enableWizard()`; without
+ * this reset, the persist middleware would write `true` to
+ * localStorage and pollute the next test file's rehydrate
+ * (notably `screens/__tests__/main.test.tsx` which depends on
+ * the default `false` value). Week 4 flake fix.
+ */
+function disableWizard() {
+  useAppStore.setState({
+    ...(useAppStore.getState() as unknown as Record<string, unknown>),
+    wizardEnabled: false,
+  } as Partial<ReturnType<typeof useAppStore.getState>>)
+}
+
+/**
  * Reset the store's `execution` slice to the default empty form
  * (so each Stage 2 test starts from a clean slate — no leaked
  * `currentStepId` from a prior test). Also reset the
@@ -133,6 +148,12 @@ function stubMatchMedia() {
 beforeEach(() => {
   resetStage2()
   stubMatchMedia()
+  // Week 4 flake fix: reset the wizard feature flag so the
+  // next test file's rehydrate sees the default `false`
+  // (otherwise `enableWizard()` from a prior test would
+  // persist `true` to localStorage and break
+  // `screens/__tests__/main.test.tsx`).
+  disableWizard()
 })
 
 /* ------------------------------------------------------------------ */

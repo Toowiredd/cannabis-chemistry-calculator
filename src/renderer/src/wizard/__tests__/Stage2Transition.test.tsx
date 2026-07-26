@@ -52,6 +52,23 @@ function enableWizard() {
 }
 
 /**
+ * Week 4 flake fix: reset `wizardEnabled` to `false` between
+ * tests. The Stage 2 tests flip the flag on via
+ * `enableWizard()`; without this reset, the persist middleware
+ * writes `true` to localStorage and pollutes the next test
+ * file's rehydrate (notably
+ * `screens/__tests__/main.test.tsx` which depends on the
+ * default `false` value). Mirrors the helper added to
+ * Stage2Recalculating.test.tsx.
+ */
+function disableWizard() {
+  useAppStore.setState({
+    ...(useAppStore.getState() as unknown as Record<string, unknown>),
+    wizardEnabled: false,
+  } as Partial<ReturnType<typeof useAppStore.getState>>)
+}
+
+/**
  * Reset the store's `execution` slice to the default empty form.
  * Vitest doesn't run `beforeEach` in the React render lifecycle
  * — components mount once per test and read whatever the store
@@ -100,6 +117,9 @@ function stubMatchMedia() {
 beforeEach(() => {
   resetExecution()
   stubMatchMedia()
+  // Week 4 flake fix: reset the wizard feature flag so the
+  // next test file's rehydrate sees the default `false`.
+  disableWizard()
 })
 
 /* ------------------------------------------------------------------ */

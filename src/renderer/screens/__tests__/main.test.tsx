@@ -51,6 +51,18 @@ beforeAll(() => {
 })
 
 beforeEach(() => {
+  // The wizard feature flag is persisted to localStorage via
+  // the Zustand persist middleware. A prior test file (e.g.
+  // Stage2Transition / Stage2Recalculating) may have set
+  // `wizardEnabled: true` and the persist middleware may have
+  // written that to localStorage. Without clearing here, the
+  // rehydrate on this test file's first render can pull
+  // `true` and the `wizardEnabled: false` test below fails
+  // with "Unable to find grouped-tab-nav-workflow". The
+  // `setWizardEnabled(false)` after the clear is the explicit
+  // "this test wants the flag off" signal; the clear is the
+  // "no leftover from a prior test file" guard.
+  localStorage.clear()
   setWizardEnabled(false)
 })
 
@@ -61,10 +73,15 @@ describe('MainScreen — wizard feature flag', () => {
     // The GroupedTabNav mounts the carousel face for each
     // workflow tab. We can assert against the grouped tab nav
     // testid, but it's inside a <Suspense> + lazy chunk, so
-    // wait for it via findByTestId.
+    // wait for it via findByTestId. Bumped to 5s (was 2s) —
+    // the lazy chunk for the carousel's workflow face can
+    // take >2s when the full suite is running in parallel
+    // and module caching is cold for the first time this
+    // file is exercised. The isolation case (this file
+    // alone) still finishes well under 1s.
     expect(
       await screen.findByTestId('grouped-tab-nav-workflow', undefined, {
-        timeout: 2000,
+        timeout: 5000,
       })
     ).toBeTruthy()
     expect(
