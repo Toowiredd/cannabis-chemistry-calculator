@@ -1,5 +1,7 @@
 /**
- * WizardScreen — top-level screen that renders the Stage 1 wizard.
+ * WizardScreen — top-level screen that renders the Stage 1 wizard
+ * AND the Stage 2 execution stepper once the user has tapped
+ * "Begin batch".
  *
  * Per the architecture doc §7:
  *  - Week 1: Behind a `wizardEnabled` feature flag; the product-
@@ -10,24 +12,35 @@
  *    applied via `getEffectiveBranchSequence` — when a step's
  *    `skipIf(state)` returns true, the wizard auto-advances past
  *    it. The terminal "Start" step shows a "Begin batch" CTA
- *    that calls a local `onWizardComplete` callback (no-op for
- *    Week 2 — the Stage 2 transition lands in week 3).
+ *    that wires up to Stage 2 (see Week 3 below).
+ *  - Week 3 (this commit): Tapping "Begin batch" calls
+ *    `beginExecution('preheat-decarb')` on the store. The Stage 2
+ *    stepper mounts when `wizard.execution.currentStepId` is
+ *    non-null. Stage 1 stays mounted alongside the stepper so the
+ *    user can return to it via the stepper's "Back to config" CTA
+ *    (which calls `returnToConfig`).
  *
- * State: held locally in this component for Week 2. The state
+ * State: held locally in this component for Week 2+. The state
  * shape (`wizard/wizardTypes.ts`) is the same as the eventual
  * `appStore.wizard` slice owned by state-routing; the migration
  * is a 1-line change (replace `useState` with
- * `useAppStore(s => s.wizard)`) when state-routing lands.
+ * `useAppStore(s => s.wizard)`) when state-routing lands. The
+ * Stage 2 `execution` slice IS in the store (state-routing's
+ * commit 51f8d89) — that one is read directly here, not
+ * mirrored in local state.
  */
 import { useCallback, useState } from 'react'
 import { cn } from 'renderer/lib/utils'
 import { ChevronRight, RotateCcw } from 'lucide-react'
 import { Wizard } from 'renderer/src/components/Wizard'
+import { ExecutionStepper } from 'renderer/src/components/ExecutionStepper'
+import { useAppStore } from 'renderer/src/stores/appStore'
 import { useWizardEnabled } from 'renderer/src/wizard/wizardFeatureFlag'
 import {
   BRANCH_SEQUENCES,
   getEffectiveBranchSequence,
 } from 'renderer/src/wizard/branchSequences'
+import { buildExecutionSteps } from 'renderer/src/wizard/stage2Steps'
 import {
   DEFAULT_WIZARD_STATE,
   type WizardBranchId,
@@ -45,16 +58,19 @@ export function WizardScreen({ className }: WizardScreenProps) {
   // happens AFTER every hook in this function.
   const enabled = useWizardEnabled()
   const [state, setState] = useState<WizardState>(DEFAULT_WIZARD_STATE)
-  // No-op for Week 2 — the Stage 2 transition lands in week 3.
-  // Captured as a callback so the test can spy on the
-  // "wizard-complete" event and the future wire-up to the
-  // store is a 1-line change.
-  const onWizardComplete = useCallback(() => {
-    // Intentionally empty for Week 2. The Stage 2 stepper
-    // (week 3) will mount here; for now the Begin batch CTA
-    // is a no-op that still marks the wizard as complete
-    // (`state.currentStep` is past the last step).
-  }, [])
+  // Stage 2 wiring (Week 3). The store's `execution` slice was
+  // landed by the state-routing rein in commit 51f8d89; the
+  // actions below are the canonical entry / advance / back
+  // verbs for the Stage 2 stepper. The selectors are stable
+  // (zustand returns the same function reference across renders
+  // when the action hasn't been replaced) so passing them into
+  // `useCallback` deps doesn't cause a re-mount of every
+  // downstream memo.
+  const beginExecution = useAppStore(s => s.beginExecution)
+  const completeExecutionStep = useAppStore(s => s.completeExecutionStep)
+  const skipExecutionStep = useAppStore(s => s.skipExecutionStep)
+  const returnToConfig = useAppStore(s => s.returnToConfig)
+  const execution = useAppStore(s => s.wizard.execution)
 
   /**
    * Advance the wizard past any steps whose `skipIf(state)`
@@ -164,11 +180,17 @@ export function WizardScreen({ className }: WizardScreenProps) {
   const onSelect = useCallback(
     (stepId: string, optionId: string) => {
       // The Start step is the terminal "Begin batch" CTA.
-      // Picking it advances `state.currentStep` past the end
-      // of the canonical sequence (so the `isFinished` check
-      // in render returns true and the "Batch ready" badge
-      // shows) and calls the local `onWizardComplete` callback
-      // (no-op for Week 2; Stage 2 wires it up in week 3).
+      // Picking it (a) advances `state.currentStep` past the
+      // end of the canonical sequence so the `isFinished`
+      // check in render still returns true and the Stage 1
+      // "Batch ready" badge stays visible alongside the Stage
+      // 2 stepper, and (b) calls `beginExecution('preheat-decarb')`
+      // on the store to transition into Stage 2. The
+      // `execution.currentStepId !== null` check below the
+      // Stage 1 render block is what triggers the stepper
+      // mount; Stage 1 itself stays mounted for the entire
+      // batch so the user can hit "Back to config" and pick
+      // up where they left off without re-filling the wizard.
       if (stepId === 'start') {
         setState(prev => {
           const canonical = prev.branch
@@ -179,7 +201,13 @@ export function WizardScreen({ className }: WizardScreenProps) {
             currentStep: canonical.length, // past the end → isFinished
           }
         })
-        onWizardComplete()
+        // The first Stage 2 step is `preheat-decarb` for the
+        // Flower branch (the only branch with Week 3 Stage 2
+        // work). For other branches the stepper's empty list
+        // path renders "No steps to run" — the user can
+        // re-edit their config and re-run Stage 2 once the
+        // branch's Stage 2 steps land in weeks 4-6.
+        beginExecution('preheat-decarb')
         return
       }
       setState(prev => {
@@ -208,7 +236,7 @@ export function WizardScreen({ className }: WizardScreenProps) {
         return advancePastSkippedSteps(next)
       })
     },
-    [advancePastSkippedSteps, decodeSelection, onWizardComplete]
+    [advancePastSkippedSteps, decodeSelection, beginExecution]
   )
 
   const onEdit = useCallback((stepId: string) => {
@@ -235,6 +263,32 @@ export function WizardScreen({ className }: WizardScreenProps) {
   const onReset = useCallback(() => {
     setState(DEFAULT_WIZARD_STATE)
   }, [])
+
+  /**
+   * Stage 2 → Stage 1 transition (Week 3). The store's
+   * `returnToConfig` action clears the `execution` slice but
+   * preserves the Stage 1 selections (which live on a different
+   * code path in this Week 2+ build — local React state). To
+   * give the user a usable Stage 1 view on return, we also
+   * reset the local `currentStep` index to the Start step of
+   * the canonical sequence so the "Begin batch" CTA is visible
+   * again. The selections (branch, method, container, etc.)
+   * are intentionally preserved so the user can re-edit a
+   * single step via the existing `onEdit` path or re-tap
+   * "Begin batch" to resume the same Stage 2 run.
+   */
+  const onBackToConfig = useCallback(() => {
+    returnToConfig()
+    setState(prev => {
+      if (prev.branch === null) return prev
+      const canonical = BRANCH_SEQUENCES[prev.branch] ?? []
+      // The Start step sits at `canonical.length - 1`. Drop
+      // `currentStep` to that index so the user lands on the
+      // Start step (with its "Begin batch" CTA) instead of the
+      // post-confirm "Batch ready" badge.
+      return { ...prev, currentStep: Math.max(0, canonical.length - 1) }
+    })
+  }, [returnToConfig])
 
   // When the flag is off, render nothing. The existing
   // GroupedTabNav takes over. This early return is AFTER every
@@ -326,9 +380,13 @@ export function WizardScreen({ className }: WizardScreenProps) {
       ) : null}
 
       {/* Post-finish badge — rendered when the user has
-          confirmed the Begin batch CTA. For Week 2 this is
-          informational; the Stage 2 stepper (week 3) will
-          mount here. */}
+          confirmed the Begin batch CTA. For Week 2 this was
+          informational ("Stage 2 lands in week 3"); Week 3 (this
+          commit) updates the copy to point at the now-mounted
+          Stage 2 stepper below. The Stage 1 view stays mounted
+          for the duration of the batch so the user can re-edit
+          a single step and re-run Stage 2 without re-filling
+          the wizard. */}
       {isFinished ? (
         <section
           aria-label="Batch ready"
@@ -339,11 +397,60 @@ export function WizardScreen({ className }: WizardScreenProps) {
             Batch configuration complete
           </h3>
           <p className="text-xs text-foreground/70">
-            The Stage 2 execution view lands in week 3. Your selections are
-            persisted to local state for this session.
+            Your selections are saved. The Stage 2 execution stepper is below —
+            tap &ldquo;Back to config&rdquo; in the stepper to return here.
           </p>
         </section>
       ) : null}
+
+      {/* Stage 2 — Execution stepper. Mounted when the user has
+          tapped "Begin batch" (which calls `beginExecution` on the
+          store). The gate is `state.branch && execution.currentStepId`:
+          the builder needs a branch to know which steps to render,
+          and `currentStepId` is the canonical "Stage 2 is live"
+          sentinel. The stepper's `steps` prop is the builder's
+          output with `isCurrent` + `isComplete` stamped from the
+          store's `execution` slice — the builder itself stays
+          pure (see `stage2Steps.ts` JSDoc). The branch is
+          captured into a local constant so the callbacks below
+          can pass it to `buildExecutionSteps` without a
+          non-null assertion (TypeScript can't narrow `state.branch`
+          inside an inline closure, only at the render site). */}
+      {(() => {
+        const branch = state.branch
+        if (!branch || !execution.currentStepId) return null
+        const steps = buildExecutionSteps(branch, state.selections)
+        return (
+          <ExecutionStepper
+            onBack={onBackToConfig}
+            onComplete={stepId => {
+              // Resolve the next step from the same builder
+              // the stepper is using. `buildExecutionSteps` is
+              // pure so the call is cheap and the result is
+              // stable for a given (branch, selections) pair.
+              // When there is no next step (e.g. the heatmap
+              // completes the batch), `nextStep?.id` is
+              // `undefined` and the store's defensive guard
+              // (`currentStepId !== stepId`) keeps the action
+              // a no-op on the next render.
+              const idx = steps.findIndex(s => s.id === stepId)
+              const nextStep = steps[idx + 1]
+              completeExecutionStep(stepId, nextStep?.id as string)
+            }}
+            onSkip={stepId => {
+              const idx = steps.findIndex(s => s.id === stepId)
+              const nextStep = steps[idx + 1]
+              skipExecutionStep(stepId, nextStep?.id as string)
+            }}
+            selections={state.selections}
+            steps={steps.map(step => ({
+              ...step,
+              isCurrent: step.id === execution.currentStepId,
+              isComplete: execution.completedStepIds.includes(step.id),
+            }))}
+          />
+        )
+      })()}
     </div>
   )
 }
