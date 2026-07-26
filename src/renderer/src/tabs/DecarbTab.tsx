@@ -4,6 +4,7 @@ import {
   calculateTheoreticalMax,
   calculateDecarbedThc,
   calculateAvbTheoreticalMax,
+  calculateAvbTheoreticalMaxFromColor,
   AVB_RESIDUAL_THC_RANGES,
   type AVBColor,
 } from 'renderer/src/engine/decarb'
@@ -468,6 +469,24 @@ export function DecarbTab() {
       CONCENTRATE_TYPES[0],
     [decarb.concentrateTypeId]
   )
+
+  // P4 wiring: detect which AVB color preset the user has currently
+  // selected (the color picker pre-fills `thcPct` with the color's
+  // midpoint; a custom value means no preset is active) and surface
+  // the low / expected / high theoretical-max range from
+  // `calculateAvbTheoreticalMaxFromColor` alongside the single
+  // `theoreticalMax` in the result panel. `null` when AVB mode is
+  // off or no preset color is currently picked.
+  const avbColorRange = useMemo(() => {
+    if (!isAvb || weightGrams <= 0) return null
+    const residual = parseFloat(decarb.thcPct)
+    if (Number.isNaN(residual)) return null
+    const activeColor = (Object.keys(AVB_RESIDUAL_THC_RANGES) as AVBColor[]).find(
+      c => AVB_RESIDUAL_THC_RANGES[c].midPct === residual
+    )
+    if (!activeColor) return null
+    return calculateAvbTheoreticalMaxFromColor(weightGrams, activeColor)
+  }, [isAvb, weightGrams, decarb.thcPct])
 
   /* ---------------------------------------------------------------- */
   /* Debounced recalculation                                          */
@@ -1784,6 +1803,21 @@ export function DecarbTab() {
                 ? `${fmtSigFigs(results.theoreticalMax, decarb.weight, decarb.thcaPct, decarb.thcPct)} mg`
                 : 'Enter your material weight and potency above to see results'}
             </span>
+            {/* P4 wiring: when the user picked a preset AVB color,
+                surface the low / high spread (from
+                `calculateAvbTheoreticalMaxFromColor`) so they see
+                the range their color implies, not just the
+                midpoint they pre-filled. Hidden when the user
+                typed a custom residual THC % (no preset active). */}
+            {avbColorRange && (
+              <span
+                className="mt-1 text-xs text-foreground/70"
+                data-testid="decarb-avb-color-range"
+              >
+                AVB color range: {fmt1(avbColorRange.low)}–
+                {fmt1(avbColorRange.high)} mg
+              </span>
+            )}
           </div>
 
           {/* Decarb-adjusted */}

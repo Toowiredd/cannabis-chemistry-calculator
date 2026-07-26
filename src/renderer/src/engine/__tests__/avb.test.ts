@@ -76,6 +76,34 @@ describe('calculateAvbTheoreticalMaxFromColor', () => {
       expect(r.expected).toBeLessThanOrEqual(r.high)
     }
   })
+
+  // P4 wiring: assert that the color-derived "expected" matches the
+  // raw-residual call (i.e. the midpoint of the color range IS the
+  // residual we pass to `calculateAvbTheoreticalMax`). 10g light
+  // AVB at 6.5% residual = 650 mg.
+  it('light color expected matches calculateAvbTheoreticalMax(10, 0.065)', () => {
+    const r = calculateAvbTheoreticalMaxFromColor(10, 'light')
+    expect(r.expected).toBe(calculateAvbTheoreticalMax(10, 6.5))
+    expect(r.expected).toBe(650.0) // 10 × 0.065 × 1000
+    expect(r.low).toBe(500.0) // 10 × 0.05 × 1000
+    expect(r.high).toBe(800.0) // 10 × 0.08 × 1000
+  })
+
+  it('medium color expected matches calculateAvbTheoreticalMax(10, 0.04)', () => {
+    const r = calculateAvbTheoreticalMaxFromColor(10, 'medium')
+    expect(r.expected).toBe(calculateAvbTheoreticalMax(10, 4))
+    expect(r.expected).toBe(400.0) // 10 × 0.04 × 1000
+    expect(r.low).toBe(300.0) // 10 × 0.03 × 1000
+    expect(r.high).toBe(500.0) // 10 × 0.05 × 1000
+  })
+
+  it('dark color expected matches calculateAvbTheoreticalMax(10, 0.02)', () => {
+    const r = calculateAvbTheoreticalMaxFromColor(10, 'dark')
+    expect(r.expected).toBe(calculateAvbTheoreticalMax(10, 2))
+    expect(r.expected).toBe(200.0) // 10 × 0.02 × 1000
+    expect(r.low).toBe(100.0) // 10 × 0.01 × 1000
+    expect(r.high).toBe(300.0) // 10 × 0.03 × 1000
+  })
 })
 
 describe('AVB_RESIDUAL_THC_RANGES preset', () => {

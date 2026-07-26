@@ -5,6 +5,7 @@ import {
   calculateTheoreticalMax,
   calculateDecarbedThc,
   calculateAvbTheoreticalMax,
+  calculateAvbTheoreticalMaxFromColor,
   AVB_RESIDUAL_THC_RANGES,
   type AVBColor,
 } from 'renderer/src/engine/decarb'
@@ -113,6 +114,22 @@ export function QuickBatchTab() {
     const hasDecarb = isAvb
       ? !Number.isNaN(weight) && !Number.isNaN(thc) && weight > 0 && thc > 0
       : !Number.isNaN(weight) && !Number.isNaN(thca) && !Number.isNaN(thc)
+    // P4 wiring: detect which AVB color preset the user has currently
+    // selected (the color picker pre-fills `thcPct` with the color's
+    // midpoint; if the user typed a custom value no color is active).
+    // We use this to surface the low / expected / high theoretical-max
+    // range from `calculateAvbTheoreticalMaxFromColor` alongside the
+    // single `theoreticalMax` number, so the user sees the spread
+    // their color implies.
+    const activeAvbColor: AVBColor | null = isAvb
+      ? (Object.keys(AVB_RESIDUAL_THC_RANGES) as AVBColor[]).find(
+          c => AVB_RESIDUAL_THC_RANGES[c].midPct === thc
+        ) ?? null
+      : null
+    const avbColorRange =
+      activeAvbColor !== null && hasDecarb
+        ? calculateAvbTheoreticalMaxFromColor(weightGrams, activeAvbColor)
+        : null
     const theoreticalMax = isAvb
       ? hasDecarb
         ? calculateAvbTheoreticalMax(weightGrams, thc)
@@ -189,6 +206,7 @@ export function QuickBatchTab() {
       fat,
       extractionEff,
       isAvb,
+      avbColorRange,
     }
   }, [decarb, infusion, dose, units])
 
@@ -995,6 +1013,21 @@ export function QuickBatchTab() {
               <span className="text-lg font-bold text-foreground">
                 {fmt1(results.theoreticalMax)} mg
               </span>
+              {/* P4 wiring: when the user picked a preset AVB color,
+                  surface the low / high spread (from
+                  `calculateAvbTheoreticalMaxFromColor`) so they see
+                  the range their color implies, not just the
+                  midpoint they pre-filled. Hidden when the user
+                  typed a custom residual THC % (no preset active). */}
+              {results.avbColorRange && (
+                <span
+                  className="text-xs text-foreground/70"
+                  data-testid="quickbatch-avb-color-range"
+                >
+                  ({fmt1(results.avbColorRange.low)}–
+                  {fmt1(results.avbColorRange.high)} mg range)
+                </span>
+              )}
             </div>
           )}
 
