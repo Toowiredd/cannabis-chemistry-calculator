@@ -112,6 +112,9 @@ export function parseLabText(text: string): ParsedLabResult {
   }
 }
 
+// FUTURE-API: retained for future batch-mode lab-text import. See DESIGN.md
+// "Engine Layer" — batch import is not yet wired. If unused after 2026-Q4,
+// move to engine/_future/ or delete.
 /**
  * Parse lab text with strict validation.
  * Throws ValidationError if no cannabinoid values are detected.
