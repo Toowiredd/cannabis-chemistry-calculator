@@ -1,6 +1,6 @@
 # Wizard Architecture — 2026-07-26
 
-_Redesign of the ccc primary navigation. Status: PROPOSAL — awaiting sign-off before implementation._
+_Redesign of the ccc primary navigation. **Status: SIGNED OFF on the user's behalf (2026-07-26)** — the 6 open questions in §8 were resolved per explicit delegation. Implementation can begin per the build order in §7._
 
 ## 1. Why this exists
 
@@ -157,11 +157,17 @@ Stage 2 reads the Stage 1 `WizardState` to render. A saved Recipe is just a pers
 - `src/renderer/src/components/Wizard.tsx` — the vertical step-stack container
 - `src/renderer/src/components/StepCard.tsx` — single decision card with the 3 states
 - `src/renderer/src/components/OptionTile.tsx` — the horizontal option carousel tile
+- `src/renderer/src/components/ProductTypeTooltip.tsx` — the "what does this mean?" expander on each product-type label (per §8.4 plain-language onboarding)
 - `src/renderer/src/components/ExecutionStepper.tsx` — Stage 2 vertical stepper shell
 - `src/renderer/src/components/execution/PreheatStep.tsx` — pre-action shell
 - `src/renderer/src/components/execution/TimerStep.tsx` — active-timer shell (wraps existing `Timer.tsx`)
 - `src/renderer/src/components/execution/HeatmapStep.tsx` — visual-state shell (wraps `DecarbHeatmap.tsx`)
 - `src/renderer/src/components/execution/CompletionStep.tsx` — result + journal save shell
+- `src/renderer/src/components/StockRecipeCard.tsx` — the Dashboard entry for a stock recipe (per §8.3)
+- `src/renderer/src/components/NameRecipeStep.tsx` — the "Name this recipe" wizard step with default placeholder from selections (per §8.5)
+- `src/renderer/src/data/decbMethodCards.ts` — extracted from FirstTimerGuide's method card content (per §8.6)
+- `src/renderer/src/data/equipmentOptions.ts` — extracted from FirstTimerGuide's `EQUIPMENT_OPTIONS` (per §8.6)
+- `src/renderer/src/data/stockRecipes.ts` — curated starter recipes the Dashboard surfaces (per §8.3)
 
 ### 5.5 What this means for the existing 9 tabs
 
@@ -176,41 +182,68 @@ Stage 2 reads the Stage 1 `WizardState` to render. A saved Recipe is just a pers
 | Advanced Tools | Stays in Reference rail |
 | Knowledge | Stays in Reference rail |
 | Journal | Stays in Reference rail |
-| First Timer Guide | **Deprecated** — the Wizard's product-type step IS the entry point. Users no longer need to know "go to First Timer Guide first." |
+| First Timer Guide | **Deprecated** — the Wizard's product-type step IS the entry point. Users no longer need to know "go to First Timer Guide first." The useful data inside FirstTimerGuide (method cards, `EQUIPMENT_OPTIONS`) extracts to shared libraries (`src/data/decbMethodCards.ts`, `src/data/equipmentOptions.ts`) that the wizard's per-step explanations consume (per §8.6). |
 
 ## 6. Persistence
 
-- Wizard state: `appStore.wizard` slice (new), persisted in the same `ccc-app-state` localStorage key
-- Recipe (completed wizard config + computed totals): `appStore.journalEntries[]` with a new `Recipe` type, or a separate `recipes[]` slice (TBD)
-- IDB mirror: extend the existing IndexedDB mirror pattern to include recipes
-- Migration: existing users' localStorage → v8 migration that drops `firstTimerOpen`/`wizard.active` (the old wizard alias), introduces `wizard.state` (the new shape), keeps `journalEntries[]` as-is for backward compat
+- **Wizard state:** `appStore.wizard` slice (new), persisted in the same `ccc-app-state` localStorage key
+- **Recipe** (completed wizard config + computed totals + user-given name + date + batch journal entry): `appStore.recipes[]` slice (NEW — separate from `journalEntries[]` because each batch is its own record per §8.2). Each recipe carries: `id`, `name` (user-typed per §8.5), `selections: WizardState`, `computedTotals`, `createdAt`, `batchJournalEntryId` (FK to the journal entry for this batch)
+- **Stock recipes** (per §8.3): static config in `src/renderer/src/data/stockRecipes.ts` (curated by us, versioned in the repo, NOT user-editable). The Dashboard renders them as a `StockRecipeCard` list; tapping one pre-fills the wizard's `selections` and goes to step 1 of Stage 1
+- **IDB mirror:** extend the existing IndexedDB mirror pattern to include `recipes[]`
+- **Migration:** existing users' localStorage → v8 migration that drops `firstTimerOpen` / `wizard.active` (the old wizard alias), introduces `wizard.state` (the new shape) + `recipes[]`, keeps `journalEntries[]` as-is for backward compat (each `Recipe.batchJournalEntryId` is a soft FK; if the journal entry is missing, the Recipe still renders)
 
 ## 7. Build order (8 weeks, phased)
 
 | Week | Deliverable |
 |---|---|
-| 1 | Design doc sign-off + Wizard skeleton + Product-type step (one branch end-to-end with one decision step). Behind a feature flag. |
+| 1 | Design doc sign-off + Wizard skeleton + Product-type step (one branch end-to-end with one decision step). Behind a feature flag. Product-type labels use the plain-language versions from §8.4 ("From raw flower" etc.) with the ProductTypeTooltip expander. |
 | 2 | Branch taxonomy + smart-skip logic. All 5 branches navigable; the Flower branch has all 5 steps wired with options. |
 | 3 | Stage 2 stepper skeleton + one execution step (decarb preheat + heatmap visual). |
 | 4 | Stage 2 full decarb execution path (timer, "stir now", heatmap updates, transition to infusion). |
-| 5 | Stage 2 infusion + dose execution steps. Recipe save (persists the WizardState). |
-| 6 | "Resume last" entry + "Re-run saved Recipe" UX. Migrate QuickBatchTab users to the new flow. |
-| 7 | Polish — accessibility (keyboard, screen reader, reduced motion), error states, edge cases. |
-| 8 | Beta test with 2-3 medical-marijuana patients from the target user group. Iterate. |
+| 5 | Stage 2 infusion + dose execution steps. Recipe save: `NameRecipeStep` + `appStore.recipes[]` slice + IDB mirror. `journalEntries[]` linked via `Recipe.batchJournalEntryId`. |
+| 6 | "Resume last" entry + "Re-run saved Recipe" UX. Stock recipes: `src/data/stockRecipes.ts` (3-5 curated starters) + `StockRecipeCard` on the Dashboard (pre-fills the wizard, doesn't skip it). Migrate QuickBatchTab users to the new flow. Extract FirstTimerGuide data into `decbMethodCards.ts` + `equipmentOptions.ts`. |
+| 7 | Polish — accessibility (keyboard, screen reader, reduced motion), error states, edge cases. Re-edit during Stage 2 UX (per §8.1: inline re-edit with "recalculating..." indicator). |
+| 8 | Beta test with 2-3 medical-marijuana patients from the target user group. Includes real-user validation of the §8.4 plain-language product-type labels — iterate from the feedback. |
 
-## 8. Open questions (for sign-off)
+## 8. Resolved decisions (signed off on the user's behalf 2026-07-26)
 
-1. **Re-edit during Stage 2:** if the user changes a selection mid-execution (e.g., changes the temperature override), does Stage 2 re-render the affected steps? Or do they have to go back to Stage 1 to re-edit? Proposal: re-edit is allowed in Stage 2 but flagged with a "recalculating..." indicator. Saves the user a back-and-forth.
+The 6 open questions are resolved. Decisions optimized for the target user (beginner + repeatable medical-marijuana workflow at home). All picks prioritized: (1) don't force a beginner to re-do work they can avoid, (2) keep the procedure repeatable and named, (3) reduce jargon to zero in the first-time experience.
 
-2. **Multi-batch UX:** the user wants to make 3 batches of the same recipe. Do they run the Wizard 3 times (3 separate Recipes) or does Stage 2 support a "next batch" CTA that resets the timer without leaving the stepper? Proposal: separate Recipes + a "Run again" CTA at completion.
+### 8.1 Re-edit during Stage 2 — **YES, allow re-edit with a "recalculating..." indicator**
 
-3. **Stock recipes vs custom:** the Methods tab can show stock recipes (curated by us). Should Stage 1 also have a "use a stock recipe" path that skips the wizard? Proposal: yes, as a separate entry point on the Dashboard, not a wizard mode.
+A medical-marijuana user mid-batch who realizes they set the wrong temperature should NOT be forced back to Stage 1 — that breaks the procedure. Re-edit is allowed inline on any step. The Stepper shows a "recalculating..." badge on every step affected by the change (the engine recomputes the totals, the affected steps re-render). The user keeps their place; downstream steps update. Confidence preserved.
 
-4. **Onboarding for first-time users:** the wizard's product-type picker is the natural first-time experience, but is it obvious that "Flower (decarbed)" means "I have raw flower and want to decarb it"? Needs user-testing with 2-3 real beginners.
+### 8.2 Multi-batch UX — **Separate Recipes + "Run again" CTA at completion**
 
-5. **Save destination:** the wizard's completed Recipe goes to the Journal automatically, but should the user see a "name this recipe" step? Proposal: yes, brief, with a default name derived from the selections ("Oven Decarb, 28g, Coconut Oil").
+Every batch is its own Recipe record (date, selections, totals, journal entry). This is the "repeatable workflow" promise: the user can look back at past batches, compare results, see what worked. Stage 2's completion step has a "Run again" CTA that copies the current Recipe's selections into a new draft Recipe and restarts Stage 2 (no need to re-run the wizard if nothing changed). Repeatability = records + one-tap re-run.
 
-6. **FirstTimerGuide deprecation:** the audit found FirstTimerGuide has 1876-line method cards with hardcoded `°C` (P1.3) and fat-volume mL-only (P1.3). Deprecating means dropping that work. The wizard's per-step explanations are richer AND more contextual. OK with that?
+### 8.3 Stock recipes vs custom — **Stock recipes as a Dashboard entry that PRE-FILLS the wizard, doesn't skip it**
+
+A beginner who's nervous about the wizard should have a "guided shortcut" — pick a stock recipe (e.g., "Standard Oven Decarb — 28g, 105°C, 45 min") and have the wizard pre-fill with those values. The user reviews each step (sees what was chosen and why), can adjust anything, and only then transitions to Stage 2. This is the "trust but verify" path: the developer-curated defaults give the beginner a starting point, the wizard gives them control. Stock recipes are NOT a skip — they're a pre-fill. Lives on the Dashboard, not in the wizard itself.
+
+### 8.4 Onboarding labels — **Plain-language labels + "what does this mean?" expander on every product type**
+
+Jargon kills beginners. The product-type picker uses plain-language labels:
+- "From raw flower" (was: "Flower (decarbed)")
+- "From concentrate or hash" (was: "Concentrate")
+- "From already-used flower (AVB)" (was: "AVB (already vaped bud)")
+- "For an edible or recipe" (was: "Edible (infused fat/oil)")
+- "For a skin or topical product" (was: "Topical")
+
+Each label has a small "?" icon next to it that expands a 1-2 sentence definition in-place ("'AVB' is the material left in a dry-herb vaporizer after a session — already decarboxylated"). The user never leaves the screen to learn what a term means. Real-user testing with 2-3 beginners in week 7 of the build (the a11y polish week) to confirm the labels land; iterate from there.
+
+### 8.5 Save destination — **"Name this recipe" step with default placeholder from selections**
+
+A medical-marijuana user making "the morning dose recipe" and "the sleep edible recipe" needs to be able to find them again. The wizard's final step before "Start" is a "Name this recipe" prompt: a single text field with a default placeholder derived from the selections (e.g., "Oven Decarb, 28g, Coconut Oil"). The user types 1-3 words or accepts the default. Named Recipes go to the Journal + a new `recipes[]` slice (see §6). The name is the primary label in the Journal; the auto-derived summary is the secondary metadata.
+
+### 8.6 FirstTimerGuide deprecation — **DEPRECATE the tab; EXTRACT the useful data**
+
+FirstTimerGuide as a standalone tab goes away (deprecated). BUT the useful data inside it survives:
+- The method card content (decoration method explanations, equipment lists) extracts to a shared `src/data/decbMethodCards.ts` library that the wizard's per-step explanations consume.
+- The `EQUIPMENT_OPTIONS` list (oven, sous vide circulator, vacuum sealer, mason jar, probe thermometer) extracts to `src/data/equipmentOptions.ts` and is reused by the wizard's "what do I need?" hints.
+- The wizard's per-step explanations are CONTEXTUAL ("you're picking the decarb method — here's what each one means and what you need") instead of standalone ("here's a card about decarb methods").
+
+Net: no data lost, the work is reused, the standalone tab is gone. The 1876-line method card file is replaced by smaller, focused library files that the wizard composes per-step.
 
 ## 9. What this doc does NOT cover
 
@@ -222,4 +255,6 @@ Stage 2 reads the Stage 1 `WizardState` to render. A saved Recipe is just a pers
 
 ## 10. Sign-off
 
-This doc needs your sign-off before implementation starts. Specifically the 6 open questions in §8. The build order in §7 is the proposed path; the weeks are estimates, not commitments.
+**Status: SIGNED OFF on the user's behalf (2026-07-26).** The 6 open questions in §8 were resolved per the user's explicit delegation ("make the most efficacious and rewarding choices for those 6 questions on my behalf"). Resolutions are documented in §8 with the target user (beginner + repeatable medical-marijuana workflow at home) as the compass.
+
+Implementation can begin. The build order in §7 is the proposed path; the weeks are estimates, not commitments. Per the user's "design-doc-first" preference, no code lands until this doc is reviewed and the §8 decisions are confirmed — but the decisions are committed here, ready for review.
