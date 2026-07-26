@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useAppStore } from '../appStore'
 import {
@@ -6,6 +6,14 @@ import {
   DEFAULT_STAGE1_WIZARD_SELECTIONS,
   DEFAULT_WIZARD_STATE,
 } from '../appStore'
+// Week 7 (2026-07-28 wizard build, §7 Polish + §6 Validation):
+// the new test block exercises `validateWizardSelections` (the
+// pure validator added to `wizardTypes.ts` in Week 7) and the
+// defensive edge cases on `rerunRecipe`. `validateWizardSelections`
+// is imported here rather than from `engine/models` because the
+// helper is a thin wrapper around the engine's id-tables; the
+// tests assert the helper's contract, not the engine's contract.
+import { type ProductType, validateWizardSelections } from '../wizardTypes'
 
 // Renamed from 'cannabis-chem-units' to 'ccc-app-state' in the
 // 2026-07-25 Cluster C refactor (F2.1). The persist key reflects
@@ -2483,5 +2491,492 @@ describe('appStore resume + re-run — v9→v10 migration (Week 6)', () => {
     })
     await waitForPersisted()
     expect(readPersisted()?.version).toBe(10)
+  })
+})
+
+/**
+ * Week 7 wizard validation helper + `rerunRecipe` edge cases
+ * (2026-07-28 wizard build, §7 Polish + §6 Validation).
+ *
+ * Two concerns covered here, with a shared reset helper:
+ *
+ *   1. `validateWizardSelections(branch, selections)` — the
+ *      pure Stage 1 validator added to `wizardTypes.ts` in
+ *      Week 7. The helper checks the minimum fields the
+ *      engine needs per branch (Flower + Edible go through
+ *      decarb + infusion; Concentrate uses carrier; AVB
+ *      skips the decarb step; Topical skips the servings
+ *      step). The contract is "show all the problems at
+ *      once" — a `ValidationResult` shape with a boolean
+ *      flag + a list of human-readable error messages,
+ *      not a thrown error.
+ *
+ *   2. `rerunRecipe` defensive edge cases — the Week 6
+ *      action gets two new defensive layers in Week 7:
+ *        - Edge case 6: if the stored Recipe's `branch`
+ *          is not a valid `ProductType` literal, the
+ *          action returns `null` and emits a
+ *          `console.warn`. A hand-rolled localStorage
+ *          entry (dev tooling, test fixture, or a future
+ *          migration regression) could put a non-valid
+ *          string into the slice; the warn surfaces the
+ *          data-integrity issue to the dev console
+ *          rather than silently writing garbage to
+ *          `wizard.branch`.
+ *
+ * The shared reset helper mirrors `resetStage2Wizard` but
+ * also resets `recipes` to `[]` so each validation test
+ * starts from a known clean slice baseline. The
+ * `validateWizardSelections` tests don't touch the store
+ * at all (the helper is pure), so most tests are
+ * standalone `expect(...)` chains.
+ */
+function resetWeek7Baseline(): void {
+  useAppStore.setState({
+    wizard: {
+      ...DEFAULT_WIZARD_STATE,
+      selections: { ...DEFAULT_WIZARD_STATE.selections },
+      stage1Selections: { ...DEFAULT_STAGE1_WIZARD_SELECTIONS },
+      execution: { ...DEFAULT_EXECUTION_STEP_STATE },
+    },
+    wizardEnabled: false,
+    recipes: [],
+  })
+}
+
+describe('appStore wizard validation + rerun edge cases — Week 7', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    resetWeek7Baseline()
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+    vi.restoreAllMocks()
+  })
+
+  // ---------------------------------------------------------------------
+  // validateWizardSelections — the pure helper. The tests below exercise
+  // the helper's contract branch-by-branch. Each test pins one of the
+  // cases from the §7 / §6 spec; the helper's behavior is "show all
+  // the problems at once" so most tests pass a partial selection set
+  // and expect a multi-error result.
+  // ---------------------------------------------------------------------
+
+  describe('validateWizardSelections — branch gate', () => {
+    it('returns { ok: false, errors: [...] } with a "branch not picked" error when branch is null', () => {
+      // The §6 spec: branch is the gate. Per-branch checks are
+      // noise without it, so the helper short-circuits with a
+      // single error and returns.
+      const result = validateWizardSelections(null, {})
+      expect(result.ok).toBe(false)
+      // At least one error mentions the branch.
+      expect(result.errors.length).toBeGreaterThan(0)
+      expect(
+        result.errors.some(e => /branch/i.test(e))
+      ).toBe(true)
+    })
+
+    it('returns { ok: false, errors: [...] } for a flower branch with empty selections (method + weight + fat all missing)', () => {
+      // The Flower branch requires method, weight, and fat.
+      // With empty selections, all three are missing — the
+      // helper should report all three in one pass (NOT
+      // short-circuit on the first issue, per the "show all
+      // the problems at once" contract).
+      const result = validateWizardSelections('flower', {})
+      expect(result.ok).toBe(false)
+      expect(result.errors.length).toBeGreaterThanOrEqual(3)
+      // Each required field is named in at least one error.
+      expect(
+        result.errors.some(e => /method/i.test(e))
+      ).toBe(true)
+      expect(
+        result.errors.some(e => /weight/i.test(e))
+      ).toBe(true)
+      expect(
+        result.errors.some(e => /fat/i.test(e))
+      ).toBe(true)
+    })
+
+    it('returns { ok: false, errors: [...] } for a flower branch with method set but weight + fat missing', () => {
+      // Partial state — the user picked the method but not
+      // the weight or fat. The helper should report the
+      // remaining issues (not the method, which is now valid).
+      const result = validateWizardSelections('flower', {
+        method: 'oven_sealed',
+      })
+      expect(result.ok).toBe(false)
+      expect(
+        result.errors.some(e => /weight/i.test(e))
+      ).toBe(true)
+      expect(
+        result.errors.some(e => /fat/i.test(e))
+      ).toBe(true)
+      // The method is valid — no method error.
+      expect(
+        result.errors.some(e => /method/i.test(e))
+      ).toBe(false)
+    })
+  })
+
+  describe('validateWizardSelections — flower + edible happy path', () => {
+    it('returns { ok: true, errors: [] } for a fully-populated flower branch (method + weight + fat + volume + servings)', () => {
+      // The §6 happy path: every required field is set with
+      // a valid value. The helper should return an empty
+      // error list and ok: true.
+      const result = validateWizardSelections('flower', {
+        method: 'oven_sealed',
+        weight: { value: 7, unit: 'g' },
+        fat: 'coconut',
+        volume: { value: 240, unit: 'mL' },
+        servings: 12,
+      })
+      expect(result.ok).toBe(true)
+      expect(result.errors).toEqual([])
+    })
+
+    it('returns { ok: true, errors: [] } for a flower branch with fat: null (the "no infusion" path)', () => {
+      // The §3.1 "no infusion" path: fat is explicitly null
+      // (not undefined, not a string). When fat is null, the
+      // user is skipping the infusion step, so volume +
+      // servings are also intentionally skipped — a flower
+      // batch with no fat and no volume is valid (e.g., a
+      // user who just decarbed flower without infusing).
+      const result = validateWizardSelections('flower', {
+        method: 'oven_sealed',
+        weight: { value: 7, unit: 'g' },
+        fat: null,
+      })
+      expect(result.ok).toBe(true)
+      expect(result.errors).toEqual([])
+    })
+
+    it('returns { ok: false, errors: [...] } with an "unknown method id" error for an unknown method', () => {
+      // The helper validates method against the engine's
+      // DECARB_METHODS id-space. An unknown id (e.g. a
+      // corrupted localStorage value or a future method
+      // removed from the engine) should be flagged.
+      const result = validateWizardSelections('flower', {
+        method: 'unknown-method',
+        weight: { value: 7, unit: 'g' },
+        fat: 'coconut',
+        volume: { value: 240, unit: 'mL' },
+        servings: 12,
+      })
+      expect(result.ok).toBe(false)
+      expect(
+        result.errors.some(e => /unknown.*method/i.test(e))
+      ).toBe(true)
+    })
+
+    it('returns { ok: false, errors: [...] } with a "fat not picked" error for flower with fat: undefined', () => {
+      // The fat-not-picked case: undefined (not null, not
+      // a string) is the "not yet picked" sentinel. The
+      // helper flags it as a soft fail.
+      const result = validateWizardSelections('flower', {
+        method: 'oven_sealed',
+        weight: { value: 7, unit: 'g' },
+        // fat deliberately omitted → undefined
+        volume: { value: 240, unit: 'mL' },
+        servings: 12,
+      })
+      expect(result.ok).toBe(false)
+      expect(
+        result.errors.some(e => /fat.*not.*picked/i.test(e))
+      ).toBe(true)
+    })
+
+    it('returns { ok: true, errors: [] } for a fully-populated edible branch (same shape as flower)', () => {
+      // Edible follows the same rules as flower (both
+      // go through decarb + infusion per §3.1). The
+      // helper treats them identically.
+      const result = validateWizardSelections('edible', {
+        method: 'sv_combined',
+        weight: { value: 14, unit: 'g' },
+        fat: 'coconut',
+        volume: { value: 240, unit: 'mL' },
+        servings: 24,
+      })
+      expect(result.ok).toBe(true)
+      expect(result.errors).toEqual([])
+    })
+  })
+
+  describe('validateWizardSelections — concentrate branch', () => {
+    it('returns { ok: true, errors: [] } for a fully-populated concentrate branch (no method check)', () => {
+      // The concentrate branch skips the decarb step
+      // (concentrate is already decarbed). The helper
+      // should NOT require `method`, only potency +
+      // carrier + volume + servings.
+      const result = validateWizardSelections('concentrate', {
+        potency: 75,
+        carrier: 'mct',
+        volume: { value: 100, unit: 'mL' },
+        servings: 8,
+      })
+      expect(result.ok).toBe(true)
+      expect(result.errors).toEqual([])
+    })
+
+    it('returns { ok: false, errors: [...] } with a "potency not picked" error for concentrate with potency missing', () => {
+      // Potency is the concentrate branch's required
+      // "what is the THC %" field. Missing potency should
+      // be flagged.
+      const result = validateWizardSelections('concentrate', {
+        carrier: 'mct',
+        volume: { value: 100, unit: 'mL' },
+        servings: 8,
+      })
+      expect(result.ok).toBe(false)
+      expect(
+        result.errors.some(e => /potency/i.test(e))
+      ).toBe(true)
+    })
+  })
+
+  describe('validateWizardSelections — avb branch', () => {
+    it('returns { ok: true, errors: [] } for a fully-populated avb branch (no method check, color required)', () => {
+      // The AVB branch skips the decarb step (AVB is
+      // already decarbed). The helper requires color +
+      // carrier + volume + servings, NOT method or
+      // weight.
+      const result = validateWizardSelections('avb', {
+        color: 'light',
+        carrier: 'alcohol',
+        volume: { value: 100, unit: 'mL' },
+        servings: 8,
+      })
+      expect(result.ok).toBe(true)
+      expect(result.errors).toEqual([])
+    })
+
+    it('returns { ok: false, errors: [...] } with a "color not picked" error for avb with color missing', () => {
+      // Color is the AVB branch's required "how dark is
+      // the AVB" field. Missing color should be flagged.
+      const result = validateWizardSelections('avb', {
+        carrier: 'alcohol',
+        volume: { value: 100, unit: 'mL' },
+        servings: 8,
+      })
+      expect(result.ok).toBe(false)
+      expect(
+        result.errors.some(e => /color/i.test(e))
+      ).toBe(true)
+    })
+  })
+
+  describe('validateWizardSelections — topical branch', () => {
+    it('returns { ok: true, errors: [] } for a fully-populated topical branch (no servings check)', () => {
+      // The §3.1 "topical smart-skip": topicals do not
+      // have a per-serving dose. The helper should NOT
+      // require `servings`, only carrier + volume +
+      // applicationArea.
+      const result = validateWizardSelections('topical', {
+        carrier: 'olive',
+        volume: { value: 240, unit: 'mL' },
+        applicationArea: 'joint',
+      })
+      expect(result.ok).toBe(true)
+      expect(result.errors).toEqual([])
+    })
+
+    it('returns { ok: true, errors: [] } for a topical branch with an extra servings field (extra is fine)', () => {
+      // Defensive: a future UI surface that adds a
+      // servings-like field for topicals (e.g. "how
+      // many times will you apply this?") should not
+      // break validation. The helper does not require
+      // servings for topicals AND does not penalise an
+      // extra servings field — the field is simply
+      // ignored.
+      const result = validateWizardSelections('topical', {
+        carrier: 'olive',
+        volume: { value: 240, unit: 'mL' },
+        applicationArea: 'joint',
+        servings: 10,
+      })
+      expect(result.ok).toBe(true)
+      expect(result.errors).toEqual([])
+    })
+
+    it('returns { ok: false, errors: [...] } with an "application area not picked" error for topical with applicationArea missing', () => {
+      // Application area is the topical branch's
+      // required "where will you apply this" field.
+      // Missing applicationArea should be flagged.
+      const result = validateWizardSelections('topical', {
+        carrier: 'olive',
+        volume: { value: 240, unit: 'mL' },
+      })
+      expect(result.ok).toBe(false)
+      expect(
+        result.errors.some(e => /application.*area/i.test(e))
+      ).toBe(true)
+    })
+  })
+
+  // ---------------------------------------------------------------------
+  // rerunRecipe edge cases (Week 7). The happy-path tests live in the
+  // Week 6 block above; this block covers the Week 7 defensive
+  // additions.
+  // ---------------------------------------------------------------------
+
+  describe('rerunRecipe — edge cases (Week 7)', () => {
+    it('rerunRecipe("nonexistent-id") returns null (existing Week 6 contract, pinned here for the Week 7 block)', () => {
+      // The §8.2 contract: looking up an id that doesn't
+      // exist returns `null`. The Week 7 defensive additions
+      // don't change this — a not-found lookup still returns
+      // null. The test is here as a "before" pin so a future
+      // refactor that conflates the not-found case with the
+      // bad-branch case fails loudly.
+      const { rerunRecipe } = useAppStore.getState()
+      expect(rerunRecipe('nonexistent-id')).toBeNull()
+    })
+
+    it('rerunRecipe(recipe-with-bad-branch) returns null and console.warn is called (edge case 6)', () => {
+      // Edge case 6: a Recipe with a non-ProductType
+      // `branch` value (e.g. 'banana' from a hand-rolled
+      // localStorage entry) must not silently flow into
+      // `wizard.branch`. The action returns `null` and
+      // emits a `console.warn` so the data-integrity
+      // issue surfaces to the dev console.
+      //
+      // Setup: inject a Recipe with a bad branch directly
+      // into the store (bypassing `addRecipe` so the
+      // v9→v10 migration's coercion doesn't kick in —
+      // we're simulating a corrupted store state, not a
+      // legitimate add path).
+      useAppStore.setState({
+        recipes: [
+          {
+            id: 'recipe-bad-branch',
+            createdAt: '2026-07-28T10:00:00.000Z',
+            name: 'Bad branch recipe',
+            // Intentionally invalid — the v9→v10 migration
+            // would have coerced this to 'flower' on a
+            // canonical rehydrate, but we're injecting the
+            // bad value directly to exercise the action's
+            // runtime guard.
+            branch: 'banana' as unknown as ProductType,
+            selections: { method: 'oven_sealed' },
+            batchJournalEntryId: null,
+          },
+        ],
+      })
+
+      // Spy on console.warn to assert the warn fires
+      // without polluting the test output.
+      const warnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {})
+
+      const result = useAppStore.getState().rerunRecipe('recipe-bad-branch')
+
+      // Returns null — the action refuses to copy a
+      // Recipe with a bad branch into the wizard.
+      expect(result).toBeNull()
+
+      // console.warn was called at least once.
+      expect(warnSpy).toHaveBeenCalled()
+      // The warn message mentions the offending branch
+      // value (the JSON.stringify in the action writes
+      // the literal "banana" into the message).
+      const warnMessage = String(warnSpy.mock.calls[0]?.[0] ?? '')
+      expect(warnMessage).toContain('banana')
+
+      // The wizard state was NOT mutated by the failed
+      // action — the previous resetWeek7Baseline left it
+      // at the default empty state, and the failed
+      // rerunRecipe should leave it there.
+      const w = useAppStore.getState().wizard
+      expect(w.branch).toBeNull()
+      expect(w.stage1Selections).toEqual({})
+      expect(w.currentStep).toBe(0)
+      expect(w.stepHistory).toEqual([])
+    })
+
+    it('rerunRecipe(recipe-with-bad-branch) does not throw — the action swallows the bad-branch case as a no-op (edge case 6)', () => {
+      // The defensive guard should be silent on the
+      // success path (the warn is fired once and the
+      // action returns null). This pins the "no throw"
+      // contract — a future refactor that re-throws the
+      // bad-branch case (e.g. via a runtime assertion)
+      // would break the caller (WizardScreen) which
+      // expects a null return + a state unchanged.
+      useAppStore.setState({
+        recipes: [
+          {
+            id: 'recipe-bad-branch-2',
+            createdAt: '2026-07-28T10:00:00.000Z',
+            name: 'Bad branch recipe 2',
+            branch: 'banana' as unknown as ProductType,
+            selections: { method: 'oven_sealed' },
+            batchJournalEntryId: null,
+          },
+        ],
+      })
+
+      const warnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {})
+
+      // The action must NOT throw.
+      expect(() => {
+        useAppStore.getState().rerunRecipe('recipe-bad-branch-2')
+      }).not.toThrow()
+
+      // The warn was called once.
+      expect(warnSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('rerunRecipe(recipe-with-valid-branch) succeeds even if recipe.name is empty (edge case 7 — documented in JSDoc)', () => {
+      // Edge case 7: a Recipe with an empty name still
+      // has a valid Recipe record. The v9→v10 migration
+      // backfills `name: 'Untitled recipe'` for missing-
+      // name Recipes, but a Recipe with an explicit
+      // empty-string name (a future UI bug or a hand-
+      // rolled localStorage entry) is still a "valid
+      // enough" Recipe to re-run. The action does NOT
+      // special-case the empty-name case — the caller
+      // (WizardScreen) is responsible for deriving a
+      // default name when the Recipe's name is empty.
+      // This test pins that contract: the action
+      // succeeds and returns the Recipe (with the
+      // empty name) so the caller can decide what to
+      // do with it.
+      useAppStore.setState({
+        recipes: [
+          {
+            id: 'recipe-empty-name',
+            createdAt: '2026-07-28T10:00:00.000Z',
+            name: '',
+            branch: 'flower',
+            selections: { method: 'oven_sealed' },
+            batchJournalEntryId: null,
+          },
+        ],
+      })
+
+      const warnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {})
+
+      const result = useAppStore.getState().rerunRecipe('recipe-empty-name')
+
+      // The action succeeds.
+      expect(result).not.toBeNull()
+      expect(result?.id).toBe('recipe-empty-name')
+      // The empty name is preserved (the action does
+      // not auto-default — the caller does).
+      expect(result?.name).toBe('')
+
+      // The wizard state IS updated (the action
+      // succeeded; the empty name is a separate
+      // concern for the caller).
+      const w = useAppStore.getState().wizard
+      expect(w.branch).toBe('flower')
+      expect(w.stage1Selections).toEqual({ method: 'oven_sealed' })
+
+      // No warn — the branch is valid.
+      expect(warnSpy).not.toHaveBeenCalled()
+    })
   })
 })

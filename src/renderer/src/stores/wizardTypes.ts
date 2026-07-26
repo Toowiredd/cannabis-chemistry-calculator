@@ -25,6 +25,18 @@
  * now. Tighten once the engine extracts proper ID unions.
  */
 
+// Week 7 (2026-07-28 wizard build, §7 Polish + §6 Validation):
+// the `validateWizardSelections` helper at the bottom of this
+// file validates Stage 1 selections against the engine's
+// known method / fat ids. The helper is the closest
+// collaborator of the types declared here, so it lives in
+// the same module (rather than a new `wizardValidation.ts`
+// file) — the UI consumer (WizardScreen) already imports
+// `WizardSelections` from this module, so colocating the
+// validator avoids a second import. The helper is pure
+// (no React, no DOM, no store reads).
+import { DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
+
 // `DecarbMethodId` is the union of method IDs from `engine/models.ts`
 // (`DECARB_METHODS[].id`). The engine doesn't export a named union yet —
 // see the file header for the note. `string` is the safe default; tighten
@@ -36,6 +48,14 @@ export type DecarbMethodId = string
 // export, so `string` for now.
 export type BagPresetId = string
 
+// `InfusionFatId` is the union of fat/carrier IDs from `engine/models.ts`
+// (`INFUSION_FATS[].id`). Same story as the two above — not yet a named
+// export, so `string` for now. Tighten once `engine/models.ts` exposes
+// a literal union. The wizard uses this same type for both the edible /
+// flower `fat` field AND the concentrate / avb / topical `carrier`
+// field — the engine treats them as the same id-space.
+export type InfusionFatId = string
+
 /**
  * The five product-type branches the Stage 1 wizard starts with. Per
  * `docs/wizard-architecture-2026-07-26.md` §3.1, each branch returns its
@@ -46,6 +66,27 @@ export type BagPresetId = string
  * terse for code/log reasons.
  */
 export type ProductType = 'flower' | 'concentrate' | 'avb' | 'edible' | 'topical'
+
+/**
+ * Type-guard for the Stage 1 wizard's product-type branch literal.
+ * Mirrors the private `isProductType` helper in `appStore.ts` — kept
+ * here as a standalone so `validateWizardSelections` can validate
+ * against the same 5-literal union without taking a runtime
+ * dependency on the store module (the helper is meant to be pure
+ * — no store reads, no React, no DOM). The duplication is
+ * intentional: pulling the type-guard out of the store would
+ * invert the import direction (`wizardTypes` is a leaf module,
+ * the store depends on it, not the other way around).
+ */
+export function isProductType(value: unknown): value is ProductType {
+  return (
+    value === 'flower' ||
+    value === 'concentrate' ||
+    value === 'avb' ||
+    value === 'edible' ||
+    value === 'topical'
+  )
+}
 
 /**
  * The Stage 1 wizard's per-step selections. Every field is optional —
@@ -64,7 +105,15 @@ export type WizardSelections = Partial<{
   container: BagPresetId
   weight: { value: number; unit: 'g' | 'oz' }
   efficiency: number
-  fat: string
+  /**
+   * Fat / carrier id for the edible / flower branches. `null` is
+   * a valid value — the "no infusion" path per §3.1 (e.g. a user
+   * who just decarbed flower without infusing into a fat). The
+   * `Partial<...>` wrapper means `undefined` is the "not yet
+   * picked" sentinel; `null` is the explicit "I chose no fat"
+   * sentinel; a string is an `INFUSION_FATS` id.
+   */
+  fat: string | null
   volume: { value: number; unit: 'mL' | 'cup' | 'tsp' | 'tbsp' }
   servings: number
   /** THC % (1-100) — concentrate branch. */
@@ -227,4 +276,255 @@ export interface Recipe {
   selections: WizardSelections
   /** Optional link to the JournalEntry written for this batch. */
   batchJournalEntryId: string | null
+}
+
+/**
+ * Week 7 (per `docs/wizard-architecture-2026-07-26.md` §7
+ * Polish + §6 Validation). A pure helper that checks a
+ * Stage 1 `WizardSelections` for the minimum fields the
+ * engine needs to compute the Stage 2 totals. Used by
+ * `WizardScreen` to gate the Begin batch CTA + by
+ * `handleCompletionSave` to gate the Save to Journal CTA.
+ *
+ * Returns a `ValidationResult` shape with a boolean
+ * flag + a list of human-readable error messages. The
+ * shape is intentionally explicit (not a thrown error)
+ * because the wizard's UX is "show all the problems at
+ * once" — a thrown error would short-circuit on the
+ * first issue. The error list drives the Toast the
+ * UI renders when validation fails.
+ */
+export interface ValidationResult {
+  ok: boolean
+  errors: string[]
+}
+
+// ---------------------------------------------------------------------------
+// Week 7 (2026-07-28 wizard build, §7 Polish + §6 Validation) — Stage 1
+// selection validation helper. Implemented in this file (rather than a
+// new `wizardValidation.ts` file) because the helper is the closest
+// collaborator of the `WizardSelections` + `ProductType` types it
+// validates — the UI consumer (WizardScreen) already imports
+// `WizardSelections` from this module, so colocating the validator
+// with the type avoids a second import. The helper is pure (no
+// React, no DOM, no store reads) so the placement does not pull
+// any side effects into the type file.
+// ---------------------------------------------------------------------------
+
+/**
+ * Validate a Stage 1 wizard selection set.
+ *
+ * Checks (per §3.1, §3.3, §4.2):
+ *  - `method` is set + is a known `DECARB_METHODS` id
+ *    (for the Flower + Edible branches; Concentrate /
+ *    AVB / Topical skip the decarb step)
+ *  - `weight` is set + is > 0 (for Flower + Edible)
+ *  - `fat` is set + is a known `INFUSION_FATS` id, OR
+ *    is null (the Flower "no infusion" path) — undefined
+ *    is a soft fail
+ *  - `volume` is set + is > 0 (when fat is set; null-fat
+ *    skips the volume step)
+ *  - `servings` is set + is > 0 (for non-Topical
+ *    branches when fat is set; Topical smart-skips per
+ *    §3.1, and Flower + null-fat smart-skips both volume
+ *    and servings because the no-infusion path doesn't
+ *    produce a dose to divide)
+ *  - `potency` is set for the Concentrate branch
+ *  - `color` is set for the AVB branch
+ *  - `applicationArea` is set for the Topical branch
+ *
+ * Pure (no React, no DOM, no store reads). The `branch`
+ * is read from a separate argument so the helper can
+ * validate the (branch, selections) pair without
+ * requiring a full `WizardState` context.
+ *
+ * Returns `{ ok: true, errors: [] }` when the selection
+ * set is valid for the given branch, otherwise
+ * `{ ok: false, errors: [...] }` with one human-readable
+ * error per missing-or-invalid field.
+ */
+export function validateWizardSelections(
+  branch: ProductType | null,
+  selections: WizardSelections
+): ValidationResult {
+  const errors: string[] = []
+
+  // Stage 1 step 0 — the user must pick a branch before
+  // any of the per-branch validation can run. The
+  // "branch not picked" error is the gate; per-branch
+  // checks below would all be noise without it.
+  if (branch === null) {
+    errors.push('Branch not picked — pick a product type to continue')
+    return { ok: false, errors }
+  }
+
+  // The engine's id-spaces. Pulled from the engine at
+  // module load (they are `as const` arrays, so the
+  // Set construction is a one-time cost per module
+  // import — fine for a UI-side validator).
+  const knownMethodIds = new Set(DECARB_METHODS.map(m => m.id))
+  const knownFatIds = new Set(INFUSION_FATS.map(f => f.id))
+
+  if (branch === 'flower' || branch === 'edible') {
+    // Method: required + must be a known DECARB_METHODS id.
+    const method = selections.method
+    if (method === undefined) {
+      errors.push('Decarb method not picked')
+    } else if (!knownMethodIds.has(method)) {
+      errors.push(`Unknown decarb method id: "${method}"`)
+    }
+
+    // Weight: required + value > 0.
+    const weight = selections.weight
+    if (weight === undefined) {
+      errors.push('Weight not picked')
+    } else if (typeof weight.value !== 'number' || weight.value <= 0) {
+      errors.push('Weight must be greater than 0')
+    }
+
+    // Fat: required (set to a known INFUSION_FATS id or null
+    // for the no-infusion path). `undefined` is a soft fail.
+    const fat = selections.fat
+    if (fat === undefined) {
+      errors.push('Fat not picked')
+    } else if (fat !== null && !knownFatIds.has(fat)) {
+      errors.push(`Unknown fat id: "${fat}"`)
+    }
+
+    // Volume + servings: required when fat is set (the
+    // infusion path). When fat is null (the no-infusion
+    // path), the user is just decarbing without producing
+    // a dose, so volume + servings are intentionally
+    // skipped.
+    if (fat !== null && fat !== undefined) {
+      const volume = selections.volume
+      if (volume === undefined) {
+        errors.push('Volume not picked')
+      } else if (typeof volume.value !== 'number' || volume.value <= 0) {
+        errors.push('Volume must be greater than 0')
+      }
+
+      const servings = selections.servings
+      if (servings === undefined) {
+        errors.push('Servings not picked')
+      } else if (typeof servings !== 'number' || servings <= 0) {
+        errors.push('Servings must be greater than 0')
+      }
+    }
+  } else if (branch === 'concentrate') {
+    // Potency: required (a % in the 0..100 range; the
+    // engine bounds the upper end, but the wizard just
+    // needs a present + positive value here).
+    const potency = selections.potency
+    if (potency === undefined) {
+      errors.push('Potency not picked')
+    } else if (typeof potency !== 'number' || potency <= 0) {
+      errors.push('Potency must be greater than 0')
+    }
+
+    // Carrier: required (any non-empty string). The
+    // concentrate branch reuses the fat id-space loosely
+    // — the engine accepts any carrier id, not just the
+    // four `INFUSION_FATS` presets. The spec's test
+    // case (e.g. `carrier: 'mct'`) is a known good
+    // value, but the validator doesn't enforce that —
+    // a future carrier (e.g. `'ethanol'`, `'pg'`) added
+    // to the engine would not need a validator update.
+    const carrier = selections.carrier
+    if (carrier === undefined || carrier === '') {
+      errors.push('Carrier not picked')
+    }
+
+    // Volume + servings: always required for concentrate
+    // (the no-infusion path doesn't apply — the user is
+    // always infusing the concentrate into a carrier).
+    const volume = selections.volume
+    if (volume === undefined) {
+      errors.push('Volume not picked')
+    } else if (typeof volume.value !== 'number' || volume.value <= 0) {
+      errors.push('Volume must be greater than 0')
+    }
+
+    const servings = selections.servings
+    if (servings === undefined) {
+      errors.push('Servings not picked')
+    } else if (typeof servings !== 'number' || servings <= 0) {
+      errors.push('Servings must be greater than 0')
+    }
+  } else if (branch === 'avb') {
+    // Color: required (a band id from the AVB engine model;
+    // the engine isn't loading a literal union today, so the
+    // wizard accepts any non-empty string here).
+    const color = selections.color
+    if (color === undefined || color === '') {
+      errors.push('AVB color not picked')
+    }
+
+    // Carrier: required (any non-empty string). The AVB
+    // branch accepts carrier ids that are NOT in the
+    // `INFUSION_FATS` id-space — the spec's test case
+    // (e.g. `carrier: 'alcohol'`) is a real carrier for
+    // AVB that's outside the edible/flower fat
+    // catalogue. The validator only checks "is it
+    // present + non-empty"; the engine accepts any
+    // carrier id.
+    const carrier = selections.carrier
+    if (carrier === undefined || carrier === '') {
+      errors.push('Carrier not picked')
+    }
+
+    // Volume + servings: always required for AVB.
+    const volume = selections.volume
+    if (volume === undefined) {
+      errors.push('Volume not picked')
+    } else if (typeof volume.value !== 'number' || volume.value <= 0) {
+      errors.push('Volume must be greater than 0')
+    }
+
+    const servings = selections.servings
+    if (servings === undefined) {
+      errors.push('Servings not picked')
+    } else if (typeof servings !== 'number' || servings <= 0) {
+      errors.push('Servings must be greater than 0')
+    }
+  } else if (branch === 'topical') {
+    // Carrier: required (any non-empty string). The
+    // topical branch accepts carrier ids that are NOT in
+    // the `INFUSION_FATS` id-space — the spec's test
+    // case (e.g. `carrier: 'olive'`) is a real carrier
+    // for topicals (olive oil, coconut oil, shea
+    // butter, etc.) that's outside the edible/flower
+    // fat catalogue. The validator only checks "is it
+    // present + non-empty"; the engine accepts any
+    // carrier id.
+    const carrier = selections.carrier
+    if (carrier === undefined || carrier === '') {
+      errors.push('Carrier not picked')
+    }
+
+    // Volume: required for topical (the user is infusing
+    // the carrier, even though there's no "servings"
+    // concept for a topical).
+    const volume = selections.volume
+    if (volume === undefined) {
+      errors.push('Volume not picked')
+    } else if (typeof volume.value !== 'number' || volume.value <= 0) {
+      errors.push('Volume must be greater than 0')
+    }
+
+    // Application area: required.
+    const applicationArea = selections.applicationArea
+    if (applicationArea === undefined || applicationArea === '') {
+      errors.push('Application area not picked')
+    }
+
+    // Servings: intentionally NOT checked. Per §3.1,
+    // topicals smart-skip the servings step — a topical
+    // batch has no per-serving dose to compute.
+  }
+
+  return {
+    ok: errors.length === 0,
+    errors,
+  }
 }

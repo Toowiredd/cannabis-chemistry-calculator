@@ -22,6 +22,14 @@ import type {
   WizardSelections as Stage1WizardSelections,
   ExecutionStepState,
 } from './wizardTypes'
+// Week 7 (2026-07-28 wizard build, §7 Polish): `rerunRecipe`
+// is now defensive against a corrupted `recipe.branch` value
+// (a hand-edited localStorage or a future migration bug could
+// put a non-ProductType string in the slice). The store-side
+// `isProductType` helper at the bottom of this file is used;
+// the `wizardTypes.ts` mirror is not imported here to avoid
+// pulling the engine's id-tables into the store's import
+// graph (the store's runtime path doesn't need them).
 
 export type TabId =
   | 'decarb'
@@ -1013,6 +1021,56 @@ interface AppStore {
    * The returned Recipe gives the caller access to the name
    * (and any other field) without re-looking it up in
    * `state.recipes`.
+   *
+   * Defensive notes (Week 7, 2026-07-28 wizard build):
+   *
+   *   - **Edge case 6 — corrupted `branch`.** The v9→v10
+   *     migration coerces an invalid `recipe.branch` to
+   *     `'flower'`, so a Recipe that goes through the canonical
+   *     migrate path always has a valid `ProductType` literal.
+   *     But a hand-rolled localStorage entry (dev tooling, test
+   *     fixture, or a future migration bug) could put a
+   *     non-`ProductType` string into the slice. The action
+   *     checks `recipe.branch` against the `isProductType`
+   *     type-guard; if it fails, the action returns `null` and
+   *     emits a `console.warn` (without the warn, a corrupted
+   *     `branch` would silently fall through into the wizard's
+   *     `branch` field and break Stage 1's branch-driven step
+   *     list). The warn is intentional — the slice should
+   *     never have an invalid branch in normal flow, so the
+   *     warn surfaces a real data-integrity bug to the dev
+   *     console rather than swallowing it.
+   *
+   *   - **Edge case 7 — empty recipe `name`.** A user with an
+   *     untitled Recipe (or one whose name was hand-cleared
+   *     in a future edit) still has a valid Recipe record —
+   *     the v9→v10 migration backfills `name: 'Untitled recipe'`
+   *     for any missing-name Recipe, and the canonical save
+   *     path always writes a name from the NameRecipeStep.
+   *     `rerunRecipe` does NOT special-case the empty-name
+   *     case; the action succeeds and returns the Recipe. The
+   *     caller (WizardScreen) is responsible for deriving a
+   *     default name from the Stage 1 selections (e.g.
+   *     `'Flower 7g · Coconut · 12 servings'`) when the
+   *     Recipe's `name` is empty. Keeping the name-derivation
+   *     logic in the caller (rather than in the store) means
+   *     the store stays a pure data layer and the UI owns the
+   *     user-facing text.
+   *
+   *   - **Edge case 4 — IDB mirror.** The §7 Week 5 build order
+   *     calls for an IDB mirror of the `recipes[]` slice
+   *     ("`NameRecipeStep` + `appStore.recipes[]` slice + IDB
+   *     mirror"). The localStorage write via `partialize` is the
+   *     canonical store; the IDB mirror is a separate write
+   *     that `electron-shell` owns. `rerunRecipe` does NOT
+   *     write to the IDB mirror — the mirror is a write-only
+   *     derived view that the main process can re-derive from
+   *     the localStorage envelope on app start. If a future
+   *     `electron-shell` commit lands the IDB mirror, the
+   *     hook would go here: after the localStorage write
+   *     completes, fire an IPC to the main process to update
+   *     the IDB row. The store stays agnostic of the mirror's
+   *     existence (it doesn't even know the IDB layer exists).
    */
   rerunRecipe: (recipeId: string) => Recipe | null
 }
@@ -1793,11 +1851,40 @@ export const useAppStore = create<AppStore>()(
       // component-local `name` state — name is component-local,
       // not persisted. The action returns the recipe so the
       // caller has the name without re-looking it up.
+      //
+      // Defensive guard (Week 7, edge case 6): if the stored
+      // Recipe's `branch` is not a valid `ProductType` literal,
+      // the action returns `null` and emits a `console.warn`.
+      // The v9→v10 migration coerces an invalid branch to
+      // `'flower'`, so a Recipe that went through the canonical
+      // migrate path always has a valid value — but a hand-
+      // rolled localStorage entry (dev tooling, test fixture,
+      // or a future migration regression) could carry a
+      // non-`ProductType` string. Without this guard, a
+      // corrupted `branch` would silently fall through into
+      // `wizard.branch` and break Stage 1's branch-driven step
+      // list. The warn surfaces the data-integrity issue to
+      // the dev console rather than swallowing it.
       rerunRecipe: recipeId => {
         let found: Recipe | null = null
         set(state => {
           const recipe = state.recipes.find(r => r.id === recipeId)
           if (!recipe) return {}
+          // Edge case 6: corrupted branch guard. `isProductType`
+          // is the local type-guard at the bottom of this file
+          // (kept private — the public mirror lives in
+          // `wizardTypes.ts`). If the branch is invalid, bail
+          // with a warn rather than writing garbage to
+          // `wizard.branch`.
+          if (!isProductType(recipe.branch)) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[appStore.rerunRecipe] Recipe "${recipeId}" has an invalid branch: ${JSON.stringify(
+                recipe.branch
+              )}. Refusing to copy into Stage 1. This usually means a hand-rolled localStorage entry or a future migration bug.`
+            )
+            return {}
+          }
           found = recipe
           return {
             wizard: {
