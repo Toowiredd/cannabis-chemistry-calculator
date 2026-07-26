@@ -601,6 +601,16 @@ header {
   }
 }
 
+/* Backstop for the unit-toggle transition. Per-tab useReducedMotion is the
+ * ui-tabs agent's scope; this rule is the global CSS fallback that works
+ * even if an individual tab forgets the hook. The 2026-07-26 userstory-audit
+ * flagged P2.4 `tabs-ui-reduced-motion-respect` as the missing piece. */
+@media (prefers-reduced-motion: reduce) {
+  .unit-toggle-transition {
+    transition: none !important;
+  }
+}
+
 /* ──────────────────────────────────────────────────────────────── */
 /* Transformation canvas keyframes                                   */
 /* ──────────────────────────────────────────────────────────────── */
