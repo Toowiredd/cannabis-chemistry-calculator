@@ -3,12 +3,16 @@
  *
  * CompletionStep is the Stage 2 completion shell (§4.1,
  * "Completion"). It accepts a `recipeName` + `computedTotals`
- * + `onSave` and renders the result summary + journal save CTA.
+ * + `onSave` + `onRerun` and renders the result summary, the
+ * journal save CTA, and (§8.2, Week 6) the "Run again" CTA.
  *
  * Coverage:
  *  - renders the recipe name in the headline
  *  - renders the three totals (THC, CBD, servings) in the dl
+ *  - renders the "Save to Journal" CTA
+ *  - renders the "Run again" CTA (§8.2)
  *  - tapping "Save to Journal" calls onSave
+ *  - tapping "Run again" calls onRerun (NOT onSave)
  *  - falls back to "Untitled recipe" when recipeName is empty
  */
 import { describe, expect, it, vi } from 'vitest'
@@ -23,6 +27,7 @@ describe('CompletionStep — render', () => {
     render(
       <CompletionStep
         computedTotals={baseTotals}
+        onRerun={() => {}}
         onSave={() => {}}
         recipeName="Morning Dose — 28g Coconut Oil"
       />
@@ -36,6 +41,7 @@ describe('CompletionStep — render', () => {
     render(
       <CompletionStep
         computedTotals={baseTotals}
+        onRerun={() => {}}
         onSave={() => {}}
         recipeName="Test"
       />
@@ -53,6 +59,7 @@ describe('CompletionStep — render', () => {
     render(
       <CompletionStep
         computedTotals={baseTotals}
+        onRerun={() => {}}
         onSave={() => {}}
         recipeName="Test"
       />
@@ -60,10 +67,25 @@ describe('CompletionStep — render', () => {
     expect(screen.getByTestId('completion-step-save')).toBeTruthy()
   })
 
+  it('renders the "Run again" CTA with the §8.2 testid + aria-label', () => {
+    render(
+      <CompletionStep
+        computedTotals={baseTotals}
+        onRerun={() => {}}
+        onSave={() => {}}
+        recipeName="Test"
+      />
+    )
+    const rerun = screen.getByTestId('completion-step-rerun')
+    expect(rerun).toBeTruthy()
+    expect(rerun.getAttribute('aria-label')).toBe('Run recipe again')
+  })
+
   it('falls back to "Untitled recipe" when recipeName is empty', () => {
     render(
       <CompletionStep
         computedTotals={baseTotals}
+        onRerun={() => {}}
         onSave={() => {}}
         recipeName=""
       />
@@ -80,11 +102,28 @@ describe('CompletionStep — callbacks', () => {
     render(
       <CompletionStep
         computedTotals={baseTotals}
+        onRerun={() => {}}
         onSave={onSave}
         recipeName="Test"
       />
     )
     fireEvent.click(screen.getByTestId('completion-step-save'))
     expect(onSave).toHaveBeenCalledTimes(1)
+  })
+
+  it('tapping "Run again" calls onRerun exactly once (and NOT onSave)', () => {
+    const onRerun = vi.fn()
+    const onSave = vi.fn()
+    render(
+      <CompletionStep
+        computedTotals={baseTotals}
+        onRerun={onRerun}
+        onSave={onSave}
+        recipeName="Test"
+      />
+    )
+    fireEvent.click(screen.getByTestId('completion-step-rerun'))
+    expect(onRerun).toHaveBeenCalledTimes(1)
+    expect(onSave).not.toHaveBeenCalled()
   })
 })

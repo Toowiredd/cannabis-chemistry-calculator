@@ -131,6 +131,17 @@ export interface ExecutionStepperProps {
    */
   isRecalculating?: boolean
   affectedStepIds?: string[]
+  /**
+   * Week 6 (§8.2): fired when the user taps "Run again" on
+   * the completion step. The caller (WizardScreen) is
+   * responsible for calling the store's `rerunRecipe`
+   * action and re-engaging Stage 1 with the recipe's
+   * selections pre-filled. Optional — when not provided,
+   * the "Run again" CTA is rendered but the tap is a no-op
+   * (the state-routing agent ships the actual rerun
+   * wiring alongside `appStore.rerunRecipe`).
+   */
+  onRerun?: () => void
 }
 
 /* ------------------------------------------------------------------ */
@@ -165,6 +176,7 @@ export function ExecutionStepper({
   onSkip,
   isRecalculating: isRecalculatingProp,
   affectedStepIds,
+  onRerun,
 }: ExecutionStepperProps) {
   const progressBarId = useId()
   // -- Recalculating (§8.1): compute the per-step affected flag.
@@ -203,6 +215,12 @@ export function ExecutionStepper({
     [onComplete]
   )
   const handleSkip = useCallback((stepId: string) => onSkip?.(stepId), [onSkip])
+  // -- Week 6 (§8.2): thread the optional `onRerun` into the
+  // completion shell. When the caller hasn't wired it up, the
+  // tap is a no-op (the CTA still renders, but does nothing).
+  // CompletionStep requires a non-undefined `onRerun`, so we
+  // pass a stable no-op fallback. ---------------------------------
+  const handleRerun = useCallback(() => onRerun?.(), [onRerun])
 
   // -- Defensive: empty state when every step is skipped. ---------
   if (visibleSteps.length === 0) {
@@ -278,6 +296,7 @@ export function ExecutionStepper({
               isRecalculating={isRecalculating}
               key={phase}
               onComplete={handleComplete}
+              onRerun={handleRerun}
               onSkip={onSkip ? handleSkip : undefined}
               phase={phase}
               steps={phaseSteps}
@@ -371,6 +390,7 @@ function PhaseGroup({
   isRecalculating,
   onComplete,
   onSkip,
+  onRerun,
   phase,
   steps,
   totalCount,
@@ -382,6 +402,12 @@ function PhaseGroup({
   isRecalculating: boolean
   onComplete: (stepId: string) => void
   onSkip?: (stepId: string) => void
+  /** Week 6 (§8.2): passed down to the completion shell's
+   *  "Run again" CTA via the row. Optional at the stepper
+   *  boundary; defaults to a no-op so the CTA is safe to
+   *  render even when the caller hasn't wired the rerun
+   *  action yet. */
+  onRerun: () => void
   phase: ExecutionStepPhase
   steps: ExecutionStep[]
   totalCount: number
@@ -433,6 +459,7 @@ function PhaseGroup({
               isAffected={isAffected}
               isRecalculating={isRecalculating}
               onComplete={onComplete}
+              onRerun={onRerun}
               onSkip={onSkip}
               step={step}
             />
@@ -451,12 +478,19 @@ function ExecutionStepRow({
   step,
   onComplete,
   onSkip,
+  onRerun,
   isRecalculating,
   isAffected,
 }: {
   step: ExecutionStep
   onComplete: (stepId: string) => void
   onSkip?: (stepId: string) => void
+  /** Week 6 (§8.2): threaded into the completion shell's
+   *  "Run again" CTA. Required at this layer because the
+   *  PhaseGroup component threads it as a stable
+   *  no-op-by-default callback from the stepper's optional
+   *  `onRerun` prop. */
+  onRerun: () => void
   isRecalculating: boolean
   isAffected: (stepId: string) => boolean
 }) {
@@ -535,7 +569,7 @@ function ExecutionStepRow({
 
       {/* -- The routed shell. ------------------------------------ */}
       <div data-testid={`execution-step-${step.id}-shell`}>
-        {renderShell(step, onComplete)}
+        {renderShell(step, onComplete, onRerun)}
       </div>
 
       {/* -- Mark complete + (optional) Skip CTAs. ----------------- */}
@@ -591,7 +625,8 @@ function ExecutionStepRow({
  *  accept only the fields they need. */
 function renderShell(
   step: ExecutionStep,
-  onComplete: (stepId: string) => void
+  onComplete: (stepId: string) => void,
+  onRerun: () => void
 ) {
   switch (step.shell) {
     case 'preheat':
@@ -632,6 +667,7 @@ function renderShell(
           computedTotals={
             step.computedTotals ?? { thcMg: 0, cbdMg: 0, servings: 0 }
           }
+          onRerun={onRerun}
           onSave={() => onComplete(step.id)}
           recipeName={step.recipeName ?? ''}
         />
