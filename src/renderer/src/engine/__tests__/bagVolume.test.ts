@@ -105,6 +105,26 @@ describe('calculateBagVolume', () => {
     expect(() => calculateBagVolume(17.8, -1, 0.17)).toThrow(ValidationError)
     expect(() => calculateBagVolume(17.8, 20.3, -0.1)).toThrow(ValidationError)
   })
+
+  // P4 wiring: 10×10×10 = 1000 cm³ — the canonical
+  // "cube = 10cm edge" sanity check. Confirms the engine call site
+  // is reachable from the component layer (the previous inline
+  // `widthCm * lengthCm * bagPreset.depthCm` in BagCalculator had
+  // no test of its own — now that it routes through this function,
+  // the contract is enforced).
+  it('10×10×10 cm cube → 1000 cm³', () => {
+    expect(calculateBagVolume(10, 10, 10)).toBe(1000)
+  })
+
+  it('asymmetric dimensions (5×8×2.5) → 100.0 cm³', () => {
+    // 5 × 8 × 2.5 = 100
+    expect(calculateBagVolume(5, 8, 2.5)).toBe(100)
+  })
+
+  it('non-integer edges (2.54 × 2.54 × 2.54) → ~16.4 cm³ (1 cubic inch)', () => {
+    // 2.54³ = 16.387064 → 16.4
+    expect(calculateBagVolume(2.54, 2.54, 2.54)).toBe(16.4)
+  })
 })
 
 describe('calculateHeadspace', () => {

@@ -8,6 +8,7 @@ import {
 import {
   estimateMaterialVolume,
   calculateFillDepth,
+  calculateBagVolume,
   calculateHeadspace,
   getHeadspaceStatus,
   recommendDoubleBag,
@@ -295,7 +296,13 @@ export function BagCalculator({ tempC }: { tempC: number }) {
         }
 
         const fillDepth = calculateFillDepth(matVol, widthCm, lengthCm)
-        const bagVol = widthCm * lengthCm * bagPreset.depthCm
+        // P4 wiring: replace the inline `width * length * depth` math
+        // with the canonical engine call. `calculateBagVolume` is the
+        // single source of truth for bag-volume math (also used by
+        // BAG_PRESETS.volumeCm3 derivation in unit tests), so the
+        // computed value now matches the preset table to the rounded
+        // 1-decimal place.
+        const bagVol = calculateBagVolume(widthCm, lengthCm, bagPreset.depthCm)
         const headspace = calculateHeadspace(matVol, bagVol)
 
         const doubleBag = recommendDoubleBag(
