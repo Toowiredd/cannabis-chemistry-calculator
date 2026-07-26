@@ -12,6 +12,10 @@ import {
 // the partialize shape (10 slices), not just the `units` slice.
 // Bumped to v8 in the 2026-07-26 wizard Week 1 commit (Stage 1
 // Configuration Wizard slice + `wizardEnabled` feature flag).
+// Bumped to v10 in the 2026-07-27 wizard Week 6 commit
+// (`resumeLastInFlight` + `rerunRecipe` actions for §3.5
+// Resume last + §8.2 Run again + a v9→v10 migration that
+// normalises `recipes[]` entries).
 // Bumped to v9 in the 2026-07-26 wizard Week 5 commit (Stage 2
 // Recipes slice + `recipes[]` partialize + v8→v9 migration).
 const STORAGE_KEY = 'ccc-app-state'
@@ -332,17 +336,21 @@ describe('appStore Stage 1 Configuration Wizard — persistence', () => {
     expect(persisted?.wizardEnabled).toBe(true)
   })
 
-  it('version=9 is set on the persisted envelope (Week 1 bumped to v8, Week 5 bumped to v9)', async () => {
+  it('version=10 is set on the persisted envelope (Week 1 bumped to v8, Week 5 bumped to v9, Week 6 bumped to v10)', async () => {
     // Week 1 (2026-07-26 wizard build) bumped the persist
     // version to v8 when it added the Stage 1 Configuration
     // Wizard slice + `wizardEnabled` feature flag. Week 5
     // (2026-07-26 wizard build, §8.2 + §8.5) bumped the
     // version to v9 when it added the Stage 2 Recipes slice
-    // + `recipes[]` partialize + v8→v9 migration. The current
-    // version is therefore 9.
+    // + `recipes[]` partialize + v8→v9 migration. Week 6
+    // (2026-07-27 wizard build, §3.5 + §8.2) bumped the
+    // version to v10 when it added `resumeLastInFlight` +
+    // `rerunRecipe` actions + a v9→v10 migration that
+    // normalises `recipes[]` entries. The current version
+    // is therefore 10.
     useAppStore.getState().setProductType('avb')
     await waitForPersisted()
-    expect(readPersisted()?.version).toBe(9)
+    expect(readPersisted()?.version).toBe(10)
   })
 
   it('round-trip: Stage 1 selections + branch survive reload', async () => {
@@ -459,10 +467,12 @@ describe('appStore Stage 1 Configuration Wizard — v7→v8 migration', () => {
     // Snapshot the migrated envelope. The v7→v8 migration
     // brings the version to 8; a separate v8→v9 migration
     // (Week 5, §8.2) runs in the same `migrate` call and
-    // brings the final version to 9. The chain is intentional
-    // — see the migration block in appStore.ts.
+    // brings the version to 9; a v9→v10 migration (Week 6,
+    // §3.5 + §8.2) runs and brings the final version to
+    // 10. The chain is intentional — see the migration
+    // block in appStore.ts.
     const migrated = readPersisted()
-    expect(migrated?.version).toBe(9)
+    expect(migrated?.version).toBe(10)
     const migratedState = migrated?.state as Record<string, unknown>
     const migratedWizard = migratedState.wizard as Record<string, unknown>
     expect(migratedWizard.branch).toBeNull()
@@ -1671,7 +1681,7 @@ describe('appStore recipes[] slice — persistence (Week 5)', () => {
     })
   })
 
-  it('version=9 is set on the persisted envelope (bumped in the 2026-07-26 wizard Week 5 commit)', async () => {
+  it('version=10 is set on the persisted envelope (bumped in the 2026-07-26 wizard Week 5 commit, bumped again in the 2026-07-27 wizard Week 6 commit)', async () => {
     // Touch the store so the partialize runs at least once
     // (the persist middleware doesn't write an empty envelope
     // until something has actually changed).
@@ -1684,7 +1694,7 @@ describe('appStore recipes[] slice — persistence (Week 5)', () => {
       batchJournalEntryId: null,
     })
     await waitForPersisted()
-    expect(readPersisted()?.version).toBe(9)
+    expect(readPersisted()?.version).toBe(10)
   })
 })
 
@@ -1733,17 +1743,20 @@ describe('appStore recipes[] slice — v8→v9 migration (Week 5)', () => {
     // default).
     expect(useAppStore.getState().recipes).toEqual([])
 
-    // The persisted envelope has been migrated to v9 with
-    // `recipes: []` on the top level.
+    // The persisted envelope has been migrated through the
+    // full chain (v8→v9→v10) with `recipes: []` on the top
+    // level. The v9→v10 migration is a no-op for an empty
+    // array (no entries to normalise).
     const persisted = readPersisted()
-    expect(persisted?.version).toBe(9)
+    expect(persisted?.version).toBe(10)
     const persistedState = persisted?.state as Record<string, unknown>
     expect(persistedState.recipes).toEqual([])
   })
 
-  it('v8→v9 migration is idempotent (running twice on a v9 envelope is a no-op)', async () => {
-    // First rehydrate: v8 → v9. The migration stamps
-    // `recipes: []` on the envelope.
+  it('v8→v9→v10 chain is idempotent (running twice on a fully-migrated envelope is a no-op)', async () => {
+    // First rehydrate: v8 → v9 → v10. The v8→v9 migration
+    // stamps `recipes: []` on the envelope; the v9→v10
+    // migration is a no-op for an empty array.
     const v8Envelope = {
       state: {
         wizard: {
@@ -1769,22 +1782,21 @@ describe('appStore recipes[] slice — v8→v9 migration (Week 5)', () => {
 
     await useAppStore.persist.rehydrate()
 
-    // Sanity: v9 with empty recipes.
+    // Sanity: v10 with empty recipes.
     expect(useAppStore.getState().recipes).toEqual([])
 
-    // Second rehydrate: already-v9 envelope with `recipes: []`
-    // stamped. The migration is a no-op (the `Array.isArray`
-    // check passes on the second pass, so the spread-and-
-    // default is skipped).
+    // Second rehydrate: already-migrated envelope. The
+    // chain is a no-op (every field check passes on the
+    // second pass, so the spread-and-default is skipped).
     await useAppStore.persist.rehydrate()
 
     const persisted = readPersisted()
-    expect(persisted?.version).toBe(9)
+    expect(persisted?.version).toBe(10)
     const persistedState = persisted?.state as Record<string, unknown>
     expect(persistedState.recipes).toEqual([])
     // Stage 1 fields are preserved across the idempotent
-    // re-run (the v8→v9 migration doesn't touch the wizard
-    // slice).
+    // re-run (the v8→v9 and v9→v10 migrations don't touch
+    // the wizard slice).
     const persistedWizard = persistedState.wizard as Record<string, unknown>
     expect(persistedWizard.branch).toBe('concentrate')
   })
@@ -1880,5 +1892,596 @@ describe('appStore recipes[] slice — v8→v9 migration (Week 5)', () => {
     await useAppStore.persist.rehydrate()
 
     expect(useAppStore.getState().recipes).toEqual([])
+  })
+})
+
+/**
+ * Week 6 Resume + Re-run (2026-07-27 wizard build).
+ *
+ * Per docs/wizard-architecture-2026-07-26.md §3.5 (Resume last)
+ * and §8.2 (Run again) + the §7 build order Week 6. The store
+ * owns two new actions:
+ *
+ *   - `resumeLastInFlight()` — looks at the Stage 1 wizard
+ *     slice; returns `null` when there's no in-flight state to
+ *     resume, otherwise returns `{ branch, lastStep }` so the
+ *     caller (Dashboard "Resume last" CTA) can route the
+ *     wizard to the user's last step. Stage 2 (`execution`)
+ *     is NOT touched — Stage 2 stays ephemeral per the Week
+ *     3 contract.
+ *
+ *   - `rerunRecipe(recipeId)` — looks up the Recipe by id;
+ *     returns `null` when not found. On success, copies the
+ *     recipe's `selections` + `branch` into the Stage 1
+ *     wizard state, resets `currentStep` + `stepHistory` so
+ *     the user re-enters at the product-type picker, and
+ *     resets `execution` to the empty defaults. Returns the
+ *     recipe so the caller can copy `recipe.name` into the
+ *     component-local WizardScreen `name` state.
+ *
+ * The v9→v10 migration normalises `recipes[]` entries to
+ * the v9 shape (id, createdAt, name, branch, selections,
+ * batchJournalEntryId) with sensible defaults applied to
+ * missing or invalid fields. The migration is idempotent.
+ *
+ * The tests below cover:
+ *  - `resumeLastInFlight()` returns `null` at default state
+ *  - `resumeLastInFlight()` returns `{ branch, lastStep: 3 }`
+ *    after a flower branch + 3 advances
+ *  - `resumeLastInFlight()` returns `{ branch, lastStep: 1 }`
+ *    after a concentrate branch + 1 advance
+ *  - `resumeLastInFlight()` does NOT mutate `execution`
+ *  - `rerunRecipe('nonexistent-id')` returns `null`
+ *  - `rerunRecipe(realId)` sets branch, selections,
+ *    currentStep: 0, stepHistory: []
+ *  - `rerunRecipe(realId)` resets execution
+ *  - v9→v10 migration backfills missing recipe fields
+ *  - v9→v10 migration is idempotent
+ *  - `version=10` is set on the persisted envelope
+ */
+describe('appStore resume + re-run — Week 6', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    // Reset to the canonical "Stage 1 + Stage 2 both empty,
+    // no Recipes yet" baseline. The new actions read
+    // `wizard.branch` / `wizard.stage1Selections` /
+    // `wizard.execution` / `recipes[]`, so every test starts
+    // from a known empty baseline.
+    useAppStore.setState({
+      wizard: {
+        ...DEFAULT_WIZARD_STATE,
+        selections: { ...DEFAULT_WIZARD_STATE.selections },
+        stage1Selections: { ...DEFAULT_STAGE1_WIZARD_SELECTIONS },
+        execution: { ...DEFAULT_EXECUTION_STEP_STATE },
+      },
+      wizardEnabled: false,
+      recipes: [],
+    })
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+  })
+
+  it('resumeLastInFlight() returns null when the wizard is at the default empty state (no branch)', () => {
+    // The §3.5 spec: a user with no branch picked is
+    // functionally a fresh launch. Resume should return null
+    // so the Dashboard can offer the "Start new" path
+    // instead.
+    const result = useAppStore.getState().resumeLastInFlight()
+    expect(result).toBeNull()
+  })
+
+  it('resumeLastInFlight() returns null when a branch is set but no selections have been made', () => {
+    // The §3.5 contract: "branch !== null AND at least one
+    // selection is non-empty". A user with branch='flower'
+    // but no selections (i.e., they picked a product type
+    // but immediately quit) is functionally a fresh launch
+    // from the Resume action's perspective — return null.
+    useAppStore.getState().setProductType('flower')
+    expect(useAppStore.getState().wizard.branch).toBe('flower')
+    expect(useAppStore.getState().wizard.stage1Selections).toEqual({})
+
+    const result = useAppStore.getState().resumeLastInFlight()
+    expect(result).toBeNull()
+  })
+
+  it('resumeLastInFlight() returns { branch: "flower", lastStep: 3 } after a flower branch is selected with setProductType("flower") and the user advances through 3 steps', () => {
+    // The brief's primary happy-path case: the user picked
+    // a flower branch, made a selection on the first step,
+    // and advanced 3 times. The Resume action returns the
+    // branch and the user's last position (currentStep=3
+    // after 3 nextStep() calls from step 0).
+    const { setProductType, setSelection, nextStep, resumeLastInFlight } =
+      useAppStore.getState()
+    setProductType('flower')
+    setSelection('method', 'oven_sealed')  // required to pass the "at least one selection" check
+    nextStep()
+    nextStep()
+    nextStep()
+
+    // Sanity: preconditions.
+    expect(useAppStore.getState().wizard.branch).toBe('flower')
+    expect(useAppStore.getState().wizard.currentStep).toBe(3)
+    expect(useAppStore.getState().wizard.stage1Selections.method).toBe(
+      'oven_sealed'
+    )
+
+    const result = resumeLastInFlight()
+    expect(result).toEqual({ branch: 'flower', lastStep: 3 })
+  })
+
+  it('resumeLastInFlight() returns { branch: "concentrate", lastStep: 1 } after the user has only picked the product type (step 0 → step 1)', () => {
+    // The brief's "minimum in-flight" case: the user
+    // picked a concentrate branch and advanced one step.
+    // The action returns branch='concentrate' and the
+    // user's last position (currentStep=1 after one
+    // nextStep() call).
+    const { setProductType, setSelection, nextStep, resumeLastInFlight } =
+      useAppStore.getState()
+    setProductType('concentrate')
+    setSelection('potency', 78)  // required to pass the "at least one selection" check
+    nextStep()
+
+    // Sanity: preconditions.
+    expect(useAppStore.getState().wizard.branch).toBe('concentrate')
+    expect(useAppStore.getState().wizard.currentStep).toBe(1)
+    expect(useAppStore.getState().wizard.stage1Selections.potency).toBe(78)
+
+    const result = resumeLastInFlight()
+    expect(result).toEqual({ branch: 'concentrate', lastStep: 1 })
+  })
+
+  it('resumeLastInFlight() does NOT mutate `execution` (Stage 2 stays ephemeral)', () => {
+    // The §3.5 spec: Resume restores the user's Stage 1
+    // position; it does NOT touch Stage 2. Re-engaging
+    // Stage 2 is a separate action (`beginExecution`).
+    // We pre-populate a non-default execution to verify
+    // the action leaves it alone.
+    const {
+      setProductType,
+      setSelection,
+      nextStep,
+      beginExecution,
+      completeExecutionStep,
+      resumeLastInFlight,
+    } = useAppStore.getState()
+    setProductType('flower')
+    setSelection('method', 'oven_sealed')
+    nextStep()
+    beginExecution('preheat')
+    completeExecutionStep('preheat', 'timer')
+
+    // Sanity: Stage 2 is in a non-default state.
+    const execBefore = useAppStore.getState().wizard.execution
+    expect(execBefore.currentStepId).toBe('timer')
+    expect(execBefore.completedStepIds).toEqual(['preheat'])
+
+    // Resume — should NOT touch execution.
+    resumeLastInFlight()
+
+    const execAfter = useAppStore.getState().wizard.execution
+    // Deep-equal pins the contract: every field of
+    // execution is identical to the pre-state.
+    expect(execAfter).toEqual(execBefore)
+    // Sanity: the Stage 2 fields are still the values
+    // we set (the action did not clear them).
+    expect(execAfter.currentStepId).toBe('timer')
+    expect(execAfter.completedStepIds).toEqual(['preheat'])
+  })
+
+  it('rerunRecipe("nonexistent-id") returns null and does not mutate state', () => {
+    // The §8.2 contract: looking up an id that doesn't
+    // exist returns `null` and is a no-op. The store
+    // must not partially-mutate wizard state in this case
+    // (e.g., by zeroing out currentStep before bailing).
+    const { rerunRecipe } = useAppStore.getState()
+
+    // Pre-populate some Stage 1 state to verify it's
+    // preserved across the no-op.
+    useAppStore.getState().setProductType('edible')
+    useAppStore.getState().setSelection('fat', 'coconut')
+    useAppStore.getState().nextStep()
+    useAppStore.getState().nextStep()
+    const wBefore = useAppStore.getState().wizard
+
+    const result = rerunRecipe('nonexistent-id')
+    expect(result).toBeNull()
+
+    // State is structurally identical.
+    expect(useAppStore.getState().wizard).toEqual(wBefore)
+  })
+
+  it('rerunRecipe(realId) copies selections + branch into the Stage 1 wizard state, resets currentStep: 0 + stepHistory: []', () => {
+    // The §8.2 happy path: "Run again" on the Stage 2
+    // completion step. The user picks a saved Recipe and
+    // the wizard re-enters Stage 1 with the recipe's
+    // selections pre-filled. The user can confirm each
+    // step and re-engage Stage 2.
+    const { addRecipe, rerunRecipe } = useAppStore.getState()
+    addRecipe({
+      id: 'recipe-1',
+      createdAt: '2026-07-26T10:00:00.000Z',
+      name: 'Morning dose',
+      branch: 'flower',
+      selections: {
+        method: 'oven_sealed',
+        weight: { value: 14, unit: 'g' },
+      },
+      batchJournalEntryId: null,
+    })
+
+    // Pre-populate unrelated wizard state to verify
+    // rerunRecipe overwrites it (the "Start fresh from
+    // recipe" semantic).
+    useAppStore.getState().setProductType('concentrate')
+    useAppStore.getState().nextStep()
+    useAppStore.getState().setSelection('potency', 80)
+    useAppStore.getState().nextStep()
+    useAppStore.getState().nextStep()
+    expect(useAppStore.getState().wizard.currentStep).toBe(3)
+    expect(useAppStore.getState().wizard.stepHistory).toEqual([0, 1, 2])
+
+    const result = rerunRecipe('recipe-1')
+
+    // Returns the recipe (so the caller can read name).
+    expect(result).not.toBeNull()
+    expect(result?.id).toBe('recipe-1')
+    expect(result?.name).toBe('Morning dose')
+    expect(result?.branch).toBe('flower')
+
+    // Wizard state is overwritten with the recipe's data.
+    const w = useAppStore.getState().wizard
+    expect(w.branch).toBe('flower')
+    expect(w.stage1Selections).toEqual({
+      method: 'oven_sealed',
+      weight: { value: 14, unit: 'g' },
+    })
+    expect(w.currentStep).toBe(0)
+    expect(w.stepHistory).toEqual([])
+  })
+
+  it('rerunRecipe(realId) resets execution to the empty default (a fresh Stage 2 will start when the user re-engages Begin batch)', () => {
+    // The §8.2 contract: the user is starting a fresh
+    // batch, so any in-progress Stage 2 markers from the
+    // previous run are stale. The action clears them.
+    const { addRecipe, beginExecution, completeExecutionStep, rerunRecipe } =
+      useAppStore.getState()
+    addRecipe({
+      id: 'recipe-1',
+      createdAt: '2026-07-26T10:00:00.000Z',
+      name: 'Morning dose',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+    })
+
+    // Pre-populate Stage 2 to a non-default state.
+    beginExecution('preheat')
+    completeExecutionStep('preheat', 'timer')
+    let exec = useAppStore.getState().wizard.execution
+    expect(exec.currentStepId).toBe('timer')
+    expect(exec.completedStepIds).toEqual(['preheat'])
+
+    rerunRecipe('recipe-1')
+
+    // Execution is reset to the empty defaults.
+    exec = useAppStore.getState().wizard.execution
+    expect(exec).toEqual(DEFAULT_EXECUTION_STEP_STATE)
+    expect(exec.currentStepId).toBeNull()
+    expect(exec.completedStepIds).toEqual([])
+    expect(exec.skippedStepIds).toEqual([])
+  })
+
+  it('rerunRecipe(realId) returns the same Recipe reference from the store (so the caller can read fields without re-looking it up)', () => {
+    // The caller (WizardScreen's CompletionStep) needs
+    // `recipe.name` to populate the local name state.
+    // The action returns the recipe so the caller has
+    // access to all fields without re-looking them up in
+    // `state.recipes`.
+    const { addRecipe, rerunRecipe } = useAppStore.getState()
+    addRecipe({
+      id: 'recipe-1',
+      createdAt: '2026-07-26T10:00:00.000Z',
+      name: 'Sleep edible',
+      branch: 'edible',
+      selections: { weight: { value: 28, unit: 'g' }, fat: 'coconut' },
+      batchJournalEntryId: null,
+    })
+
+    const result = rerunRecipe('recipe-1')
+    expect(result).not.toBeNull()
+    // The returned recipe has the same fields as the
+    // stored one (the action returns a reference to the
+    // store entry, not a copy).
+    expect(result?.id).toBe('recipe-1')
+    expect(result?.name).toBe('Sleep edible')
+    expect(result?.branch).toBe('edible')
+    expect(result?.selections).toEqual({
+      weight: { value: 28, unit: 'g' },
+      fat: 'coconut',
+    })
+  })
+
+  it('rerunRecipe(realId) does NOT mutate the stored Recipe (selections are shallow-copied into the wizard)', () => {
+    // Defensive: the wizard's `stage1Selections` is a
+    // fresh shallow copy of `recipe.selections`, so a
+    // future `setSelection` on the live wizard doesn't
+    // mutate the stored Recipe. The Recipe is the
+    // canonical record (per §8.2); the wizard state is
+    // a derived view that should never write back.
+    const { addRecipe, rerunRecipe } = useAppStore.getState()
+    addRecipe({
+      id: 'recipe-1',
+      createdAt: '2026-07-26T10:00:00.000Z',
+      name: 'A',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+    })
+
+    rerunRecipe('recipe-1')
+    // Now mutate the wizard's selections (simulate the
+    // user re-editing the method in the wizard).
+    useAppStore.getState().setSelection('method', 'sv_combined')
+
+    // The stored Recipe is unchanged — the new
+    // `stage1Selections` is a different object.
+    const stored = useAppStore.getState().recipes[0]
+    expect(stored?.selections).toEqual({ method: 'oven_sealed' })
+    expect(useAppStore.getState().wizard.stage1Selections).toEqual({
+      method: 'sv_combined',
+    })
+  })
+})
+
+describe('appStore resume + re-run — v9→v10 migration (Week 6)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+  })
+
+  it('v9→v10 migration normalises legacy `recipes` entries — backfills missing createdAt / batchJournalEntryId / name / branch fields', async () => {
+    // The v9→v10 migration is a normalisation pass: every
+    // entry in `recipes[]` is coerced to the v9 Recipe
+    // shape. This protects the Week 6 actions from a
+    // hand-rolled v9 envelope (dev tooling, a test fixture,
+    // or a future build that beat the migration and wrote
+    // a partial Recipe). The brief's "test via
+    // migrate(v9Envelope, 9)" hint is implemented by
+    // rehydrating a hand-rolled v9 envelope — the persist
+    // library calls migrate(state, 9) internally and the
+    // assertion checks the post-migration state.
+    const v9Envelope = {
+      state: {
+        wizard: {
+          active: false,
+          dismissed: false,
+          stepIndex: 0,
+          selections: {
+            equipment: [],
+            decarbMethodIds: [],
+            fatIds: [],
+            formatIds: [],
+          },
+          branch: 'flower',
+          currentStep: 0,
+          stage1Selections: {},
+          stepHistory: [],
+        },
+        wizardEnabled: false,
+        recipes: [
+          {
+            // Only id + selections are present — every other
+            // field is missing and must be backfilled by
+            // the migration.
+            id: 'recipe-1',
+            selections: { method: 'oven_sealed' },
+          },
+        ],
+      },
+      version: 9,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(v9Envelope))
+
+    await useAppStore.persist.rehydrate()
+
+    const recipes = useAppStore.getState().recipes
+    expect(recipes).toHaveLength(1)
+    const r = recipes[0]
+    expect(r).toBeDefined()
+    expect(r?.id).toBe('recipe-1')
+    // Original valid fields are preserved.
+    expect(r?.selections).toEqual({ method: 'oven_sealed' })
+    // Missing fields are backfilled with sensible defaults.
+    expect(r?.name).toBe('Untitled recipe')
+    expect(r?.branch).toBe('flower')
+    expect(r?.batchJournalEntryId).toBeNull()
+    // createdAt is stamped with a valid ISO timestamp.
+    expect(typeof r?.createdAt).toBe('string')
+    expect(r?.createdAt).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
+    )
+  })
+
+  it('v9→v10 migration is idempotent — re-running the migration on a normalised envelope is a no-op', async () => {
+    // First rehydrate: v9 → v10 (recipes normalised).
+    // The hand-rolled recipe is already valid, so the
+    // migration is effectively a no-op for the data
+    // (every field check passes on the first pass).
+    const v9Envelope = {
+      state: {
+        wizard: {
+          active: false,
+          dismissed: false,
+          stepIndex: 0,
+          selections: {
+            equipment: [],
+            decarbMethodIds: [],
+            fatIds: [],
+            formatIds: [],
+          },
+          branch: 'flower',
+          currentStep: 0,
+          stage1Selections: {},
+          stepHistory: [],
+        },
+        wizardEnabled: false,
+        recipes: [
+          {
+            id: 'recipe-1',
+            createdAt: '2026-07-26T10:00:00.000Z',
+            name: 'Morning dose',
+            branch: 'flower',
+            selections: { method: 'oven_sealed' },
+            batchJournalEntryId: null,
+          },
+        ],
+      },
+      version: 9,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(v9Envelope))
+
+    await useAppStore.persist.rehydrate()
+
+    // Snapshot the normalised state.
+    const afterFirst = useAppStore.getState().recipes
+    expect(afterFirst).toHaveLength(1)
+    expect(afterFirst[0]?.id).toBe('recipe-1')
+    expect(afterFirst[0]?.name).toBe('Morning dose')
+    expect(afterFirst[0]?.createdAt).toBe('2026-07-26T10:00:00.000Z')
+
+    // Re-write the v9 envelope to localStorage to
+    // simulate a fresh load from a v9 source (the
+    // previous flush would have written a v10 envelope;
+    // we overwrite to force the migration to run again).
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(v9Envelope))
+    await useAppStore.persist.rehydrate()
+
+    // The data is identical to the post-first-migration
+    // snapshot. The second migration is a no-op (every
+    // field check passes on the second pass).
+    const afterSecond = useAppStore.getState().recipes
+    expect(afterSecond).toEqual(afterFirst)
+  })
+
+  it('v9→v10 migration coerces invalid branch / name / createdAt values to defaults', async () => {
+    // A hand-rolled v9 envelope with malformed entries:
+    // `branch: 'banana'` (invalid ProductType), `name: 42`
+    // (not a string), `createdAt: null` (not a string).
+    // The migration must coerce each invalid value to
+    // the appropriate default — never propagate the
+    // corruption.
+    const v9Envelope = {
+      state: {
+        wizard: {
+          active: false,
+          dismissed: false,
+          stepIndex: 0,
+          selections: {
+            equipment: [],
+            decarbMethodIds: [],
+            fatIds: [],
+            formatIds: [],
+          },
+          branch: 'flower',
+          currentStep: 0,
+          stage1Selections: {},
+          stepHistory: [],
+        },
+        wizardEnabled: false,
+        recipes: [
+          {
+            id: 'recipe-1',
+            // Malformed fields:
+            branch: 'banana',  // not a valid ProductType
+            name: 42,  // not a string
+            createdAt: null,  // not a string
+            selections: { method: 'oven_sealed' },
+            batchJournalEntryId: 42,  // not a string
+          },
+        ],
+      },
+      version: 9,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(v9Envelope))
+
+    await useAppStore.persist.rehydrate()
+
+    const r = useAppStore.getState().recipes[0]
+    expect(r).toBeDefined()
+    expect(r?.id).toBe('recipe-1')
+    // Invalid branch → 'flower' (the safe default).
+    expect(r?.branch).toBe('flower')
+    // Invalid name → 'Untitled recipe'.
+    expect(r?.name).toBe('Untitled recipe')
+    // Invalid createdAt → a valid ISO timestamp
+    // (the migrate-time).
+    expect(typeof r?.createdAt).toBe('string')
+    expect(r?.createdAt).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
+    )
+    // Invalid batchJournalEntryId → null (the default).
+    expect(r?.batchJournalEntryId).toBeNull()
+  })
+
+  it('v9→v10 migration backfills a missing `recipes` key to [] (defensive, even though the v8→v9 migration already does this for v8 envelopes)', async () => {
+    // A hand-rolled v9 envelope with NO `recipes` key.
+    // This is unusual (the v8→v9 migration stamps [] for
+    // v8 envelopes, so a v9 envelope would typically have
+    // the key), but the v9→v10 migration is defensive
+    // against a hand-rolled v9 envelope that lost the key
+    // somehow (dev tooling, an out-of-band localStorage
+    // edit). The migration backfills [] so consumers
+    // never see `undefined` on `state.recipes`.
+    const v9Envelope = {
+      state: {
+        wizard: {
+          active: false,
+          dismissed: false,
+          stepIndex: 0,
+          selections: {
+            equipment: [],
+            decarbMethodIds: [],
+            fatIds: [],
+            formatIds: [],
+          },
+          branch: 'flower',
+          currentStep: 0,
+          stage1Selections: {},
+          stepHistory: [],
+        },
+        wizardEnabled: false,
+        // NO `recipes` key — the v9→v10 migration must
+        // backfill it to [].
+      },
+      version: 9,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(v9Envelope))
+
+    await useAppStore.persist.rehydrate()
+
+    expect(useAppStore.getState().recipes).toEqual([])
+  })
+
+  it('version=10 is set on the persisted envelope after addRecipe + flush', async () => {
+    // The Week 6 persist bump: after the new actions are
+    // wired in, the version on the persisted envelope is
+    // 10. This pins the contract for any future code
+    // that reads the envelope directly (e.g., a test
+    // fixture that hand-rolls a v10 envelope).
+    useAppStore.getState().addRecipe({
+      id: 'recipe-1',
+      createdAt: '2026-07-26T10:00:00.000Z',
+      name: 'A',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+    })
+    await waitForPersisted()
+    expect(readPersisted()?.version).toBe(10)
   })
 })

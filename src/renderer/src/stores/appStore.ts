@@ -959,6 +959,62 @@ interface AppStore {
    * doesn't exist. Persisted.
    */
   setRecipeJournalEntry: (recipeId: string, journalEntryId: string) => void
+
+  // -----------------------------------------------------------------
+  // Week 6 (2026-07-27 wizard build): Resume + Re-run actions for
+  // §3.5 ("Resume last" on app launch) and §8.2 ("Run again" CTA
+  // on Stage 2 completion). Both are additive — they read existing
+  // persisted state (the `wizard` Stage 1 slice + the `recipes[]`
+  // slice) and write to the Stage 1 slice. Stage 2 (`execution`)
+  // is NOT touched by Resume (Stage 2 stays ephemeral; re-engagement
+  // is via `beginExecution` after the user re-enters Stage 1).
+  // Re-run DOES reset `execution` to the empty defaults because
+  // the user is starting a fresh batch.
+  //
+  // See docs/wizard-architecture-2026-07-26.md §3.5 + §8.2 + the
+  // §7 build order (Week 6: "Resume last" entry + "Re-run saved
+  // Recipe" UX). The two actions here are the store-side surface
+  // for those flows — the WizardScreen and Dashboard components
+  // call them; the store owns the in-memory state and the
+  // persistence rules.
+  // -----------------------------------------------------------------
+
+  /**
+   * Week 6 (§3.5): resume the user's last in-flight Stage 1
+   * wizard state. Returns `null` when there are no Stage 1
+   * selections to resume (the wizard is at the default empty
+   * state — `branch === null` or `stage1Selections` is empty).
+   * Otherwise restores `currentStep` to the user's last position
+   * (idempotent re-set, defensive against a future bug that
+   * could zero the step out) and returns `{ branch, lastStep }`
+   * so the caller can route the UI (e.g., the Dashboard's
+   * "Resume last" CTA calls this, then opens the wizard at the
+   * returned step). The Stage 2 `execution` slice is NOT
+   * touched — Stage 2 is ephemeral by design (re-entering
+   * Stage 2 with `beginExecution('preheat-decarb')` after
+   * resume is the canonical re-engagement path).
+   */
+  resumeLastInFlight: () => { branch: ProductType; lastStep: number } | null
+  /**
+   * Week 6 (§8.2): "Run again" CTA on the Stage 2 completion
+   * step. Copies the named Recipe's `selections` + `branch` into
+   * the Stage 1 wizard state and resets `currentStep` to 0 +
+   * clears `stepHistory` so the user re-enters Stage 1 at the
+   * product-type picker (the wizard walks the user back through
+   * their selections in order — the selections are pre-filled,
+   * so the user can confirm each one and immediately transition
+   * to Stage 2 again). Resets `execution` to the empty
+   * defaults so a fresh Stage 2 run starts cleanly. Returns
+   * the Recipe on success, `null` when the id is not found.
+   *
+   * The caller is responsible for copying `recipe.name` into
+   * the local `name` state of the WizardScreen — name is
+   * component-local, not persisted in `wizard.stage1Selections`.
+   * The returned Recipe gives the caller access to the name
+   * (and any other field) without re-looking it up in
+   * `state.recipes`.
+   */
+  rerunRecipe: (recipeId: string) => Recipe | null
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -1659,6 +1715,115 @@ export const useAppStore = create<AppStore>()(
         }))
       },
 
+      // -----------------------------------------------------------------
+      // Week 6 Resume + Re-run action implementations (2026-07-27
+      // wizard build). See the AppStore interface JSDoc above for
+      // the contract — the implementations below mirror that
+      // contract exactly. See docs/wizard-architecture-2026-07-26.md
+      // §3.5 (Resume last) + §8.2 (Run again) + the §7 build
+      // order Week 6.
+      // -----------------------------------------------------------------
+
+      // §3.5 Resume last. The action reads `state.wizard` via
+      // the setter callback (the existing convention in this
+      // store — `addRecipe` does the same; we don't switch the
+      // outer destructuring to `(set, get) =>` just for one
+      // action). Returns `null` when there's no in-flight
+      // Stage 1 state to resume (branch is null OR
+      // stage1Selections is empty). When resume IS possible,
+      // re-anchors `currentStep` to the user's last position
+      // (defensive — currentStep is already restored from
+      // persistence on rehydrate, so this is a no-op in the
+      // normal flow; the re-set makes the action idempotent
+      // against a future bug that could zero the step out,
+      // e.g., an errant `resetWizard` from another surface).
+      // The returned `{ branch, lastStep }` lets the caller
+      // (Dashboard "Resume last" CTA) route the wizard to the
+      // user's last step without re-reading the store.
+      resumeLastInFlight: () => {
+        let result: { branch: ProductType; lastStep: number } | null = null
+        set(state => {
+          const w = state.wizard
+          if (w.branch === null) return {}
+          // Defensive: require at least one Stage 1 selection
+          // before claiming "in-flight". The §3.5 spec says
+          // "App launch with a saved Recipe: Dashboard offers
+          // Resume last" — a user with no selections is
+          // functionally equivalent to a fresh launch, so
+          // return null. The `v !== undefined` check covers
+          // the case where `setSelection(key, undefined)` was
+          // called (the field is removed entirely; the
+          // remaining keys are what matters).
+          const hasSelections = Object.values(w.stage1Selections).some(
+            v => v !== undefined
+          )
+          if (!hasSelections) return {}
+          // The "last step" is the user's current position in
+          // the wizard. stepHistory tracks the path to that
+          // position but the head is one step behind currentStep
+          // (nextStep pushes the current step onto history
+          // BEFORE incrementing, so the head is the step the
+          // user advanced FROM, not the step they advanced TO).
+          // currentStep is therefore the right source of truth
+          // for "the last step the user was on".
+          const lastStep = w.currentStep
+          result = { branch: w.branch, lastStep }
+          // Defensive re-set. `execution` is preserved because
+          // the spread `{ ...w }` carries it through; we only
+          // override `currentStep`. Stage 2 stays ephemeral.
+          return {
+            wizard: { ...w, currentStep: lastStep },
+          }
+        })
+        return result
+      },
+      // §8.2 Run again. Looks up the Recipe by id; returns
+      // `null` if not found. On success, copies the recipe's
+      // `selections` + `branch` into the Stage 1 wizard state
+      // and resets `currentStep` + `stepHistory` so the user
+      // re-enters Stage 1 at the product-type picker (the
+      // selections are pre-filled, so the user can confirm each
+      // step and immediately transition to Stage 2). Resets
+      // `execution` to the empty defaults because the user is
+      // starting a fresh batch — any in-progress Stage 2
+      // markers from the previous run are stale.
+      //
+      // The caller (WizardScreen's CompletionStep) is
+      // responsible for copying `recipe.name` into the
+      // component-local `name` state — name is component-local,
+      // not persisted. The action returns the recipe so the
+      // caller has the name without re-looking it up.
+      rerunRecipe: recipeId => {
+        let found: Recipe | null = null
+        set(state => {
+          const recipe = state.recipes.find(r => r.id === recipeId)
+          if (!recipe) return {}
+          found = recipe
+          return {
+            wizard: {
+              ...state.wizard,
+              branch: recipe.branch,
+              // Re-enter at the product-type picker (step 0)
+              // with an empty stepHistory so the user re-walks
+              // from the top. The selections are pre-filled
+              // via `stage1Selections` below, so each step
+              // shows up already-selected and the user can
+              // either confirm or re-edit before advancing.
+              currentStep: 0,
+              // Shallow-copy the selections so a future
+              // `setSelection` on the live wizard doesn't
+              // mutate the stored Recipe.
+              stage1Selections: { ...recipe.selections },
+              stepHistory: [],
+              // Fresh Stage 2 — any in-progress markers from
+              // the previous run are stale.
+              execution: { ...DEFAULT_EXECUTION_STEP_STATE },
+            },
+          }
+        })
+        return found
+      },
+
       loadFromPreset: (preset: unknown) => {
         if (!isRecord(preset)) return
 
@@ -1947,6 +2112,24 @@ export const useAppStore = create<AppStore>()(
       // snapshot with `source: 'unknown'` so consumers can rely on a
       // present-but-default value after a one-time upgrade.
       //
+      // Bumped to v10 in the 2026-07-27 wizard Week 6 commit. The
+      // v9→v10 migration is a normalisation pass over the
+      // `recipes[]` slice (added in v9) — every entry is coerced
+      // to the v9 Recipe shape (id, createdAt, name, branch,
+      // selections, batchJournalEntryId) with sensible defaults
+      // applied to missing or invalid fields. The migration
+      // exists so the Week 6 Resume (§3.5) and Re-run (§8.2)
+      // actions can rely on every Recipe in the slice being
+      // fully shaped (e.g., a missing `createdAt` would surface
+      // as `undefined` on the Dashboard's "Recent recipes" list
+      // and break the "X days ago" rendering). The migration is
+      // idempotent — running it on a v10-shaped envelope is a
+      // no-op because every field check passes on the second
+      // pass. The v10 schema itself does NOT add a new top-level
+      // slice; the `recipes[]` slice from v9 is the persistent
+      // home for the new actions, so `partialize` is unchanged
+      // from v9.
+      //
       // Bumped to v9 in the 2026-07-26 wizard Week 5 commit. The
       // v8→v9 migration initializes the Stage 2 Recipes slice
       // (`recipes: []` on the top-level envelope). The migration
@@ -1971,7 +2154,7 @@ export const useAppStore = create<AppStore>()(
       // migration. They were already shaped correctly in v7 and
       // remain the backing store for FirstTimerGuide until the §8.6
       // deprecation lands in a later week.
-      version: 9,
+      version: 10,
       migrate: (persistedState: unknown, version: number): unknown => {
         if (!isRecord(persistedState)) return persistedState
 
@@ -2490,6 +2673,80 @@ export const useAppStore = create<AppStore>()(
         if (version < 9) {
           if (!Array.isArray(state.recipes)) {
             state = { ...state, recipes: [] }
+          }
+        }
+
+        // v9 -> v10: Week 6 (2026-07-27 wizard build). The v10
+        // schema itself doesn't add a new top-level slice — the
+        // `recipes[]` slice added in v9 is the persistent home for
+        // the Week 6 Resume (§3.5) and Re-run (§8.2) actions. The
+        // migration's job is purely a normalisation pass: every
+        // entry in `recipes[]` is coerced to the v9 Recipe shape
+        // (id, createdAt, name, branch, selections,
+        // batchJournalEntryId) with sensible defaults applied to
+        // missing or invalid fields. This protects the Week 6
+        // actions from a hand-rolled v9 envelope (dev tooling,
+        // test fixture, a future build that beat the migration
+        // and wrote a partial Recipe) — a missing `createdAt`
+        // would surface as `undefined` on `recipe.createdAt` in
+        // the Dashboard's "Recent recipes" list and break the
+        // "X days ago" rendering. The migration is idempotent —
+        // re-running it on a v10-shaped envelope is a no-op
+        // because every field check passes on the second pass.
+        // Legacy state without `recipes` is backfilled to `[]`
+        // (defensively, even though the v8→v9 migration already
+        // does this for v8 envelopes).
+        if (version < 10) {
+          if (!Array.isArray(state.recipes)) {
+            state = { ...state, recipes: [] }
+          } else {
+            const now = new Date().toISOString()
+            const rawRecipes = state.recipes as unknown[]
+            state = {
+              ...state,
+              recipes: rawRecipes.map(r => {
+                if (!isRecord(r)) {
+                  // Defensive: a non-object entry shouldn't appear
+                  // in a well-formed snapshot, but stamp a
+                  // sentinel so downstream code never has to
+                  // defend against an invalid entry. The id is
+                  // generated (not preserved) because there's no
+                  // id to preserve on a non-object.
+                  return {
+                    id: crypto.randomUUID(),
+                    createdAt: now,
+                    name: 'Untitled recipe',
+                    branch: 'flower' as ProductType,
+                    selections: {},
+                    batchJournalEntryId: null,
+                  }
+                }
+                return {
+                  id:
+                    typeof r.id === 'string'
+                      ? r.id
+                      : crypto.randomUUID(),
+                  createdAt:
+                    typeof r.createdAt === 'string'
+                      ? r.createdAt
+                      : now,
+                  name:
+                    typeof r.name === 'string'
+                      ? r.name
+                      : 'Untitled recipe',
+                  branch: isProductType(r.branch) ? r.branch : 'flower',
+                  selections:
+                    typeof r.selections === 'object' &&
+                    r.selections !== null
+                      ? (r.selections as Recipe['selections'])
+                      : {},
+                  batchJournalEntryId:
+                    typeof r.batchJournalEntryId === 'string'
+                      ? r.batchJournalEntryId
+                      : null,
+                }
+              }),
+            }
           }
         }
 

@@ -344,12 +344,16 @@ describe('appStore persist — v1 → v2 migration (JournalEntry.source backfill
   it('persisted envelope is upgraded to version 4 after rehydrate (chained v1 → v2 → v3 → v4)', async () => {
     // Sanity: the persist middleware flushes the migrated envelope
     // back to localStorage at the current version. Future runs of
-    // the app must see `version: 4`, not `version: 1` or `version: 2`
-    // or `version: 3` — otherwise the migration chain would re-run
-    // on every launch. (Updated 2026-07-25: the v3→v4
+    // the app must see `version: 10`, not `version: 1` or `version: 2`
+    // or `version: 3` or `version: 4` — otherwise the migration chain
+    // would re-run on every launch. (Updated 2026-07-25: the v3→v4
     // materialWeightUnit backfill was added in the
     // ccc-validation-orchestrator MAJOR M1 fix, so a v1 envelope
-    // now travels through v1→v2→v3→v4 in one rehydrate.)
+    // now travels through v1→v2→v3→v4→v7→v8→v9→v10 in one rehydrate.
+    // The final version is 10 because the Week 6 v9→v10 migration
+    // (a normalisation pass over `recipes[]`) also runs; the
+    // legacy v1 envelope has no `recipes[]` key, so the migration
+    // backfills it to `[]` and stamps the new version.)
     const v1Envelope: PersistedEnvelope = {
       state: {
         firstRunDismissed: true,
@@ -364,10 +368,10 @@ describe('appStore persist — v1 → v2 migration (JournalEntry.source backfill
     // Give the debounced persist writer a moment to flush.
     for (let i = 0; i < 50; i++) {
       const persisted = readPersisted()
-      if (persisted?.version === 9) break
+      if (persisted?.version === 10) break
       await new Promise(resolve => setTimeout(resolve, 10))
     }
-    expect(readPersisted()?.version).toBe(9)
+    expect(readPersisted()?.version).toBe(10)
   })
 })
 
@@ -728,13 +732,18 @@ describe('appStore persist — v2 → v3 migration (InventoryItem.kind backfill)
 
     await useAppStore.persist.rehydrate()
 
-    // Envelope upgrades to version 7 (v3→v4→v7 migration chain ran).
+    // Envelope upgrades through the full chain
+    // (v3→v4→v7→v8→v9→v10). The final version is 10 because
+    // the Week 6 v9→v10 migration (a normalisation pass over
+    // `recipes[]`) also runs; the legacy v3 envelope has no
+    // `recipes[]` key, so the migration backfills it to `[]`
+    // and stamps the new version.
     for (let i = 0; i < 50; i++) {
       const persisted = readPersisted()
-      if (persisted?.version === 9) break
+      if (persisted?.version === 10) break
       await new Promise(resolve => setTimeout(resolve, 10))
     }
-    expect(readPersisted()?.version).toBe(9)
+    expect(readPersisted()?.version).toBe(10)
 
     // materialMode: 'avb' survives rehydrate.
     expect(useAppStore.getState().decarb.materialMode).toBe('avb')
@@ -1015,18 +1024,21 @@ describe('appStore persist — v3 to v4 migration (JournalEntry.materialWeightUn
     expect(entries[0]?.materialWeight).toBe('0.12')
     expect(entries[0]?.source).toBe('quickbatch')
 
-    // 3. The envelope must stay at version 7 (the v4→v7
-    //    migration is a no-op on a v4-shaped snapshot — it
-    //    just stamps the new version on the envelope and
-    //    drops the orphan `firstTimerOpen` field if present;
-    //    a v4 entry that has no `firstTimerOpen` is
-    //    untouched).
+    // 3. The envelope upgrades through the full chain
+    //    (v4→v7→v8→v9→v10). The final version is 10 because
+    //    the Week 6 v9→v10 migration (a normalisation pass
+    //    over `recipes[]`) also runs; the v4 envelope has no
+    //    `recipes[]` key, so the migration backfills it to
+    //    `[]` and stamps the new version. The v4→v7 and
+    //    later migrations are all no-ops on the data
+    //    (every field check passes), so the v4 entry
+    //    data is preserved untouched.
     for (let i = 0; i < 50; i++) {
       const persisted = readPersisted()
-      if (persisted?.version === 9) break
+      if (persisted?.version === 10) break
       await new Promise(resolve => setTimeout(resolve, 10))
     }
-    expect(readPersisted()?.version).toBe(9)
+    expect(readPersisted()?.version).toBe(10)
   })
 
   it('chained v2 → v3 → v4 migration: source, kind, AND materialWeightUnit all backfilled on a legacy v2 entry', async () => {
