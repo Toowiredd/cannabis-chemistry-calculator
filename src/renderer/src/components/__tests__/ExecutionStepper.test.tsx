@@ -21,11 +21,21 @@
  *    `skipIf` predicate, and tapping it calls onSkip
  *  - the empty-state renders when every step is skipped
  */
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 
 import { ExecutionStepper, type ExecutionStep } from '../ExecutionStepper'
 import { DEFAULT_WIZARD_STATE } from 'renderer/src/wizard/wizardTypes'
+
+/* -- Mock useReducedMotion so each test can flip the flag. ----------
+ * The default is `false` (motion enabled) so the existing tests
+ * behave exactly as before. The a11y tests flip it to `true` to
+ * assert the gates. `vi.hoisted` shares the mutable `mockMotion`
+ * object with the hoisted `vi.mock` factory. */
+const { mockMotion } = vi.hoisted(() => ({ mockMotion: { value: false } }))
+vi.mock('renderer/src/hooks/useReducedMotion', () => ({
+  useReducedMotion: () => mockMotion.value,
+}))
 
 /* -- Test fixtures -------------------------------------------------- */
 
@@ -84,6 +94,10 @@ const baseSteps: ExecutionStep[] = [
 ]
 
 /* -- Tests ---------------------------------------------------------- */
+
+beforeEach(() => {
+  mockMotion.value = false
+})
 
 describe('ExecutionStepper — render', () => {
   it('renders the stepper with a progress bar + step rows', () => {
@@ -362,5 +376,136 @@ describe('ExecutionStepper — Back to config', () => {
     )
     fireEvent.click(screen.getByTestId('execution-stepper-back'))
     expect(onBack).toHaveBeenCalledTimes(1)
+  })
+})
+
+/* -- Week 7 a11y polish ----------------------------------------------
+ * Reduced-motion gating, focus rings, sr-only live region. */
+
+describe('ExecutionStepper — a11y / reduced motion', () => {
+  it('does NOT apply the `scale-[1.005]` transform to the current step when reduced motion is true', () => {
+    mockMotion.value = true
+    render(
+      <ExecutionStepper
+        onBack={() => {}}
+        onComplete={() => {}}
+        selections={DEFAULT_WIZARD_STATE.selections}
+        steps={baseSteps}
+      />
+    )
+    const current = screen.getByTestId('execution-step-preheat')
+    expect(current.className).not.toContain('scale-[1.005]')
+    expect(current.className).not.toContain('transition-transform')
+  })
+
+  it('applies the `scale-[1.005]` transform to the current step when reduced motion is false (default)', () => {
+    render(
+      <ExecutionStepper
+        onBack={() => {}}
+        onComplete={() => {}}
+        selections={DEFAULT_WIZARD_STATE.selections}
+        steps={baseSteps}
+      />
+    )
+    const current = screen.getByTestId('execution-step-preheat')
+    expect(current.className).toContain('scale-[1.005]')
+  })
+
+  it('does NOT apply the `toast-in` class to step rows when reduced motion is true', () => {
+    mockMotion.value = true
+    render(
+      <ExecutionStepper
+        onBack={() => {}}
+        onComplete={() => {}}
+        selections={DEFAULT_WIZARD_STATE.selections}
+        steps={baseSteps}
+      />
+    )
+    // The stepper never applies `toast-in` to the row itself; the
+    // gate is in TransitionStep. Confirm the contract: the row's
+    // className has no animation class when reduced motion is on.
+    for (const step of baseSteps) {
+      const row = screen.getByTestId(`execution-step-${step.id}`)
+      expect(row.className).not.toContain('toast-in')
+    }
+  })
+})
+
+describe('ExecutionStepper — a11y / focus rings', () => {
+  it('"Back to config" button has a focus-visible:ring-* class set', () => {
+    render(
+      <ExecutionStepper
+        onBack={() => {}}
+        onComplete={() => {}}
+        selections={DEFAULT_WIZARD_STATE.selections}
+        steps={baseSteps}
+      />
+    )
+    const back = screen.getByTestId('execution-stepper-back')
+    expect(back.className).toContain('focus-visible:ring-')
+  })
+
+  it('"Mark complete" button has a focus-visible:ring-* class set', () => {
+    render(
+      <ExecutionStepper
+        onBack={() => {}}
+        onComplete={() => {}}
+        selections={DEFAULT_WIZARD_STATE.selections}
+        steps={baseSteps}
+      />
+    )
+    const mark = screen.getByTestId('execution-step-preheat-complete')
+    expect(mark.className).toContain('focus-visible:ring-')
+  })
+
+  it('"Skip" button has a focus-visible:ring-* class set', () => {
+    const onSkip = vi.fn()
+    const preheatStep = baseSteps[0]
+    if (!preheatStep) throw new Error('Test fixture missing preheat step')
+    const steps: ExecutionStep[] = [
+      { ...preheatStep, skipIf: () => false, isCurrent: true },
+    ]
+    render(
+      <ExecutionStepper
+        onBack={() => {}}
+        onComplete={() => {}}
+        onSkip={onSkip}
+        selections={DEFAULT_WIZARD_STATE.selections}
+        steps={steps}
+      />
+    )
+    const skip = screen.getByTestId('execution-step-preheat-skip')
+    expect(skip.className).toContain('focus-visible:ring-')
+  })
+})
+
+describe('ExecutionStepper — a11y / sr-only live region', () => {
+  it('has an sr-only aria-live="polite" region for step announcements', () => {
+    render(
+      <ExecutionStepper
+        onBack={() => {}}
+        onComplete={() => {}}
+        selections={DEFAULT_WIZARD_STATE.selections}
+        steps={baseSteps}
+      />
+    )
+    const announce = screen.getByTestId('execution-stepper-announce')
+    expect(announce.getAttribute('aria-live')).toBe('polite')
+    expect(announce.className).toContain('sr-only')
+  })
+
+  it('announces the current step title via the sr-only region', () => {
+    render(
+      <ExecutionStepper
+        onBack={() => {}}
+        onComplete={() => {}}
+        selections={DEFAULT_WIZARD_STATE.selections}
+        steps={baseSteps}
+      />
+    )
+    // The useEffect runs synchronously in act(); the current
+    // step is the first one (preheat, marked isCurrent: true).
+    const announce = screen.getByTestId('execution-stepper-announce')
+    expect(announce.textContent).toContain('Preheat')
   })
 })

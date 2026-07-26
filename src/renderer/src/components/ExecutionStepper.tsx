@@ -28,9 +28,10 @@
  * `<PreheatStep>` / `<TimerStep>` / `<HeatmapStep>` /
  * `<TransitionStep>` / `<CompletionStep>` component.
  */
-import { useCallback, useId, useMemo } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { ArrowLeft, Check, ChevronRight, Loader2, SkipForward } from 'lucide-react'
 import { cn } from 'renderer/lib/utils'
+import { useReducedMotion } from 'renderer/src/hooks/useReducedMotion'
 import type { WizardSelections } from 'renderer/src/wizard/wizardTypes'
 import { GlassCard } from './GlassCard'
 import { CompletionStep } from './execution/CompletionStep'
@@ -209,6 +210,25 @@ export function ExecutionStepper({
     return visibleSteps[currentIndex]?.phase ?? null
   }, [currentIndex, visibleSteps])
 
+  // -- A11y: reduced-motion gate (Week 7). The global CSS already
+  // shortens all animations to 0.01ms under prefers-reduced-motion;
+  // the explicit gate on the React className makes the contract
+  // visible to a future engineer reading the JSX. ----------------
+  const reducedMotion = useReducedMotion()
+
+  // -- A11y: announce the new current step to screen readers when
+  // the user advances. The progress label already has
+  // aria-live="polite" but it changes on every completedCount
+  // tick; a dedicated sr-only region keeps the announcement
+  // terse and one-step-at-a-time. --------------------------------
+  const [announcement, setAnnouncement] = useState<string>('')
+  useEffect(() => {
+    const cur = visibleSteps.find(s => s.isCurrent)
+    if (cur) {
+      setAnnouncement(`Now on: ${cur.title}`)
+    }
+  }, [visibleSteps])
+
   // -- Stable callbacks for child shells. -------------------------
   const handleComplete = useCallback(
     (stepId: string) => onComplete(stepId),
@@ -270,6 +290,20 @@ export function ExecutionStepper({
         totalCount={visibleSteps.length}
       />
 
+      {/* -- A11y: sr-only live region that announces the new
+           current step to screen readers when the user advances
+           (e.g. after tapping "Mark complete"). Hidden visually,
+           read aloud by AT. aria-atomic ensures the whole new
+           string is read, not just the diff. --------------------- */}
+      <span
+        aria-atomic="true"
+        aria-live="polite"
+        className="sr-only"
+        data-testid="execution-stepper-announce"
+      >
+        {announcement}
+      </span>
+
       {/* -- Phase groups. The current phase is expanded; previous
            phases collapse to their phase summary. Future phases
            show their full step list as preview cards. ------------ */}
@@ -299,6 +333,7 @@ export function ExecutionStepper({
               onRerun={handleRerun}
               onSkip={onSkip ? handleSkip : undefined}
               phase={phase}
+              reducedMotion={reducedMotion}
               steps={phaseSteps}
               totalCount={phaseSteps.length}
             />
@@ -339,6 +374,7 @@ function StepperHeader({
           className={cn(
             'inline-flex items-center gap-1 rounded-lg border border-foreground/20 bg-foreground/5 px-2.5 py-1.5 text-xs font-medium text-foreground/80 transition-colors',
             'hover:bg-foreground/10 hover:text-foreground',
+            'focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             backDisabled && 'opacity-50 pointer-events-none'
           )}
           data-testid="execution-stepper-back"
@@ -392,6 +428,7 @@ function PhaseGroup({
   onSkip,
   onRerun,
   phase,
+  reducedMotion,
   steps,
   totalCount,
 }: {
@@ -409,6 +446,11 @@ function PhaseGroup({
    *  action yet. */
   onRerun: () => void
   phase: ExecutionStepPhase
+  /** Week 7: a11y — true when prefers-reduced-motion is set;
+   *  gates the current-step `scale-[1.005]` transform on the
+   *  row. Threaded through PhaseGroup because PhaseGroup owns
+   *  the row render. */
+  reducedMotion: boolean
   steps: ExecutionStep[]
   totalCount: number
 }) {
@@ -461,6 +503,7 @@ function PhaseGroup({
               onComplete={onComplete}
               onRerun={onRerun}
               onSkip={onSkip}
+              reducedMotion={reducedMotion}
               step={step}
             />
           </li>
@@ -481,6 +524,7 @@ function ExecutionStepRow({
   onRerun,
   isRecalculating,
   isAffected,
+  reducedMotion,
 }: {
   step: ExecutionStep
   onComplete: (stepId: string) => void
@@ -493,6 +537,9 @@ function ExecutionStepRow({
   onRerun: () => void
   isRecalculating: boolean
   isAffected: (stepId: string) => boolean
+  /** Week 7: a11y — when true, the current-step gentle
+   *  `scale-[1.005]` transform is suppressed. */
+  reducedMotion: boolean
 }) {
   // -- Completed: compact summary. ---------------------------------
   if (step.isComplete) {
@@ -522,7 +569,7 @@ function ExecutionStepRow({
       aria-current={isCurrent ? 'step' : undefined}
       className={cn(
         'flex flex-col gap-2',
-        isCurrent && 'scale-[1.005] transition-transform'
+        isCurrent && !reducedMotion && 'scale-[1.005] transition-transform'
       )}
       data-affected={stepIsAffected ? 'true' : 'false'}
       data-state={isCurrent ? 'current' : 'pending'}
@@ -577,7 +624,7 @@ function ExecutionStepRow({
         {step.skipIf && onSkip ? (
           <button
             aria-label={`Skip ${step.title}`}
-            className="inline-flex items-center gap-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             data-testid={`execution-step-${step.id}-skip`}
             onClick={() => onSkip(step.id)}
             type="button"
@@ -590,6 +637,7 @@ function ExecutionStepRow({
           aria-label={`Mark ${step.title} complete`}
           className={cn(
             'inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
+            'focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             isCurrent
               ? 'bg-accent/25 text-foreground hover:bg-accent/35'
               : 'bg-foreground/10 text-foreground/70 hover:bg-foreground/15'
