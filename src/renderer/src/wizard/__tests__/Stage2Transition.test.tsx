@@ -24,7 +24,7 @@
  *    without scraping visible text.
  */
 import { beforeEach, describe, expect, it } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 
 import { WizardScreen } from '../WizardScreen'
 import { buildExecutionSteps } from '../stage2Steps'
@@ -175,14 +175,27 @@ describe('WizardScreen — Begin batch transitions to Stage 2', () => {
     expect(
       screen.getByTestId('execution-step-preheat-decarb-shell')
     ).toBeTruthy()
-    expect(screen.getByTestId('preheat-step-target').textContent).toContain(
-      '113'
+    // Week 5 update: with the infusion phase added to the
+    // Flower with-infusion path, the stepper now renders
+    // TWO preheat shells (`preheat-decarb` and
+    // `preheat-infusion`). Both have a `preheat-step-target`
+    // element. The test must scope the query to the
+    // preheat-decarb shell specifically — `getByTestId` on
+    // the global `screen` would now fail with
+    // "Found multiple elements". The `within` helper
+    // restricts the search to the named ancestor.
+    const preheatDecarbShell = screen.getByTestId(
+      'execution-step-preheat-decarb-shell'
     )
+    expect(
+      within(preheatDecarbShell).getByTestId('preheat-step-target').textContent
+    ).toContain('113')
     // And the duration is the method's `timeMin` (60 min for
     // oven_sealed).
-    expect(screen.getByTestId('preheat-step-duration').textContent).toContain(
-      '60 min'
-    )
+    expect(
+      within(preheatDecarbShell).getByTestId('preheat-step-duration')
+        .textContent
+    ).toContain('60 min')
   })
 })
 

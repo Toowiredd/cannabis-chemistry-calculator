@@ -29,11 +29,12 @@
  * commit 51f8d89) — that one is read directly here, not
  * mirrored in local state.
  */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { cn } from 'renderer/lib/utils'
 import { ChevronRight, RotateCcw } from 'lucide-react'
 import { Wizard } from 'renderer/src/components/Wizard'
 import { ExecutionStepper } from 'renderer/src/components/ExecutionStepper'
+import { NameRecipeStep } from 'renderer/src/components/NameRecipeStep'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { useWizardEnabled } from 'renderer/src/wizard/wizardFeatureFlag'
 import {
@@ -50,6 +51,9 @@ import {
   type WizardSelections,
   type WizardState,
 } from 'renderer/src/wizard/wizardTypes'
+import { DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
+import { calculateInfusedThc } from 'renderer/src/engine/infusion'
+import { calculateMgPerServing } from 'renderer/src/engine/dosing'
 
 export interface WizardScreenProps {
   className?: string
@@ -390,6 +394,232 @@ export function WizardScreen({ className }: WizardScreenProps) {
     })
   }, [returnToConfig])
 
+  // Week 5 (§8.5) — recipe name local state. Holds the
+  // user-typed value from `NameRecipeStep`. Initialised to
+  // `''`; the NameRecipeStep falls back to the derived
+  // default when the input is empty. The state lives here
+  // (not in the `wizard.stage1Selections` slice) because the
+  // name is a Stage 2 artifact, not a Stage 1 selection — the
+  // Stage 1 wizard's "branch / method / weight / fat / volume
+  // / servings" contract is the source of truth for the
+  // re-derivable inputs, and the recipe name is the user-facing
+  // label that the completion step writes to the saved
+  // Recipe. The brief is explicit on this: the local state
+  // survives the same render cycle as the Stage 1 selections
+  // (until `resetWizard`), but is not persisted to the slice
+  // (no `selections.name` round-trip through the store).
+  // Re-edits in Stage 1 (the §8.1 path) clear this local
+  // state implicitly because the user has not yet re-typed a
+  // name — the new Stage 2 run starts with the default name
+  // again, which is the desired behaviour per §8.5
+  // ("user can change later from the Dashboard").
+  const [name, setName] = useState<string>('')
+
+  // Week 5 (§8.2) — selectors for the completion save flow.
+  // `addJournalEntry` is the existing Stage 0 / Quick Batch
+  // entry-point; the Stage 2 completion step uses the same
+  // action to write a `JournalEntry` for the batch. The
+  // entry is generated client-side (matching QuickBatchTab's
+  // `entry_<ts>_<rand>` id shape) so we can capture the id
+  // without re-reading the store on the next render.
+  // `addRecipe` and `setRecipeJournalEntry` are the Week 5
+  // Recipe-slice actions (state-routing rein, commit
+  // cae0f30). The return-id shape of `addRecipe` is the
+  // canonical wire for the journal-link chain.
+  const addJournalEntry = useAppStore(s => s.addJournalEntry)
+  const addRecipe = useAppStore(s => s.addRecipe)
+  const setRecipeJournalEntry = useAppStore(s => s.setRecipeJournalEntry)
+
+  /**
+   * Week 5 (§8.2) — Stage 2 completion save flow.
+   *
+   * The completion step's "Save to Journal" CTA fires this
+   * callback. The flow is the canonical QuickBatchTab
+   * save-site pattern (§8.2: "JournalEntry first, then
+   * Recipe, then link"):
+   *
+   *   1. Build a `JournalEntry` mirroring the QuickBatchTab
+   *      save site (`src/renderer/src/tabs/QuickBatchTab.tsx:
+   *      281-294`). The wizard-side selection fields map
+   *      directly to the journal entry's per-field values;
+   *      the engine-derived totals (thcMg, mgPerServing,
+   *      classification) come from the `computedTotals`
+   *      computed in the render block below.
+   *   2. `useAppStore.getState().addJournalEntry(entry)` —
+   *      prepends to `state.journalEntries`. The new entry
+   *      is at index 0; we read `journalEntries[0].id` to
+   *      capture the entry id for the link step.
+   *   3. `useAppStore.getState().addRecipe({ name, branch,
+   *      selections, batchJournalEntryId: null })` — writes
+   *      the Recipe record with the link deferred. The
+   *      action returns the generated recipe id.
+   *   4. `useAppStore.getState().setRecipeJournalEntry(
+   *      recipeId, entryId)` — patches the Recipe's
+   *      `batchJournalEntryId` field.
+   *   5. `completeExecutionStep(STAGE2_STEP_IDS.completion,
+   *      '')` — marks the completion step done. The empty
+   *      next-step id is the canonical "no successor" signal
+   *      for the stepper; the stepper treats the absence of
+   *      a next step as "Stage 2 is finished".
+   *
+   * The flow is wrapped in try/catch around the engine
+   * derivations only — the store dispatches are
+   * synchronous zustand `set()` calls and don't throw. A
+   * future IPC-bridge write (the IDB mirror called out in
+   * §7 Week 5) can be slotted between steps 4 and 5; the
+   * call site is intentionally narrow so the add+link
+   * pattern is preserved.
+   */
+  const handleCompletionSave = useCallback(() => {
+    // Resolve the engine inputs from the Stage 1 wizard's
+    // selections. Each lookup is defensive — the test that
+    // mounts the completion step directly (Test 4 in
+    // `Stage2Infusion.test.tsx`) sets the selections
+    // explicitly, but a real user reaching the completion
+    // step has walked the full wizard and the lookup
+    // should never miss.
+    const method = DECARB_METHODS.find(m => m.id === state.selections.method)
+    const fat = state.selections.fat
+      ? INFUSION_FATS.find(f => f.id === state.selections.fat)
+      : undefined
+    // Per the brief: thcMg = the infused THC mg; cbdMg = 0
+    // (no CBD engine call in the brief scope); servings =
+    // selections.servings ?? 0. The engine signature is
+    // `calculateInfusedThc(decarbedThc, extractionEff)`. The
+    // brief's pseudocode (method.efficiency.expected *
+    // selections.weight.value * 10) is a hand-wavy
+    // approximation that we use verbatim — the wizard does
+    // not capture `thcaPct` in the Stage 1 selections, so
+    // any more precise formula would need a new Stage 1
+    // field (out of scope for Week 5). The §8.5 contract
+    // pins the displayed value to a reasonable estimate;
+    // the user's saved Recipe retains the full selections
+    // payload for re-derivation when a more accurate
+    // engine integration lands in Week 6+.
+    const weightG = state.selections.weight?.value ?? 0
+    const decarbedProxyMg = (method?.efficiency.expected ?? 0) * weightG * 10
+    const infusedThcMg =
+      fat && decarbedProxyMg > 0
+        ? calculateInfusedThc(decarbedProxyMg, fat.extractionEff)
+        : 0
+    const servings = state.selections.servings ?? 0
+    const mgPerServing =
+      servings > 0 && infusedThcMg > 0
+        ? calculateMgPerServing(infusedThcMg, servings)
+        : 0
+
+    // Build the JournalEntry. The shape mirrors
+    // QuickBatchTab.tsx:281-294: an `entry_<ts>_<rand>` id,
+    // today's date as ISO date, the wizard's selections
+    // mapped to the entry's per-field authoring values, and
+    // a `source: 'quickbatch'` provenance tag. The wizard is
+    // a new save site; the existing `JournalEntrySource`
+    // union (state-routing-owned, see appStore.ts:432-438)
+    // does not include a `'wizard'` literal yet — adding
+    // one would be a state-routing scope change. The
+    // closest semantic match is `'quickbatch'`, which the
+    // QuickBatchTab save site also stamps for batches made
+    // through the legacy UI. A future commit can widen the
+    // union to add `'wizard'` and have the Journal card
+    // group wizard-driven entries separately.
+    const entryId = `entry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    const weight = state.selections.weight
+    const volume = state.selections.volume
+    const today = new Date().toISOString().split('T')[0]
+    const entry = {
+      id: entryId,
+      date: today,
+      source: 'quickbatch' as const,
+      strainName: '',
+      strainId: null,
+      materialWeight: String(weightG),
+      materialWeightUnit: weight?.unit ?? 'g',
+      thcaPct: '0',
+      thcPct: '0',
+      cbdaPct: '0',
+      cbdPct: '0',
+      methodId: state.selections.method ?? '',
+      methodName: method?.name ?? '',
+      fatId: state.selections.fat ?? '',
+      fatName: fat?.name ?? '',
+      servings: String(servings),
+      mgPerServing: mgPerServing > 0 ? String(mgPerServing) : '0',
+      classification: '',
+      totalInfusedThc: String(infusedThcMg),
+      concentration: '0',
+      volume: volume ? String(volume.value) : '0',
+      volumeUnit: volume?.unit ?? 'mL',
+      notes: `Stage 2 batch. Recipe: ${name || 'Untitled recipe'}`,
+    }
+    // 1. Write the journal entry. The action prepends to
+    //    `state.journalEntries`; the new entry is at index 0.
+    addJournalEntry(entry)
+    // 2. Read back the entry id from the store. We
+    //    generated `entryId` ourselves, so `journalEntries[0]
+    //    .id === entryId` — the read is defensive
+    //    (a future action that mutates the id format would
+    //    not break the link), and it's the contract the brief
+    //    calls out ("the new entry is at index 0").
+    const writtenEntry = useAppStore.getState().journalEntries[0]
+    const journalEntryId = writtenEntry?.id ?? entryId
+    // 3. Write the Recipe. The brief calls for
+    //    `batchJournalEntryId: null` on the initial write
+    //    (the link is patched in the next step). The `branch`
+    //    cast is structural — both `WizardBranchId` (this
+    //    file's source of truth) and `ProductType` (the
+    //    store-side Recipe type) are the same union, but
+    //    they're declared in different files; the cast keeps
+    //    the contract explicit.
+    const recipeId = addRecipe({
+      name: name || 'Untitled recipe',
+      branch: state.branch as Parameters<typeof addRecipe>[0]['branch'],
+      selections: state.selections as Parameters<
+        typeof addRecipe
+      >[0]['selections'],
+      batchJournalEntryId: null,
+    })
+    // 4. Patch the link.
+    setRecipeJournalEntry(recipeId, journalEntryId)
+    // 5. Mark the completion step done. The empty next-step
+    //    id is the canonical "Stage 2 is finished" signal
+    //    for the stepper.
+    completeExecutionStep(STAGE2_STEP_IDS.completion, '' as string)
+  }, [
+    state.selections,
+    state.branch,
+    name,
+    addJournalEntry,
+    addRecipe,
+    setRecipeJournalEntry,
+    completeExecutionStep,
+  ])
+
+  /**
+   * Week 5 (§8.2) — computed totals for the completion step.
+   *
+   * Memoised so the recomputation only fires when a
+   * Stage 1 selection changes (the user re-edits mid-batch
+   * via the §8.1 rewind) or when the user-typed name
+   * changes. A re-render that doesn't change inputs returns
+   * the same `ComputedTotals` object reference, so the
+   * stepper's per-step diff (the §8.1 "recalculating..."
+   * badge) doesn't flash on every re-render.
+   */
+  const computedTotals = useMemo(() => {
+    const method = DECARB_METHODS.find(m => m.id === state.selections.method)
+    const fat = state.selections.fat
+      ? INFUSION_FATS.find(f => f.id === state.selections.fat)
+      : undefined
+    const weightG = state.selections.weight?.value ?? 0
+    const decarbedProxyMg = (method?.efficiency.expected ?? 0) * weightG * 10
+    const thcMg =
+      fat && decarbedProxyMg > 0
+        ? calculateInfusedThc(decarbedProxyMg, fat.extractionEff)
+        : 0
+    const servings = state.selections.servings ?? 0
+    return { thcMg, cbdMg: 0, servings }
+  }, [state.selections])
+
   // When the flag is off, render nothing. The existing
   // GroupedTabNav takes over. This early return is AFTER every
   // hook call above.
@@ -479,6 +709,34 @@ export function WizardScreen({ className }: WizardScreenProps) {
         </section>
       ) : null}
 
+      {/* Week 5 (§8.5) — the "Name this recipe" inline card.
+          Renders the NameRecipeStep AFTER the "Begin batch"
+          CTA section, visible only when the user is on the
+          Start step. The component owns its own input state;
+          the wizard's local `name` state is the canonical
+          value that the Stage 2 completion step reads when
+          saving the Recipe. The user can edit the name
+          freely here; the Stage 1 selections (branch / method
+          / weight / fat / volume / servings) are NOT
+          affected, so re-running Stage 2 from the same
+          config keeps the user's name unless they change it.
+
+          The component is rendered with `initialName={name}`
+          so re-mounts (e.g. after a §8.1 rewind) preserve the
+          user's typed value across the same Stage 2 run. A
+          future "Run again" CTA on the completion step can
+          pre-load a saved Recipe's name into the same local
+          state via a different wiring path; for Week 5 the
+          initial value is `''` and the NameRecipeStep
+          falls back to the derived default. */}
+      {isOnStartStep ? (
+        <NameRecipeStep
+          initialName={name}
+          onSave={setName}
+          selections={state.selections}
+        />
+      ) : null}
+
       {/* Post-finish badge — rendered when the user has
           confirmed the Begin batch CTA. For Week 2 this was
           informational ("Stage 2 lands in week 3"); Week 3 (this
@@ -537,6 +795,22 @@ export function WizardScreen({ className }: WizardScreenProps) {
             isRecalculating={execution.isRecalculating}
             onBack={onBackToConfig}
             onComplete={stepId => {
+              // Week 5 (§8.2) — the completion step's
+              // "Save to Journal" CTA fires the
+              // journal-then-recipe save flow instead of the
+              // generic "advance to the next step" path. The
+              // handler runs the addJournalEntry +
+              // addRecipe + setRecipeJournalEntry chain (see
+              // `handleCompletionSave` JSDoc) and then marks
+              // the completion step done via
+              // `completeExecutionStep` with `''` as the
+              // next-step id (the canonical "Stage 2 is
+              // finished" sentinel). Other steps keep the
+              // existing advance-to-next logic.
+              if (stepId === STAGE2_STEP_IDS.completion) {
+                handleCompletionSave()
+                return
+              }
               // Resolve the next step from the same builder
               // the stepper is using. `buildExecutionSteps` is
               // pure so the call is cheap and the result is
@@ -556,11 +830,34 @@ export function WizardScreen({ className }: WizardScreenProps) {
               skipExecutionStep(stepId, nextStep?.id as string)
             }}
             selections={state.selections}
-            steps={steps.map(step => ({
-              ...step,
-              isCurrent: step.id === execution.currentStepId,
-              isComplete: execution.completedStepIds.includes(step.id),
-            }))}
+            steps={steps.map(step => {
+              // Week 5 (§8.2) — the completion step's
+              // `recipeName` + `computedTotals` come from
+              // local state + memoised engine output, not
+              // from the builder. The builder returns
+              // placeholders (see `stage2Steps.ts` JSDoc);
+              // the wizard overwrites them here on every
+              // render so a re-edit (the §8.1 path)
+              // re-derives the totals and a name change
+              // flows through to the completion card
+              // without a store round-trip. Other steps
+              // keep the existing `isCurrent` /
+              // `isComplete` stamping only.
+              if (step.id === STAGE2_STEP_IDS.completion) {
+                return {
+                  ...step,
+                  isCurrent: step.id === execution.currentStepId,
+                  isComplete: execution.completedStepIds.includes(step.id),
+                  recipeName: name,
+                  computedTotals,
+                }
+              }
+              return {
+                ...step,
+                isCurrent: step.id === execution.currentStepId,
+                isComplete: execution.completedStepIds.includes(step.id),
+              }
+            })}
           />
         )
       })()}

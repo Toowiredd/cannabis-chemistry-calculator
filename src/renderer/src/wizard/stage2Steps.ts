@@ -27,23 +27,42 @@
  *    the method's `timeMin` for display only; the heatmap's
  *    `progressPct` was a placeholder `0` (the real per-second
  *    engine integration was a Week 4 deliverable).
- *  - Week 4 (this commit): the Flower branch's Stage 2 path
- *    grows to 4 steps. Two new steps land between the existing
- *    heatmap and the (still future) completion step:
- *      3. `timer-decarb` — the "active timer" shell (§4.1). The
- *         total duration is the midpoint of the engine's
- *         `timeMin`/`timeMax` range converted to seconds
- *         (e.g. `oven_sealed`'s 60-90 min → 75 min × 60 = 4500s).
- *         The `stirIntervalSeconds` is the halfway point of the
- *         total — the "stir at the halfway mark" reminder that
- *         fits the §4.1 "Stir now" alert affordance. Documented
- *         on the builder below.
- *      4. `transition-decarb` — the "transition" shell (§4.1).
- *         Carries a static message that tees up the
- *         (still future) infusion phase. The completion step is
- *         Week 5+ scope per the §7 build order.
- *    All other branches still return `[]`; their Stage 2
- *    definitions land in later weeks.
+ *  - Week 4: the Flower branch's Stage 2 path grew to 4 steps
+ *    (preheat + heatmap + timer + transition). The completion
+ *    step was still future scope per the §7 build order.
+ *  - Week 5 (this commit): the Flower branch's Stage 2 path
+ *    grows to 8 steps when an infusion is requested
+ *    (`selections.fat` is a fat id) and stays at 4 steps when
+ *    the Flower "no infusion" path is taken (`selections.fat ===
+ *    null` per §3.1). Four new steps land after the decarb
+ *    transition:
+ *      5. `preheat-infusion` — preheat for the infusion
+ *         carrier. `targetTemp` is `method.tempC - 13°C` clamped
+ *         to `>= 60°C` (a 13°C drop from decarb preserves
+ *         terpenes that already vaporised; clamping at 60°C
+ *         avoids a sub-stovetop target for low-temp methods
+ *         like `sv_lowtemp` at 73°C → 60°C). Duration is a
+ *         static `'30 min'` — the infusion is a low-stakes
+ *         simmer, not a precise decarb window.
+ *      6. `timer-infusion` — the "active timer" shell for
+ *         infusion. `totalSeconds: 1800` (30 min) and
+ *         `stirIntervalSeconds: 600` (stir every 10 min). The
+ *         stir cadence matches the §4.1 reminder affordance.
+ *      7. `transition-infusion` — the transition shell teeing
+ *         up the completion step.
+ *      8. `completion` — the completion shell. `recipeName` and
+ *         `computedTotals` are placeholders here; the consumer
+ *         (WizardScreen) overwrites them from local state +
+ *         engine output on every render. The builder stays
+ *         pure of those derived values.
+ *    The Flower "no infusion" path (fat === null) skips the
+ *    infusion + transition-infusion + completion steps and ends
+ *    at `transition-decarb` — the §3.1 smart-skip rule
+ *    generalised to Stage 2: the user opted out of infusion,
+ *    so there is no batch to save. The Week 4 §8.1 contract
+ *    (re-edit flow) still works because the Stage 2 rows
+ *    present in the no-infusion path are the same 4 decarb
+ *    steps Week 4 already covered.
  *
  * The `isCurrent` + `isComplete` fields on each step are
  * intentionally left as `false` in the builder. The WizardScreen
@@ -58,10 +77,11 @@ import type { ExecutionStep } from '../components/ExecutionStepper'
 import type { WizardBranchId, WizardSelections } from './wizardTypes'
 
 /**
- * Stable step IDs for the Week 3 + Week 4 Flower decarb steps. The
- * `execution` slice's `currentStepId` references these strings;
- * they MUST match the `id` field on the rows returned by
- * `buildExecutionSteps` exactly (the store's defensive guard
+ * Stable step IDs for the Week 3 + Week 4 + Week 5 Flower decarb
+ * + infusion + completion steps. The `execution` slice's
+ * `currentStepId` references these strings; they MUST match the
+ * `id` field on the rows returned by `buildExecutionSteps`
+ * exactly (the store's defensive guard
  * `currentStepId !== stepId` would otherwise reject every
  * advance dispatch).
  */
@@ -70,6 +90,10 @@ export const STAGE2_STEP_IDS = {
   heatmapDecarb: 'heatmap-decarb',
   timerDecarb: 'timer-decarb',
   transitionDecarb: 'transition-decarb',
+  preheatInfusion: 'preheat-infusion',
+  timerInfusion: 'timer-infusion',
+  transitionInfusion: 'transition-infusion',
+  completion: 'completion',
 } as const
 
 /**
@@ -120,6 +144,18 @@ function computeTimerTotalSeconds(method: PresetMethod): number {
  * finishes a branch whose Stage 2 work hasn't been defined yet
  * (the build order in the architecture doc §7 schedules the
  * remaining branches for later weeks).
+ *
+ * Week 5 update: the Flower branch's Stage 2 path is conditional
+ * on `selections.fat`. The default Flower path (fat is a string
+ * id — ghee / coconut / mct / custom) returns 8 steps: 4 decarb
+ * steps (preheat + heatmap + timer + transition) + 4 infusion
+ * + completion steps (preheat-infusion + timer-infusion +
+ * transition-infusion + completion). The Flower "no infusion"
+ * path (fat === null per §3.1) returns 4 steps: the decarb
+ * steps only, ending at `transition-decarb`. The §3.1 smart-skip
+ * rule that filters out the Volume step in Stage 1 generalises
+ * to Stage 2: if the user opted out of infusion, there is no
+ * batch to save, so the completion step doesn't render.
  *
  * Defensive: if the Flower branch is asked for its Stage 2
  * steps but no method has been selected yet (a malformed
@@ -219,5 +255,69 @@ export function buildExecutionSteps(
     isCurrent: false,
     isComplete: false,
   }
-  return [preheatStep, heatmapStep, timerStep, transitionStep]
+  // The brief's sentinel is `selections.fat === null` (the
+  // §3.1 'none' tile on the Fat step). We ALSO treat
+  // `undefined` the same way: a builder call with no `fat`
+  // field at all (the user never reached the Fat step, e.g.
+  // a §8.1 re-edit fast-forward or a pre-Week 5 persisted
+  // state) should NOT suddenly gain an infusion phase +
+  // completion step. The Week 3 + Week 4 tests assert the
+  // 4-step shape for `{ method: 'oven_sealed' }` (no fat
+  // field); preserving that shape for the no-fat case is
+  // the §8.1 contract: the `recomputeFromEdit` action
+  // re-stamps the same 4-step list, not a freshly-grown
+  // 8-step list.
+  if (selections.fat === null || selections.fat === undefined) {
+    return [preheatStep, heatmapStep, timerStep, transitionStep]
+  }
+  const infusionTargetTemp = Math.max(60, method.tempC - 13)
+  const preheatInfusionStep: ExecutionStep = {
+    id: STAGE2_STEP_IDS.preheatInfusion,
+    title: 'Preheat for infusion',
+    phase: 'infusion',
+    shell: 'preheat',
+    targetTemp: infusionTargetTemp,
+    duration: '30 min',
+    isCurrent: false,
+    isComplete: false,
+  }
+  const infusionTimerStep: ExecutionStep = {
+    id: STAGE2_STEP_IDS.timerInfusion,
+    title: 'Infusion timer',
+    phase: 'infusion',
+    shell: 'timer',
+    totalSeconds: 1800,
+    stirIntervalSeconds: 600,
+    isCurrent: false,
+    isComplete: false,
+  }
+  const transitionInfusionStep: ExecutionStep = {
+    id: STAGE2_STEP_IDS.transitionInfusion,
+    title: 'Infusion complete',
+    phase: 'transition',
+    shell: 'transition',
+    message: 'Infusion complete. Dose and save recipe →',
+    isCurrent: false,
+    isComplete: false,
+  }
+  const completionStep: ExecutionStep = {
+    id: STAGE2_STEP_IDS.completion,
+    title: 'Save recipe',
+    phase: 'completion',
+    shell: 'completion',
+    recipeName: '',
+    computedTotals: { thcMg: 0, cbdMg: 0, servings: 0 },
+    isCurrent: false,
+    isComplete: false,
+  }
+  return [
+    preheatStep,
+    heatmapStep,
+    timerStep,
+    transitionStep,
+    preheatInfusionStep,
+    infusionTimerStep,
+    transitionInfusionStep,
+    completionStep,
+  ]
 }
