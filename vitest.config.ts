@@ -41,11 +41,18 @@ export default defineConfig({
       // (product-type step + Flower Method step); the components
       // dir holds the four shared primitives (Wizard, StepCard,
       // OptionTile, ProductTypeTooltip).
+      'src/renderer/src/wizard/__tests__/**/*.test.ts',
       'src/renderer/src/wizard/__tests__/**/*.test.tsx',
       'src/renderer/src/components/__tests__/Wizard.test.tsx',
       'src/renderer/src/components/__tests__/StepCard.test.tsx',
       'src/renderer/src/components/__tests__/OptionTile.test.tsx',
       'src/renderer/src/components/__tests__/ProductTypeTooltip.test.tsx',
+      // Stage 2 stepper + execution shells (design-system rein,
+      // 2026-07-26 Week 2). The container lives alongside the
+      // Stage 1 primitives in `components/`; the five step
+      // shells live in `components/execution/`.
+      'src/renderer/src/components/__tests__/ExecutionStepper.test.tsx',
+      'src/renderer/src/components/execution/__tests__/**/*.test.tsx',
       // Main screen feature-flag wire-up (ui-tabs rein, 2026-07-26
       // Week 1). Asserts the WizardScreen renders when
       // `wizardEnabled: true` and the existing GroupedTabNav
