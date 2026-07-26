@@ -121,6 +121,8 @@ import {
   calculateTheoreticalMax,
   calculateDecarbedThc,
 } from 'renderer/src/engine/decarb'
+import { cToF } from 'renderer/src/engine/units'
+import { round1n } from 'renderer/src/engine/formatting'
 import { calculateInfusedThc } from 'renderer/src/engine/infusion'
 import { calculateMgPerServing, classifyDose } from 'renderer/src/engine/dosing'
 import {
@@ -133,6 +135,7 @@ import { cn } from 'renderer/lib/utils'
 
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useModalA11y } from '../hooks/useModalA11y'
+import { UnitToggle } from 'renderer/src/components/UnitToggle'
 
 /* ------------------------------------------------------------------ */
 /* Step model                                                         */
@@ -390,6 +393,12 @@ export function FirstTimerGuide(): ReactNode {
   const addJournalEntry = useAppStore(s => s.addJournalEntry)
   const decarbDefaults = useAppStore(s => s.decarb)
   const infusionDefaults = useAppStore(s => s.infusion)
+  // 2026-07-26 P1.3 (FirstTimerGuide portion) — pull the user's
+  // preferred temp unit (and setter) from the store so the method
+  // card can render temperatures in the user's preferred unit and
+  // the new tempUnit UnitToggle can write back.
+  const units = useAppStore(s => s.units)
+  const setUnits = useAppStore(s => s.setUnits)
 
   const reducedMotion = useReducedMotion()
 
@@ -939,9 +948,11 @@ export function FirstTimerGuide(): ReactNode {
 
           {step.id === 'decarb' && (
             <StepDecarb
+              onTempUnitChange={unit => setUnits({ tempUnit: unit })}
               onToggle={id => toggleWizardSelection('decarbMethodIds', id)}
               perMethodPreview={perMethodPreview}
               selectedIds={Array.from(methodSet)}
+              tempUnit={units.tempUnit}
             />
           )}
 
@@ -1832,12 +1843,23 @@ interface StepDecarbProps {
   selectedIds: string[]
   onToggle: (id: string) => void
   perMethodPreview: MethodPreviewRow[]
+  /**
+   * 2026-07-26 P1.3 (FirstTimerGuide portion) — the user's preferred
+   * temperature unit (°C / °F). The unit toggle next to the method
+   * card writes back to the store via `onTempUnitChange`. The
+   * displayTemp helper converts the per-method `tempC` to the
+   * selected unit for the live preview row.
+   */
+  tempUnit: 'C' | 'F'
+  onTempUnitChange: (unit: 'C' | 'F') => void
 }
 
 function StepDecarb({
   selectedIds,
   onToggle,
   perMethodPreview,
+  tempUnit,
+  onTempUnitChange,
 }: StepDecarbProps): ReactNode {
   const counter =
     selectedIds.length === 1 ? '1 selected' : `${selectedIds.length} selected`
@@ -1850,9 +1872,22 @@ function StepDecarb({
           className="space-y-2"
           data-testid="wizard-decarb-previews"
         >
-          <p className="text-xs font-medium text-foreground/70">
-            Live previews
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-medium text-foreground/70">
+              Live previews
+            </p>
+            {/* 2026-07-26 P1.3 (FirstTimerGuide portion) — temp unit
+                toggle for the method card previews. Wired to the
+                store via onTempUnitChange (which calls setUnits
+                in the parent). The method card line re-renders in
+                the selected unit. */}
+            <UnitToggle
+              ariaLabel="Method temperature unit"
+              onChange={onTempUnitChange}
+              options={['C', 'F'] as const}
+              value={tempUnit}
+            />
+          </div>
           {perMethodPreview.map(p => (
             <div
               className="flex items-start gap-3 rounded-lg border border-foreground/10 bg-foreground/5 p-3"
@@ -1873,7 +1908,10 @@ function StepDecarb({
                   of active THC
                   <span className="text-foreground/55">
                     {' '}
-                    ({p.tempC}°C · {p.timeMin}–{p.timeMax} min · efficiency{' '}
+                    ({tempUnit === 'F'
+                      ? `${_fmt1(round1n(cToF(p.tempC)))}°F`
+                      : `${_fmt1(round1n(p.tempC))}°C`}{' '}
+                    · {p.timeMin}–{p.timeMax} min · efficiency{' '}
                     {(p.efficiency * 100).toFixed(0)}%)
                   </span>
                 </p>

@@ -706,3 +706,103 @@ describe('FirstTimerGuide — AVB callout on the Material step', () => {
     expect(callout.textContent).toMatch(/Quick Batch/i)
   })
 })
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-26 userstory-audit P1.3 (cross-tab unit toggles — FTG)      */
+/*                                                                    */
+/* Pins the contract: the FirstTimerGuide method card line renders   */
+/* the temperature in the user's preferred unit (°C / °F), and the   */
+/* new tempUnit UnitToggle in the live-preview header writes back to  */
+/* `units.tempUnit` in the store. The fat-volume UnitToggle is       */
+/* intentionally deferred — mL-only by design (audit note).         */
+/* ------------------------------------------------------------------ */
+
+describe('FirstTimerGuide — audit P1.3 (method-card tempUnit toggle)', () => {
+  beforeEach(() => {
+    resetWizard()
+    // Default units to °C so the per-test cases can read the
+    // toggle from a known baseline.
+    useAppStore.setState(state => ({
+      units: { ...state.units, tempUnit: 'C' as const },
+    }))
+  })
+
+  it('renders the method card temperature in °C by default (the previous behavior)', () => {
+    openWizard({
+      stepIndex: 3, // Decarb methods
+      selections: {
+        equipment: [],
+        decarbMethodIds: ['oven_sealed'],
+        fatIds: [],
+        formatIds: [],
+        grams: 3.5,
+        thcaPct: 20,
+      },
+    })
+    render(<FirstTimerGuide />)
+    const preview = screen.getByTestId('wizard-decarb-preview-oven_sealed')
+    // The textContent includes the tempC value with a °C suffix.
+    // oven_sealed's preset temp is 113°C, so the preview must show
+    // "113.0°C" (or the sig-fig rounded form).
+    expect(preview.textContent ?? '').toMatch(/113/)
+    expect(preview.textContent ?? '').toMatch(/°C/)
+  })
+
+  it('clicking the tempUnit toggle (°F) re-renders the method card in Fahrenheit', () => {
+    // Seed: tempUnit = 'C' (default). Click 'F' on the toggle and
+    // assert the preview shows the Fahrenheit equivalent.
+    // 113°C → 235.4°F (113 * 9/5 + 32 = 235.4).
+    useAppStore.setState(state => ({
+      units: { ...state.units, tempUnit: 'C' as const },
+    }))
+    openWizard({
+      stepIndex: 3,
+      selections: {
+        equipment: [],
+        decarbMethodIds: ['oven_sealed'],
+        fatIds: [],
+        formatIds: [],
+        grams: 3.5,
+        thcaPct: 20,
+      },
+    })
+    render(<FirstTimerGuide />)
+    // Find the F button. The method tempUnit toggle renders "C" and
+    // "F" options (same names as the Decarb Advanced Settings
+    // tempUnit toggle, so we scope to the wizard-decarb-previews
+    // section to disambiguate).
+    const previewsSection = screen.getByTestId('wizard-decarb-previews')
+    const fButton = within(previewsSection).getByRole('button', { name: 'F' })
+    fireEvent.click(fButton)
+    // The store now reads 'F' for tempUnit.
+    expect(useAppStore.getState().units.tempUnit).toBe('F')
+    // The preview re-renders with the Fahrenheit value.
+    const preview = screen.getByTestId('wizard-decarb-preview-oven_sealed')
+    expect(preview.textContent ?? '').toMatch(/°F/)
+    // The °C suffix is gone.
+    expect(preview.textContent ?? '').not.toMatch(/°C/)
+  })
+
+  it('initial render with units.tempUnit = "F" shows Fahrenheit by default', () => {
+    // Seed: tempUnit = 'F' from the start. The preview must show
+    // °F without a toggle click.
+    useAppStore.setState(state => ({
+      units: { ...state.units, tempUnit: 'F' as const },
+    }))
+    openWizard({
+      stepIndex: 3,
+      selections: {
+        equipment: [],
+        decarbMethodIds: ['oven_sealed'],
+        fatIds: [],
+        formatIds: [],
+        grams: 3.5,
+        thcaPct: 20,
+      },
+    })
+    render(<FirstTimerGuide />)
+    const preview = screen.getByTestId('wizard-decarb-preview-oven_sealed')
+    expect(preview.textContent ?? '').toMatch(/°F/)
+    expect(preview.textContent ?? '').not.toMatch(/°C/)
+  })
+})
