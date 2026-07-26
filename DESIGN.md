@@ -57,6 +57,10 @@ The engine is the heart of the application. All functions are deterministic, pur
 
 **Invariant:** The engine imports nothing from React, Electron, or any UI library. The reverse dependency is fine: UI imports engine. Engine functions may still throw (e.g. `volumeToMl` throws on an unknown unit; `calculateTheoreticalMax` throws on negative grams) — this is defensive, not a UI coupling. The "no UI dependencies" claim is about MODULE IMPORTS, not about runtime behavior.
 
+#### Public Wizard API
+
+The 4 id-based lookups in `wizardPresets.ts` form the public engine API for the First-Timer Guide wizard and are a stable contract: `getWizardRecipe`, `getDecarbMethodCard`, `getFatCard`, `suggestionsForRecipe`. Do not change their signatures without bumping the engine version noted here.
+
 ### State Layer (src/renderer/src/stores/appStore.ts)
 
 A single Zustand store with `persist` middleware holds all mutable application state. This simplifies cross-tab data flows because every tab reads from and writes to the same object.

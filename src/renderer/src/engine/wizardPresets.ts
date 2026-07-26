@@ -322,6 +322,10 @@ export const FAT_CARDS: readonly FatCard[] = INFUSION_FATS.map(
 // ---------------------------------------------------------------------------
 
 /**
+ * Public engine API: id-based lookup used by the First-Timer Guide wizard.
+ * Stable contract — do not change the function signature without bumping
+ * the engine version in DESIGN.md "Engine Layer".
+ *
  * Lookup a curated recipe card by id. Returns null if no recipe exists for
  * the given id (so the wizard can render an explicit "not found" state
  * rather than crashing).
@@ -331,6 +335,10 @@ export function getWizardRecipe(id: string): WizardRecipe | null {
 }
 
 /**
+ * Public engine API: id-based lookup used by the First-Timer Guide wizard.
+ * Stable contract — do not change the function signature without bumping
+ * the engine version in DESIGN.md "Engine Layer".
+ *
  * Lookup a curated decarb method card by id. Returns null if not found.
  */
 export function getDecarbMethodCard(id: string): DecarbMethodCard | null {
@@ -338,12 +346,21 @@ export function getDecarbMethodCard(id: string): DecarbMethodCard | null {
 }
 
 /**
+ * Public engine API: id-based lookup used by the First-Timer Guide wizard.
+ * Stable contract — do not change the function signature without bumping
+ * the engine version in DESIGN.md "Engine Layer".
+ *
  * Lookup a curated fat card by id. Returns null if not found.
  */
 export function getFatCard(id: string): FatCard | null {
   return FAT_CARDS.find(f => f.id === id) ?? null
 }
 
+/**
+ * Public engine API: id-based lookup used by the First-Timer Guide wizard.
+ * Stable contract — do not change the function signature without bumping
+ * the engine version in DESIGN.md "Engine Layer".
+ */
 // TODO(citation): per-recipe defaults are engineering heuristics — see
 // research/academic-references.md audit row #54.
 export function suggestionsForRecipe(
