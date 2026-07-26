@@ -29,7 +29,7 @@
  * `<TransitionStep>` / `<CompletionStep>` component.
  */
 import { useCallback, useId, useMemo } from 'react'
-import { ArrowLeft, Check, ChevronRight, SkipForward } from 'lucide-react'
+import { ArrowLeft, Check, ChevronRight, Loader2, SkipForward } from 'lucide-react'
 import { cn } from 'renderer/lib/utils'
 import type { WizardSelections } from 'renderer/src/wizard/wizardTypes'
 import { GlassCard } from './GlassCard'
@@ -120,6 +120,17 @@ export interface ExecutionStepperProps {
    *  step. Steps without a `skipIf` predicate do NOT render a
    *  Skip button. */
   onSkip?: (stepId: string) => void
+  /**
+   * Week 4 (§8.1): when `isRecalculating` is `true`, the
+   * stepper shows a "recalculating..." badge on each step
+   * whose id is in `affectedStepIds` (or on EVERY step when
+   * `affectedStepIds` is empty). The badge is purely visual
+   * — no interaction is blocked, the user can still tap
+   * "Mark complete" or "Back to config". Defaults are
+   * `isRecalculating: false, affectedStepIds: []` (no badge).
+   */
+  isRecalculating?: boolean
+  affectedStepIds?: string[]
 }
 
 /* ------------------------------------------------------------------ */
@@ -152,8 +163,18 @@ export function ExecutionStepper({
   onComplete,
   onBack,
   onSkip,
+  isRecalculating: isRecalculatingProp,
+  affectedStepIds,
 }: ExecutionStepperProps) {
   const progressBarId = useId()
+  // -- Recalculating (§8.1): compute the per-step affected flag.
+  // When `affectedStepIds` is empty, every step is considered
+  // affected. The predicate is passed down to each row so the
+  // badge can render inline.
+  const isRecalculating = isRecalculatingProp ?? false
+  const affected = affectedStepIds ?? []
+  const isAffected = (stepId: string): boolean =>
+    isRecalculating && (affected.length === 0 || affected.includes(stepId))
   // -- Filter: drop any step whose `skipIf` returns true. ----------
   const visibleSteps = useMemo(
     () => steps.filter(s => !s.skipIf?.(selections)),
@@ -189,6 +210,7 @@ export function ExecutionStepper({
       <section
         aria-label="Execution stepper"
         className="flex w-full flex-col gap-3"
+        data-recalculating={isRecalculating ? 'true' : 'false'}
         data-stage="execution"
         data-testid="execution-stepper"
       >
@@ -218,6 +240,7 @@ export function ExecutionStepper({
     <section
       aria-label="Execution stepper"
       className="flex w-full flex-col gap-3"
+      data-recalculating={isRecalculating ? 'true' : 'false'}
       data-stage="execution"
       data-testid="execution-stepper"
     >
@@ -249,8 +272,10 @@ export function ExecutionStepper({
           return (
             <PhaseGroup
               completedCount={phaseSteps.filter(s => s.isComplete).length}
+              isAffected={isAffected}
               isCollapsed={shouldCollapse}
               isCurrent={isCurrentPhase}
+              isRecalculating={isRecalculating}
               key={phase}
               onComplete={handleComplete}
               onSkip={onSkip ? handleSkip : undefined}
@@ -340,8 +365,10 @@ function StepperHeader({
 
 function PhaseGroup({
   completedCount,
+  isAffected,
   isCollapsed,
   isCurrent,
+  isRecalculating,
   onComplete,
   onSkip,
   phase,
@@ -349,8 +376,10 @@ function PhaseGroup({
   totalCount,
 }: {
   completedCount: number
+  isAffected: (stepId: string) => boolean
   isCollapsed: boolean
   isCurrent: boolean
+  isRecalculating: boolean
   onComplete: (stepId: string) => void
   onSkip?: (stepId: string) => void
   phase: ExecutionStepPhase
@@ -401,6 +430,8 @@ function PhaseGroup({
         {steps.map(step => (
           <li key={step.id}>
             <ExecutionStepRow
+              isAffected={isAffected}
+              isRecalculating={isRecalculating}
               onComplete={onComplete}
               onSkip={onSkip}
               step={step}
@@ -420,10 +451,14 @@ function ExecutionStepRow({
   step,
   onComplete,
   onSkip,
+  isRecalculating,
+  isAffected,
 }: {
   step: ExecutionStep
   onComplete: (stepId: string) => void
   onSkip?: (stepId: string) => void
+  isRecalculating: boolean
+  isAffected: (stepId: string) => boolean
 }) {
   // -- Completed: compact summary. ---------------------------------
   if (step.isComplete) {
@@ -447,6 +482,7 @@ function ExecutionStepRow({
   }
 
   const isCurrent = step.isCurrent
+  const stepIsAffected = isRecalculating && isAffected(step.id)
   return (
     <article
       aria-current={isCurrent ? 'step' : undefined}
@@ -454,6 +490,7 @@ function ExecutionStepRow({
         'flex flex-col gap-2',
         isCurrent && 'scale-[1.005] transition-transform'
       )}
+      data-affected={stepIsAffected ? 'true' : 'false'}
       data-state={isCurrent ? 'current' : 'pending'}
       data-testid={`execution-step-${step.id}`}
     >
@@ -474,14 +511,26 @@ function ExecutionStepRow({
           )}
           {step.title}
         </h3>
-        {isCurrent ? (
-          <span
-            className="rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent"
-            data-testid={`execution-step-${step.id}-badge-current`}
-          >
-            Current
-          </span>
-        ) : null}
+        <div className="flex items-center gap-1.5">
+          {isCurrent ? (
+            <span
+              className="rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent"
+              data-testid={`execution-step-${step.id}-badge-current`}
+            >
+              Current
+            </span>
+          ) : null}
+          {stepIsAffected ? (
+            <span
+              aria-live="polite"
+              className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-warning"
+              data-testid={`execution-step-${step.id}-badge-recalculating`}
+            >
+              <Loader2 aria-hidden="true" className="size-3 animate-spin" />
+              Recalculating
+            </span>
+          ) : null}
+        </div>
       </header>
 
       {/* -- The routed shell. ------------------------------------ */}
