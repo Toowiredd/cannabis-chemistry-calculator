@@ -9,7 +9,7 @@ import {
 } from 'renderer/src/engine/decarb'
 import {
   calculateTheoreticalMaxCbd,
-  calculateDecarbedCbd,
+  calculateCbdRange,
 } from 'renderer/src/engine/cbda'
 import {
   CONCENTRATE_TYPES,
@@ -645,11 +645,18 @@ export function DecarbTab() {
 
             setCbdResults({
               theoreticalMax: theoreticalMaxCbd,
-              decarbed: {
-                low: calculateDecarbedCbd(theoreticalMaxCbd, effLow),
-                expected: calculateDecarbedCbd(theoreticalMaxCbd, effExpected),
-                high: calculateDecarbedCbd(theoreticalMaxCbd, effHigh),
-              },
+              // 2026-07-26 P4 — `engine-cbd-decarb-range` refactor.
+              // The inlined low/expected/high math (DecarbTab.tsx:649-651
+              // pre-fix) duplicated `calculateCbdRange` from
+              // `engine/cbda.ts:80`. Replacing it with the engine
+              // call closes the drift risk and lets the engine own
+              // the efficiency-ordering + range-bounds invariants.
+              decarbed: calculateCbdRange(
+                theoreticalMaxCbd,
+                effLow,
+                effExpected,
+                effHigh
+              ),
             })
           } else {
             setCbdResults(null)
@@ -1868,7 +1875,10 @@ export function DecarbTab() {
           {/* CBD Results (only when CBDA or CBD > 0) */}
           {(parseFloat(decarb.cbdaPct) > 0 || parseFloat(decarb.cbdPct) > 0) &&
             cbdResults && (
-              <div className="flex flex-col gap-2 rounded-xl border border-foreground/10 bg-foreground/5 p-4">
+              <div
+                className="flex flex-col gap-2 rounded-xl border border-foreground/10 bg-foreground/5 p-4"
+                data-testid="decarb-cbd-results"
+              >
                 <span className="text-xs font-medium uppercase tracking-wider text-foreground/70">
                   Decarb-Adjusted CBD
                 </span>

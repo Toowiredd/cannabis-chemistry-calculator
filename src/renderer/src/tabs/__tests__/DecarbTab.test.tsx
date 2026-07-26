@@ -411,6 +411,33 @@ describe('DecarbTab — audit P2.1 (high-cannabinoid advisory, dismissable)', ()
 /* existing store fields. The state-routing rein owns the schema.   */
 /* ------------------------------------------------------------------ */
 
+describe('DecarbTab — audit P4 (CBD range uses engine calculateCbdRange)', () => {
+  beforeEach(() => resetDecarb())
+
+  it('renders the decarb-adjusted CBD panel when CBDA or CBD > 0', async () => {
+    // Seed: cbdaPct=10, cbdPct=0 → engine should compute the
+    // theoretical max CBD and the decarbed range.
+    resetDecarb({ cbdaPct: '10' })
+    render(<DecarbTab />)
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('decarb-cbd-results')).toBeTruthy()
+      },
+      { timeout: 3000 }
+    )
+  })
+
+  it('does NOT render the CBD panel when both CBDA and CBD are 0', async () => {
+    resetDecarb({ cbdaPct: '0', cbdPct: '0' })
+    render(<DecarbTab />)
+    // Wait for the debounced calc to settle.
+    await new Promise(r => setTimeout(r, 400))
+    expect(screen.queryByTestId('decarb-cbd-results')).toBeNull()
+  })
+})
+
+/* ------------------------------------------------------------------ */
+
 describe('DecarbTab — audit P1.3 (bag width/length unit toggles in Advanced Settings)', () => {
   beforeEach(() => resetDecarb())
 
