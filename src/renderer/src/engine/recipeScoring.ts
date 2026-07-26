@@ -2,6 +2,7 @@
  * Recipe scoring engine for SmartSuggest.
  * Pure TypeScript -- zero UI imports.
  */
+import { EDIBLE_FORMATS } from './models'
 
 /* ------------------------------------------------------------------ */
 /* Types                                                              */
