@@ -1612,6 +1612,82 @@ export function DecarbTab() {
                   </InputRow>
                 </div>
               </div>
+
+              {/* 2026-07-26 P1.3 (Decarb portion) — bag width/length
+                  unit toggles. The user story audit caught that the
+                  `DecarbState` already had `bagWidthOverrideUnit` and
+                  `bagLengthOverrideUnit` fields (with proper
+                  per-field-unit semantics) but no UI surface in this
+                  tab. The actual value inputs (the custom bag width
+                  and length) live in `BagCalculator` — that widget
+                  reads the per-field unit to interpret the override.
+                  These toggles let the user pre-set the unit up front
+                  so the BagCalculator renders their override in the
+                  unit they think in (cm vs in). The toggles are wired
+                  to the store via `setDecarb`, NOT to `units.bagUnit`
+                  (the global display unit), so the per-field-vs-display
+                  contract is preserved. */}
+              <div className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-foreground/80">
+                  Custom Bag Units
+                </span>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <InputRow
+                    label={
+                      <>
+                        Bag Width Unit
+                        <TooltipIcon text="Per-field unit for the custom bag width override. BagCalculator will interpret the stored value in this unit." />
+                      </>
+                    }
+                  >
+                    {
+                      <span
+                        className={
+                          reducedMotion
+                            ? ''
+                            : 'unit-toggle-transition inline-flex'
+                        }
+                      >
+                        <UnitToggle
+                          ariaLabel="Bag width unit"
+                          onChange={unit =>
+                            setDecarb({ bagWidthOverrideUnit: unit })
+                          }
+                          options={['cm', 'in'] as const}
+                          value={decarb.bagWidthOverrideUnit}
+                        />
+                      </span>
+                    }
+                  </InputRow>
+                  <InputRow
+                    label={
+                      <>
+                        Bag Length Unit
+                        <TooltipIcon text="Per-field unit for the custom bag length override. BagCalculator will interpret the stored value in this unit." />
+                      </>
+                    }
+                  >
+                    {
+                      <span
+                        className={
+                          reducedMotion
+                            ? ''
+                            : 'unit-toggle-transition inline-flex'
+                        }
+                      >
+                        <UnitToggle
+                          ariaLabel="Bag length unit"
+                          onChange={unit =>
+                            setDecarb({ bagLengthOverrideUnit: unit })
+                          }
+                          options={['cm', 'in'] as const}
+                          value={decarb.bagLengthOverrideUnit}
+                        />
+                      </span>
+                    }
+                  </InputRow>
+                </div>
+              </div>
             </>
           )}
 

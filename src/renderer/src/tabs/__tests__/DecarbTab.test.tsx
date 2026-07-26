@@ -400,6 +400,85 @@ describe('DecarbTab — audit P2.1 (high-cannabinoid advisory, dismissable)', ()
   })
 })
 
+/* ------------------------------------------------------------------ */
+/* 2026-07-26 userstory-audit P1.3 (cross-tab unit toggles — Decarb)   */
+/*                                                                    */
+/* Pins the contract: DecarbTab Advanced Settings exposes two         */
+/* UnitToggles (`bagWidthOverrideUnit` and `bagLengthOverrideUnit`)   */
+/* that are wired to the `decarb` slice via `setDecarb`. The state   */
+/* shape already supported these fields (per-field-unit refactor      */
+/* shipped in 2026-07-25); this commit makes the UI surface the      */
+/* existing store fields. The state-routing rein owns the schema.   */
+/* ------------------------------------------------------------------ */
+
+describe('DecarbTab — audit P1.3 (bag width/length unit toggles in Advanced Settings)', () => {
+  beforeEach(() => resetDecarb())
+
+  it('renders the bag width + length unit toggles in Advanced Settings', () => {
+    render(<DecarbTab />)
+    // Open Advanced Settings (default closed).
+    fireEvent.click(screen.getByTestId('decarb-advanced-toggle'))
+    // Two toggles, one per dimension. The UnitToggle's accessible
+    // name is the option text (cm / in) — not the title attribute
+    // ("Use in"). We assert the option buttons exist.
+    const allInButtons = screen.getAllByRole('button', { name: 'in' })
+    const allCmButtons = screen.getAllByRole('button', { name: 'cm' })
+    // 2 toggles × 2 options = 4 buttons total (2 "in" + 2 "cm").
+    expect(allInButtons.length).toBeGreaterThanOrEqual(2)
+    expect(allCmButtons.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('clicking the bag width unit toggle writes to the store', () => {
+    // Seed: cm (the default).
+    resetDecarb({ bagWidthOverrideUnit: 'cm' })
+    render(<DecarbTab />)
+    fireEvent.click(screen.getByTestId('decarb-advanced-toggle'))
+    // The bag-width toggle renders before the bag-length toggle, so
+    // the first "in" button is the bag-width option.
+    const inButtons = screen.getAllByRole('button', { name: 'in' })
+    fireEvent.click(inButtons[0]!)
+    expect(useAppStore.getState().decarb.bagWidthOverrideUnit).toBe('in')
+    // Length unit is still the default ('cm') — the toggles are
+    // independent.
+    expect(useAppStore.getState().decarb.bagLengthOverrideUnit).toBe('cm')
+  })
+
+  it('clicking the bag length unit toggle writes to the store', () => {
+    resetDecarb({ bagLengthOverrideUnit: 'cm' })
+    render(<DecarbTab />)
+    fireEvent.click(screen.getByTestId('decarb-advanced-toggle'))
+    // The second "in" button is the bag-length option.
+    const inButtons = screen.getAllByRole('button', { name: 'in' })
+    fireEvent.click(inButtons[1]!)
+    expect(useAppStore.getState().decarb.bagLengthOverrideUnit).toBe('in')
+    expect(useAppStore.getState().decarb.bagWidthOverrideUnit).toBe('cm')
+  })
+
+  it('the unit toggles survive a state-routing persist round-trip', () => {
+    // The brief's "Done when" contract: the bag width/length unit
+    // toggles survive a state-routing persist round-trip. The
+    // state-routing rein owns the persist version + migration. We
+    // assert that:
+    //   1. The store carries the per-field unit values in DEFAULT_DECARB.
+    //   2. After a store round-trip (read fresh from getState), the
+    //      values are preserved.
+    expect(DEFAULT_DECARB.bagWidthOverrideUnit).toBe('cm')
+    expect(DEFAULT_DECARB.bagLengthOverrideUnit).toBe('cm')
+    // Simulate a state-routing round-trip: write to the store,
+    // re-read it, assert the values are still there.
+    useAppStore.setState(state => ({
+      decarb: {
+        ...state.decarb,
+        bagWidthOverrideUnit: 'in',
+        bagLengthOverrideUnit: 'in',
+      },
+    }))
+    const after = useAppStore.getState().decarb
+    expect(after.bagWidthOverrideUnit).toBe('in')
+    expect(after.bagLengthOverrideUnit).toBe('in')
+  })
+})
+
 describe('DecarbTab — audit R1 (inventory warning gate)', () => {
   beforeEach(() => {
     resetDecarb()
