@@ -2,9 +2,11 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { cn } from 'renderer/lib/utils'
 import { StartupChooser } from 'renderer/src/components/StartupChooser'
 import { GroupedTabNav } from 'renderer/src/components/GroupedTabNav'
+import { ReferenceStrip } from 'renderer/src/components/ReferenceStrip'
 import { TitleBar } from 'renderer/src/components/TitleBar'
 import { TransformationCanvas } from 'renderer/src/components/TransformationCanvas'
 import { FirstTimerGuide } from 'renderer/src/tabs/FirstTimerGuide'
+import { WizardScreen } from 'renderer/src/wizard/WizardScreen'
 
 /**
  * Lazy-loaded tab components.
@@ -108,6 +110,16 @@ export function MainScreen() {
   const firstRunDismissed = useAppStore(s => s.firstRunDismissed)
   const wizardDismissed = useAppStore(s => s.wizard.dismissed)
   const setWizardActive = useAppStore(s => s.setWizardActive)
+  // 2026-07-26 wizard Week 1: read the `wizardEnabled` feature flag
+  // defensively. The state-routing rein is shipping the `wizard`
+  // slice + `wizardEnabled: boolean` field in a parallel commit;
+  // while their commit is still landing, the field is absent and
+  // the cast returns `false` (WizardScreen hidden — the existing
+  // GroupedTabNav takes over). When state-routing lands, the
+  // WizardScreen swaps in automatically.
+  const wizardEnabled = useAppStore(
+    s => (s as unknown as { wizardEnabled?: boolean }).wizardEnabled === true
+  )
 
   const [isLoading, setIsLoading] = useState(true)
   const [isExitingLoad, setIsExitingLoad] = useState(false)
@@ -343,66 +355,114 @@ export function MainScreen() {
                 </div>
               }
             >
-              <GroupedTabNav
-                reference={[
-                  {
-                    id: 'methods',
-                    label: 'Methods',
-                    bullets: ['Oven Decarb', 'Sous Vide · Slow Cooker'],
-                    content: <MethodsTab />,
-                  },
-                  {
-                    id: 'advanced',
-                    label: 'Advanced',
-                    bullets: ['Cost Analysis', 'Strain Blending'],
-                    content: <AdvancedToolsTab />,
-                  },
-                  {
-                    id: 'knowledge',
-                    label: 'Knowledge',
-                    bullets: ['Chemistry 101', 'AVB Guide'],
-                    content: <KnowledgeTab />,
-                  },
-                  {
-                    id: 'journal',
-                    label: 'Journal',
-                    bullets: ['Recent Batches', 'Saved Recipes'],
-                    content: <JournalTab />,
-                  },
-                ]}
-                workflow={[
-                  {
-                    id: 'dashboard',
-                    label: 'Dashboard',
-                    subtitle: 'overview',
-                    content: <DashboardTab />,
-                  },
-                  {
-                    id: 'quickbatch',
-                    label: 'Quick Batch',
-                    subtitle: 'wizard',
-                    content: <QuickBatchTab />,
-                  },
-                  {
-                    id: 'decarb',
-                    label: 'Decarb',
-                    subtitle: 'stage 1',
-                    content: <DecarbTab />,
-                  },
-                  {
-                    id: 'infusion',
-                    label: 'Infusion',
-                    subtitle: 'stage 2',
-                    content: <InfusionTab />,
-                  },
-                  {
-                    id: 'dose',
-                    label: 'Dose',
-                    subtitle: 'stage 3',
-                    content: <DoseTab />,
-                  },
-                ]}
-              />
+              {wizardEnabled ? (
+                // 2026-07-26 wizard Week 1: when `wizardEnabled` is
+                // true, the Stage 1 wizard replaces the workflow
+                // group. The ReferenceStrip (Methods/Advanced/
+                // Knowledge/Journal) still renders below the
+                // wizard — per the brief, the reference rail is
+                // unchanged. The `useAppStore` reading is
+                // defensive (see comment at the top of the
+                // component) so the wizard auto-appears when the
+                // state-routing rein lands `wizardEnabled: true`
+                // on the store.
+                <div
+                  className="flex h-full w-full flex-col gap-3 sm:gap-4"
+                  data-testid="main-wizard-enabled"
+                >
+                  <div
+                    className="flex min-h-0 flex-1 flex-col"
+                    data-testid="main-wizard-workflow"
+                  >
+                    <WizardScreen />
+                  </div>
+                  <ReferenceStrip
+                    items={[
+                      {
+                        id: 'methods',
+                        label: 'Methods',
+                        bullets: ['Oven Decarb', 'Sous Vide · Slow Cooker'],
+                      },
+                      {
+                        id: 'advanced',
+                        label: 'Advanced',
+                        bullets: ['Cost Analysis', 'Strain Blending'],
+                      },
+                      {
+                        id: 'knowledge',
+                        label: 'Knowledge',
+                        bullets: ['Chemistry 101', 'AVB Guide'],
+                      },
+                      {
+                        id: 'journal',
+                        label: 'Journal',
+                        bullets: ['Recent Batches', 'Saved Recipes'],
+                      },
+                    ]}
+                  />
+                </div>
+              ) : (
+                <GroupedTabNav
+                  reference={[
+                    {
+                      id: 'methods',
+                      label: 'Methods',
+                      bullets: ['Oven Decarb', 'Sous Vide · Slow Cooker'],
+                      content: <MethodsTab />,
+                    },
+                    {
+                      id: 'advanced',
+                      label: 'Advanced',
+                      bullets: ['Cost Analysis', 'Strain Blending'],
+                      content: <AdvancedToolsTab />,
+                    },
+                    {
+                      id: 'knowledge',
+                      label: 'Knowledge',
+                      bullets: ['Chemistry 101', 'AVB Guide'],
+                      content: <KnowledgeTab />,
+                    },
+                    {
+                      id: 'journal',
+                      label: 'Journal',
+                      bullets: ['Recent Batches', 'Saved Recipes'],
+                      content: <JournalTab />,
+                    },
+                  ]}
+                  workflow={[
+                    {
+                      id: 'dashboard',
+                      label: 'Dashboard',
+                      subtitle: 'overview',
+                      content: <DashboardTab />,
+                    },
+                    {
+                      id: 'quickbatch',
+                      label: 'Quick Batch',
+                      subtitle: 'wizard',
+                      content: <QuickBatchTab />,
+                    },
+                    {
+                      id: 'decarb',
+                      label: 'Decarb',
+                      subtitle: 'stage 1',
+                      content: <DecarbTab />,
+                    },
+                    {
+                      id: 'infusion',
+                      label: 'Infusion',
+                      subtitle: 'stage 2',
+                      content: <InfusionTab />,
+                    },
+                    {
+                      id: 'dose',
+                      label: 'Dose',
+                      subtitle: 'stage 3',
+                      content: <DoseTab />,
+                    },
+                  ]}
+                />
+              )}
             </Suspense>
           </div>
         </div>

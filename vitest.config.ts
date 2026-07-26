@@ -36,6 +36,22 @@ export default defineConfig({
       // not on disk) does not get picked up and break the run.
       'src/renderer/components/__tests__/OptionRow.test.tsx',
       'src/renderer/components/__tests__/MultiSelectGroup.test.tsx',
+      // Wizard components (ui-tabs rein, 2026-07-26 Week 1). The
+      // wizard/ dir holds the Stage 1 configuration wizard
+      // (product-type step + Flower Method step); the components
+      // dir holds the four shared primitives (Wizard, StepCard,
+      // OptionTile, ProductTypeTooltip).
+      'src/renderer/src/wizard/__tests__/**/*.test.tsx',
+      'src/renderer/src/components/__tests__/Wizard.test.tsx',
+      'src/renderer/src/components/__tests__/StepCard.test.tsx',
+      'src/renderer/src/components/__tests__/OptionTile.test.tsx',
+      'src/renderer/src/components/__tests__/ProductTypeTooltip.test.tsx',
+      // Main screen feature-flag wire-up (ui-tabs rein, 2026-07-26
+      // Week 1). Asserts the WizardScreen renders when
+      // `wizardEnabled: true` and the existing GroupedTabNav
+      // renders when `false`. Single-file path because the
+      // screens/ dir only has this one test today.
+      'src/renderer/screens/__tests__/main.test.tsx',
       // Main-process security tests (electron-shell rein). The renderer
       // include glob is scoped to src/renderer/**; main/** has its own
       // security test directory that exercises the F1.1 / F1.2 / F1.3
