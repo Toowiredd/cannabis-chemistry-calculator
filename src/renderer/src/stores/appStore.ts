@@ -13,6 +13,7 @@ import type { Strain } from 'renderer/src/engine/models'
 import type {
   ProductType,
   WizardSelections as Stage1WizardSelections,
+  ExecutionStepState,
 } from './wizardTypes'
 
 export type TabId =
@@ -290,6 +291,16 @@ export interface WizardState {
    * in `prevStep`.
    */
   stepHistory: number[]
+  /**
+   * Stage 2 Execution stepper state (Week 3, 2026-07-26 wizard
+   * build). Lives on the `wizard` slice alongside `stage1Selections`
+   * and `stepHistory`. EPHEMERAL — see `ExecutionStepState` JSDoc
+   * in `wizardTypes.ts` for the full rationale. The `partialize`
+   * block below does NOT write `execution` to the persisted
+   * envelope, and the `merge` block defensively drops any stale
+   * `execution` key from a rehydrated envelope.
+   */
+  execution: ExecutionStepState
 }
 
 export const DEFAULT_WIZARD_SELECTIONS: WizardSelections = {
@@ -302,6 +313,19 @@ export const DEFAULT_WIZARD_SELECTIONS: WizardSelections = {
 /** Default Stage 1 Configuration Wizard selections (empty object — all fields optional). */
 export const DEFAULT_STAGE1_WIZARD_SELECTIONS: Stage1WizardSelections = {}
 
+/**
+ * Default Stage 2 Execution stepper state. The empty form of
+ * `ExecutionStepState` — no current step, no completed steps, no
+ * skipped steps. This is the "Stage 2 has not been entered yet"
+ * shape; the `beginExecution` action is the only legitimate way
+ * to leave it.
+ */
+export const DEFAULT_EXECUTION_STEP_STATE: ExecutionStepState = {
+  currentStepId: null,
+  completedStepIds: [],
+  skippedStepIds: [],
+}
+
 export const DEFAULT_WIZARD_STATE: WizardState = {
   active: false,
   dismissed: false,
@@ -312,6 +336,12 @@ export const DEFAULT_WIZARD_STATE: WizardState = {
   currentStep: 0,
   stage1Selections: DEFAULT_STAGE1_WIZARD_SELECTIONS,
   stepHistory: [],
+  // Stage 2 Execution stepper defaults (2026-07-26, wizard Week 3).
+  // Runtime-only — see `partialize` + `merge` for the
+  // not-persisted contract. On every fresh boot, the user lands
+  // here and the wizard opens at Stage 1 (Stage 2 must be entered
+  // via `beginExecution`).
+  execution: { ...DEFAULT_EXECUTION_STEP_STATE },
 }
 
 function todayIso(): string {
@@ -739,6 +769,74 @@ interface AppStore {
    * Persisted.
    */
   resetWizard: () => void
+
+  // ---------------------------------------------------------------------
+  // Stage 2 Execution stepper (2026-07-26, wizard Week 3).
+  //
+  // The "do the work" half of the two-stage wizard per
+  // docs/wizard-architecture-2026-07-26.md §4. Stage 2 takes over
+  // after the user taps "Begin batch" in Stage 1 and renders a
+  // vertical stepper (all steps visible, current step highlighted,
+  // "Mark complete" per step). The actions below are the store
+  // surface for the stepper's state machine.
+  //
+  // Stage 2 state is EPHEMERAL — it is NOT persisted (see
+  // `partialize` + `merge` below). On reload, the wizard goes back
+  // to Stage 1 with the user's selections intact; the user can
+  // re-enter Stage 2 in one tap via `beginExecution`. The decision
+  // is deliberate: resuming a half-finished execution is dangerous
+  // (the timer / heatmap / "stir now" prompts are physical-world
+  // state that the app cannot reliably re-derive).
+  //
+  // Storage: `execution` lives on the `wizard` slice (alongside
+  // `stage1Selections` + `stepHistory`). Components read
+  // `state.wizard.execution` and the actions below mutate
+  // `state.wizard.execution` directly. This is consistent with
+  // the existing Stage 1 pattern (`wizard.stage1Selections` is
+  // the storage for the Stage 1 selections; the top-level
+  // `wizardEnabled` boolean is a flag, not data). The spec
+  // asked for a top-level `execution: ExecutionStepState` field
+  // on the AppStore as well, but that would be a shadow of
+  // `wizard.execution` and the two could drift out of sync
+  // across `resetWizard` / `returnToConfig` / rehydrate. One
+  // canonical storage location is the safer choice.
+  // ---------------------------------------------------------------------
+
+  /**
+   * Transition to Stage 2: set `execution.currentStepId` to the
+   * first step of the execution sequence and clear the completed /
+   * skipped lists. Called when the user taps "Begin batch" in the
+   * Stage 1 WizardScreen. No-op if `firstStepId` is empty (defensive
+   * — the caller should always pass a valid first step id, but a
+   * malformed dispatch from a future bug shouldn't put the wizard
+   * into a half-initialized Stage 2).
+   */
+  beginExecution: (firstStepId: string) => void
+  /**
+   * Mark the current Stage 2 step complete and advance to
+   * `nextStepId`. Appends `stepId` to `completedStepIds`. No-op
+   * unless `state.wizard.execution.currentStepId === stepId` —
+   * the stepper should only complete the CURRENT step, and a
+   * defensive guard here means a stale dispatch from a previous
+   * step can't accidentally mark a step the user isn't on.
+   */
+  completeExecutionStep: (stepId: string, nextStepId: string) => void
+  /**
+   * Skip the current Stage 2 step and advance to `nextStepId`.
+   * Appends `stepId` to `skippedStepIds`. No-op unless
+   * `state.wizard.execution.currentStepId === stepId` — same
+   * defensive rationale as `completeExecutionStep`.
+   */
+  skipExecutionStep: (stepId: string, nextStepId: string) => void
+  /**
+   * Return to Stage 1 from Stage 2. Resets `execution` to the
+   * empty defaults (currentStepId null, lists empty). The Stage 1
+   * selections (`branch`, `currentStep`, `stage1Selections`,
+   * `stepHistory`) are preserved — the user can re-edit their
+   * config and re-run Stage 2 in two taps. Called from the
+   * "Back to config" CTA in the Stage 2 stepper.
+   */
+  returnToConfig: () => void
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -1004,6 +1102,9 @@ export const useAppStore = create<AppStore>()(
         // to give a future engineer a single grep target for the
         // Stage 1 initial state).
         stage1Selections: { ...DEFAULT_STAGE1_WIZARD_SELECTIONS },
+        // Stage 2 Execution stepper defaults (2026-07-26, wizard
+        // Week 3). Runtime-only — see `partialize` below.
+        execution: { ...DEFAULT_EXECUTION_STEP_STATE },
       },
       setWizardActive: active =>
         set(state => ({
@@ -1169,7 +1270,11 @@ export const useAppStore = create<AppStore>()(
       // Reset every Stage 1 field to its empty default. Keeps the
       // legacy kit-configurator fields and `wizardEnabled` flag
       // untouched so the user's "never re-prompt" preference and
-      // feature-flag opt-in survive a reset.
+      // feature-flag opt-in survive a reset. Also resets the
+      // Stage 2 `execution` slice to its empty default (Week 3) —
+      // a wizard reset implies the user is throwing away their
+      // current run, so a half-finished Stage 2 execution should
+      // not survive the reset.
       resetWizard: () =>
         set(state => ({
           wizard: {
@@ -1178,6 +1283,83 @@ export const useAppStore = create<AppStore>()(
             currentStep: 0,
             stage1Selections: DEFAULT_STAGE1_WIZARD_SELECTIONS,
             stepHistory: [],
+            execution: { ...DEFAULT_EXECUTION_STEP_STATE },
+          },
+        })),
+
+      // -----------------------------------------------------------------
+      // Stage 2 Execution stepper implementations (2026-07-26,
+      // wizard Week 3). Runtime-only — see `partialize` below for
+      // the not-persisted contract.
+      // -----------------------------------------------------------------
+
+      // Transition to Stage 2. No-op if `firstStepId` is empty
+      // (defensive — a malformed dispatch shouldn't put the wizard
+      // into a half-initialized state).
+      beginExecution: firstStepId =>
+        set(state => {
+          if (firstStepId.length === 0) return {}
+          return {
+            wizard: {
+              ...state.wizard,
+              execution: {
+                currentStepId: firstStepId,
+                completedStepIds: [],
+                skippedStepIds: [],
+              },
+            },
+          }
+        }),
+      // Mark a step complete and advance. The
+      // `currentStepId === stepId` guard is the contract: a stale
+      // dispatch from a previous step (e.g. a delayed click after
+      // the user already advanced) is a no-op rather than
+      // corrupting the completed list.
+      completeExecutionStep: (stepId, nextStepId) =>
+        set(state => {
+          if (state.wizard.execution.currentStepId !== stepId) return {}
+          return {
+            wizard: {
+              ...state.wizard,
+              execution: {
+                currentStepId: nextStepId,
+                completedStepIds: [
+                  ...state.wizard.execution.completedStepIds,
+                  stepId,
+                ],
+                skippedStepIds: state.wizard.execution.skippedStepIds,
+              },
+            },
+          }
+        }),
+      // Skip a step and advance. Same defensive guard as
+      // `completeExecutionStep`.
+      skipExecutionStep: (stepId, nextStepId) =>
+        set(state => {
+          if (state.wizard.execution.currentStepId !== stepId) return {}
+          return {
+            wizard: {
+              ...state.wizard,
+              execution: {
+                currentStepId: nextStepId,
+                completedStepIds: state.wizard.execution.completedStepIds,
+                skippedStepIds: [
+                  ...state.wizard.execution.skippedStepIds,
+                  stepId,
+                ],
+              },
+            },
+          }
+        }),
+      // Return to Stage 1 from Stage 2. Stage 1 fields (branch,
+      // currentStep, stage1Selections, stepHistory) are preserved
+      // so the user can re-edit their config and re-run Stage 2
+      // without re-picking every option.
+      returnToConfig: () =>
+        set(state => ({
+          wizard: {
+            ...state.wizard,
+            execution: { ...DEFAULT_EXECUTION_STEP_STATE },
           },
         })),
 
@@ -2066,6 +2248,19 @@ export const useAppStore = create<AppStore>()(
               ...persistedStage1Selections,
             },
             stepHistory: persistedStepHistory,
+            // Stage 2 `execution` is EPHEMERAL by design (Week 3) —
+            // see `ExecutionStepState` JSDoc. Even though the
+            // `partialize` block below does not write `execution`
+            // to the persisted envelope, a hand-rolled snapshot
+            // (dev tooling, test fixtures, a future build that
+            // regressed on the not-persisted contract) could
+            // carry an `execution` key across the wire. We drop
+            // it on rehydrate so a stale half-finished Stage 2
+            // run can never leak into a fresh session. The
+            // user always lands back at Stage 1 with their
+            // selections intact and can re-enter Stage 2 in one
+            // tap via `beginExecution`.
+            execution: { ...DEFAULT_EXECUTION_STEP_STATE },
           }
         }
         // `wizardEnabled` feature flag: coerce to a boolean on
@@ -2102,6 +2297,15 @@ export const useAppStore = create<AppStore>()(
         // `false` / `0` on every reload so the modal never opens itself.
         // The Stage 1 fields survive reload so a mid-wizard abandon
         // resumes on the same step (per §3.5).
+        //
+        // Stage 2 `execution` (Week 3) is intentionally NOT in this
+        // object — the Execution stepper state is ephemeral by
+        // design (resuming a half-finished execution is dangerous —
+        // see `ExecutionStepState` JSDoc in `wizardTypes.ts`). The
+        // `merge` block above defensively drops any stale
+        // `execution` key from a rehydrated envelope so a future
+        // build that regressed on the not-persisted contract can't
+        // leak a half-finished run across reloads.
         wizard: {
           dismissed: state.wizard.dismissed,
           selections: state.wizard.selections,

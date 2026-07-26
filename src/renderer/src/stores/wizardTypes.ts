@@ -120,6 +120,53 @@ export type WizardOption = {
 }
 
 /**
+ * Stage 2 Execution stepper — runtime-only state (Week 3).
+ *
+ * Per `docs/wizard-architecture-2026-07-26.md` §4, Stage 2 is the
+ * "do the work" surface that takes over once the user taps "Begin
+ * batch" in Stage 1. It is a vertical stepper (all steps visible,
+ * current step highlighted) — distinct from Stage 1's one-card-at-
+ * a-time carousel. The two stages share the `wizard` slice in
+ * `appStore.ts` so cross-stage handoffs (e.g. "Return to config"
+ * from Stage 2 → Stage 1 selections preserved) are trivial.
+ *
+ * `ExecutionStage` discriminates between the two top-level wizard
+ * modes. The runtime is a Stage-1-or-Stage-2 machine, not a
+ * free-for-all; components read this to know which surface to
+ * render. `'config'` is the default; `'execution'` is set by
+ * `beginExecution` and cleared by `returnToConfig`.
+ */
+export type ExecutionStage = 'config' | 'execution'
+
+/**
+ * The Stage 2 stepper's runtime state. Tracks which execution
+ * step is currently in focus, which the user has already finished
+ * (rendered with a checkmark + dimmed state), and which they
+ * skipped (rendered with a "skipped" badge so they can re-visit
+ * later if they want).
+ *
+ * EPHEMERAL BY DESIGN: per the Week 3 brief, Stage 2 state does
+ * NOT survive a reload. If the user reopens the app mid-batch,
+ * the wizard goes back to Stage 1 (the `ExecutionStage` is
+ * `'config'` again, lists are empty, `currentStepId` is null).
+ * The decision was deliberate: resuming a half-finished execution
+ * is dangerous (the timer / heatmap / "stir now" prompts are
+ * physical-world state that the app cannot reliably re-derive),
+ * and the Stage 1 selections are preserved so the user can re-
+ * run Stage 2 from the top in two taps. The store enforces the
+ * ephemerality by NOT persisting `execution` (see
+ * `appStore.ts` partialize + merge).
+ */
+export interface ExecutionStepState {
+  /** ID of the currently-active Stage 2 step. `null` when no step is current. */
+  currentStepId: string | null
+  /** Ordered list of completed Stage 2 step IDs. */
+  completedStepIds: string[]
+  /** Ordered list of skipped Stage 2 step IDs. */
+  skippedStepIds: string[]
+}
+
+/**
  * Declarative step definition. The wizard composes its visible steps
  * from `branches[state.branch].steps` (per §3.4), so adding a new step
  * is a one-line config change rather than a code change.

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { useAppStore } from '../appStore'
 import {
+  DEFAULT_EXECUTION_STEP_STATE,
   DEFAULT_STAGE1_WIZARD_SELECTIONS,
   DEFAULT_WIZARD_STATE,
 } from '../appStore'
@@ -552,5 +553,383 @@ describe('appStore Stage 1 Configuration Wizard — v7→v8 migration', () => {
     expect(w.stage1Selections).toEqual({ carrier: 'aloe-vera' })
     expect(w.stepHistory).toEqual([0, 1])
     expect(useAppStore.getState().wizardEnabled).toBe(true)
+  })
+})
+
+/**
+ * Stage 2 Execution stepper (Week 3, 2026-07-26 wizard build).
+ *
+ * The Stage 2 slice lives on `wizard.execution` and is ephemeral
+ * by design — it is NOT persisted (see `partialize` in appStore.ts
+ * + the `merge` block that defensively drops any stale `execution`
+ * key from a rehydrated envelope). The tests below cover:
+ *
+ *  - default shape
+ *  - `beginExecution` (transition to Stage 2)
+ *  - `completeExecutionStep` (mark current step done, advance)
+ *  - `completeExecutionStep` no-op when stepId !== currentStepId
+ *  - `skipExecutionStep` (skip current step, advance)
+ *  - `returnToConfig` (Stage 2 → Stage 1, preserve Stage 1 selections)
+ *  - `resetWizard` clears `execution` too
+ *  - `execution` is NOT in the persisted envelope (after a
+ *    beginExecution + persist flush + rehydrate, the new store
+ *    instance has `execution` as empty defaults)
+ *
+ * The reset helper below mirrors the Stage 1 `resetStage1Wizard`
+ * helper but also resets `execution` so each test starts from the
+ * canonical "Stage 1 + Stage 2 both empty" baseline.
+ */
+function resetStage2Wizard(): void {
+  useAppStore.setState({
+    wizard: {
+      ...DEFAULT_WIZARD_STATE,
+      selections: { ...DEFAULT_WIZARD_STATE.selections },
+      stage1Selections: { ...DEFAULT_STAGE1_WIZARD_SELECTIONS },
+      execution: { ...DEFAULT_EXECUTION_STEP_STATE },
+    },
+    wizardEnabled: false,
+  })
+}
+
+describe('appStore Stage 2 Execution stepper — Week 3', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    resetStage2Wizard()
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+  })
+
+  it('default `execution` shape is { currentStepId: null, completedStepIds: [], skippedStepIds: [] }', () => {
+    const { execution } = useAppStore.getState().wizard
+    expect(execution).toEqual({
+      currentStepId: null,
+      completedStepIds: [],
+      skippedStepIds: [],
+    })
+    // Pin the contract via the exported default — a future refactor
+    // that drifts the literal defaults would break this test.
+    expect(execution).toEqual(DEFAULT_EXECUTION_STEP_STATE)
+  })
+
+  it('beginExecution("step-a") sets currentStepId and clears the lists', () => {
+    useAppStore.getState().beginExecution('step-a')
+    const { execution } = useAppStore.getState().wizard
+    expect(execution.currentStepId).toBe('step-a')
+    expect(execution.completedStepIds).toEqual([])
+    expect(execution.skippedStepIds).toEqual([])
+  })
+
+  it('beginExecution("") is a no-op (defensive guard against malformed dispatch)', () => {
+    // Pre-populate some state to verify the empty-string dispatch
+    // does NOT overwrite the existing execution.
+    useAppStore.getState().beginExecution('step-a')
+    expect(useAppStore.getState().wizard.execution.currentStepId).toBe('step-a')
+
+    useAppStore.getState().beginExecution('')
+
+    // State is unchanged.
+    const { execution } = useAppStore.getState().wizard
+    expect(execution.currentStepId).toBe('step-a')
+    expect(execution.completedStepIds).toEqual([])
+    expect(execution.skippedStepIds).toEqual([])
+  })
+
+  it('completeExecutionStep advances to nextStepId and appends stepId to completedStepIds', () => {
+    const { beginExecution, completeExecutionStep } = useAppStore.getState()
+    beginExecution('step-a')
+    completeExecutionStep('step-a', 'step-b')
+
+    const { execution } = useAppStore.getState().wizard
+    expect(execution.currentStepId).toBe('step-b')
+    expect(execution.completedStepIds).toEqual(['step-a'])
+    expect(execution.skippedStepIds).toEqual([])
+  })
+
+  it('completeExecutionStep is a no-op if currentStepId !== stepId', () => {
+    // Pre-populate the store with a different current step.
+    useAppStore.getState().beginExecution('step-z')
+    // Attempt to complete 'step-a' when 'step-z' is the current step.
+    useAppStore.getState().completeExecutionStep('step-a', 'step-b')
+
+    const { execution } = useAppStore.getState().wizard
+    // No advancement, no append.
+    expect(execution.currentStepId).toBe('step-z')
+    expect(execution.completedStepIds).toEqual([])
+    expect(execution.skippedStepIds).toEqual([])
+  })
+
+  it('completeExecutionStep accumulates across multiple steps (ordered)', () => {
+    const { beginExecution, completeExecutionStep } = useAppStore.getState()
+    beginExecution('step-a')
+    completeExecutionStep('step-a', 'step-b')
+    completeExecutionStep('step-b', 'step-c')
+    completeExecutionStep('step-c', 'step-d')
+
+    const { execution } = useAppStore.getState().wizard
+    expect(execution.currentStepId).toBe('step-d')
+    expect(execution.completedStepIds).toEqual(['step-a', 'step-b', 'step-c'])
+    expect(execution.skippedStepIds).toEqual([])
+  })
+
+  it('skipExecutionStep advances to nextStepId and appends stepId to skippedStepIds', () => {
+    const { beginExecution, skipExecutionStep } = useAppStore.getState()
+    beginExecution('step-a')
+    skipExecutionStep('step-a', 'step-b')
+
+    const { execution } = useAppStore.getState().wizard
+    expect(execution.currentStepId).toBe('step-b')
+    expect(execution.completedStepIds).toEqual([])
+    expect(execution.skippedStepIds).toEqual(['step-a'])
+  })
+
+  it('skipExecutionStep is a no-op if currentStepId !== stepId (same guard as complete)', () => {
+    useAppStore.getState().beginExecution('step-z')
+    useAppStore.getState().skipExecutionStep('step-a', 'step-b')
+
+    const { execution } = useAppStore.getState().wizard
+    expect(execution.currentStepId).toBe('step-z')
+    expect(execution.completedStepIds).toEqual([])
+    expect(execution.skippedStepIds).toEqual([])
+  })
+
+  it('skip and complete populate independent lists when interleaved', () => {
+    // Documents the intended behavior: a step is either completed
+    // OR skipped, never both. The lists are independent so the
+    // UI can render "✓ done" and "↷ skipped" badges distinctly.
+    const { beginExecution, completeExecutionStep, skipExecutionStep } =
+      useAppStore.getState()
+    beginExecution('step-a')
+    completeExecutionStep('step-a', 'step-b')
+    skipExecutionStep('step-b', 'step-c')
+    completeExecutionStep('step-c', 'step-d')
+
+    const { execution } = useAppStore.getState().wizard
+    expect(execution.currentStepId).toBe('step-d')
+    expect(execution.completedStepIds).toEqual(['step-a', 'step-c'])
+    expect(execution.skippedStepIds).toEqual(['step-b'])
+  })
+
+  it('returnToConfig resets execution to empty defaults, preserves Stage 1 selections', () => {
+    // Set up a non-trivial Stage 1 + Stage 2 state.
+    const {
+      setProductType,
+      setSelection,
+      nextStep,
+      beginExecution,
+      completeExecutionStep,
+      returnToConfig,
+    } = useAppStore.getState()
+    setProductType('edible')
+    setSelection('weight', { value: 14, unit: 'g' })
+    nextStep()
+    beginExecution('preheat')
+    completeExecutionStep('preheat', 'timer')
+
+    // Sanity-check preconditions.
+    let w = useAppStore.getState().wizard
+    expect(w.branch).toBe('edible')
+    expect(w.currentStep).toBe(1)
+    expect(w.stage1Selections.weight).toEqual({ value: 14, unit: 'g' })
+    expect(w.execution.currentStepId).toBe('timer')
+    expect(w.execution.completedStepIds).toEqual(['preheat'])
+
+    returnToConfig()
+
+    w = useAppStore.getState().wizard
+    // Stage 2 is fully reset.
+    expect(w.execution).toEqual(DEFAULT_EXECUTION_STEP_STATE)
+    // Stage 1 selections are preserved.
+    expect(w.branch).toBe('edible')
+    expect(w.currentStep).toBe(1)
+    expect(w.stage1Selections.weight).toEqual({ value: 14, unit: 'g' })
+    expect(w.stepHistory).toEqual([0])
+  })
+
+  it('resetWizard resets execution to empty defaults', () => {
+    const {
+      setProductType,
+      beginExecution,
+      completeExecutionStep,
+      resetWizard,
+    } = useAppStore.getState()
+    setProductType('flower')
+    beginExecution('preheat')
+    completeExecutionStep('preheat', 'timer')
+
+    // Sanity-check preconditions.
+    expect(useAppStore.getState().wizard.execution.currentStepId).toBe('timer')
+    expect(useAppStore.getState().wizard.execution.completedStepIds).toEqual([
+      'preheat',
+    ])
+
+    resetWizard()
+
+    const w = useAppStore.getState().wizard
+    expect(w.execution).toEqual(DEFAULT_EXECUTION_STEP_STATE)
+    // Stage 1 fields are also reset (the existing contract).
+    expect(w.branch).toBeNull()
+    expect(w.currentStep).toBe(0)
+    expect(w.stage1Selections).toEqual({})
+    expect(w.stepHistory).toEqual([])
+  })
+
+  it('resetWizard keeps the legacy kit-configurator fields and wizardEnabled flag intact (Stage 2 parallel)', () => {
+    // Pre-populate the legacy fields + the feature flag + a
+    // half-finished Stage 2 execution.
+    useAppStore.setState({
+      wizard: {
+        ...useAppStore.getState().wizard,
+        active: true,
+        dismissed: true,
+        stepIndex: 2,
+        selections: {
+          equipment: ['Cannabis flower'],
+          decarbMethodIds: ['oven_sealed'],
+          fatIds: [],
+          formatIds: [],
+        },
+        branch: 'flower',
+        currentStep: 3,
+        stage1Selections: { method: 'oven_sealed' },
+        stepHistory: [0, 1, 2],
+        execution: {
+          currentStepId: 'timer',
+          completedStepIds: ['preheat'],
+          skippedStepIds: [],
+        },
+      },
+      wizardEnabled: true,
+    })
+
+    useAppStore.getState().resetWizard()
+
+    const s = useAppStore.getState()
+    // Stage 2 is reset.
+    expect(s.wizard.execution).toEqual(DEFAULT_EXECUTION_STEP_STATE)
+    // Stage 1 fields are reset.
+    expect(s.wizard.branch).toBeNull()
+    expect(s.wizard.currentStep).toBe(0)
+    expect(s.wizard.stage1Selections).toEqual({})
+    expect(s.wizard.stepHistory).toEqual([])
+    // Legacy fields are preserved.
+    expect(s.wizard.active).toBe(true)
+    expect(s.wizard.dismissed).toBe(true)
+    expect(s.wizard.stepIndex).toBe(2)
+    expect(s.wizard.selections.equipment).toEqual(['Cannabis flower'])
+    // Feature flag is preserved.
+    expect(s.wizardEnabled).toBe(true)
+  })
+})
+
+describe('appStore Stage 2 Execution stepper — persistence (Week 3)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    resetStage2Wizard()
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+  })
+
+  it('partialize does NOT persist `execution` — after beginExecution + persist flush, the envelope has no execution key', async () => {
+    // Set up Stage 1 + Stage 2 state, then flush to localStorage.
+    const { setProductType, beginExecution, completeExecutionStep } =
+      useAppStore.getState()
+    setProductType('flower')
+    beginExecution('preheat')
+    completeExecutionStep('preheat', 'timer')
+    await waitForPersisted()
+
+    const persistedWizard = readPersisted()?.state?.wizard as
+      | Record<string, unknown>
+      | undefined
+    expect(persistedWizard).toBeDefined()
+    // The wizard envelope has the Stage 1 fields, the legacy
+    // dismissed flag, and the legacy selections — but NO
+    // `execution` key. Stage 2 is ephemeral by design.
+    expect(persistedWizard).toMatchObject({
+      branch: 'flower',
+      currentStep: 0,
+      stage1Selections: {},
+      stepHistory: [],
+    })
+    expect(persistedWizard).not.toHaveProperty('execution')
+  })
+
+  it('execution is NOT in the persisted envelope (after beginExecution + re-init, execution is empty defaults)', async () => {
+    // Stage 2 → push it into a non-default state, then flush.
+    const { beginExecution, completeExecutionStep } = useAppStore.getState()
+    beginExecution('preheat')
+    completeExecutionStep('preheat', 'timer')
+    expect(useAppStore.getState().wizard.execution.currentStepId).toBe('timer')
+    await waitForPersisted()
+
+    // Re-read from localStorage and confirm the envelope has no
+    // `execution` key — Stage 2 is ephemeral and should not
+    // survive a reload even within the same browser tab.
+    const persisted = readPersisted()?.state as Record<string, unknown>
+    const persistedWizard = persisted.wizard as Record<string, unknown>
+    expect(persistedWizard.execution).toBeUndefined()
+
+    // Simulate a full reload by rehydrating. The store is a
+    // singleton (it stays the same instance), so rehydrate
+    // re-runs the merge function with the persisted envelope.
+    // After rehydrate, the `execution` slice on the live store
+    // must be the empty default — NOT the pre-reload 'timer'
+    // / ['preheat'] state.
+    await useAppStore.persist.rehydrate()
+    const rehydrated = useAppStore.getState().wizard.execution
+    expect(rehydrated).toEqual(DEFAULT_EXECUTION_STEP_STATE)
+  })
+
+  it('merge defensively drops a stale `execution` key from a hand-rolled v8 envelope (defensive against future regressions)', async () => {
+    // A hand-rolled v8 envelope that has a stale `execution`
+    // key — simulating a future build that regressed on the
+    // not-persisted contract, or a test fixture that wrote
+    // `execution` by accident. The merge function must drop
+    // the stale key and seed the runtime default.
+    const handRolledV8 = {
+      state: {
+        wizard: {
+          active: false,
+          dismissed: false,
+          stepIndex: 0,
+          selections: {
+            equipment: [],
+            decarbMethodIds: [],
+            fatIds: [],
+            formatIds: [],
+          },
+          branch: 'flower',
+          currentStep: 2,
+          stage1Selections: { method: 'oven_sealed' },
+          stepHistory: [0, 1],
+          // Stale `execution` key — should be dropped on
+          // rehydrate by the `merge` function.
+          execution: {
+            currentStepId: 'stale-timer',
+            completedStepIds: ['stale-preheat'],
+            skippedStepIds: ['stale-skipped'],
+          },
+        },
+        wizardEnabled: false,
+      },
+      version: 8,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(handRolledV8))
+
+    await useAppStore.persist.rehydrate()
+
+    // Stage 1 fields are preserved (valid v8 data).
+    const w = useAppStore.getState().wizard
+    expect(w.branch).toBe('flower')
+    expect(w.currentStep).toBe(2)
+    expect(w.stage1Selections).toEqual({ method: 'oven_sealed' })
+    expect(w.stepHistory).toEqual([0, 1])
+    // The stale `execution` key was dropped — runtime is the
+    // empty default, not the stale half-finished Stage 2 run.
+    expect(w.execution).toEqual(DEFAULT_EXECUTION_STEP_STATE)
   })
 })
