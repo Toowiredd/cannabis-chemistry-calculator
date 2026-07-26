@@ -248,6 +248,8 @@ function buildUnits(source: Record<string, unknown>): RecipeUnits {
 // saveRecipe
 // ---------------------------------------------------------------------------
 
+// FUTURE-API: retained for future Recipe import/export UI (likely a Dashboard
+// feature). See DESIGN.md "Engine Layer".
 /**
  * Save a complete snapshot of calculator state as a Recipe.
  *
@@ -280,6 +282,8 @@ export function saveRecipe(
 // loadRecipe
 // ---------------------------------------------------------------------------
 
+// FUTURE-API: retained for future Recipe import/export UI (likely a Dashboard
+// feature). See DESIGN.md "Engine Layer".
 /**
  * Load a Recipe and return a plain object with all tab states restored.
  *
