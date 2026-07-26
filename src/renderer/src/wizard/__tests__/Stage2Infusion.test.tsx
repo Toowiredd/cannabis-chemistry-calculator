@@ -119,6 +119,29 @@ function resetStage2() {
 beforeEach(() => {
   resetStage2()
   disableWizard()
+  // Week 7 fix: the ExecutionStepper now calls
+  // `useReducedMotion()` which reads `window.matchMedia`.
+  // JSDOM doesn't ship matchMedia by default. The
+  // completion-save test mounts the stepper to the
+  // completion step, which transitively mounts the
+  // HeatmapStep (DecarbHeatmap reads `useReducedMotion`
+  // for its needle animation) — both need the stub.
+  if (typeof window.matchMedia !== 'function') {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: (query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }),
+    })
+  }
 })
 
 /* ------------------------------------------------------------------ */

@@ -46,6 +46,31 @@ function disableWizard() {
 
 beforeEach(() => {
   disableWizard()
+  // Week 7 fix: the ExecutionStepper now calls
+  // `useReducedMotion()` which reads `window.matchMedia`.
+  // JSDOM doesn't ship matchMedia by default. The
+  // ExecutionStepper mounts on the "Begin batch" path
+  // and the Begin batch test previously passed only
+  // because the stepper never mounted. Stub matchMedia
+  // before any test mounts the wizard — the stub
+  // returns `false` for `prefers-reduced-motion` (the
+  // standard `useReducedMotion` default).
+  if (typeof window.matchMedia !== 'function') {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: (query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }),
+    })
+  }
 })
 
 describe('WizardScreen — feature flag', () => {

@@ -391,11 +391,22 @@ export function validateWizardSelections(
       errors.push(`Unknown fat id: "${fat}"`)
     }
 
-    // Volume + servings: required when fat is set (the
-    // infusion path). When fat is null (the no-infusion
-    // path), the user is just decarbing without producing
-    // a dose, so volume + servings are intentionally
-    // skipped.
+    // Volume: required when fat is set (the infusion
+    // path). When fat is null (the no-infusion path),
+    // the user is just decarbing without producing a
+    // dose, so volume is intentionally skipped.
+    //
+    // Servings: the Flower branch sequence has NO
+    // servings step (per `branchSequences.ts:62-71` —
+    // the canonical Flower sequence ends at `startStep`
+    // after the optional `volumeStep`). The Edible
+    // branch sequence (`branchSequences.ts:94-103`)
+    // has `servingsStep` and requires it; the
+    // concentrate + avb branches always require it.
+    // The Flower-with-infusion path therefore
+    // intentionally does NOT require servings here —
+    // the engine's `calculateMgPerServing` is not
+    // called for Flower batches.
     if (fat !== null && fat !== undefined) {
       const volume = selections.volume
       if (volume === undefined) {
@@ -403,7 +414,14 @@ export function validateWizardSelections(
       } else if (typeof volume.value !== 'number' || volume.value <= 0) {
         errors.push('Volume must be greater than 0')
       }
+    }
 
+    // Edible branch (the `flower || edible` block above
+    // also covers Edible per §3.1 — the Edible branch
+    // sequence has a `servingsStep` and the engine's
+    // `calculateMgPerServing` is called for Edible
+    // batches. Flower does NOT require servings.)
+    if (branch === 'edible') {
       const servings = selections.servings
       if (servings === undefined) {
         errors.push('Servings not picked')
