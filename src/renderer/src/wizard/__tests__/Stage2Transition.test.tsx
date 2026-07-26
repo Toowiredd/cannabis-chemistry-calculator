@@ -28,7 +28,10 @@ import { fireEvent, render, screen } from '@testing-library/react'
 
 import { WizardScreen } from '../WizardScreen'
 import { buildExecutionSteps } from '../stage2Steps'
-import { DEFAULT_EXECUTION_STEP_STATE, useAppStore } from '../../stores/appStore'
+import {
+  DEFAULT_EXECUTION_STEP_STATE,
+  useAppStore,
+} from '../../stores/appStore'
 import { HeatmapStep } from '../../components/execution/HeatmapStep'
 import { PreheatStep } from '../../components/execution/PreheatStep'
 
@@ -267,10 +270,22 @@ describe('HeatmapStep — Stage 2 heatmap shell', () => {
 /* Builder unit coverage — assert the Flower shape directly            */
 /* ------------------------------------------------------------------ */
 
-describe('buildExecutionSteps — Flower branch (Week 3 scope)', () => {
-  it('returns the 2-step preheat + heatmap list for oven_sealed', () => {
+describe('buildExecutionSteps — Flower branch', () => {
+  // Week 3 (commit 66c4818) added 2 steps — preheat + heatmap.
+  // Week 4 (the current commit) grew the Flower Stage 2 path
+  // to 4 steps by appending `timer-decarb` and
+  // `transition-decarb`. The full Week 4 path is asserted
+  // exhaustively in `Stage2Recalculating.test.tsx`; this
+  // block stays the canonical "preheat + heatmap data flow"
+  // pin (the Week 3 contract the integration tests depend
+  // on) and adds the Week 4 step 2 + 3 sanity asserts so a
+  // future regression to the pre-Week-4 builder shape is
+  // caught here too (the test name is updated to drop the
+  // literal "2-step" / "Week 3 scope" markers so the
+  // description matches the new shape).
+  it('returns the 4-step preheat + heatmap + timer + transition list for oven_sealed', () => {
     const steps = buildExecutionSteps('flower', { method: 'oven_sealed' })
-    expect(steps).toHaveLength(2)
+    expect(steps).toHaveLength(4)
     expect(steps[0]?.id).toBe('preheat-decarb')
     expect(steps[0]?.phase).toBe('decarb')
     expect(steps[0]?.shell).toBe('preheat')
@@ -283,5 +298,22 @@ describe('buildExecutionSteps — Flower branch (Week 3 scope)', () => {
     expect(steps[1]?.currentTemp).toBe(113)
     expect(steps[1]?.progressPct).toBe(0)
     expect(steps[1]?.material).toBe('flower')
+    // Week 4 — timer step. Pinned to the oven_sealed
+    // midpoint (60+90)/2 = 75 min → 4500 seconds; the
+    // stir interval is the halfway point (2250s). The
+    // exhaustive Week 4 builder coverage lives in
+    // `Stage2Recalculating.test.tsx > buildExecutionSteps —
+    // Flower (Week 4 scope)`; this block is the canonical
+    // pre-Week-5 regression pin.
+    expect(steps[2]?.id).toBe('timer-decarb')
+    expect(steps[2]?.shell).toBe('timer')
+    expect(steps[2]?.totalSeconds).toBe(75 * 60)
+    // Week 4 — transition step. The message must contain
+    // "infusion" so the §4.1 "Move to infusion" affordance
+    // reads naturally.
+    expect(steps[3]?.id).toBe('transition-decarb')
+    expect(steps[3]?.phase).toBe('transition')
+    expect(steps[3]?.shell).toBe('transition')
+    expect(steps[3]?.message ?? '').toContain('infusion')
   })
 })

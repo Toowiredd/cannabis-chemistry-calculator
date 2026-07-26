@@ -29,7 +29,7 @@
  * commit 51f8d89) — that one is read directly here, not
  * mirrored in local state.
  */
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { cn } from 'renderer/lib/utils'
 import { ChevronRight, RotateCcw } from 'lucide-react'
 import { Wizard } from 'renderer/src/components/Wizard'
@@ -40,7 +40,10 @@ import {
   BRANCH_SEQUENCES,
   getEffectiveBranchSequence,
 } from 'renderer/src/wizard/branchSequences'
-import { buildExecutionSteps } from 'renderer/src/wizard/stage2Steps'
+import {
+  buildExecutionSteps,
+  STAGE2_STEP_IDS,
+} from 'renderer/src/wizard/stage2Steps'
 import {
   DEFAULT_WIZARD_STATE,
   type WizardBranchId,
@@ -70,6 +73,15 @@ export function WizardScreen({ className }: WizardScreenProps) {
   const completeExecutionStep = useAppStore(s => s.completeExecutionStep)
   const skipExecutionStep = useAppStore(s => s.skipExecutionStep)
   const returnToConfig = useAppStore(s => s.returnToConfig)
+  // Week 4 (§8.1): the re-edit recalculating flow. The
+  // `recomputeFromEdit` action is a single dispatch that flips
+  // `isRecalculating: true` then `false` so the stepper shows
+  // a brief "recalculating..." flash on the affected rows. The
+  // engine recompute itself is sub-millisecond; Week 7's a11y
+  // polish may add a debounced `finishRecalculating` dispatch
+  // if a future async engine needs the delay. Today the
+  // synchronous pattern is enough.
+  const recomputeFromEdit = useAppStore(s => s.recomputeFromEdit)
   const execution = useAppStore(s => s.wizard.execution)
 
   /**
@@ -239,30 +251,118 @@ export function WizardScreen({ className }: WizardScreenProps) {
     [advancePastSkippedSteps, decodeSelection, beginExecution]
   )
 
-  const onEdit = useCallback((stepId: string) => {
-    setState(prev => {
-      // Re-editing a step sets `currentStep` to that step's
-      // index in the EFFECTIVE sequence (smart-skip filtered).
-      // We resolve the index dynamically so the user's
-      // re-edit lands on the right step even after the
-      // Flower "no infusion" path trimmed the Volume step.
-      if (prev.branch === null) {
-        if (stepId === 'product-type') {
-          return { ...prev, currentStep: 0 }
-        }
-        return prev
+  const onEdit = useCallback(
+    (stepId: string) => {
+      // Week 4 (§8.1) — re-edit during Stage 2.
+      //
+      // A medical-marijuana user mid-batch who realises they
+      // set the wrong temperature should NOT be forced back
+      // to Stage 1 from a "stuck" state — that breaks the
+      // procedure. Per the architecture doc §8.1, the
+      // WizardScreen handles the in-flight Stage 2 edit in a
+      // three-step sequence:
+      //
+      //   1. Recompute the affected Stage 2 steps BEFORE
+      //      rewinding the user back to Stage 1. The
+      //      `recomputeFromEdit` action flips
+      //      `isRecalculating: true` then `false` so the
+      //      stepper shows a brief "recalculating..." flash on
+      //      every row whose id is in `affectedStepIds`. For a
+      //      Flower batch every Stage 2 step depends on
+      //      `selections.method` + `selections.weight`, so the
+      //      safe Week 4 default is the full Flower list:
+      //      preheat, heatmap, timer, transition. (An empty
+      //      array is also valid — the stepper treats it as
+      //      "all steps affected" — but the explicit list is
+      //      the contract for Week 4. A future engine
+      //      integration can compute the precise affected set
+      //      from the re-edited selection's downstream graph.)
+      //   2. `returnToConfig()` clears the `execution` slice
+      //      but preserves the Stage 1 selections so the user
+      //      can re-edit a single step + re-tap "Begin batch"
+      //      to resume.
+      //   3. Rewind `currentStep` to the re-edited step's
+      //      index in the EFFECTIVE sequence. Existing logic.
+      //
+      // The `execution.currentStepId !== null` check is the
+      // canonical "Stage 2 is in flight" sentinel — when the
+      // user is still on Stage 1 (no execution entered yet),
+      // the existing rewind logic is enough; no recompute is
+      // needed because no Stage 2 rows exist to re-derive.
+      if (execution.currentStepId !== null) {
+        recomputeFromEdit([
+          STAGE2_STEP_IDS.preheatDecarb,
+          STAGE2_STEP_IDS.heatmapDecarb,
+          STAGE2_STEP_IDS.timerDecarb,
+          STAGE2_STEP_IDS.transitionDecarb,
+        ])
+        returnToConfig()
       }
-      const effective = getEffectiveBranchSequence(prev.branch, prev)
-      if (!effective) return prev
-      const idx = effective.findIndex(s => s.id === stepId)
-      if (idx < 0) return prev
-      return { ...prev, currentStep: idx }
-    })
-  }, [])
+      setState(prev => {
+        // Re-editing a step sets `currentStep` to that step's
+        // index in the EFFECTIVE sequence (smart-skip filtered).
+        // We resolve the index dynamically so the user's
+        // re-edit lands on the right step even after the
+        // Flower "no infusion" path trimmed the Volume step.
+        if (prev.branch === null) {
+          if (stepId === 'product-type') {
+            return { ...prev, currentStep: 0 }
+          }
+          return prev
+        }
+        const effective = getEffectiveBranchSequence(prev.branch, prev)
+        if (!effective) return prev
+        const idx = effective.findIndex(s => s.id === stepId)
+        if (idx < 0) return prev
+        return { ...prev, currentStep: idx }
+      })
+    },
+    [execution.currentStepId, recomputeFromEdit, returnToConfig]
+  )
 
   const onReset = useCallback(() => {
     setState(DEFAULT_WIZARD_STATE)
   }, [])
+
+  // Week 4 — wire `decarb.presetId` on entry to the
+  // `timer-decarb` step. The wrapped `Timer` widget
+  // (`src/renderer/src/components/Timer.tsx`) reads
+  // `appStore.decarb.presetId` from the store and shows only
+  // that method's start button when a preset is active (the
+  // 2026-07-26 P5 pre-fill behavior). When the user reaches
+  // the `timer-decarb` step in Stage 2, the wizard should
+  // set `decarb.presetId` to the picked method's id so the
+  // widget shows the right method. The wrapped
+  // `TimerWidget` doesn't auto-start when the preset matches
+  // (per the brief — the user taps the start button
+  // themselves); the Week 4 wiring is just "make the right
+  // method visible".
+  //
+  // The effect is keyed on `currentStepId` so it only fires
+  // on entry to the timer step (not on every re-render).
+  // When the user leaves the step (advances to
+  // `transition-decarb`, taps "Back to config", etc.),
+  // `currentStepId` changes and the effect is a no-op
+  // because the dependency no longer matches
+  // `STAGE2_STEP_IDS.timerDecarb`.
+  const setDecarb = useAppStore(s => s.setDecarb)
+  useEffect(() => {
+    if (execution.currentStepId !== STAGE2_STEP_IDS.timerDecarb) return
+    // `selections.method` is the user's Stage 1 method
+    // pick. It's the same id the `Timer` widget's
+    // `activeMethod` selector keys on (see `Timer.tsx`),
+    // so writing it to `decarb.presetId` lights up the
+    // right method's start button. We do NOT also call
+    // `setTimer({ active: true, ... })` — the user has to
+    // tap the start button themselves (the Week 4 brief
+    // is explicit about this: "the user can tap the start
+    // button themselves. The Week 4 wiring is just 'make
+    // the right method visible', not 'auto-start the
+    // countdown'").
+    const picked = state.selections.method
+    if (!picked) return
+    setDecarb({ presetId: picked })
+  }, [execution.currentStepId, state.selections.method, setDecarb])
 
   /**
    * Stage 2 → Stage 1 transition (Week 3). The store's
@@ -422,6 +522,19 @@ export function WizardScreen({ className }: WizardScreenProps) {
         const steps = buildExecutionSteps(branch, state.selections)
         return (
           <ExecutionStepper
+            // Week 4 (§8.1): the stepper's `isRecalculating`
+            // + `affectedStepIds` props drive the
+            // "recalculating..." badge on the affected rows.
+            // The store's `execution` slice is the source of
+            // truth; the `ExecutionStepper` itself is
+            // presentation-only and reads the values as props
+            // (design-system rein, Week 4). When
+            // `recomputeFromEdit` runs, the
+            // synchronous on-then-off pattern lets the stepper
+            // show a brief flash without the WizardScreen
+            // needing to manage the timing itself.
+            affectedStepIds={execution.affectedStepIds}
+            isRecalculating={execution.isRecalculating}
             onBack={onBackToConfig}
             onComplete={stepId => {
               // Resolve the next step from the same builder

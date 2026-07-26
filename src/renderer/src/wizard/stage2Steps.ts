@@ -21,12 +21,29 @@
  *    `buildExecutionSteps` directly to assert the expected step
  *    list for each method).
  *
- * Week 3 (this commit) scope:
- *  - Flower branch: 2 steps — `preheat-decarb` + `heatmap-decarb`.
- *    The target temp + duration are sourced from the engine's
- *    `DECARB_METHODS` table via the picked method id.
- *  - All other branches: empty array. Their step definitions
- *    land in weeks 4-6 per the build order.
+ * Build history:
+ *  - Week 3 (commit 66c4818): 2 steps — `preheat-decarb` +
+ *    `heatmap-decarb`. The preheat's `duration` was sourced from
+ *    the method's `timeMin` for display only; the heatmap's
+ *    `progressPct` was a placeholder `0` (the real per-second
+ *    engine integration was a Week 4 deliverable).
+ *  - Week 4 (this commit): the Flower branch's Stage 2 path
+ *    grows to 4 steps. Two new steps land between the existing
+ *    heatmap and the (still future) completion step:
+ *      3. `timer-decarb` — the "active timer" shell (§4.1). The
+ *         total duration is the midpoint of the engine's
+ *         `timeMin`/`timeMax` range converted to seconds
+ *         (e.g. `oven_sealed`'s 60-90 min → 75 min × 60 = 4500s).
+ *         The `stirIntervalSeconds` is the halfway point of the
+ *         total — the "stir at the halfway mark" reminder that
+ *         fits the §4.1 "Stir now" alert affordance. Documented
+ *         on the builder below.
+ *      4. `transition-decarb` — the "transition" shell (§4.1).
+ *         Carries a static message that tees up the
+ *         (still future) infusion phase. The completion step is
+ *         Week 5+ scope per the §7 build order.
+ *    All other branches still return `[]`; their Stage 2
+ *    definitions land in later weeks.
  *
  * The `isCurrent` + `isComplete` fields on each step are
  * intentionally left as `false` in the builder. The WizardScreen
@@ -41,7 +58,7 @@ import type { ExecutionStep } from '../components/ExecutionStepper'
 import type { WizardBranchId, WizardSelections } from './wizardTypes'
 
 /**
- * Stable step IDs for the Week 3 Flower decarb steps. The
+ * Stable step IDs for the Week 3 + Week 4 Flower decarb steps. The
  * `execution` slice's `currentStepId` references these strings;
  * they MUST match the `id` field on the rows returned by
  * `buildExecutionSteps` exactly (the store's defensive guard
@@ -51,6 +68,8 @@ import type { WizardBranchId, WizardSelections } from './wizardTypes'
 export const STAGE2_STEP_IDS = {
   preheatDecarb: 'preheat-decarb',
   heatmapDecarb: 'heatmap-decarb',
+  timerDecarb: 'timer-decarb',
+  transitionDecarb: 'transition-decarb',
 } as const
 
 /**
@@ -67,18 +86,40 @@ function lookupDecarbMethod(id: string | undefined): PresetMethod | undefined {
 }
 
 /**
+ * Compute the timer's `totalSeconds` from a decarb method's
+ * `timeMin`/`timeMax` range. The brief specifies the midpoint
+ * (rounded) — that matches the brief's "typical" runtime
+ * semantic and avoids the Week 3 placeholder of `timeMin`-only
+ * (which under-represents the real-world runtime for most
+ * methods, e.g. `oven_sealed`'s 60-90 min would otherwise be
+ * capped at 60 min when the canonical "typical" is 75 min).
+ *
+ * Example: `oven_sealed` is `timeMin: 60, timeMax: 90` →
+ *   midpoint = round((60+90)/2) = 75 min → 4500 seconds.
+ * `oven_open` is `timeMin: 40, timeMax: 40` (single point)
+ *   → midpoint = 40 min → 2400 seconds.
+ *
+ * Centralised as a free function so the Week 5+ infusion timer
+ * can reuse it for the infusion / decarb-to-infusion handoff.
+ */
+function computeTimerTotalSeconds(method: PresetMethod): number {
+  const midpointMin = Math.round((method.timeMin + method.timeMax) / 2)
+  return Math.max(0, midpointMin) * 60
+}
+
+/**
  * Build the Stage 2 execution step list for a given branch +
  * selections. The order of the returned array is the order the
  * stepper renders them in (the stepper preserves input order
  * within a phase).
  *
- * For Week 3 only the Flower branch has Stage 2 steps. Other
+ * For Week 4 only the Flower branch has Stage 2 steps. Other
  * branches return `[]`; the stepper renders the
  * `execution-stepper-empty` state ("No steps to run") for an
  * empty list, which is the desired behaviour when the user
  * finishes a branch whose Stage 2 work hasn't been defined yet
  * (the build order in the architecture doc §7 schedules the
- * remaining branches for weeks 4-6).
+ * remaining branches for later weeks).
  *
  * Defensive: if the Flower branch is asked for its Stage 2
  * steps but no method has been selected yet (a malformed
@@ -94,8 +135,8 @@ export function buildExecutionSteps(
   selections: WizardSelections
 ): ExecutionStep[] {
   if (branch !== 'flower') {
-    // Week 3: only the Flower branch has Stage 2 work. The
-    // other branches' step definitions land in weeks 4-6.
+    // Week 4: still only the Flower branch has Stage 2 work.
+    // The other branches' step definitions land in weeks 5-6.
     return []
   }
   const method = lookupDecarbMethod(selections.method)
@@ -140,5 +181,43 @@ export function buildExecutionSteps(
     isCurrent: false,
     isComplete: false,
   }
-  return [preheatStep, heatmapStep]
+  // Week 4 — `timer-decarb` (the active-timer shell from §4.1).
+  // The total duration is the midpoint of the engine's
+  // `timeMin`/`timeMax` range, converted to seconds via
+  // `computeTimerTotalSeconds` above (centralised so the
+  // Week 5+ infusion timer can reuse it). The
+  // `stirIntervalSeconds` is the halfway point of the total
+  // — the "stir at the halfway mark" reminder. Both fields
+  // are documented on the builder + the test file so a future
+  // engineer can pin the values to the engine data without
+  // guessing.
+  const totalSeconds = computeTimerTotalSeconds(method)
+  const stirIntervalSeconds = Math.floor(totalSeconds / 2)
+  const timerStep: ExecutionStep = {
+    id: STAGE2_STEP_IDS.timerDecarb,
+    title: 'Decarb timer',
+    phase: 'decarb',
+    shell: 'timer',
+    totalSeconds,
+    stirIntervalSeconds,
+    isCurrent: false,
+    isComplete: false,
+  }
+  // Week 4 — `transition-decarb` (the transition shell from
+  // §4.1). The message tees up the (still future) infusion
+  // phase; the completion step that would land after this one
+  // is Week 5+ scope. The static string is intentional — the
+  // Phase 4 §4.1 spec keeps the transition message terse so
+  // the user reads it once and taps "Continue" without
+  // context-switching into the engine state.
+  const transitionStep: ExecutionStep = {
+    id: STAGE2_STEP_IDS.transitionDecarb,
+    title: 'Decarb complete',
+    phase: 'transition',
+    shell: 'transition',
+    message: 'Decarb complete. Move to infusion →',
+    isCurrent: false,
+    isComplete: false,
+  }
+  return [preheatStep, heatmapStep, timerStep, transitionStep]
 }
