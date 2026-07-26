@@ -10,20 +10,19 @@
  *    `null` (the existing GroupedTabNav takes over).
  *  - When `state.branch === null`, renders the product-type step
  *    (step 0) as an active card.
- *  - When `state.branch !== null`, renders the branch sequence:
+ *  - When `state.branch !== null`, renders the effective branch
+ *    sequence (smart-skip filtered — see `getEffectiveBranchSequence`):
  *    - The current step is `active`.
  *    - Steps below the current step are `collapsed`.
  *    - Steps above the current step with a selection are
  *      `collapsed-with-selection`.
- *    - Steps with `skipIf(state) === true` (week 2+) are hidden.
  *  - Tapping an option on the active step calls `onSelect(optionId)`.
  *  - "Confirm" advances `state.currentStep` by 1.
  *  - Tapping a `collapsed-with-selection` step calls `onEdit(stepId)`.
  */
 import { useCallback } from 'react'
 import { useWizardEnabled } from 'renderer/src/wizard/wizardFeatureFlag'
-import { getBranchSequence } from 'renderer/src/wizard/branchSequences'
-import { productTypeStep } from 'renderer/src/wizard/steps'
+import { getEffectiveBranchSequence } from 'renderer/src/wizard/branchSequences'
 import type {
   WizardState,
   WizardStep,
@@ -56,11 +55,11 @@ export function Wizard({ state, onSelect, onEdit }: WizardProps) {
     return null
   }
 
-  // Resolve the step sequence. If `state.branch === null`, the
-  // product-type step is shown alone (no branch picked yet).
-  const steps: readonly WizardStep[] = state.branch
-    ? (getBranchSequence(state.branch) ?? [productTypeStep])
-    : [productTypeStep]
+  // Resolve the effective step sequence (smart-skip filtered).
+  // `getEffectiveBranchSequence` returns `[productTypeStep]` when
+  // `state.branch === null` (no branch picked yet).
+  const steps: readonly WizardStep[] =
+    getEffectiveBranchSequence(state.branch, state) ?? []
 
   // `currentStep` can be in two ranges:
   //   1. Within bounds: `currentIndex === state.currentStep`.
@@ -95,8 +94,11 @@ export function Wizard({ state, onSelect, onEdit }: WizardProps) {
           cardState = 'active'
         } else if (i < currentIndex) {
           // The step above the current one with a selection. We
-          // look up the selection from the state by step id.
-          const selected = selectionForStep(state, step.id)
+          // look up the selection from the state by the step's
+          // own `getSelectedOptionId` (Week 2 — the step owns
+          // its own selection encoding; the container no longer
+          // hardcodes a step-id → selection-key switch).
+          const selected = step.getSelectedOptionId?.(state) ?? null
           cardState =
             selected !== null ? 'collapsed-with-selection' : 'collapsed'
         } else {
@@ -106,9 +108,9 @@ export function Wizard({ state, onSelect, onEdit }: WizardProps) {
         // active step this is `null` until the user picks.
         const selectedOptionId =
           i < currentIndex
-            ? selectionForStep(state, step.id)
+            ? (step.getSelectedOptionId?.(state) ?? null)
             : i === currentIndex
-              ? selectionForStep(state, step.id)
+              ? (step.getSelectedOptionId?.(state) ?? null)
               : null
         return (
           <StepCard
@@ -128,25 +130,4 @@ export function Wizard({ state, onSelect, onEdit }: WizardProps) {
       })}
     </section>
   )
-}
-
-/**
- * Look up the selected option id for a step. The mapping is
- * step-id → key in `WizardSelections`. For Week 1 the only
- * non-product-type step is the Flower Method step (`id: 'method'`),
- * which maps to `state.selections.method`.
- */
-function selectionForStep(state: WizardState, stepId: string): string | null {
-  const selections = state.selections
-  switch (stepId) {
-    case 'product-type':
-      // The product-type step selects the branch, not a key in
-      // `selections`. The branch id IS the selection.
-      return state.branch
-    case 'method':
-      return selections.method ?? null
-    default:
-      // Coming-soon placeholder + future steps. No selection yet.
-      return null
-  }
 }

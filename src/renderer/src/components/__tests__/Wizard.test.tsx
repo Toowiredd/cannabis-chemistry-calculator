@@ -103,7 +103,7 @@ describe('Wizard — branch sequences', () => {
     expect(screen.getByTestId('step-card-method-active')).toBeTruthy()
   })
 
-  it('renders coming-soon step for non-Flower branches', () => {
+  it('renders the Potency step for the Concentrate branch (Week 2)', () => {
     useAppStore.setState({
       ...(useAppStore.getState() as unknown as Record<string, unknown>),
       wizardEnabled: true,
@@ -114,11 +114,12 @@ describe('Wizard — branch sequences', () => {
       selections: {},
     }
     render(<Wizard onEdit={() => {}} onSelect={() => {}} state={state} />)
-    // Step 1 is the coming-soon placeholder. The active
-    // StepCard for the coming-soon step renders the empty
-    // affordance (no options).
-    expect(screen.getByTestId('step-card-coming-soon-active')).toBeTruthy()
-    expect(screen.getByText('Nothing to pick here yet.')).toBeTruthy()
+    // Week 2: the Concentrate branch's first decision step
+    // is Potency (the coming-soon placeholder is gone). The
+    // active StepCard renders the option carousel.
+    expect(screen.getByTestId('step-card-potency-active')).toBeTruthy()
+    expect(screen.getByTestId('option-tile-p-50')).toBeTruthy()
+    expect(screen.getByTestId('option-tile-p-85')).toBeTruthy()
   })
 })
 

@@ -1,33 +1,37 @@
 /**
  * WizardScreen — top-level screen that renders the Stage 1 wizard.
  *
- * Per the architecture doc §7 Week 1 scope:
- *  - Behind a `wizardEnabled` feature flag (read via
- *    `useWizardEnabled` from the wizardFeatureFlag module).
- *  - When the flag is off, renders nothing — the existing
- *    GroupedTabNav takes over.
- *  - When the flag is on, renders the Wizard container with the
- *    product-type step if `state.branch === null`, or the branch
- *    sequence if `state.branch !== null`.
- *  - For the Flower branch, only the Method step is fully
- *    implemented for Week 1. The §8.5 "Name this recipe" step is a
- *    placeholder text input (week 5 has the real save flow).
- *  - Includes a "Reset wizard" link at the bottom.
+ * Per the architecture doc §7:
+ *  - Week 1: Behind a `wizardEnabled` feature flag; the product-
+ *    type step + the Flower Method step render; the rest is
+ *    placeholders.
+ *  - Week 2: All 5 branches are wired up. Each branch's full step
+ *    sequence is in `branchSequences.ts`. Smart-skip (§3.1) is
+ *    applied via `getEffectiveBranchSequence` — when a step's
+ *    `skipIf(state)` returns true, the wizard auto-advances past
+ *    it. The terminal "Start" step shows a "Begin batch" CTA
+ *    that calls a local `onWizardComplete` callback (no-op for
+ *    Week 2 — the Stage 2 transition lands in week 3).
  *
- * State: held locally in this component for Week 1. Week 2+ will
- * migrate to the `appStore.wizard` slice owned by state-routing.
- * The `WizardState` shape (`wizard/wizardTypes.ts`) is the same,
- * so the migration is a 1-line change (replace `useState` with
- * `useAppStore(s => s.wizard)`).
+ * State: held locally in this component for Week 2. The state
+ * shape (`wizard/wizardTypes.ts`) is the same as the eventual
+ * `appStore.wizard` slice owned by state-routing; the migration
+ * is a 1-line change (replace `useState` with
+ * `useAppStore(s => s.wizard)`) when state-routing lands.
  */
 import { useCallback, useState } from 'react'
 import { cn } from 'renderer/lib/utils'
-import { RotateCcw } from 'lucide-react'
+import { ChevronRight, RotateCcw } from 'lucide-react'
 import { Wizard } from 'renderer/src/components/Wizard'
 import { useWizardEnabled } from 'renderer/src/wizard/wizardFeatureFlag'
 import {
+  BRANCH_SEQUENCES,
+  getEffectiveBranchSequence,
+} from 'renderer/src/wizard/branchSequences'
+import {
   DEFAULT_WIZARD_STATE,
   type WizardBranchId,
+  type WizardSelections,
   type WizardState,
 } from 'renderer/src/wizard/wizardTypes'
 
@@ -41,41 +45,190 @@ export function WizardScreen({ className }: WizardScreenProps) {
   // happens AFTER every hook in this function.
   const enabled = useWizardEnabled()
   const [state, setState] = useState<WizardState>(DEFAULT_WIZARD_STATE)
-
-  const onSelect = useCallback((stepId: string, optionId: string) => {
-    setState(prev => {
-      // Step 0 (product type) — the optionId is the branch id. Set
-      // `branch` and advance to step 1.
-      if (stepId === 'product-type') {
-        return {
-          ...prev,
-          branch: optionId as WizardBranchId,
-          currentStep: 1,
-        }
-      }
-      // The Method step — set `selections.method` and advance to
-      // step 2.
-      if (stepId === 'method') {
-        return {
-          ...prev,
-          currentStep: 2,
-          selections: { ...prev.selections, method: optionId },
-        }
-      }
-      // Future steps (week 2+). The option id is stored under the
-      // matching key in `selections`; the Wizard consumer
-      // determines which key.
-      return prev
-    })
+  // No-op for Week 2 — the Stage 2 transition lands in week 3.
+  // Captured as a callback so the test can spy on the
+  // "wizard-complete" event and the future wire-up to the
+  // store is a 1-line change.
+  const onWizardComplete = useCallback(() => {
+    // Intentionally empty for Week 2. The Stage 2 stepper
+    // (week 3) will mount here; for now the Begin batch CTA
+    // is a no-op that still marks the wizard as complete
+    // (`state.currentStep` is past the last step).
   }, [])
+
+  /**
+   * Advance the wizard past any steps whose `skipIf(state)`
+   * returns true. Used after every state mutation so the user
+   * never lands on a step that should be hidden for their
+   * current selections (e.g. the Flower "no infusion" path
+   * auto-skips the Volume step).
+   */
+  const advancePastSkippedSteps = useCallback(
+    (next: WizardState): WizardState => {
+      if (next.branch === null) return next
+      let current = next
+      // Loop is bounded — at most one pass per skipped step
+      // per mutation. The smart-skip predicates are pure
+      // functions of state, so the loop terminates once the
+      // current step's `skipIf` returns false.
+      for (let safety = 0; safety < 16; safety++) {
+        const effective = getEffectiveBranchSequence(current.branch, current)
+        if (!effective) return current
+        if (current.currentStep >= effective.length) return current
+        const step = effective[current.currentStep]
+        if (!step?.skipIf) return current
+        if (!step.skipIf(current)) return current
+        current = { ...current, currentStep: current.currentStep + 1 }
+      }
+      return current
+    },
+    []
+  )
+
+  /**
+   * Decode a step's `optionId` into the `selections` key/value
+   * it represents. Most steps use the optionId as-is
+   * (e.g. `'oven_sealed'` → `selections.method`); the steps
+   * with structured selections (weight, efficiency, volume,
+   * servings, potency) encode the value into the optionId and
+   * need to decode it here.
+   *
+   * The encoding is shared with `steps.ts`:
+   *  - weight:     `${unit}-${value}`   e.g. `g-3.5`
+   *  - efficiency: `eff-${pct}`          e.g. `eff-90`
+   *  - volume:     `${unit}-${value}`   e.g. `mL-240`
+   *  - servings:   `s-${count}`          e.g. `s-12`
+   *  - potency:    `p-${pct}`            e.g. `p-75`
+   */
+  const decodeSelection = useCallback(
+    (stepId: string, optionId: string): Partial<WizardSelections> => {
+      switch (stepId) {
+        case 'weight': {
+          // `g-3.5`, `g-7`, etc.
+          const match = /^([a-z]+)-(\d+(?:\.\d+)?)$/.exec(optionId)
+          if (!match) return {}
+          return {
+            weight: {
+              unit: match[1] as 'g' | 'oz',
+              value: Number.parseFloat(match[2]),
+            },
+          }
+        }
+        case 'efficiency': {
+          // `eff-80`, `eff-90`, etc.
+          const match = /^eff-(\d+)$/.exec(optionId)
+          if (!match) return {}
+          return { efficiency: Number.parseInt(match[1], 10) / 100 }
+        }
+        case 'volume': {
+          // `mL-100`, `mL-240`, etc.
+          const match = /^([a-zA-Z]+)-(\d+(?:\.\d+)?)$/.exec(optionId)
+          if (!match) return {}
+          return {
+            volume: {
+              unit: match[1] as 'mL' | 'cup' | 'tsp' | 'tbsp',
+              value: Number.parseFloat(match[2]),
+            },
+          }
+        }
+        case 'servings': {
+          // `s-12`, `s-48`, etc.
+          const match = /^s-(\d+)$/.exec(optionId)
+          if (!match) return {}
+          return { servings: Number.parseInt(match[1], 10) }
+        }
+        case 'potency': {
+          // `p-75`, `p-85`, etc.
+          const match = /^p-(\d+)$/.exec(optionId)
+          if (!match) return {}
+          return { potency: Number.parseInt(match[1], 10) }
+        }
+        case 'fat': {
+          // The 'none' tile sets `selections.fat = null` —
+          // the brief-mandated sentinel for the Flower
+          // branch's "no infusion" path.
+          if (optionId === 'none') return { fat: null }
+          return { fat: optionId }
+        }
+        default: {
+          // All other steps use the optionId directly as the
+          // selection value: method, container, carrier,
+          // color, applicationArea.
+          return { [stepId]: optionId } as Partial<WizardSelections>
+        }
+      }
+    },
+    []
+  )
+
+  const onSelect = useCallback(
+    (stepId: string, optionId: string) => {
+      // The Start step is the terminal "Begin batch" CTA.
+      // Picking it advances `state.currentStep` past the end
+      // of the canonical sequence (so the `isFinished` check
+      // in render returns true and the "Batch ready" badge
+      // shows) and calls the local `onWizardComplete` callback
+      // (no-op for Week 2; Stage 2 wires it up in week 3).
+      if (stepId === 'start') {
+        setState(prev => {
+          const canonical = prev.branch
+            ? (BRANCH_SEQUENCES[prev.branch] ?? [])
+            : []
+          return {
+            ...prev,
+            currentStep: canonical.length, // past the end → isFinished
+          }
+        })
+        onWizardComplete()
+        return
+      }
+      setState(prev => {
+        // Step 0 (product type) — the optionId is the branch
+        // id. Reset selections (picking a new branch discards
+        // the previous one's selections) and advance to the
+        // first branch step.
+        if (stepId === 'product-type') {
+          const next: WizardState = {
+            ...prev,
+            branch: optionId as WizardBranchId,
+            currentStep: 1,
+            selections: {},
+          }
+          return advancePastSkippedSteps(next)
+        }
+        // All other steps: write the decoded selection and
+        // advance to the next step. Smart-skip is then
+        // applied so the user never lands on a hidden step.
+        const decoded = decodeSelection(stepId, optionId)
+        const next: WizardState = {
+          ...prev,
+          currentStep: prev.currentStep + 1,
+          selections: { ...prev.selections, ...decoded },
+        }
+        return advancePastSkippedSteps(next)
+      })
+    },
+    [advancePastSkippedSteps, decodeSelection, onWizardComplete]
+  )
 
   const onEdit = useCallback((stepId: string) => {
     setState(prev => {
       // Re-editing a step sets `currentStep` to that step's
-      // index. Step 0 (product type) is index 0; Method is index 1.
-      if (stepId === 'product-type') return { ...prev, currentStep: 0 }
-      if (stepId === 'method') return { ...prev, currentStep: 1 }
-      return prev
+      // index in the EFFECTIVE sequence (smart-skip filtered).
+      // We resolve the index dynamically so the user's
+      // re-edit lands on the right step even after the
+      // Flower "no infusion" path trimmed the Volume step.
+      if (prev.branch === null) {
+        if (stepId === 'product-type') {
+          return { ...prev, currentStep: 0 }
+        }
+        return prev
+      }
+      const effective = getEffectiveBranchSequence(prev.branch, prev)
+      if (!effective) return prev
+      const idx = effective.findIndex(s => s.id === stepId)
+      if (idx < 0) return prev
+      return { ...prev, currentStep: idx }
     })
   }, [])
 
@@ -89,6 +242,27 @@ export function WizardScreen({ className }: WizardScreenProps) {
   if (!enabled) {
     return null
   }
+
+  // Resolve the effective sequence for the current state.
+  // Used to compute `isOnStartStep` and the test-friendly
+  // "start step active" check below.
+  const effectiveSteps = state.branch
+    ? (getEffectiveBranchSequence(state.branch, state) ?? [])
+    : []
+  const isOnStartStep =
+    effectiveSteps.length > 0 &&
+    state.currentStep === effectiveSteps.length - 1 &&
+    effectiveSteps[effectiveSteps.length - 1]?.id === 'start'
+  // Pre-compute the canonical sequence length for the
+  // "completed" badge on the Finish section. The user has
+  // finished the wizard when they are on the start step
+  // (terminal CTA) OR when `currentStep` is past the end of
+  // the canonical sequence (post-confirm state).
+  const canonicalSteps = state.branch
+    ? (BRANCH_SEQUENCES[state.branch] ?? [])
+    : []
+  const isFinished =
+    state.currentStep >= canonicalSteps.length && canonicalSteps.length > 0
 
   return (
     <div
@@ -120,33 +294,54 @@ export function WizardScreen({ className }: WizardScreenProps) {
       {/* The step stack — collapses to nothing when the flag is off. */}
       <Wizard onEdit={onEdit} onSelect={onSelect} state={state} />
 
-      {/* Week-1 placeholder for the §8.5 "Name this recipe" step.
-          Shown after the user finishes the Flower branch's Method
-          step. Full implementation lands in week 5 alongside
-          `appStore.recipes[]`. */}
-      {state.branch === 'flower' &&
-      state.currentStep > 1 &&
-      state.selections.method ? (
+      {/* Terminal CTA — the "Begin batch" button. Rendered as a
+          separate section below the wizard stack so the user has
+          a single, prominent call-to-action when they reach the
+          Start step. For Week 2 the click is a no-op (the Stage
+          2 stepper lands in week 3). */}
+      {isOnStartStep ? (
         <section
-          aria-label="Name this recipe (placeholder)"
-          className="flex flex-col gap-2 rounded-xl border border-dashed border-foreground/15 bg-foreground/5 p-4"
-          data-testid="wizard-name-step-placeholder"
+          aria-label="Begin batch"
+          className="flex flex-col items-stretch gap-2 rounded-xl border border-accent/30 bg-accent/10 p-4"
+          data-testid="wizard-begin-section"
         >
-          <h3 className="text-sm font-semibold text-foreground/80">
-            Name this recipe
+          <h3 className="text-sm font-semibold text-foreground">
+            Ready to start your batch
           </h3>
-          <p className="text-xs text-foreground/60">
-            Week 5 will save this recipe to your Journal with a name of your
-            choice. For now, the wizard stops here.
+          <p className="text-xs text-foreground/70">
+            Your selections are saved. Begin the batch to move to the execution
+            view.
           </p>
-          <input
-            aria-label="Recipe name (placeholder)"
-            className="rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-            data-testid="wizard-name-input"
-            disabled
-            placeholder="e.g., Morning dose — 28g, oven-sealed"
-            value={state.selections.name ?? ''}
-          />
+          <button
+            aria-label="Begin batch"
+            className="inline-flex min-h-11 items-center justify-center gap-1.5 self-end rounded-lg bg-accent/40 px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-accent/55"
+            data-testid="wizard-begin-cta"
+            onClick={() => onSelect('start', 'begin')}
+            type="button"
+          >
+            Begin batch
+            <ChevronRight aria-hidden="true" className="size-4" />
+          </button>
+        </section>
+      ) : null}
+
+      {/* Post-finish badge — rendered when the user has
+          confirmed the Begin batch CTA. For Week 2 this is
+          informational; the Stage 2 stepper (week 3) will
+          mount here. */}
+      {isFinished ? (
+        <section
+          aria-label="Batch ready"
+          className="flex flex-col gap-1 rounded-xl border border-success/30 bg-success/10 p-4"
+          data-testid="wizard-finished-section"
+        >
+          <h3 className="text-sm font-semibold text-success">
+            Batch configuration complete
+          </h3>
+          <p className="text-xs text-foreground/70">
+            The Stage 2 execution view lands in week 3. Your selections are
+            persisted to local state for this session.
+          </p>
         </section>
       ) : null}
     </div>

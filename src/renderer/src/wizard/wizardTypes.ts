@@ -47,7 +47,14 @@ export interface WizardSelections {
   container?: string
   weight?: { value: number; unit: 'g' | 'oz' }
   efficiency?: number
-  fat?: string
+  /**
+   * Fat type for infusion. `null` is the brief-mandated sentinel for
+   * the Flower branch's "No infusion" path (§3.1 — the user picks
+   * the 'none' tile on the Fat step, `selections.fat = null`, and the
+   * Volume step's smart-skip filters it out). `undefined` means the
+   * step hasn't been answered yet.
+   */
+  fat?: string | null
   volume?: { value: number; unit: 'mL' | 'cup' | 'tsp' | 'tbsp' }
   servings?: number
   potency?: number
@@ -117,6 +124,18 @@ export interface WizardStep {
   /** Returns the options for the current step. Stateful — re-runs
    * on every render so `state` can influence the option list. */
   getOptions: (state: WizardState) => WizardOption[]
+  /**
+   * Returns the option id of the currently-selected option for
+   * this step, or `null` if no selection has been made. Optional —
+   * the rendering container falls back to `null` when absent.
+   *
+   * Lives on the step so each step owns its own selection-encoding
+   * (e.g. the Weight step encodes `{ value, unit }` as
+   * `${unit}-${value}`; the Method step reads `selections.method`
+   * directly). The container no longer needs a hardcoded
+   * step-id → selection-key switch.
+   */
+  getSelectedOptionId?: (state: WizardState) => string | null
   /** Returns true if the step's selection is valid. */
   validate?: (state: WizardState) => boolean
   /** Returns true if the step should be hidden for the current
