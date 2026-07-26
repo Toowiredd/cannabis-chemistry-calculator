@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
+import { GlassCard } from './GlassCard'
 
 function formatTime(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60)
@@ -115,9 +116,9 @@ export function TimerWidget() {
   }
 
   return (
-    <div
+    <GlassCard
       className={cn(
-        'glass-strong rounded-2xl p-4 transition-all',
+        'p-4 sm:p-4 transition-all',
         alertVisible &&
           'border-2 border-warning/50 bg-warning/10 dark:bg-warning/10'
       )}
@@ -251,6 +252,6 @@ export function TimerWidget() {
           )}
         </div>
       )}
-    </div>
+    </GlassCard>
   )
 }

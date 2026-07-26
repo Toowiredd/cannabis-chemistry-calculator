@@ -11,6 +11,7 @@ import {
 } from 'renderer/src/stores/appStore'
 import { Save, FolderOpen } from 'lucide-react'
 import { Toast, type ToastVariant } from './Toast'
+import { GlassCard } from './GlassCard'
 
 /**
  * Shape of the preset payload that `window.App.savePreset` writes to
@@ -285,70 +286,71 @@ export function PresetActions() {
           <div
             aria-labelledby="save-preset-title"
             aria-modal="true"
-            className="glass-strong glass-shine w-full max-w-sm rounded-2xl border border-foreground/20 p-5 shadow-2xl sm:p-6"
             ref={saveModalRef}
             role="dialog"
           >
-            <h3
-              className="mb-4 text-base font-semibold text-foreground"
-              id="save-preset-title"
-            >
-              Save Preset
-            </h3>
-            <label
-              className="mb-1 block text-sm font-medium text-foreground/80"
-              htmlFor="preset-name"
-            >
-              Preset Name
-            </label>
-            <input
-              aria-describedby={saveError ? 'preset-name-error' : undefined}
-              aria-invalid={saveError ? 'true' : undefined}
-              className="w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
-              id="preset-name"
-              onChange={e => {
-                setSaveName(e.target.value)
-                setSaveError(null)
-              }}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !isSaveDisabled) {
-                  handleSaveConfirm()
-                }
-                if (e.key === 'Escape') {
-                  handleSaveCancel()
-                }
-              }}
-              placeholder="My Preset"
-              ref={saveInputRef}
-              type="text"
-              value={saveName}
-            />
-            {saveError && (
-              <p
-                className="mt-2 text-xs text-danger"
-                id="preset-name-error"
-                role="alert"
+            <GlassCard className="glass-shine w-full max-w-sm rounded-2xl border border-foreground/20 p-5 shadow-2xl sm:p-6">
+              <h3
+                className="mb-4 text-base font-semibold text-foreground"
+                id="save-preset-title"
               >
-                {saveError}
-              </p>
-            )}
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <button
-                className="btn-secondary"
-                onClick={handleSaveCancel}
-                type="button"
+                Save Preset
+              </h3>
+              <label
+                className="mb-1 block text-sm font-medium text-foreground/80"
+                htmlFor="preset-name"
               >
-                Cancel
-              </button>
-              <button
-                className="btn-primary"
-                disabled={isSaveDisabled}
-                onClick={handleSaveConfirm}
-                type="button"
-              >
-                Save
-              </button>
-            </div>
+                Preset Name
+              </label>
+              <input
+                aria-describedby={saveError ? 'preset-name-error' : undefined}
+                aria-invalid={saveError ? 'true' : undefined}
+                className="w-full rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                id="preset-name"
+                onChange={e => {
+                  setSaveName(e.target.value)
+                  setSaveError(null)
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !isSaveDisabled) {
+                    handleSaveConfirm()
+                  }
+                  if (e.key === 'Escape') {
+                    handleSaveCancel()
+                  }
+                }}
+                placeholder="My Preset"
+                ref={saveInputRef}
+                type="text"
+                value={saveName}
+              />
+              {saveError && (
+                <p
+                  className="mt-2 text-xs text-danger"
+                  id="preset-name-error"
+                  role="alert"
+                >
+                  {saveError}
+                </p>
+              )}
+              <div className="mt-5 flex items-center justify-end gap-2">
+                <button
+                  className="btn-secondary"
+                  onClick={handleSaveCancel}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn-primary"
+                  disabled={isSaveDisabled}
+                  onClick={handleSaveConfirm}
+                  type="button"
+                >
+                  Save
+                </button>
+              </div>
+            </GlassCard>
           </div>
         </div>
       )}

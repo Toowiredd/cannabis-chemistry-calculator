@@ -18,6 +18,7 @@ import { cmToIn, convertWeight, inToCm } from 'renderer/src/engine/units'
 import { fmt1 } from 'renderer/src/engine/formatting'
 import { cn } from 'renderer/lib/utils'
 import { Info, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react'
+import { GlassCard } from './GlassCard'
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                            */
@@ -391,7 +392,7 @@ export function BagCalculator({ tempC }: { tempC: number }) {
   )
 
   return (
-    <div className="glass-strong flex flex-col gap-4 rounded-2xl p-5">
+    <GlassCard className="flex flex-col gap-4 rounded-2xl p-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <button
@@ -662,6 +663,6 @@ export function BagCalculator({ tempC }: { tempC: number }) {
           )}
         </>
       )}
-    </div>
+    </GlassCard>
   )
 }

@@ -51,6 +51,7 @@ import { cn } from 'renderer/lib/utils'
 import { TabCarousel, type CarouselItem } from './TabCarousel'
 import { ReferenceStrip, type ReferenceStripItem } from './ReferenceStrip'
 import { useAppStore, type TabId } from 'renderer/src/stores/appStore'
+import { GlassCard } from './GlassCard'
 
 /* ------------------------------------------------------------------ */
 /* Public types                                                       */
@@ -207,11 +208,10 @@ export function GroupedTabNav({
             label={activeReferenceItem.label}
             subtitle="Reference tab"
           />
-          <div
-            className="glass-strong relative max-h-[40vh] overflow-auto rounded-2xl border border-foreground/10 p-4 shadow-2xl sm:p-6"
-            data-testid="reference-content-panel"
-          >
-            {activeReferenceItem.content}
+          <div data-testid="reference-content-panel">
+            <GlassCard className="relative max-h-[40vh] overflow-auto rounded-2xl border border-foreground/10 p-4 shadow-2xl sm:p-6">
+              {activeReferenceItem.content}
+            </GlassCard>
           </div>
         </section>
       )}

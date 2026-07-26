@@ -9,6 +9,7 @@ import {
 import { cn } from 'renderer/lib/utils'
 import { useModalA11y } from '../hooks/useModalA11y'
 import { Printer, X, Info, Tag, AlertTriangle, ShieldAlert } from 'lucide-react'
+import { GlassCard } from './GlassCard'
 
 export function LabelGenerator({
   mgPerServing,
@@ -170,7 +171,7 @@ export function LabelGenerator({
   return (
     <div className="flex flex-col gap-4">
       {/* Configuration panel */}
-      <div className="glass-strong flex min-w-0 flex-col gap-4 rounded-2xl p-4 sm:p-5">
+      <GlassCard className="flex min-w-0 flex-col gap-4 rounded-2xl p-4 sm:p-5">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
           Label Configuration
         </h3>
@@ -282,7 +283,7 @@ export function LabelGenerator({
         >
           Reset Label Defaults
         </button>
-      </div>
+      </GlassCard>
 
       {/* Printable modal */}
       {showPrintable && (

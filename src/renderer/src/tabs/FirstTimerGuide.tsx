@@ -136,6 +136,7 @@ import { cn } from 'renderer/lib/utils'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useModalA11y } from '../hooks/useModalA11y'
 import { UnitToggle } from 'renderer/src/components/UnitToggle'
+import { GlassCard } from 'renderer/src/components/GlassCard'
 
 /* ------------------------------------------------------------------ */
 /* Step model                                                         */
@@ -834,10 +835,10 @@ export function FirstTimerGuide(): ReactNode {
       <div
         aria-labelledby={wizardTitleId}
         aria-modal="true"
-        className="glass-strong relative flex h-full max-h-[min(880px,calc(100dvh-2rem))] w-full max-w-[min(960px,calc(100dvw-2rem))] flex-col overflow-hidden rounded-2xl border border-foreground/10 shadow-2xl"
         ref={modalRef}
         role="dialog"
       >
+        <GlassCard className="relative flex h-full max-h-[min(880px,calc(100dvh-2rem))] w-full max-w-[min(960px,calc(100dvw-2rem))] flex-col overflow-hidden rounded-2xl border border-foreground/10 shadow-2xl">
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-foreground/10 px-4 py-3 sm:px-6 sm:py-4">
           <div className="min-w-0">
@@ -1045,6 +1046,7 @@ export function FirstTimerGuide(): ReactNode {
             <ChevronRight className="size-4" />
           </button>
         </div>
+      </GlassCard>
       </div>
     </div>
   )

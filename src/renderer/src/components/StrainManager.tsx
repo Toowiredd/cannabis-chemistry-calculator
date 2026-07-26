@@ -4,6 +4,7 @@ import type { Strain } from 'renderer/src/engine/models'
 import { globalStrainLibrary } from 'renderer/src/engine/strainLib'
 import { Leaf, Save, X, Pencil, Trash2 } from 'lucide-react'
 import { useModalA11y } from '../hooks/useModalA11y'
+import { GlassCard } from './GlassCard'
 
 interface StrainFormData {
   name: string
@@ -206,10 +207,10 @@ export function StrainManager({
       <div
         aria-labelledby="strain-manager-title"
         aria-modal="true"
-        className="glass-strong flex w-full max-w-lg flex-col rounded-2xl shadow-2xl"
         ref={modalRef}
         role="dialog"
       >
+        <GlassCard className="flex w-full max-w-lg flex-col rounded-2xl shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-foreground/10 px-5 py-4">
           <div className="flex items-center gap-2">
@@ -452,6 +453,7 @@ export function StrainManager({
             </div>
           )}
         </div>
+      </GlassCard>
       </div>
     </div>
   )
