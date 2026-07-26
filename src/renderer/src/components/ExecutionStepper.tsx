@@ -189,6 +189,7 @@ export function ExecutionStepper({
       <section
         aria-label="Execution stepper"
         className="flex w-full flex-col gap-3"
+        data-stage="execution"
         data-testid="execution-stepper"
       >
         <StepperHeader
@@ -198,7 +199,10 @@ export function ExecutionStepper({
           progressBarId={progressBarId}
           totalCount={0}
         />
-        <GlassCard className="flex flex-col items-center gap-2 text-center">
+        <GlassCard
+          className="flex flex-col items-center gap-2 text-center"
+          data-testid="execution-stepper-empty"
+        >
           <p className="text-sm font-medium text-foreground/80">
             No steps to run.
           </p>
@@ -214,6 +218,7 @@ export function ExecutionStepper({
     <section
       aria-label="Execution stepper"
       className="flex w-full flex-col gap-3"
+      data-stage="execution"
       data-testid="execution-stepper"
     >
       <StepperHeader
