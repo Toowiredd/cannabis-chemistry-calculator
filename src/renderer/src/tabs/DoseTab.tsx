@@ -1,14 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
-import { calculateMgPerServing, classifyDose } from 'renderer/src/engine/dosing'
+import {
+  calculateMgPerServing,
+  classifyDose,
+  displayDoseLabel,
+} from 'renderer/src/engine/dosing'
 import { reverseFullWorkflow } from 'renderer/src/engine/reverse'
 import { scaleRecipe } from 'renderer/src/engine/recipe'
 import { fmt1 } from 'renderer/src/engine/formatting'
+import { calculateTheoreticalMax } from 'renderer/src/engine/decarb'
+import { volumeToMl } from 'renderer/src/engine/units'
 import {
-  EDIBLE_FORMATS,
   DECARB_METHODS,
+  EDIBLE_FORMATS,
   INFUSION_FATS,
 } from 'renderer/src/engine/models'
+import type { JournalEntry } from 'renderer/src/stores/appStore'
 import { cn } from 'renderer/lib/utils'
 import {
   ChevronDown,
@@ -17,6 +24,8 @@ import {
   Scale,
   ArrowDownUp,
   Loader2,
+  Save,
+  BookOpen,
 } from 'lucide-react'
 import { TabActions } from 'renderer/src/components/TabActions'
 import { LabelGenerator } from 'renderer/src/components/LabelGenerator'
@@ -277,6 +286,14 @@ export function DoseTab() {
   const recordSuccessfulPath = useAppStore(s => s.recordSuccessfulPath)
   const decarb = useAppStore(s => s.decarb)
   const infusion = useAppStore(s => s.infusion)
+  // 2026-07-26 P5 — "Log to Journal" is now on the Dose tab (where
+  // the user just calculated a dose) instead of the Journal tab.
+  // The handler mirrors JournalTab's `buildFormFromStore` so the
+  // entry the user lands on is pre-populated from the active
+  // dose. The CTA writes the entry to the in-memory journal slice
+  // AND switches to the Journal tab (where the form is shown).
+  const addJournalEntry = useAppStore(s => s.addJournalEntry)
+  const setActiveTab = useAppStore(s => s.setActiveTab)
   const isReverse = dose.reverseMode
 
   // 2026-07-26 P2.4 — honor the OS-level prefers-reduced-motion
@@ -507,6 +524,83 @@ export function DoseTab() {
     setShowFormula(false)
   }
 
+  // 2026-07-26 P5 — "Log to Journal" handler. Mirrors
+  // JournalTab's `buildFormFromStore` so the entry is pre-filled
+  // from the active dose. The entry is stamped with
+  // `source: 'journal_form'` (the per-tab provenance tag from the
+  // 2026-07-25 uiux-reviewer B1 fix) and added to the in-memory
+  // journal slice. The user is then switched to the Journal tab
+  // so the form is shown for the new entry.
+  const handleLogToJournal = useCallback(() => {
+    const store = useAppStore.getState()
+    const decarbNow = store.decarb
+    const infusionNow = store.infusion
+    const doseNow = store.dose
+
+    const grams = parseFloat(decarbNow.weight) || 0
+    const thcaVal = parseFloat(decarbNow.thcaPct) || 0
+    const thcVal = parseFloat(decarbNow.thcPct) || 0
+
+    const method = DECARB_METHODS.find(m => m.id === decarbNow.presetId)
+    const fat = INFUSION_FATS.find(f => f.id === infusionNow.fatId)
+
+    const eff = method ? method.efficiency.expected : 0.9
+    const fatEff = fat?.extractionEff ?? 0.82
+
+    let totalInfused = ''
+    let concentration = ''
+    let mgPerServing = ''
+    let classification = ''
+    try {
+      const theoreticalMax = calculateTheoreticalMax(grams, thcaVal, thcVal)
+      const decarbed = theoreticalMax * eff
+      const infused = decarbed * fatEff
+      totalInfused = fmt1(infused)
+      const vol = parseFloat(infusionNow.volume)
+      if (!Number.isNaN(vol) && vol > 0) {
+        const volMl = volumeToMl(vol, infusionNow.volumeUnit)
+        if (volMl > 0) concentration = fmt1(infused / volMl)
+      }
+      const serv = parseFloat(doseNow.servings)
+      if (!Number.isNaN(serv) && serv > 0) {
+        const mps = infused / serv
+        mgPerServing = fmt1(mps)
+        classification = displayDoseLabel(classifyDose(mps))
+      }
+    } catch {
+      /* partial inputs — leave downstream fields blank */
+    }
+
+    const entry = {
+      id: `entry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      date: new Date().toISOString().split('T')[0],
+      strainName: '',
+      strainId: decarbNow.strainId,
+      materialWeight: decarbNow.weight,
+      thcaPct: decarbNow.thcaPct,
+      thcPct: decarbNow.thcPct,
+      cbdaPct: decarbNow.cbdaPct,
+      cbdPct: decarbNow.cbdPct,
+      methodId: decarbNow.presetId,
+      methodName: method?.name ?? '',
+      fatId: infusionNow.fatId,
+      fatName: fat?.name ?? '',
+      servings: doseNow.servings,
+      mgPerServing,
+      classification,
+      totalInfusedThc: totalInfused,
+      concentration,
+      volume: infusionNow.volume,
+      volumeUnit: infusionNow.volumeUnit,
+      notes: '',
+      source: 'journal_form' as const,
+    } as JournalEntry
+
+    addJournalEntry(entry)
+    recordSuccessfulPath('history_learn', 'journal')
+    setActiveTab('journal')
+  }, [addJournalEntry, recordSuccessfulPath, setActiveTab])
+
   /*
    * Escape is intentionally non-destructive on this screen. The dose calculator
    * can represent a completed recipe, so reset must remain an explicit button
@@ -554,6 +648,33 @@ export function DoseTab() {
           >
             <RotateCcw className="size-3.5" />
             Reset to Defaults
+          </button>
+          {/* 2026-07-26 P5 — "Log to Journal" is now on the Dose
+              tab (where the user just calculated a dose) instead
+              of the Journal tab. The button calls
+              `handleLogToJournal` which builds the entry from the
+              active dose, adds it to the in-memory journal slice,
+              and switches to the Journal tab so the form is shown
+              for the new entry. */}
+          <button
+            aria-label="Log the active dose to the journal"
+            className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg border border-info/30 bg-info/10 px-3 py-1.5 text-xs font-medium text-info transition-colors hover:bg-info/20 sm:flex-none"
+            data-testid="dose-log-to-journal"
+            onClick={handleLogToJournal}
+            type="button"
+          >
+            <Save className="size-3.5" />
+            Log to Journal
+          </button>
+          <button
+            aria-label="Open the Journal tab (browse existing entries)"
+            className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground sm:flex-none"
+            data-testid="dose-browse-journal"
+            onClick={() => setActiveTab('journal')}
+            type="button"
+          >
+            <BookOpen className="size-3.5" />
+            Browse Journal
           </button>
         </div>
       </div>

@@ -83,12 +83,13 @@ function resetJournal(
   })
 }
 
-function clickAutoPopulate() {
-  // Identified by aria-label on the "Log current calculator values
-  // to the journal" button at JournalTab.tsx:351.
+function clickNewEntry() {
+  // 2026-07-26 P5: the "Log to Journal" button (formerly
+  // auto-populate) moved to the Dose tab. JournalTab keeps only
+  // the "New Entry" CTA which opens an empty form.
   fireEvent.click(
     screen.getByRole('button', {
-      name: /Log current calculator values to the journal/i,
+      name: /Create a new journal entry/i,
     })
   )
 }
@@ -108,10 +109,10 @@ describe('JournalTab — audit B1 (entry.source on save)', () => {
 
   it('inline form save stamps `source: "journal_form"` on the new entry', async () => {
     render(<JournalTab />)
-    // Open the inline form via the auto-populate button (it seeds
-    // the form from the calculator slices; we'll override the
-    // strain name next).
-    clickAutoPopulate()
+    // Open the inline form via the "New Entry" button (2026-07-26
+    // P5: the auto-populate behavior moved to the Dose tab; the
+    // Journal tab now only opens an empty form via "New Entry").
+    clickNewEntry()
     // Set a strain name — the save flow refuses to save with an
     // empty strain name.
     fireEvent.change(screen.getByLabelText(/Strain name/i), {
@@ -128,41 +129,6 @@ describe('JournalTab — audit B1 (entry.source on save)', () => {
     expect((entry as unknown as { source?: string }).source).toBe(
       'journal_form'
     )
-  })
-})
-
-describe('JournalTab — audit workflow B1 (auto-populate form uses per-field volumeUnit)', () => {
-  beforeEach(() => {
-    resetJournal()
-    ;(window as unknown as { App: unknown }).App = {
-      saveJournalEntry: vi.fn().mockResolvedValue({ success: true }),
-      loadJournalEntries: vi
-        .fn()
-        .mockResolvedValue({ success: true, entries: [] }),
-    }
-  })
-
-  it('auto-populate form stamps the per-field volumeUnit, not the display unit', () => {
-    // Seed: per-field = 'mL' (the unit the user typed in), display =
-    // 'cup' (the user toggled after typing). Pre-fix, the form's
-    // volumeUnit select was set to 'cup' — the entry would have
-    // been saved as 100 cup (≈23.6 L).
-    resetJournal({
-      infusion: { volume: '100', volumeUnit: 'mL' },
-    })
-    useAppStore.setState(state => ({
-      units: { ...state.units, volumeUnit: 'cup' },
-    }))
-    render(<JournalTab />)
-    clickAutoPopulate()
-    // The form's volumeUnit select is identified by its aria-label
-    // at JournalTab.tsx:576. The select's `value` is the form's
-    // `volumeUnit` state. We assert via `getByDisplayValue` which
-    // finds the <option> that the select currently shows.
-    const select = screen.getByLabelText(/Volume unit/i) as HTMLSelectElement
-    // The pre-fix bug would have shown "cup" here.
-    expect(select.value).toBe('mL')
-    expect(select.value).not.toBe('cup')
   })
 })
 
@@ -266,25 +232,20 @@ describe('JournalTab — audit workflow B7 (entry card renders per-field materia
 })
 
 /* ------------------------------------------------------------------ */
-/* 2026-07-25 ccc cross-tab data flow audit (MAJOR M4)                 */
+/* 2026-07-26 userstory-audit P5 (Log to Journal moved to Dose)        */
 /*                                                                    */
-/* The M4 fix adds a confirm-guard to the "Save current calculator    */
-/* values to the journal" button (a.k.a. auto-populate). Pre-fix,     */
-/* clicking the button while the form had user-entered values         */
-/* silently overwrote every field — the user lost their entry.        */
-/* Post-fix, the button asks "Discard your current entry and          */
-/* auto-populate from the last batch?" before clobbering.             */
-/*                                                                    */
-/* The three properties that must hold:                               */
-/* - Empty form (or the form already populated by the store): no      */
-/*   confirm dialog.                                                  */
-/* - Dirty form + confirm accept: form is replaced by the             */
-/*   auto-populated values.                                           */
-/* - Dirty form + confirm cancel: form is preserved (the user keeps    */
-/*   what they had typed).                                            */
+/* The auto-populate form (buildFormFromStore) and the M4            */
+/* confirm-guard moved to the Dose tab. The Journal tab's "New       */
+/* Entry" button now opens an empty form only. The contract below     */
+/* pins the new shape:                                                */
+/*   - "New Entry" is the only create-new-entry CTA on Journal tab   */
+/*   - No "Log to Journal" / "Save calculator values" button on       */
+/*     Journal tab                                                    */
+/* The per-field volumeUnit contract (B1 workflow) moved to DoseTab  */
+/* and is pinned there.                                              */
 /* ------------------------------------------------------------------ */
 
-describe('JournalTab — audit M4 (auto-populate confirm-guard)', () => {
+describe('JournalTab — audit P5 (no "Log to Journal" button on Journal tab)', () => {
   beforeEach(() => {
     resetJournal()
     ;(window as unknown as { App: unknown }).App = {
@@ -295,71 +256,24 @@ describe('JournalTab — audit M4 (auto-populate confirm-guard)', () => {
     }
   })
 
-  it('does NOT prompt when the form is empty', () => {
-    // jsdom's window.confirm returns undefined by default; a spy
-    // that never fires confirms the confirm-dialog was never
-    // reached. An empty form is the "no data to lose" case — the
-    // user can't be surprised by the auto-populate.
-    const confirmSpy = vi.spyOn(window, 'confirm')
+  it('does NOT render a "Log current calculator values" button on the Journal tab', () => {
     render(<JournalTab />)
-    clickAutoPopulate()
-    expect(confirmSpy).not.toHaveBeenCalled()
-    // Sanity: the form is now open with the auto-populated values.
-    const nameInput = screen.getByLabelText(/Strain name/i) as HTMLInputElement
-    // The default empty seed has no strain name, so the input is
-    // still empty after auto-populate (no name in the store).
-    expect(nameInput.value).toBe('')
+    expect(
+      screen.queryByRole('button', {
+        name: /Log current calculator values to the journal/i,
+      })
+    ).toBeNull()
   })
 
-  it('prompts when the form has user-entered values, and CANCEL preserves them', () => {
-    const confirmSpy = vi
-      .spyOn(window, 'confirm')
-      .mockReturnValue(false)
+  it('does NOT render a "Log to Journal" button on the Journal tab', () => {
     render(<JournalTab />)
-    // Open the form first.
-    clickAutoPopulate()
-    // Now the user types a strain name. The form is "dirty".
-    fireEvent.change(screen.getByLabelText(/Strain name/i), {
-      target: { value: 'OG Kush' },
-    })
-    // Click auto-populate again. The handler must call confirm().
-    clickAutoPopulate()
-    expect(confirmSpy).toHaveBeenCalledTimes(1)
-    // The exact text the user sees — the brief mandates this copy.
-    expect(confirmSpy).toHaveBeenCalledWith(
-      'Discard your current entry and auto-populate from the last batch?'
-    )
-    // User cancelled. The form is unchanged — the user-typed name
-    // is still there.
-    const nameInput = screen.getByLabelText(/Strain name/i) as HTMLInputElement
-    expect(nameInput.value).toBe('OG Kush')
+    expect(screen.queryByText(/^Log to Journal$/i)).toBeNull()
   })
 
-  it('prompts when the form has user-entered values, and ACCEPT replaces them', () => {
-    const confirmSpy = vi
-      .spyOn(window, 'confirm')
-      .mockReturnValue(true)
-    // Seed: a strain name in the store. The auto-populate
-    // would (in the journal form's buildFormFromStore) put the
-    // store's decarb.strainId onto strainId but NOT onto
-    // strainName (the form is blank for strainName). So after
-    // an accepted auto-populate, the strain name input should
-    // be empty even though the user had typed "OG Kush" — the
-    // user explicitly accepted the discard.
+  it('keeps the "New Entry" CTA on the Journal tab', () => {
     render(<JournalTab />)
-    clickAutoPopulate()
-    fireEvent.change(screen.getByLabelText(/Strain name/i), {
-      target: { value: 'OG Kush' },
-    })
-    // Confirm the form is currently dirty.
-    const nameInput = screen.getByLabelText(/Strain name/i) as HTMLInputElement
-    expect(nameInput.value).toBe('OG Kush')
-    // Click auto-populate and accept.
-    clickAutoPopulate()
-    expect(confirmSpy).toHaveBeenCalledTimes(1)
-    // The form has been re-populated from the store; the
-    // user-typed "OG Kush" is gone (strainName defaults to
-    // '' in buildFormFromStore).
-    expect(nameInput.value).toBe('')
+    expect(
+      screen.getByRole('button', { name: /Create a new journal entry/i })
+    ).toBeTruthy()
   })
 })

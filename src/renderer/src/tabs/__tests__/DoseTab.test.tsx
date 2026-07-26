@@ -459,3 +459,68 @@ describe('DoseTab — audit P2.4 (prefers-reduced-motion)', () => {
     expect(cls.className).toMatch(/result-bloom/)
   })
 })
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-26 userstory-audit P5 (Log to Journal on Dose)              */
+/*                                                                    */
+/* The "Log to Journal" CTA moved from the Journal tab to the Dose   */
+/* tab (where the user just calculated a dose). The handler builds    */
+/* a JournalEntry from the active dose via the same math the         */
+/* JournalTab's buildFormFromStore uses, then adds it to the in-     */
+/* memory journal slice and switches to the Journal tab.             */
+/* ------------------------------------------------------------------ */
+
+describe('DoseTab — audit P5 (Log to Journal on Dose tab)', () => {
+  beforeEach(() => {
+    resetCalculator()
+    // Clear journal entries from any prior test so the count
+    // assertion is precise.
+    useAppStore.setState(state => ({
+      ...state,
+      journalEntries: [],
+    }))
+  })
+
+  it('renders the "Log to Journal" button on the Dose tab', () => {
+    render(<DoseTab />)
+    expect(screen.getByTestId('dose-log-to-journal')).toBeTruthy()
+  })
+
+  it('renders the "Browse Journal" link/button on the Dose tab', () => {
+    render(<DoseTab />)
+    expect(screen.getByTestId('dose-browse-journal')).toBeTruthy()
+  })
+
+  it('clicking "Log to Journal" adds an entry to the in-memory journal slice', () => {
+    // Seed a known dose so the entry has meaningful values.
+    useAppStore.setState(state => ({
+      decarb: { ...state.decarb, weight: '3.5', thcaPct: '20' },
+      dose: { ...state.dose, totalThc: '500', servings: '10' },
+      activeTab: 'dose',
+    }))
+    render(<DoseTab />)
+    expect(useAppStore.getState().journalEntries.length).toBe(0)
+    fireEvent.click(screen.getByTestId('dose-log-to-journal'))
+    const entries = useAppStore.getState().journalEntries
+    expect(entries.length).toBe(1)
+    // The new entry is pre-populated from the active dose.
+    expect(entries[0].materialWeight).toBe('3.5')
+    expect(entries[0].thcaPct).toBe('20')
+    expect(entries[0].servings).toBe('10')
+  })
+
+  it('clicking "Log to Journal" switches the active tab to journal', () => {
+    useAppStore.setState(state => ({ ...state, activeTab: 'dose' }))
+    render(<DoseTab />)
+    fireEvent.click(screen.getByTestId('dose-log-to-journal'))
+    expect(useAppStore.getState().activeTab).toBe('journal')
+  })
+
+  it('the new entry is stamped with source: "journal_form"', () => {
+    useAppStore.setState(state => ({ ...state, activeTab: 'dose' }))
+    render(<DoseTab />)
+    fireEvent.click(screen.getByTestId('dose-log-to-journal'))
+    const entries = useAppStore.getState().journalEntries
+    expect(entries[0]?.source).toBe('journal_form')
+  })
+})

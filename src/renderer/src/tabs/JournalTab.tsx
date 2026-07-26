@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
-import { calculateTheoreticalMax } from 'renderer/src/engine/decarb'
-import { classifyDose, displayDoseLabel } from 'renderer/src/engine/dosing'
-import { volumeToMl } from 'renderer/src/engine/units'
-import { fmt1 } from 'renderer/src/engine/formatting'
 import { cn } from 'renderer/lib/utils'
 import {
   BookOpen,
@@ -71,103 +67,12 @@ function emptyForm(): JournalFormData {
   }
 }
 
-function buildFormFromStore(
-  store: ReturnType<typeof useAppStore.getState>
-): JournalFormData {
-  const { decarb, infusion, dose, units } = store
-  const method = DECARB_METHODS.find(m => m.id === decarb.presetId)
-  const fat = INFUSION_FATS.find(f => f.id === infusion.fatId)
-
-  // Compute decarb expected THC for population. All math goes through the
-  // engine — the THCA→THC factor, the decarb efficiency, the fat extraction
-  // efficiency, the volume unit conversion, and the dose classification all
-  // come from engine modules. The hand-coded copies that lived here before
-  // were a drift risk flagged by the 2026-07-24 audit (ccc-validation
-  // team's first Decarb end-to-end run).
-  const weight = parseFloat(decarb.weight)
-  const thca = parseFloat(decarb.thcaPct)
-  const thc = parseFloat(decarb.thcPct)
-  let totalInfused = ''
-  let concentration = ''
-  let mgPerServing = ''
-  let classification = ''
-
-  try {
-    // Engine: theoretical max → decarb-adjusted → fat infusion
-    const grams = !Number.isNaN(weight) ? weight : 0
-    const thcaVal = !Number.isNaN(thca) ? thca : 0
-    const thcVal = !Number.isNaN(thc) ? thc : 0
-    const eff = method ? method.efficiency.expected : 0.9
-    const fatEff = fat?.extractionEff ?? 0.82
-    const theoreticalMax = calculateTheoreticalMax(grams, thcaVal, thcVal)
-    const decarbed = theoreticalMax * eff
-    const infused = decarbed * fatEff
-    totalInfused = fmt1(infused)
-
-    // Engine: any-volume-unit → mL. Use the per-field unit, not
-    // the display unit — the stored value is in infusion.volumeUnit.
-    const vol = parseFloat(infusion.volume)
-    if (!Number.isNaN(vol) && vol > 0) {
-      const volMl = volumeToMl(vol, infusion.volumeUnit)
-      if (volMl > 0) {
-        concentration = fmt1(infused / volMl)
-      }
-    }
-
-    // Engine: dose classification
-    const serv = parseFloat(dose.servings)
-    if (!Number.isNaN(serv) && serv > 0) {
-      const mps = infused / serv
-      mgPerServing = fmt1(mps)
-      // classifyDose returns the engine's canonical token (e.g. 'sub-microdose');
-      // displayDoseLabel maps it to the Title-Case display the UI surfaces
-      // (e.g. 'Sub-Microdose'), matching DoseTab's DOSE_ZONES table.
-      classification = displayDoseLabel(classifyDose(mps))
-    }
-  } catch {
-    // Leave downstream fields blank if computation fails (e.g. preset not
-    // selected yet, or partial inputs)
-  }
-
-  return {
-    id: '',
-    date: todayInputValue(),
-    strainName: '',
-    strainId: store.decarb.strainId,
-    materialWeight: decarb.weight,
-    thcaPct: decarb.thcaPct,
-    thcPct: decarb.thcPct,
-    cbdaPct: decarb.cbdaPct,
-    cbdPct: decarb.cbdPct,
-    methodId: decarb.presetId,
-    fatId: infusion.fatId,
-    servings: dose.servings,
-    mgPerServing,
-    classification,
-    totalInfusedThc: totalInfused,
-    concentration,
-    volume: infusion.volume,
-    // 2026-07-25 ccc workflow-validator audit B1: use the
-    // per-field `infusion.volumeUnit` (the unit the user typed the
-    // value in) for the form's volume unit, not the display
-    // `units.volumeUnit`. If the user typed 100 in mL and then
-    // toggled display to 'cup' before opening the form, the old
-    // code stamped the form's volumeUnit as 'cup' — so the form
-    // displayed the value 100 with the unit "cup" and saved an
-    // entry of 100 cup (≈23.6 L). The per-field unit is the source
-    // of truth for what the user typed.
-    volumeUnit: infusion.volumeUnit,
-    notes: '',
-  }
-}
-
 export function JournalTab() {
   const journalEntries = useAppStore(s => s.journalEntries)
   const setJournalEntries = useAppStore(s => s.setJournalEntries)
   const addJournalEntry = useAppStore(s => s.addJournalEntry)
   const deleteJournalEntry = useAppStore(s => s.deleteJournalEntry)
   const recordSuccessfulPath = useAppStore(s => s.recordSuccessfulPath)
-  const store = useAppStore.getState()
 
   const [form, setForm] = useState<JournalFormData>(emptyForm)
   const [showForm, setShowForm] = useState(false)
@@ -260,28 +165,15 @@ export function JournalTab() {
   // We compare against the default empty form so that auto-populated
   // fields (which have the same shape as the store) also count as
   // "user has content". The simplest correct check is "is any of
-  // the user-editable fields non-empty?".
-  const isFormDirty = (current: JournalFormData): boolean => {
-    return (
-      current.strainName.trim() !== '' ||
-      current.materialWeight.trim() !== '' ||
-      current.thcPct.trim() !== '' ||
-      current.thcaPct.trim() !== '' ||
-      current.volume.trim() !== '' ||
-      current.servings.trim() !== ''
-    )
-  }
-
-  const handleAutoPopulate = () => {
-    if (isFormDirty(form)) {
-      const ok = window.confirm(
-        'Discard your current entry and auto-populate from the last batch?'
-      )
-      if (!ok) return
-    }
-    setForm(buildFormFromStore(store))
-    setShowForm(true)
-  }
+  // 2026-07-26 P5: the auto-populate behavior (buildFormFromStore
+  // + the M4 confirm-guard) moved to the Dose tab as
+  // `handleLogToJournal`. The Journal tab keeps only the "New
+  // Entry" CTA which opens an empty form. The isFormDirty +
+  // handleAutoPopulate helpers are no longer used on this tab.
+  // The M4 confirm-guard contract is preserved on the Dose tab
+  // by a single direct addJournalEntry call (no auto-populate +
+  // confirm dance needed because the Dose button writes a fresh
+  // entry, not a form edit).
 
   const handleSave = async () => {
     if (!window.App?.saveJournalEntry) {
@@ -386,15 +278,17 @@ export function JournalTab() {
           <h2 className="text-xl font-semibold text-foreground">Journal</h2>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            aria-label="Log current calculator values to the journal"
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
-            onClick={handleAutoPopulate}
-            type="button"
-          >
-            <Save className="size-3.5" />
-            Log to Journal
-          </button>
+          {/* 2026-07-26 P5 — "Log to Journal" moved to the Dose
+              tab. The Journal tab keeps "New Entry" as the
+              create-new-entry CTA and a "Browse journal" link
+              (no, this is the Journal tab itself; the previous
+              "Log to Journal" was the create-from-calculator
+              shortcut and that has moved to Dose). The "Browse
+              journal" wording was the audit's recommendation —
+              it is intentionally not "Browse" here because the
+              user is already on the Journal tab. We keep the
+              New Entry button for users who land here without
+              an active calculator session. */}
           <button
             aria-label="Create a new journal entry"
             className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
