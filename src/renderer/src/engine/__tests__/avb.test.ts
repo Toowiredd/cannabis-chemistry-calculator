@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import {
   AVB_RESIDUAL_THC_RANGES,
   calculateAvbTheoreticalMax,
+  calculateAvbTheoreticalMaxFromColor,
 } from '../decarb'
 import { calculateTheoreticalMax } from '../decarb'
 import { ValidationError } from '../errors'
@@ -56,6 +57,24 @@ describe('calculateAvbTheoreticalMax', () => {
     expect(() => calculateAvbTheoreticalMax(1, -1)).toThrow(
       'residualThcPct cannot be negative'
     )
+  })
+})
+
+describe('calculateAvbTheoreticalMaxFromColor', () => {
+  it('returns expected ≈ 227.5 mg for 3.5g light AVB (mid of 5–8%)', () => {
+    // light: min 5, mid 6.5, max 8 → 3.5g mid = 3.5 × 0.065 × 1000 = 227.5
+    const r = calculateAvbTheoreticalMaxFromColor(3.5, 'light')
+    expect(r.expected).toBe(227.5)
+    expect(r.low).toBe(175.0) // 3.5 × 0.05 × 1000
+    expect(r.high).toBe(280.0) // 3.5 × 0.08 × 1000
+  })
+
+  it('preserves the low ≤ expected ≤ high ordering for every color', () => {
+    for (const color of ['light', 'medium', 'dark'] as const) {
+      const r = calculateAvbTheoreticalMaxFromColor(3.5, color)
+      expect(r.low).toBeLessThanOrEqual(r.expected)
+      expect(r.expected).toBeLessThanOrEqual(r.high)
+    }
   })
 })
 
