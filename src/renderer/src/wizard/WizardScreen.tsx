@@ -51,20 +51,58 @@ import {
   type WizardSelections,
   type WizardState,
 } from 'renderer/src/wizard/wizardTypes'
+// Week 7 (§3.4 + §7 Polish) — the Stage 1 selection validator.
+// Imported from the stores' `wizardTypes.ts` (where the
+// state-routing rein landed it in commit c0a893e) rather than
+// the wizard's local `wizardTypes.ts` (which is the source of
+// truth for the wizard's `WizardState` shape but does NOT host
+// the validator). The two `WizardSelections` types are
+// structurally compatible (TS structural typing — both are
+// `Partial<{method, container, weight, ...}>`); the cast at
+// the call site is the contract for the type-narrowing.
+import {
+  validateWizardSelections,
+  type ProductType,
+} from 'renderer/src/stores/wizardTypes'
 import { DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
 import { calculateInfusedThc } from 'renderer/src/engine/infusion'
 import { calculateMgPerServing } from 'renderer/src/engine/dosing'
 
 export interface WizardScreenProps {
   className?: string
+  /**
+   * Week 7 — test-only prop. Initialises the local wizard state
+   * from a pre-built object instead of `DEFAULT_WIZARD_STATE`.
+   * The validation tests use it to start the wizard at a specific
+   * (branch, currentStep, selections) triple without walking the
+   * whole UI (the wizard's `state` is React-internal, so a test
+   * that wants to simulate "incomplete selections at the Start
+   * step" has no other way to inject them). Production code does
+   * NOT pass this prop.
+   */
+  initialState?: WizardState
 }
 
-export function WizardScreen({ className }: WizardScreenProps) {
+export function WizardScreen({ className, initialState }: WizardScreenProps) {
   // All hooks must be called unconditionally at the top of the
   // component (React rules of hooks). The `enabled` early return
   // happens AFTER every hook in this function.
   const enabled = useWizardEnabled()
-  const [state, setState] = useState<WizardState>(DEFAULT_WIZARD_STATE)
+  const [state, setState] = useState<WizardState>(
+    initialState ?? DEFAULT_WIZARD_STATE
+  )
+  // Week 7 — validation error state. Set by the `onSelect` handler's
+  // `stepId === 'start'` branch when the Stage 1 selections fail
+  // the §3.4 per-branch validation, OR when the empty-selection
+  // guard fires (defensive — `state.branch === null` at the Start
+  // step shouldn't happen in practice because `isOnStartStep`
+  // already requires a branch, but the belt-and-suspenders guard
+  // is documented in the brief). Cleared on any non-Start
+  // selection (the user changed their inputs). Renders inline next
+  // to the "Begin batch" CTA with `role="alert"` +
+  // `aria-live="assertive"` so a screen reader announces the
+  // error as soon as it appears.
+  const [validationError, setValidationError] = useState<string | null>(null)
   // Stage 2 wiring (Week 3). The store's `execution` slice was
   // landed by the state-routing rein in commit 51f8d89; the
   // actions below are the canonical entry / advance / back
@@ -208,6 +246,51 @@ export function WizardScreen({ className }: WizardScreenProps) {
       // batch so the user can hit "Back to config" and pick
       // up where they left off without re-filling the wizard.
       if (stepId === 'start') {
+        // Week 7 — Step 3: empty-selection guard. The
+        // store's `beginExecution` is already defensive (no-op
+        // if `firstStepId` is empty), but the UI should also
+        // be defensive. If the user somehow reached Start
+        // without picking a branch (the `isOnStartStep` render
+        // gate already prevents this in practice, but the
+        // brief mandates the belt-and-suspenders guard),
+        // surface the error inline and bail.
+        if (state.branch === null) {
+          setValidationError('No branch selected')
+          return
+        }
+        // Week 7 — Step 2: validation. Run the per-branch
+        // required-fields check; if any required field is
+        // missing, surface the joined error message and
+        // DON'T call `beginExecution`. The user can then
+        // re-edit a step (the error is cleared on the next
+        // non-Start selection below) and re-tap.
+        // `validateWizardSelections` is the state-routing
+        // rein's helper (commit c0a893e) — see the import
+        // comment at the top of this file for why it's
+        // sourced from `stores/wizardTypes` rather than
+        // `wizard/wizardTypes`. The `selections` cast
+        // bridges the two structurally-compatible
+        // `WizardSelections` types (the wizard's
+        // `WizardSelections` is the canonical local
+        // shape; the store's `WizardSelections` is the
+        // validator's expected shape — TS structural
+        // typing handles the cross-file compatibility,
+        // but the `as` is the explicit contract for the
+        // edge cases like the wizard's extra
+        // `name?: string` field).
+        const result = validateWizardSelections(
+          state.branch as ProductType | null,
+          state.selections as Parameters<
+            typeof validateWizardSelections
+          >[1]
+        )
+        if (!result.ok) {
+          setValidationError(result.errors.join('; '))
+          return
+        }
+        // Validation passed — clear any prior error and
+        // transition to Stage 2.
+        setValidationError(null)
         setState(prev => {
           const canonical = prev.branch
             ? (BRANCH_SEQUENCES[prev.branch] ?? [])
@@ -226,6 +309,12 @@ export function WizardScreen({ className }: WizardScreenProps) {
         beginExecution('preheat-decarb')
         return
       }
+      // Any non-Start selection clears the prior validation
+      // error — the user has changed their inputs and the
+      // previous error message is no longer accurate. This
+      // is the documented contract for the §3.4 "re-edit to
+      // recover from a validation error" UX.
+      setValidationError(null)
       setState(prev => {
         // Step 0 (product type) — the optionId is the branch
         // id. Reset selections (picking a new branch discards
@@ -252,7 +341,22 @@ export function WizardScreen({ className }: WizardScreenProps) {
         return advancePastSkippedSteps(next)
       })
     },
-    [advancePastSkippedSteps, decodeSelection, beginExecution]
+    [
+      advancePastSkippedSteps,
+      decodeSelection,
+      beginExecution,
+      // Week 7: the Start-step branch reads the current
+      // `state.branch` + `state.selections` for validation.
+      // Adding them to deps re-creates the callback on every
+      // state mutation, which is fine — the Wizard's re-render
+      // is cheap and the per-step state is already re-derived
+      // from the parent's `state` prop on every change.
+      // `validateWizardSelections` is a stable named
+      // import (the helper is pure — no React, no DOM, no
+      // store reads — see `stores/wizardTypes.ts:336-339`).
+      state.branch,
+      state.selections,
+    ]
   )
 
   const onEdit = useCallback(
@@ -595,6 +699,78 @@ export function WizardScreen({ className }: WizardScreenProps) {
   ])
 
   /**
+   * Week 7 (§8.2) — handle the CompletionStep's "Run again"
+   * CTA. The CTA fires `onRerun` from `ExecutionStepper`; this
+   * callback is the WizardScreen-side wiring. The flow:
+   *   1. Look up the "current" Recipe in the store by matching
+   *      (branch, selections) against the live Stage 1 state.
+   *      The "current" Recipe is the one the user just saved
+   *      via `handleCompletionSave` — it has the same
+   *      `selections` reference (the save flow passes
+   *      `state.selections` directly to `addRecipe`, and
+   *      `addRecipe` does not deep-copy the field —
+   *      `appStore.ts:1715-1727`). The `===` identity check
+   *      is therefore correct; a deep-equal fallback would
+   *      be more permissive but unnecessary in the current
+   *      implementation.
+   *   2. Call `useAppStore.getState().rerunRecipe(candidate.id)`
+   *      to copy the recipe's selections back into the Stage 1
+   *      wizard state and reset `currentStep` + `execution`.
+   *      If the action returns `null` (the recipe was deleted
+   *      between the lookup and the call — a defensive edge
+   *      case), console.error and bail.
+   *   3. Set the local `name` state to the returned recipe's
+   *      `name` so the new draft has the same name. The
+   *      NameRecipeStep reads `initialName` on re-mount, so
+   *      the user sees the same name when they re-reach the
+   *      Start step in the new run.
+   *   4. Call `useAppStore.getState().returnToConfig()` to
+   *      ensure the execution slice is cleared (defensive —
+   *      `rerunRecipe` already clears it; the second call is
+   *      a no-op for state but a documented contract anchor
+   *      from the brief).
+   */
+  const handleRerun = useCallback(() => {
+    // 1. Find the current recipe by (branch, selections)
+    //    identity.
+    const recipes = useAppStore.getState().recipes
+    const candidate = recipes.find(
+      r =>
+        r.branch === state.branch &&
+        r.selections === state.selections
+    )
+    if (!candidate) {
+      // Defensive: no matching recipe in the store. This
+      // shouldn't happen in the normal flow (the user just
+      // saved a Recipe in `handleCompletionSave`), but a
+      // future code path that re-uses the CompletionStep's
+      // onRerun without a prior save (e.g. a Dashboard
+      // rerun-from-card) would land here. Log and bail.
+      console.error(
+        '[WizardScreen] handleRerun: no matching recipe found in store',
+        { branch: state.branch, selections: state.selections }
+      )
+      return
+    }
+    // 2. Call rerunRecipe. Returns null if the recipe was
+    //    deleted between the lookup and the call (a tighter
+    //    edge case — the test for this lives in Test 5 of
+    //    `Stage2Validation.test.tsx`).
+    const rerun = useAppStore.getState().rerunRecipe(candidate.id)
+    if (rerun === null) {
+      console.error(
+        '[WizardScreen] handleRerun: rerunRecipe returned null for',
+        candidate.id
+      )
+      return
+    }
+    // 3. Set the local name to the rerun recipe's name.
+    setName(rerun.name)
+    // 4. Return to config (defensive — clears execution).
+    returnToConfig()
+  }, [state.branch, state.selections, returnToConfig])
+
+  /**
    * Week 5 (§8.2) — computed totals for the completion step.
    *
    * Memoised so the recomputation only fires when a
@@ -696,6 +872,25 @@ export function WizardScreen({ className }: WizardScreenProps) {
             Your selections are saved. Begin the batch to move to the execution
             view.
           </p>
+          {/* Week 7 — validation error. Renders inline next to
+              the CTA when the Begin batch tap fails the §3.4
+              per-branch validation (Step 2) or the
+              empty-branch guard (Step 3). `role="alert"` +
+              `aria-live="assertive"` so a screen reader
+              announces the error as soon as it appears (the
+              doc's §7 a11y polish mandate). The visual token
+              is `danger` to match the existing `<Toast>`
+              component's `danger` variant — see `Toast.tsx`. */}
+          {validationError ? (
+            <div
+              aria-live="assertive"
+              className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-xs font-medium text-danger"
+              data-testid="wizard-validation-error"
+              role="alert"
+            >
+              {validationError}
+            </div>
+          ) : null}
           <button
             aria-label="Begin batch"
             className="inline-flex min-h-11 items-center justify-center gap-1.5 self-end rounded-lg bg-accent/40 px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-accent/55"
@@ -794,6 +989,15 @@ export function WizardScreen({ className }: WizardScreenProps) {
             affectedStepIds={execution.affectedStepIds}
             isRecalculating={execution.isRecalculating}
             onBack={onBackToConfig}
+            // Week 7 (§8.2) — wire the CompletionStep's
+            // "Run again" CTA. `ExecutionStepper` bubbles
+            // the `onRerun` from its `CompletionStep` shell
+            // up through `PhaseGroup` → `ExecutionStepRow`;
+            // the WizardScreen-side `handleRerun` calls
+            // `appStore.rerunRecipe(...)` to copy the
+            // current recipe's selections back into Stage 1
+            // and `returnToConfig()` to exit Stage 2.
+            onRerun={handleRerun}
             onComplete={stepId => {
               // Week 5 (§8.2) — the completion step's
               // "Save to Journal" CTA fires the
