@@ -10,8 +10,15 @@ import type { Strain } from 'renderer/src/engine/models'
 // being deprecated per §8.6 in a later week — for now both shapes
 // coexist on the `wizard` slice, with the Stage 1 fields added as
 // first-class members of `WizardState`).
+// Week 5 (2026-07-26 wizard build, §8.2 + §8.5): the new `Recipe`
+// type is the persisted record of a completed Stage 2 batch. The
+// slice + actions live in this store; the type itself is in
+// `wizardTypes.ts` so other modules (NameRecipeStep, the Stage 2
+// completion step) can import it without a circular dep on the
+// store.
 import type {
   ProductType,
+  Recipe,
   WizardSelections as Stage1WizardSelections,
   ExecutionStepState,
 } from './wizardTypes'
@@ -880,6 +887,78 @@ interface AppStore {
    * "Back to config" CTA in the Stage 2 stepper.
    */
   returnToConfig: () => void
+
+  // -----------------------------------------------------------------
+  // Stage 2 Recipes slice (2026-07-26, wizard Week 5).
+  //
+  // Per docs/wizard-architecture-2026-07-26.md §8.2, every completed
+  // Stage 2 batch writes a Recipe record. This is the "repeatable
+  // workflow" promise — the user can look back at past batches,
+  // compare results, see what worked. Stage 2's completion step
+  // has a "Run again" CTA that copies the current Recipe's
+  // selections into a new draft Recipe and restarts Stage 2 (no
+  // need to re-run Stage 1 if nothing changed).
+  //
+  // Per §8.5, the Recipe's `name` is sourced from the
+  // `NameRecipeStep` (the user can edit; the default placeholder
+  // is derived from the Stage 1 selections). The
+  // `batchJournalEntryId` field is the soft-FK link to the
+  // `JournalEntry` written for the same batch — the Journal
+  // shows the Recipe as provenance ("this batch was made from
+  // recipe <X>") without duplicating the entry. The link is
+  // optional: a Recipe written before the Journal entry, or
+  // by a save site that doesn't go through the Journal flow,
+  // has `batchJournalEntryId: null`.
+  //
+  // Persistence: the slice is included in the persist envelope
+  // (see `partialize` below). The v8→v9 migration backfills
+  // `recipes: []` on legacy v8 envelopes so consumers can rely
+  // on a present-but-default value after the one-time upgrade.
+  // The IDB mirror (per §7 Week 5: "Recipe save: `NameRecipeStep`
+  // + `appStore.recipes[]` slice + IDB mirror") is out of scope
+  // for this commit — the localStorage write via `partialize` is
+  // the canonical store; the IDB mirror is a separate write that
+  // ui-tabs can wire in a follow-up. Same pattern as the
+  // existing Journal entries (which live on disk in localStorage /
+  // IPC via the Journal tab's load-on-mount) — the store owns
+  // the canonical record, the IDB mirror is a derived view.
+  // -----------------------------------------------------------------
+
+  /**
+   * Saved Recipes (Week 5, per §8.2). Every completed Stage 2
+   * batch writes a Recipe here. The `name` is sourced from
+   * `NameRecipeStep` (the user can edit; the default placeholder
+   * is derived from the Stage 1 selections per §8.5). Persisted
+   * in localStorage — Recipes are the "records" the §8.2
+   * "repeatable workflow" promise needs.
+   */
+  recipes: Recipe[]
+  /**
+   * Add a new Recipe. Returns the generated id (so the caller
+   * can chain the JournalEntry + Recipe.batchJournalEntryId
+   * link). Defensive: a duplicate id is rejected (no-op + the
+   * existing id is returned).
+   */
+  addRecipe: (recipe: Omit<Recipe, 'id' | 'createdAt'> & { id?: string; createdAt?: string }) => string
+  /**
+   * Update an existing Recipe's name (the only field the user
+   * can edit post-save). No-op if the id doesn't exist. Persisted.
+   */
+  renameRecipe: (id: string, name: string) => void
+  /**
+   * Delete a Recipe. The linked JournalEntry is NOT deleted —
+   * the Journal keeps the entry; only the Recipe record is
+   * removed. No-op if the id doesn't exist. Persisted.
+   */
+  deleteRecipe: (id: string) => void
+  /**
+   * Link a JournalEntry id to a Recipe. Used by the Stage 2
+   * completion step's "Save to Journal" flow — the entry is
+   * written first (via `addJournalEntry`), then the recipe
+   * is patched with the new entry id. No-op if the recipe
+   * doesn't exist. Persisted.
+   */
+  setRecipeJournalEntry: (recipeId: string, journalEntryId: string) => void
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -1496,6 +1575,90 @@ export const useAppStore = create<AppStore>()(
           },
         })),
 
+      // -----------------------------------------------------------------
+      // Stage 2 Recipes slice implementations (2026-07-26,
+      // wizard Week 5). Per §8.2 + §8.5. See the AppStore
+      // interface JSDoc above for the slice contract.
+      // -----------------------------------------------------------------
+
+      // Default to an empty array. The v8→v9 migration backfills
+      // `recipes: []` on legacy envelopes so a returning user
+      // sees a present-but-default value after the one-time
+      // upgrade. New recipes are prepended (newest first) so the
+      // Dashboard's "Recent recipes" list renders in the right
+      // order without an extra sort.
+      recipes: [],
+      // Add a Recipe. The id is generated via `crypto.randomUUID()`
+      // (a standard browser API in the Electron renderer) when
+      // the caller doesn't supply one — useful for tests, which
+      // often want a stable id for assertions. `createdAt`
+      // defaults to `new Date().toISOString()`. A duplicate id
+      // is rejected (no-op + the existing id is returned) so
+      // the caller can safely re-issue an add and get a
+      // idempotent response (the linked JournalEntry flow
+      // chains addJournalEntry + setRecipeJournalEntry; a
+      // re-issue must not corrupt the list).
+      addRecipe: recipe => {
+        const id = recipe.id ?? crypto.randomUUID()
+        const createdAt = recipe.createdAt ?? new Date().toISOString()
+        set(state => {
+          if (state.recipes.some(r => r.id === id)) return {}  // dedupe no-op
+          return {
+            recipes: [
+              {
+                id,
+                createdAt,
+                name: recipe.name,
+                branch: recipe.branch,
+                selections: recipe.selections,
+                batchJournalEntryId: recipe.batchJournalEntryId,
+              },
+              ...state.recipes,
+            ],
+          }
+        })
+        return id
+      },
+      // Rename a Recipe. The only post-save editable field is
+      // `name` (selections and the journal link are immutable
+      // from the user's perspective — re-running the recipe
+      // goes through the wizard, not an in-place edit). No-op
+      // if the id doesn't exist (the `map` is a no-op for
+      // an empty match set, but we still incur the spread
+      // cost; that's fine — the call is rare and the state
+      // is structurally the same).
+      renameRecipe: (id, name) => {
+        set(state => ({
+          recipes: state.recipes.map(r =>
+            r.id === id ? { ...r, name } : r
+          ),
+        }))
+      },
+      // Delete a Recipe. The linked JournalEntry is NOT
+      // deleted — `deleteRecipe` is a Recipe-only action, and
+      // the Journal keeps its entry (the entry's source may
+      // still be `wizard` for entries that pre-date the
+      // Week 5 link; deleting the Recipe doesn't retroactively
+      // change the source). No-op if the id doesn't exist.
+      deleteRecipe: id => {
+        set(state => ({
+          recipes: state.recipes.filter(r => r.id !== id),
+        }))
+      },
+      // Patch a Recipe's `batchJournalEntryId`. Used by the
+      // Stage 2 completion step's "Save to Journal" flow: the
+      // entry is written first (via `addJournalEntry`, which
+      // returns nothing — the caller already has the id),
+      // then the recipe is patched with the new entry id.
+      // No-op if the recipe doesn't exist.
+      setRecipeJournalEntry: (recipeId, journalEntryId) => {
+        set(state => ({
+          recipes: state.recipes.map(r =>
+            r.id === recipeId ? { ...r, batchJournalEntryId: journalEntryId } : r
+          ),
+        }))
+      },
+
       loadFromPreset: (preset: unknown) => {
         if (!isRecord(preset)) return
 
@@ -1784,6 +1947,17 @@ export const useAppStore = create<AppStore>()(
       // snapshot with `source: 'unknown'` so consumers can rely on a
       // present-but-default value after a one-time upgrade.
       //
+      // Bumped to v9 in the 2026-07-26 wizard Week 5 commit. The
+      // v8→v9 migration initializes the Stage 2 Recipes slice
+      // (`recipes: []` on the top-level envelope). The migration
+      // is idempotent — running it on a v9-shaped envelope is a
+      // no-op because the `Array.isArray` check passes on the
+      // second pass. The slice is the canonical store for Recipe
+      // records (per §8.2 + §8.5); the IDB mirror called out in
+      // §7 Week 5 is out of scope for this commit and lands in
+      // a follow-up (the localStorage write via `partialize` is
+      // the canonical record).
+      //
       // Bumped to v8 in the 2026-07-26 wizard Week 1 commit. The
       // v7→v8 migration initializes the Stage 1 Configuration Wizard
       // fields on the `wizard` slice (`branch: null`, `currentStep: 0`,
@@ -1797,7 +1971,7 @@ export const useAppStore = create<AppStore>()(
       // migration. They were already shaped correctly in v7 and
       // remain the backing store for FirstTimerGuide until the §8.6
       // deprecation lands in a later week.
-      version: 8,
+      version: 9,
       migrate: (persistedState: unknown, version: number): unknown => {
         if (!isRecord(persistedState)) return persistedState
 
@@ -2300,6 +2474,25 @@ export const useAppStore = create<AppStore>()(
           }
         }
 
+        // v8 -> v9: Stage 2 Recipes slice (Week 5, per §8.2).
+        // Legacy v8 state has no `recipes` key on the top-level
+        // envelope — backfill to `[]` so consumers can rely on
+        // a present-but-default value after a one-time upgrade.
+        // The migration is idempotent — the v7→v8 migration
+        // doesn't touch this key, and a v9→v9 re-run is a no-op
+        // (the `Array.isArray` check passes on the second pass,
+        // so the spread-and-default is a no-op for a valid
+        // array). The `merge` function also defensively
+        // coerces a non-array value to `[]`; this migration
+        // is the canonical "first run on a v8 envelope" backfill,
+        // the merge coercion is the runtime defense against a
+        // hand-rolled or corrupted envelope.
+        if (version < 9) {
+          if (!Array.isArray(state.recipes)) {
+            state = { ...state, recipes: [] }
+          }
+        }
+
         return state
       },
       // Custom merge: shallow per-top-level key, BUT the `wizard` slice gets
@@ -2404,6 +2597,22 @@ export const useAppStore = create<AppStore>()(
             .wizardEnabled
           ;(base as { wizardEnabled: boolean }).wizardEnabled =
             typeof persistedFlag === 'boolean' ? persistedFlag : false
+          // Week 5 (per §8.2 + §8.5): the `recipes` slice. A
+          // v8 envelope is missing this key (the v8→v9 migration
+          // backfills `[]` on the persisted envelope, but a
+          // hand-rolled v8 snapshot from a test fixture or dev
+          // tooling could carry a non-array value). Coerce to
+          // `[]` so a corrupted snapshot can't sneak a non-array
+          // past the type system. The runtime default is also
+          // `[]`, so the no-op case (missing key → currentState
+          // value flows through) is correct.
+          const persistedRecipes = (persistedState as { recipes?: unknown })
+            .recipes
+          ;(base as { recipes: Recipe[] }).recipes = Array.isArray(
+            persistedRecipes
+          )
+            ? (persistedRecipes as Recipe[])
+            : []
         }
         return base
       },
@@ -2450,6 +2659,15 @@ export const useAppStore = create<AppStore>()(
         // Stage 1 Configuration Wizard feature flag (2026-07-26, wizard
         // Week 1). Persisted so the user's opt-in survives reloads.
         wizardEnabled: state.wizardEnabled,
+        // Stage 2 Recipes slice (2026-07-26, wizard Week 5, per
+        // §8.2 + §8.5). The canonical store for Recipe records —
+        // every completed Stage 2 batch writes a Recipe here. The
+        // IDB mirror called out in §7 Week 5 ("`NameRecipeStep` +
+        // `appStore.recipes[]` slice + IDB mirror") is out of
+        // scope for this commit; localStorage via `partialize`
+        // is the canonical write, and a future ui-tabs commit
+        // can wire the IDB mirror as a separate write.
+        recipes: state.recipes,
       }),
     }
   )

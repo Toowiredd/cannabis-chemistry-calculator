@@ -12,6 +12,8 @@ import {
 // the partialize shape (10 slices), not just the `units` slice.
 // Bumped to v8 in the 2026-07-26 wizard Week 1 commit (Stage 1
 // Configuration Wizard slice + `wizardEnabled` feature flag).
+// Bumped to v9 in the 2026-07-26 wizard Week 5 commit (Stage 2
+// Recipes slice + `recipes[]` partialize + v8→v9 migration).
 const STORAGE_KEY = 'ccc-app-state'
 
 /**
@@ -330,10 +332,17 @@ describe('appStore Stage 1 Configuration Wizard — persistence', () => {
     expect(persisted?.wizardEnabled).toBe(true)
   })
 
-  it('version=8 is set on the persisted envelope (bumped in the 2026-07-26 wizard Week 1 commit)', async () => {
+  it('version=9 is set on the persisted envelope (Week 1 bumped to v8, Week 5 bumped to v9)', async () => {
+    // Week 1 (2026-07-26 wizard build) bumped the persist
+    // version to v8 when it added the Stage 1 Configuration
+    // Wizard slice + `wizardEnabled` feature flag. Week 5
+    // (2026-07-26 wizard build, §8.2 + §8.5) bumped the
+    // version to v9 when it added the Stage 2 Recipes slice
+    // + `recipes[]` partialize + v8→v9 migration. The current
+    // version is therefore 9.
     useAppStore.getState().setProductType('avb')
     await waitForPersisted()
-    expect(readPersisted()?.version).toBe(8)
+    expect(readPersisted()?.version).toBe(9)
   })
 
   it('round-trip: Stage 1 selections + branch survive reload', async () => {
@@ -447,9 +456,13 @@ describe('appStore Stage 1 Configuration Wizard — v7→v8 migration', () => {
 
     await useAppStore.persist.rehydrate()
 
-    // Snapshot the migrated envelope.
+    // Snapshot the migrated envelope. The v7→v8 migration
+    // brings the version to 8; a separate v8→v9 migration
+    // (Week 5, §8.2) runs in the same `migrate` call and
+    // brings the final version to 9. The chain is intentional
+    // — see the migration block in appStore.ts.
     const migrated = readPersisted()
-    expect(migrated?.version).toBe(8)
+    expect(migrated?.version).toBe(9)
     const migratedState = migrated?.state as Record<string, unknown>
     const migratedWizard = migratedState.wizard as Record<string, unknown>
     expect(migratedWizard.branch).toBeNull()
@@ -1278,5 +1291,594 @@ describe('appStore Stage 2 recalculating flag — Week 4', () => {
     expect(w.execution).toEqual(DEFAULT_EXECUTION_STEP_STATE)
     expect(w.execution.isRecalculating).toBe(false)
     expect(w.execution.affectedStepIds).toEqual([])
+  })
+})
+
+/**
+ * Stage 2 Recipes slice — Week 5 (2026-07-26 wizard build).
+ *
+ * Per `docs/wizard-architecture-2026-07-26.md` §8.2 + §8.5, every
+ * completed Stage 2 batch writes a Recipe record. This is the
+ * "repeatable workflow" promise — the user can look back at past
+ * batches, compare results, see what worked. The store owns the
+ * canonical record; the IDB mirror called out in §7 Week 5 is out
+ * of scope for this commit (the localStorage write via `partialize`
+ * is the canonical record; a future ui-tabs commit can wire the
+ * IDB mirror as a separate write).
+ *
+ * The tests below cover:
+ *  - default shape (`recipes: []`)
+ *  - `addRecipe` returns a non-empty id and pushes a Recipe
+ *  - `addRecipe` with a duplicate id is a no-op (existing entry
+ *    preserved, same id returned)
+ *  - `addRecipe` with explicit `id` and `createdAt` uses those
+ *    values (so tests can pin assertions)
+ *  - `renameRecipe(id, 'New name')` updates the name field
+ *  - `renameRecipe('nonexistent-id', 'X')` is a no-op
+ *  - `deleteRecipe(id)` removes the entry; subsequent `addRecipe`
+ *    with the same id is allowed (the deleted slot is freed)
+ *  - `deleteRecipe('nonexistent-id')` is a no-op
+ *  - `setRecipeJournalEntry(recipeId, 'je-1')` patches
+ *    `batchJournalEntryId`
+ *  - `setRecipeJournalEntry('nonexistent-id', 'je-1')` is a no-op
+ *  - the `recipes` slice IS in the persisted envelope (after
+ *    `addRecipe` + persist flush + re-init, the new store
+ *    instance sees the recipe)
+ *  - the v8→v9 migration backfills `recipes: []` on a v8 envelope
+ *  - the version is bumped to 9 on the persisted envelope
+ */
+describe('appStore recipes[] slice — Week 5', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    // The recipes slice lives at the top level, alongside the
+    // other wizard-era slices. Reset the wizard too so each test
+    // starts from a clean Stage 1 + Stage 2 baseline.
+    useAppStore.setState({
+      wizard: {
+        ...DEFAULT_WIZARD_STATE,
+        selections: { ...DEFAULT_WIZARD_STATE.selections },
+        stage1Selections: { ...DEFAULT_STAGE1_WIZARD_SELECTIONS },
+        execution: { ...DEFAULT_EXECUTION_STEP_STATE },
+      },
+      wizardEnabled: false,
+      recipes: [],
+    })
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+  })
+
+  it('default `recipes` shape is []', () => {
+    // The canonical "no Recipes yet" baseline. Mirrors the
+    // Stage 1 / Stage 2 default-shape pins.
+    expect(useAppStore.getState().recipes).toEqual([])
+  })
+
+  it('addRecipe({ name, branch, selections }) returns a non-empty id and pushes a Recipe', () => {
+    // The minimum shape the §8.2 / §8.5 spec demands:
+    // `name` (user-supplied from NameRecipeStep), `branch` (the
+    // Stage 1 product type), `selections` (the full Stage 1
+    // selections). `batchJournalEntryId` is optional (defaults
+    // to null until the "Save to Journal" flow links them).
+    const { addRecipe } = useAppStore.getState()
+    const id = addRecipe({
+      name: 'Morning dose',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+    })
+
+    // id is a non-empty string.
+    expect(typeof id).toBe('string')
+    expect(id.length).toBeGreaterThan(0)
+
+    // The Recipe is at the head of the list (newest-first).
+    const recipes = useAppStore.getState().recipes
+    expect(recipes).toHaveLength(1)
+    expect(recipes[0]).toMatchObject({
+      id,
+      name: 'Morning dose',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+    })
+    // `createdAt` was auto-stamped as an ISO timestamp.
+    expect(typeof recipes[0]?.createdAt).toBe('string')
+    expect(recipes[0]?.createdAt).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
+    )
+  })
+
+  it('addRecipe with a duplicate id is a no-op (existing entry preserved, same id returned)', () => {
+    // The dedupe contract: a re-issue of the same id must not
+    // corrupt the list. The linked JournalEntry flow chains
+    // addJournalEntry + setRecipeJournalEntry; a re-issue
+    // must be idempotent (the caller can safely call addRecipe
+    // twice with the same id and the second call is a no-op).
+    const { addRecipe } = useAppStore.getState()
+    const firstId = addRecipe({
+      id: 'recipe-1',
+      name: 'Original name',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+      createdAt: '2026-07-26T10:00:00.000Z',
+    })
+    expect(firstId).toBe('recipe-1')
+    expect(useAppStore.getState().recipes).toHaveLength(1)
+
+    // Second add with the same id — must not append, must
+    // preserve the original entry (so a "rename" via
+    // overwrite doesn't happen by accident).
+    const secondId = addRecipe({
+      id: 'recipe-1',
+      name: 'Different name that should be ignored',
+      branch: 'concentrate',
+      selections: { potency: 80 },
+      batchJournalEntryId: 'je-99',
+      createdAt: '2099-12-31T23:59:59.000Z',
+    })
+
+    // Same id returned (the existing one).
+    expect(secondId).toBe('recipe-1')
+    const recipes = useAppStore.getState().recipes
+    expect(recipes).toHaveLength(1)
+    // The original entry is preserved unchanged.
+    expect(recipes[0]).toMatchObject({
+      id: 'recipe-1',
+      name: 'Original name',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+      createdAt: '2026-07-26T10:00:00.000Z',
+    })
+  })
+
+  it('addRecipe with explicit id and createdAt uses those values (test fixture friendly)', () => {
+    // The spec allows the caller to pass `id` + `createdAt`
+    // explicitly (the Omit<Recipe, 'id' | 'createdAt'> &
+    // { id?, createdAt? } pattern). Tests use this to pin
+    // assertions against stable values.
+    const { addRecipe } = useAppStore.getState()
+    const id = addRecipe({
+      id: 'fixed-id-123',
+      createdAt: '2026-07-26T10:00:00.000Z',
+      name: 'Sleep edible',
+      branch: 'edible',
+      selections: { weight: { value: 14, unit: 'g' }, fat: 'coconut' },
+      batchJournalEntryId: null,
+    })
+
+    expect(id).toBe('fixed-id-123')
+    const recipes = useAppStore.getState().recipes
+    expect(recipes[0]?.id).toBe('fixed-id-123')
+    expect(recipes[0]?.createdAt).toBe('2026-07-26T10:00:00.000Z')
+  })
+
+  it('renameRecipe(id, "New name") updates the name field', () => {
+    const { addRecipe, renameRecipe } = useAppStore.getState()
+    const id = addRecipe({
+      id: 'recipe-1',
+      createdAt: '2026-07-26T10:00:00.000Z',
+      name: 'Original name',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+    })
+
+    renameRecipe(id, 'Renamed recipe')
+
+    const recipe = useAppStore.getState().recipes[0]
+    expect(recipe?.name).toBe('Renamed recipe')
+    // Other fields are preserved.
+    expect(recipe?.id).toBe('recipe-1')
+    expect(recipe?.branch).toBe('flower')
+    expect(recipe?.selections).toEqual({ method: 'oven_sealed' })
+  })
+
+  it('renameRecipe("nonexistent-id", "X") is a no-op', () => {
+    const { addRecipe, renameRecipe } = useAppStore.getState()
+    addRecipe({
+      id: 'recipe-1',
+      createdAt: '2026-07-26T10:00:00.000Z',
+      name: 'Original name',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+    })
+
+    // Snapshot the pre-state so we can deep-equal it after.
+    const before = useAppStore.getState().recipes
+
+    renameRecipe('nonexistent-id', 'X')
+
+    const after = useAppStore.getState().recipes
+    // The list is structurally identical — the no-op contract
+    // means no spurious state mutation.
+    expect(after).toEqual(before)
+  })
+
+  it('deleteRecipe(id) removes the entry; subsequent addRecipe with the same id is allowed', () => {
+    const { addRecipe, deleteRecipe } = useAppStore.getState()
+    addRecipe({
+      id: 'recipe-1',
+      createdAt: '2026-07-26T10:00:00.000Z',
+      name: 'A',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+    })
+    addRecipe({
+      id: 'recipe-2',
+      createdAt: '2026-07-26T10:01:00.000Z',
+      name: 'B',
+      branch: 'concentrate',
+      selections: { potency: 80 },
+      batchJournalEntryId: null,
+    })
+    expect(useAppStore.getState().recipes).toHaveLength(2)
+
+    deleteRecipe('recipe-1')
+
+    let recipes = useAppStore.getState().recipes
+    expect(recipes).toHaveLength(1)
+    expect(recipes[0]?.id).toBe('recipe-2')
+
+    // The deleted slot is freed — a subsequent add with the
+    // same id is allowed (the dedupe no-op is only against
+    // EXISTING ids).
+    const newId = addRecipe({
+      id: 'recipe-1',
+      createdAt: '2026-07-26T10:02:00.000Z',
+      name: 'A (re-added)',
+      branch: 'flower',
+      selections: { method: 'sv_combined' },
+      batchJournalEntryId: null,
+    })
+    expect(newId).toBe('recipe-1')
+    recipes = useAppStore.getState().recipes
+    expect(recipes).toHaveLength(2)
+    expect(recipes[0]?.id).toBe('recipe-1')
+    expect(recipes[0]?.name).toBe('A (re-added)')
+  })
+
+  it('deleteRecipe("nonexistent-id") is a no-op', () => {
+    const { addRecipe, deleteRecipe } = useAppStore.getState()
+    addRecipe({
+      id: 'recipe-1',
+      createdAt: '2026-07-26T10:00:00.000Z',
+      name: 'A',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+    })
+
+    const before = useAppStore.getState().recipes
+    deleteRecipe('nonexistent-id')
+    const after = useAppStore.getState().recipes
+
+    expect(after).toEqual(before)
+  })
+
+  it('setRecipeJournalEntry(recipeId, "je-1") patches batchJournalEntryId', () => {
+    const { addRecipe, setRecipeJournalEntry } = useAppStore.getState()
+    const id = addRecipe({
+      id: 'recipe-1',
+      createdAt: '2026-07-26T10:00:00.000Z',
+      name: 'Morning dose',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+    })
+
+    setRecipeJournalEntry(id, 'je-1')
+
+    const recipe = useAppStore.getState().recipes[0]
+    expect(recipe?.batchJournalEntryId).toBe('je-1')
+    // Other fields are preserved.
+    expect(recipe?.id).toBe('recipe-1')
+    expect(recipe?.name).toBe('Morning dose')
+    expect(recipe?.selections).toEqual({ method: 'oven_sealed' })
+  })
+
+  it('setRecipeJournalEntry("nonexistent-id", "je-1") is a no-op', () => {
+    const { addRecipe, setRecipeJournalEntry } = useAppStore.getState()
+    addRecipe({
+      id: 'recipe-1',
+      createdAt: '2026-07-26T10:00:00.000Z',
+      name: 'A',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+    })
+
+    const before = useAppStore.getState().recipes
+    setRecipeJournalEntry('nonexistent-id', 'je-1')
+    const after = useAppStore.getState().recipes
+
+    expect(after).toEqual(before)
+  })
+})
+
+describe('appStore recipes[] slice — persistence (Week 5)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    useAppStore.setState({
+      wizard: {
+        ...DEFAULT_WIZARD_STATE,
+        selections: { ...DEFAULT_WIZARD_STATE.selections },
+        stage1Selections: { ...DEFAULT_STAGE1_WIZARD_SELECTIONS },
+        execution: { ...DEFAULT_EXECUTION_STEP_STATE },
+      },
+      wizardEnabled: false,
+      recipes: [],
+    })
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+  })
+
+  it('partialize persists the `recipes` slice (after addRecipe + flush + re-init, the new instance sees the recipe)', async () => {
+    // The persist roundtrip contract: the `recipes` slice is
+    // in the persisted envelope, and a reload (simulated via
+    // rehydrate) sees the same recipes on the live store.
+    const { addRecipe } = useAppStore.getState()
+    addRecipe({
+      id: 'recipe-1',
+      createdAt: '2026-07-26T10:00:00.000Z',
+      name: 'Morning dose',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+    })
+    await waitForPersisted()
+
+    // The persisted envelope has the `recipes` slice at the
+    // top level (alongside the other top-level slices, e.g.
+    // `decarb`, `wizardEnabled`).
+    const persisted = readPersisted()?.state
+    expect(persisted).toBeDefined()
+    const persistedRecipes = persisted?.recipes as
+      | Array<Record<string, unknown>>
+      | undefined
+    expect(persistedRecipes).toBeDefined()
+    expect(persistedRecipes).toHaveLength(1)
+    expect(persistedRecipes?.[0]).toMatchObject({
+      id: 'recipe-1',
+      name: 'Morning dose',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+      createdAt: '2026-07-26T10:00:00.000Z',
+    })
+
+    // Simulate a reload by rehydrating. The store is a
+    // singleton (it stays the same instance), so rehydrate
+    // re-runs the merge function with the persisted envelope.
+    await useAppStore.persist.rehydrate()
+
+    const rehydratedRecipes = useAppStore.getState().recipes
+    expect(rehydratedRecipes).toHaveLength(1)
+    expect(rehydratedRecipes[0]).toMatchObject({
+      id: 'recipe-1',
+      name: 'Morning dose',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+      createdAt: '2026-07-26T10:00:00.000Z',
+    })
+  })
+
+  it('version=9 is set on the persisted envelope (bumped in the 2026-07-26 wizard Week 5 commit)', async () => {
+    // Touch the store so the partialize runs at least once
+    // (the persist middleware doesn't write an empty envelope
+    // until something has actually changed).
+    useAppStore.getState().addRecipe({
+      id: 'recipe-1',
+      createdAt: '2026-07-26T10:00:00.000Z',
+      name: 'A',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: null,
+    })
+    await waitForPersisted()
+    expect(readPersisted()?.version).toBe(9)
+  })
+})
+
+describe('appStore recipes[] slice — v8→v9 migration (Week 5)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+  })
+
+  it('v8 envelope is migrated to v9 with recipes: [] backfilled', async () => {
+    // A hand-rolled v8 envelope — no `recipes` key on the
+    // top level. The v8→v9 migration backfills `recipes: []`
+    // so consumers can rely on a present-but-default value
+    // after a one-time upgrade.
+    const v8Envelope = {
+      state: {
+        firstRunDismissed: false,
+        wizard: {
+          active: false,
+          dismissed: false,
+          stepIndex: 0,
+          selections: {
+            equipment: [],
+            decarbMethodIds: [],
+            fatIds: [],
+            formatIds: [],
+          },
+          branch: 'flower',
+          currentStep: 1,
+          stage1Selections: { method: 'oven_sealed' },
+          stepHistory: [0],
+        },
+        wizardEnabled: false,
+        // NO `recipes` key — the v9 backfill must stamp it.
+      },
+      version: 8,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(v8Envelope))
+
+    await useAppStore.persist.rehydrate()
+
+    // The live store has the empty Recipes array (the v9
+    // default).
+    expect(useAppStore.getState().recipes).toEqual([])
+
+    // The persisted envelope has been migrated to v9 with
+    // `recipes: []` on the top level.
+    const persisted = readPersisted()
+    expect(persisted?.version).toBe(9)
+    const persistedState = persisted?.state as Record<string, unknown>
+    expect(persistedState.recipes).toEqual([])
+  })
+
+  it('v8→v9 migration is idempotent (running twice on a v9 envelope is a no-op)', async () => {
+    // First rehydrate: v8 → v9. The migration stamps
+    // `recipes: []` on the envelope.
+    const v8Envelope = {
+      state: {
+        wizard: {
+          active: false,
+          dismissed: false,
+          stepIndex: 0,
+          selections: {
+            equipment: [],
+            decarbMethodIds: [],
+            fatIds: [],
+            formatIds: [],
+          },
+          branch: 'concentrate',
+          currentStep: 0,
+          stage1Selections: {},
+          stepHistory: [],
+        },
+        wizardEnabled: false,
+      },
+      version: 8,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(v8Envelope))
+
+    await useAppStore.persist.rehydrate()
+
+    // Sanity: v9 with empty recipes.
+    expect(useAppStore.getState().recipes).toEqual([])
+
+    // Second rehydrate: already-v9 envelope with `recipes: []`
+    // stamped. The migration is a no-op (the `Array.isArray`
+    // check passes on the second pass, so the spread-and-
+    // default is skipped).
+    await useAppStore.persist.rehydrate()
+
+    const persisted = readPersisted()
+    expect(persisted?.version).toBe(9)
+    const persistedState = persisted?.state as Record<string, unknown>
+    expect(persistedState.recipes).toEqual([])
+    // Stage 1 fields are preserved across the idempotent
+    // re-run (the v8→v9 migration doesn't touch the wizard
+    // slice).
+    const persistedWizard = persistedState.wizard as Record<string, unknown>
+    expect(persistedWizard.branch).toBe('concentrate')
+  })
+
+  it('v8→v9 migration preserves a valid `recipes` array written by a future build', async () => {
+    // A hand-rolled v8 envelope that already has a valid
+    // `recipes` array (simulating a future build that beat
+    // the migration, or a dev that wrote a Recipe through
+    // some out-of-band mechanism). The migration must
+    // preserve the array — it only writes the default
+    // when the key is missing or invalid.
+    const futureV8Envelope = {
+      state: {
+        wizard: {
+          active: false,
+          dismissed: false,
+          stepIndex: 0,
+          selections: {
+            equipment: [],
+            decarbMethodIds: [],
+            fatIds: [],
+            formatIds: [],
+          },
+          branch: 'flower',
+          currentStep: 0,
+          stage1Selections: {},
+          stepHistory: [],
+        },
+        wizardEnabled: false,
+        // A valid `recipes` array — must be preserved.
+        recipes: [
+          {
+            id: 'recipe-pre-existing',
+            createdAt: '2026-07-25T09:00:00.000Z',
+            name: 'Pre-existing recipe',
+            branch: 'flower',
+            selections: { method: 'oven_sealed' },
+            batchJournalEntryId: 'je-pre-existing',
+          },
+        ],
+      },
+      version: 8,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(futureV8Envelope))
+
+    await useAppStore.persist.rehydrate()
+
+    // The Recipe is preserved.
+    const recipes = useAppStore.getState().recipes
+    expect(recipes).toHaveLength(1)
+    expect(recipes[0]).toMatchObject({
+      id: 'recipe-pre-existing',
+      name: 'Pre-existing recipe',
+      branch: 'flower',
+      selections: { method: 'oven_sealed' },
+      batchJournalEntryId: 'je-pre-existing',
+    })
+  })
+
+  it('merge defensively coerces a non-array `recipes` value to [] on a hand-rolled v8 envelope', async () => {
+    // A hand-rolled v8 envelope that has a non-array
+    // `recipes` value (e.g. a corrupted snapshot, a dev
+    // that wrote `recipes: null` by accident). The merge
+    // function must coerce to `[]` so a corrupted snapshot
+    // can't sneak a non-array past the type system. The
+    // v8→v9 migration is the canonical first-run backfill;
+    // the merge coercion is the runtime defense.
+    const corruptEnvelope = {
+      state: {
+        wizard: {
+          active: false,
+          dismissed: false,
+          stepIndex: 0,
+          selections: {
+            equipment: [],
+            decarbMethodIds: [],
+            fatIds: [],
+            formatIds: [],
+          },
+          branch: 'flower',
+          currentStep: 0,
+          stage1Selections: {},
+          stepHistory: [],
+        },
+        wizardEnabled: false,
+        // Non-array value — must be coerced to [].
+        recipes: 'not-an-array',
+      },
+      version: 8,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(corruptEnvelope))
+
+    await useAppStore.persist.rehydrate()
+
+    expect(useAppStore.getState().recipes).toEqual([])
   })
 })

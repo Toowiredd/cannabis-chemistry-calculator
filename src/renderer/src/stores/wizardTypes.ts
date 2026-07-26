@@ -208,3 +208,23 @@ export type WizardStep = {
   /** True when this step should be hidden (smart-skip). */
   skipIf: (state: WizardState) => boolean
 }
+
+/**
+ * Week 5 (per `docs/wizard-architecture-2026-07-26.md` §8.2 +
+ * §8.5). A Recipe is the persisted record of a completed Stage 2
+ * batch. The `selections` field is the full Stage 1
+ * `WizardSelections` shape; the engine re-derives everything
+ * else when the user re-runs the recipe. The `batchJournalEntryId`
+ * links the Recipe to the existing `JournalEntry` for the same
+ * batch (so the Journal can show "this batch was made from
+ * recipe <X>" without duplicating the entry).
+ */
+export interface Recipe {
+  id: string
+  createdAt: string  // ISO timestamp
+  name: string  // user-supplied from NameRecipeStep
+  branch: ProductType  // 'flower' | 'concentrate' | etc.
+  selections: WizardSelections
+  /** Optional link to the JournalEntry written for this batch. */
+  batchJournalEntryId: string | null
+}
