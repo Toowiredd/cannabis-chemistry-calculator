@@ -524,3 +524,114 @@ describe('DoseTab — audit P5 (Log to Journal on Dose tab)', () => {
     expect(entries[0]?.source).toBe('journal_form')
   })
 })
+
+/* ------------------------------------------------------------------ */
+/* 2026-07-26 design-system wire-in (P4 alert-primitive).              */
+/*                                                                    */
+/* The `<Alert>` primitive at `src/renderer/components/ui/alert.tsx`  */
+/* was orphaned after the 6 reverts on master (zero consumers in the  */
+/* renderer). The audit's "zero consumers" was a system failure: the  */
+/* agent should have wired it into a form-error surface, not deleted  */
+/* it. The Scale Batch form on the Dose tab is the smallest, most    */
+/* self-contained form-error surface in the renderer (no shared-     */
+/* component touch, no other-agent scope overlap). The previous       */
+/* render was a `<span className="text-xs text-danger">` with no      */
+/* role, no icon, and no title — semantically weak in the dark-theme  */
+/* chrome. The wire-in below replaces it with the Alert primitive,   */
+/* which carries `role="alert"` from the root and renders the icon /  */
+/* title / description body that the shadcn-style primitive expects.  */
+/* ------------------------------------------------------------------ */
+
+describe('DoseTab — <Alert> primitive wire-in for Scale Batch form error', () => {
+  beforeEach(() => resetCalculator())
+
+  it('does not render the scale-error Alert when the scale panel has not been opened', () => {
+    render(<DoseTab />)
+    // The scale panel is collapsed by default → no scale-error surface.
+    expect(screen.queryByTestId('dose-scale-error')).toBeNull()
+    expect(screen.queryByTestId('dose-scale-toggle')).toBeTruthy()
+  })
+
+  it('does not render the scale-error Alert when the scale panel is open with a valid preset', () => {
+    render(<DoseTab />)
+    // Open the scale panel.
+    fireEvent.click(screen.getByTestId('dose-scale-toggle'))
+    // The panel is open, the custom input is visible, and no Alert
+    // has fired yet.
+    expect(screen.getByTestId('dose-scale-input')).toBeTruthy()
+    expect(screen.getByTestId('dose-scale-apply')).toBeTruthy()
+    expect(screen.queryByTestId('dose-scale-error')).toBeNull()
+  })
+
+  it('renders the scale-error Alert with role="alert" + destructive variant when Apply is clicked with an empty customScale', () => {
+    render(<DoseTab />)
+    fireEvent.click(screen.getByTestId('dose-scale-toggle'))
+    // Click Apply without typing a value. parseFloat('') is NaN, so
+    // the inline guard fires setScaleError('Enter a positive number').
+    fireEvent.click(screen.getByTestId('dose-scale-apply'))
+
+    const alert = screen.getByTestId('dose-scale-error')
+    // The primitive root carries `role="alert"` — this is the
+    // accessibility contract the audit expected the wire-in to honor.
+    expect(alert.getAttribute('role')).toBe('alert')
+    // The primitive root also carries `data-slot="alert"` for styling
+    // hooks (the cva base class sets it). Asserting on it pins the
+    // contract: the primitive is the rendered node, not a plain span.
+    expect(alert.getAttribute('data-slot')).toBe('alert')
+    // The destructive variant class is the cva marker for the
+    // destructive intent (this is how cva `variant: { destructive: ... }`
+    // shows up in the rendered DOM).
+    expect(alert.className).toMatch(/text-destructive-foreground/)
+    // The AlertTitle child renders the stable title.
+    expect(alert.textContent ?? '').toMatch(/Cannot scale batch/)
+    // The AlertDescription child renders the dynamic error body
+    // — this is the message set by setScaleError('Enter a positive number').
+    expect(alert.textContent ?? '').toMatch(/Enter a positive number/)
+  })
+
+  it('renders the scale-error Alert when Apply is clicked with a negative customScale', () => {
+    render(<DoseTab />)
+    fireEvent.click(screen.getByTestId('dose-scale-toggle'))
+    // The guard is `n > 0` — negative values are rejected just like
+    // empty / non-numeric. Asserts the Alert surfaces for any invalid
+    // input shape, not just empty.
+    fireEvent.change(screen.getByTestId('dose-scale-input'), {
+      target: { value: '-2' },
+    })
+    fireEvent.click(screen.getByTestId('dose-scale-apply'))
+    expect(screen.getByTestId('dose-scale-error')).toBeTruthy()
+    expect(screen.getByTestId('dose-scale-error').textContent ?? '').toMatch(
+      /Enter a positive number/
+    )
+  })
+
+  it('clears the scale-error Alert when the user types a new value in the customScale input', () => {
+    render(<DoseTab />)
+    fireEvent.click(screen.getByTestId('dose-scale-toggle'))
+    // Set the error first.
+    fireEvent.click(screen.getByTestId('dose-scale-apply'))
+    expect(screen.getByTestId('dose-scale-error')).toBeTruthy()
+    // The customScale onChange handler calls setScaleError('') so the
+    // user gets immediate feedback that the error is being addressed.
+    fireEvent.change(screen.getByTestId('dose-scale-input'), {
+      target: { value: '1.5' },
+    })
+    expect(screen.queryByTestId('dose-scale-error')).toBeNull()
+  })
+
+  it('does not render the scale-error Alert when a valid customScale is applied (the panel closes and the call succeeds)', () => {
+    render(<DoseTab />)
+    fireEvent.click(screen.getByTestId('dose-scale-toggle'))
+    fireEvent.change(screen.getByTestId('dose-scale-input'), {
+      target: { value: '1.5' },
+    })
+    fireEvent.click(screen.getByTestId('dose-scale-apply'))
+    // handleScale closes the panel on success → the entire scale
+    // block is unmounted, so the Alert (which only renders inside
+    // the panel) is gone too. This is the "form is valid" contract
+    // the user asked us to assert.
+    expect(screen.queryByTestId('dose-scale-error')).toBeNull()
+    // The scale panel itself is also gone.
+    expect(screen.queryByTestId('dose-scale-input')).toBeNull()
+  })
+})

@@ -26,7 +26,9 @@ import {
   Loader2,
   Save,
   BookOpen,
+  AlertTriangle,
 } from 'lucide-react'
+import { Alert, AlertTitle, AlertDescription } from 'renderer/components/ui/alert'
 import { TabActions } from 'renderer/src/components/TabActions'
 import { LabelGenerator } from 'renderer/src/components/LabelGenerator'
 import { InputRow } from 'renderer/src/components/InputRow'
@@ -862,6 +864,7 @@ export function DoseTab() {
               </span>
               <button
                 className="text-xs font-medium text-foreground/70 transition-colors hover:text-foreground"
+                data-testid="dose-scale-toggle"
                 onClick={() => setScaleOpen(v => !v)}
                 type="button"
               >
@@ -885,6 +888,7 @@ export function DoseTab() {
                 <div className="flex min-w-0 flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center">
                   <input
                     className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-foreground/40"
+                    data-testid="dose-scale-input"
                     onChange={e => {
                       setCustomScale(e.target.value)
                       setScaleError('')
@@ -896,6 +900,7 @@ export function DoseTab() {
                   />
                   <button
                     className="inline-flex min-h-10 items-center justify-center rounded-lg border border-foreground/20 bg-foreground/5 px-3 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                    data-testid="dose-scale-apply"
                     onClick={() => {
                       const n = parseFloat(customScale)
                       if (!Number.isNaN(n) && n > 0) {
@@ -909,8 +914,31 @@ export function DoseTab() {
                     Apply
                   </button>
                 </div>
+                {/*
+                  2026-07-26 design-system wire-in (P4 alert-primitive).
+                  The Scale Batch form previously surfaced validation
+                  failures as a single `<span className="text-xs text-danger">`
+                  inline with the Apply button. That spans is
+                  semantically weak (no role, no icon, no title) and
+                  gets lost in the dark-theme dark-foreground
+                  surrounding chrome. The shadcn-style `<Alert>` primitive
+                  lives at `renderer/components/ui/alert.tsx` and was
+                  left orphaned after the 6 reverts on master; this is
+                  the smallest, most self-contained form-error surface
+                  in the renderer (no shared-component touch, no
+                  other-agent scope overlap). The Alert's `role="alert"`
+                  comes from the primitive root, so screen readers
+                  announce the message on mount.
+                */}
                 {scaleError && (
-                  <span className="text-xs text-danger">{scaleError}</span>
+                  <Alert
+                    data-testid="dose-scale-error"
+                    variant="destructive"
+                  >
+                    <AlertTriangle aria-hidden="true" />
+                    <AlertTitle>Cannot scale batch</AlertTitle>
+                    <AlertDescription>{scaleError}</AlertDescription>
+                  </Alert>
                 )}
               </>
             )}
