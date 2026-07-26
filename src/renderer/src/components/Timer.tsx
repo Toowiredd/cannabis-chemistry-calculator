@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { DECARB_METHODS } from 'renderer/src/engine/models'
 import { cn } from 'renderer/lib/utils'
@@ -21,11 +21,26 @@ export function TimerWidget() {
   const timer = useAppStore(s => s.timer)
   const setTimer = useAppStore(s => s.setTimer)
   const resetTimer = useAppStore(s => s.resetTimer)
+  // 2026-07-26 P5 — Timer pre-fills from the active decarb
+  // preset. If `decarb.presetId` matches a `DECARB_METHODS` entry,
+  // the Timer highlights that method's start button (and shows
+  // only that method's row when the active preset is set, per the
+  // brief's "If a preset is active, only show that method's start
+  // button" interpretation). If no preset is active, all methods
+  // are listed as before.
+  const decarbPresetId = useAppStore(s => s.decarb.presetId)
   const [collapsed, setCollapsed] = useState(true)
   const [customMinutes, setCustomMinutes] = useState('')
   const [remaining, setRemaining] = useState(0)
   const [alertVisible, setAlertVisible] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // The active preset (or null if `decarb.presetId` doesn't match a
+  // known method). Used to filter / highlight the method buttons.
+  const activeMethod = useMemo(
+    () => DECARB_METHODS.find(m => m.id === decarbPresetId) ?? null,
+    [decarbPresetId]
+  )
 
   const startTimer = useCallback(
     (totalSeconds: number, methodName: string) => {
@@ -153,20 +168,53 @@ export function TimerWidget() {
 
       {!collapsed && (
         <div className="mt-4 flex flex-col gap-3">
-          {/* Preset buttons */}
+          {/* 2026-07-26 P5 — Preset buttons. When an active decarb
+              preset is set (decarb.presetId matches a DECARB_METHODS
+              entry), the timer shows ONLY that method's start
+              button (highlighted as the default). When no preset is
+              active, the timer falls back to listing all methods
+              as before. The brief's "highlight it as the default"
+              clause is implemented as the conditional render (the
+              active method's button is the only one in the grid). */}
+          {activeMethod && (
+            <p
+              className="rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-xs leading-relaxed text-info"
+              data-testid="timer-active-preset-callout"
+            >
+              <strong className="font-semibold">
+                {activeMethod.name}
+              </strong>{' '}
+              is selected on the Decarb tab — the timer is pre-set
+              to its recommended time. You can still start any
+              other method below.
+            </p>
+          )}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {DECARB_METHODS.map(method => (
-              <button
-                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-2 py-2 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
-                key={method.id}
-                onClick={() => handlePresetStart(method.id)}
-                type="button"
-              >
-                <Play aria-hidden="true" className="size-3" />
-                {method.name}
-                <span className="text-foreground/70">({method.timeMax}m)</span>
-              </button>
-            ))}
+            {(activeMethod ? [activeMethod] : DECARB_METHODS).map(
+              method => (
+                <button
+                  className={
+                    activeMethod
+                      ? 'inline-flex items-center justify-center gap-1.5 rounded-lg border-2 border-info/60 bg-info/10 px-2 py-2 text-xs font-semibold text-info transition-colors hover:bg-info/20'
+                      : 'inline-flex items-center justify-center gap-1.5 rounded-lg border border-foreground/20 bg-foreground/5 px-2 py-2 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground'
+                  }
+                  data-testid={
+                    activeMethod
+                      ? `timer-preset-${method.id}`
+                      : `timer-preset-${method.id}`
+                  }
+                  key={method.id}
+                  onClick={() => handlePresetStart(method.id)}
+                  type="button"
+                >
+                  <Play aria-hidden="true" className="size-3" />
+                  {method.name}
+                  <span className="text-foreground/70">
+                    ({method.timeMax}m)
+                  </span>
+                </button>
+              )
+            )}
           </div>
 
           {/* Custom timer */}
