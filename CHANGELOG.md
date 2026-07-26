@@ -4,6 +4,10 @@ All notable changes to the Cannabis Chemistry Calculator are recorded here. Date
 
 ## [Unreleased]
 
+### Added - 2026-07-26 (userstory-audit)
+
+- **Userstory audit artifacts** (`docs/USER_STORY_*.md`) - The 2026-07-26 `/userstory-audit` pipeline ran the 3-phase Mavis port (identifier → generator → validator) and produced 3 docs: `USER_STORY_REGISTER_2026-07-26.md` (232 stories across 7 domains: components 33, electron-app-framework 22, engine 70, main-electron 9, renderer-shell 13, store-state 23, tabs-ui 62), `USER_STORY_VALIDATION_2026-07-26.md` (per-story verdicts: 203 complete · 9 partial · 12 reclassified · 7 drift_confirmed · 1 missing), and `USER_STORY_ACTIONS_2026-07-26.md` (concrete fix plan: 5 priorities, ~15-17 hrs total, 8 high/medium defects + 1 missing roadmap item + 9 engine-orphan refactor candidates + 4 low-severity partials). The ACTIONS doc's `TabCarousel` path was also corrected inline (was `src/renderer/components/TabCarousel.tsx`, actual path `src/renderer/src/components/TabCarousel.tsx`) and the line refs for `VISIBLE_WINDOW` / `inWindow` / `shouldRender` updated. The accompanying `validation_report.md` (workspace parent, OUTSIDE the repo) gets an Architecture section + 4 inline corrections as part of P1.2 / P2.5 — see the userstory-audit follow-through commits.
+
 ### Added - 2026-07-25 (arch-review follow-through)
 
 - **Engine DRY refactor** (commit `a2cb918`, chem-engine rein) - 5 P1s closed in one pass: `theoreticalMaxCannabinoid(grams, acidicPct, activePct, mwFactor)` in a new `engine/cannabinoidConstants.ts` collapses 3 verbatim copies across `decarb.ts` / `concentrate.ts` / `cbda.ts`; canonical `formatting.ts:round1n` replaces 10 local `round1` definitions; `exportReport.ts` inline math now calls the shared helper. Tests: 1004 → 1145 across 54 → 60 files.
