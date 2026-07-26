@@ -289,6 +289,117 @@ describe('DecarbTab — audit M4/M5 (thcPct is optional when THCA is set)', () =
 /*      "Insufficient material: need Xg, have Yg" message.             */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/* 2026-07-26 userstory-audit P2.1 (decarb input warning)              */
+/*                                                                    */
+/* Wires the engine's `getDecarbWarnings` (>40% THCA+THC or CBDA+CBD) */
+/* into the DecarbTab as a single dismissable amber alert above the    */
+/* input grid. Persists until the user clicks Dismiss; dismissal      */
+/* auto-resets when the user edits a percentage or the value drops    */
+/* back to ≤40%. Engine parity is the contract: the UI must surface   */
+/* the same warning the engine validation emits.                      */
+/* ------------------------------------------------------------------ */
+
+describe('DecarbTab — audit P2.1 (high-cannabinoid advisory, dismissable)', () => {
+  beforeEach(() => resetDecarb())
+
+  it('shows the advisory when thcaPct=42 (sum > 40)', async () => {
+    // Seed: thcaPct=42 alone puts THCA+THC = 42 (>40) → advisory fires.
+    resetDecarb({ thcaPct: '42' })
+    render(<DecarbTab />)
+    // The advisory panel is rendered above the input grid. Wait for
+    // the 300ms debounced useEffect to populate the warnings array,
+    // then assert the testid is present.
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('decarb-advisory')).toBeTruthy()
+      },
+      { timeout: 3000 }
+    )
+    // Sanity: the advisory text mentions >40% (the engine's threshold).
+    const text = screen.getByTestId('decarb-advisory').textContent ?? ''
+    expect(text).toMatch(/40/)
+  })
+
+  it('stays silent when thcaPct=30 (sum ≤ 40)', async () => {
+    // 30 + 0 = 30 → engine's `getDecarbWarnings` returns []. The
+    // advisory must NOT render.
+    resetDecarb({ thcaPct: '30' })
+    render(<DecarbTab />)
+    // Wait for the 300ms debounce to settle before asserting absence.
+    await new Promise(r => setTimeout(r, 400))
+    expect(screen.queryByTestId('decarb-advisory')).toBeNull()
+  })
+
+  it('dismisses the advisory when the user clicks the dismiss button', async () => {
+    resetDecarb({ thcaPct: '42' })
+    render(<DecarbTab />)
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('decarb-advisory')).toBeTruthy()
+      },
+      { timeout: 3000 }
+    )
+    // Click the × dismiss button. The advisory must hide.
+    fireEvent.click(screen.getByTestId('decarb-advisory-dismiss'))
+    await waitFor(() => {
+      expect(screen.queryByTestId('decarb-advisory')).toBeNull()
+    })
+  })
+
+  it('re-appears after the user edits a percentage (dismissal auto-resets)', async () => {
+    resetDecarb({ thcaPct: '42' })
+    render(<DecarbTab />)
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('decarb-advisory')).toBeTruthy()
+      },
+      { timeout: 3000 }
+    )
+    // Dismiss once.
+    fireEvent.click(screen.getByTestId('decarb-advisory-dismiss'))
+    await waitFor(() => {
+      expect(screen.queryByTestId('decarb-advisory')).toBeNull()
+    })
+    // User edits the THCA value (still >40, so the warning should
+    // re-fire and the advisory should re-appear because the
+    // advisoryKey changed). Simulate the edit by typing into the
+    // THCA input.
+    const thcaInput = screen.getByTestId(
+      'decarb-thca-input'
+    ) as HTMLInputElement
+    fireEvent.change(thcaInput, { target: { value: '45' } })
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('decarb-advisory')).toBeTruthy()
+      },
+      { timeout: 3000 }
+    )
+  })
+
+  it('hides the advisory when the value drops back below 40%', async () => {
+    resetDecarb({ thcaPct: '42' })
+    render(<DecarbTab />)
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('decarb-advisory')).toBeTruthy()
+      },
+      { timeout: 3000 }
+    )
+    // Drop THCA to 30 (sum drops to 30). The advisory must hide.
+    const thcaInput = screen.getByTestId(
+      'decarb-thca-input'
+    ) as HTMLInputElement
+    fireEvent.change(thcaInput, { target: { value: '30' } })
+    await waitFor(
+      () => {
+        expect(screen.queryByTestId('decarb-advisory')).toBeNull()
+      },
+      { timeout: 3000 }
+    )
+  })
+})
+
 describe('DecarbTab — audit R1 (inventory warning gate)', () => {
   beforeEach(() => {
     resetDecarb()

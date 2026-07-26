@@ -16,6 +16,7 @@ import {
   calculateConcentrateTheoreticalMax,
   calculateConcentrateRange,
 } from 'renderer/src/engine/concentrate'
+import { getDecarbWarnings, type DecarbInput } from 'renderer/src/engine/schemas'
 import { DECARB_METHODS } from 'renderer/src/engine/models'
 import type { Strain } from 'renderer/src/engine/models'
 import {
@@ -183,11 +184,6 @@ function validateDecarbFields(
       errors.thcaPct = "THCA plus THC can't go past 100%"
       errors.thcPct = "THCA plus THC can't go past 100%"
     }
-    if (!Number.isNaN(t) && !Number.isNaN(h) && t + h > 40) {
-      warnings.push(
-        'High cannabinoid levels -- worth double-checking your lab report'
-      )
-    }
   }
 
   // Combined CBD checks
@@ -198,10 +194,27 @@ function validateDecarbFields(
       errors.cbdaPct = "CBDA plus CBD can't go past 100%"
       errors.cbdPct = "CBDA plus CBD can't go past 100%"
     }
-    if (!Number.isNaN(c) && !Number.isNaN(b) && c + b > 40) {
-      warnings.push('High CBD levels -- worth double-checking your lab report')
-    }
   }
+
+  // 2026-07-26 P2.1 — surface the engine's high-cannabinoid warning.
+  // The inline 40%-threshold check used to live in this function; we
+  // now delegate to `getDecarbWarnings` from `engine/schemas.ts:139-156`
+  // so the UI warning and the engine validation are sourced from one
+  // place. The DecarbInput type expects already-parsed numbers, so we
+  // build a partial here and fall back to 0 for unparseable strings
+  // (matches the engine's `(data.thcaPct || 0)` semantics).
+  const parsedThca = parseFloat(thcaPct)
+  const parsedThc = parseFloat(thcPct)
+  const parsedCbda = parseFloat(cbdaPct)
+  const parsedCbd = parseFloat(cbdPct)
+  const decarbData: DecarbInput = {
+    weight: 1,
+    thcaPct: !Number.isNaN(parsedThca) ? parsedThca : 0,
+    thcPct: !Number.isNaN(parsedThc) ? parsedThc : 0,
+    cbdaPct: !Number.isNaN(parsedCbda) ? parsedCbda : 0,
+    cbdPct: !Number.isNaN(parsedCbd) ? parsedCbd : 0,
+  }
+  warnings.push(...getDecarbWarnings(decarbData))
 
   // Temperature override
   if (tempOverride != null) {
@@ -379,6 +392,14 @@ export function DecarbTab() {
   /* Validation state (debounced) */
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [inlineWarnings, setInlineWarnings] = useState<string[]>([])
+
+  // 2026-07-26 P2.1 — high-cannabinoid advisory is now a single
+  // dismissable alert above the input grid. The user can dismiss the
+  // advisory once and not see it again until they edit a percentage
+  // (the `dismissedKey` resets on edit) or the input drops back below
+  // 40% (the `warningKey` changes, which also resets dismissal).
+  const [decarbAdvisoryDismissed, setDecarbAdvisoryDismissed] = useState(false)
+  const [decarbAdvisoryKey, setDecarbAdvisoryKey] = useState<string>('')
 
   /* ---------------------------------------------------------------- */
   /* Derived helpers                                                  */
@@ -657,6 +678,42 @@ export function DecarbTab() {
   ])
 
   /* ---------------------------------------------------------------- */
+  /* P2.1 — High-cannabinoid advisory (dismissable)                    */
+  /* ---------------------------------------------------------------- */
+  // 2026-07-26: the high-cannabinoid warning (>40% THCA+THC or
+  // CBDA+CBD) is now surfaced as a single dismissable alert above
+  // the input grid (was: always-on inline list). The advisory persists
+  // until the user clicks Dismiss; dismissal resets on:
+  //   (a) the user editing a percentage field (key change in
+  //       `decarb.thcaPct|thcPct|cbdaPct|cbdPct`), or
+  //   (b) the percentage sum dropping back to ≤40% (key change in the
+  //       "fired" status).
+  // The useEffect below computes the key from the live values and
+  // resets the dismissed state on any change.
+  useEffect(() => {
+    const t = parseFloat(decarb.thcaPct)
+    const h = parseFloat(decarb.thcPct)
+    const c = parseFloat(decarb.cbdaPct)
+    const b = parseFloat(decarb.cbdPct)
+    const thcFire =
+      !Number.isNaN(t) && !Number.isNaN(h) && t + h > 40
+    const cbdFire =
+      !Number.isNaN(c) && !Number.isNaN(b) && c + b > 40
+    const newKey = thcFire || cbdFire
+      ? `${decarb.thcaPct}|${decarb.thcPct}|${decarb.cbdaPct}|${decarb.cbdPct}`
+      : ''
+    setDecarbAdvisoryKey(prev => {
+      if (prev !== newKey) setDecarbAdvisoryDismissed(false)
+      return newKey
+    })
+  }, [
+    decarb.thcaPct,
+    decarb.thcPct,
+    decarb.cbdaPct,
+    decarb.cbdPct,
+  ])
+
+  /* ---------------------------------------------------------------- */
   /* Strain + Lab paste handlers                                        */
   /* ---------------------------------------------------------------- */
   const [strainManagerOpen, setStrainManagerOpen] = useState(false)
@@ -876,6 +933,40 @@ export function DecarbTab() {
           <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/70">
             Input
           </h3>
+
+          {/* 2026-07-26 P2.1 — high-cannabinoid advisory (dismissable).
+              Surfaces the engine's `getDecarbWarnings` >40% warning as a
+              single amber alert above the input grid. Non-blocking:
+              doesn't gate the calculator. Persists until the user
+              clicks Dismiss; dismissal auto-resets when the user edits
+              a percentage (key change) or the value drops ≤40%. */}
+          {decarbAdvisoryKey !== '' && !decarbAdvisoryDismissed && (
+            <div
+              aria-live="polite"
+              className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2"
+              data-testid="decarb-advisory"
+              role="status"
+            >
+              <AlertTriangle
+                aria-hidden="true"
+                className="mt-0.5 size-4 shrink-0 text-warning"
+              />
+              <span className="flex-1 text-xs text-warning">
+                {inlineWarnings.length > 0
+                  ? inlineWarnings[0]
+                  : 'High cannabinoid levels — worth double-checking your lab report (>40%)'}
+              </span>
+              <button
+                aria-label="Dismiss advisory"
+                className="shrink-0 rounded p-1 text-warning/80 transition-colors hover:bg-warning/20 hover:text-warning"
+                data-testid="decarb-advisory-dismiss"
+                onClick={() => setDecarbAdvisoryDismissed(true)}
+                type="button"
+              >
+                ×
+              </button>
+            </div>
+          )}
 
           {/* Material Mode Toggle */}
           <div className="flex flex-col gap-2">
