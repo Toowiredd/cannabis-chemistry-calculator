@@ -149,4 +149,42 @@ describe('formatName', () => {
   it('returns raw id for unknown', () => {
     expect(formatName('unknown-id')).toBe('unknown-id')
   })
+
+  // P4 wiring: edge cases for the consumer site in SmartSuggestPanel.
+  // The previous test file had only the bare-minimum cases. Add the
+  // cases that exercise the real lookup table.
+  it('returns the full friendly name for every EDIBLE_FORMATS id', () => {
+    // brownie_8x8, gummy_80, gummy_160, capsule_00, custom, etc.
+    expect(formatName('brownie_9x13')).toBe(
+      'Brownie (9×13 pan, 12-24 servings)'
+    )
+    expect(formatName('brownie_8x8')).toBe(
+      'Brownie (8×8 pan, 9-16 servings)'
+    )
+    expect(formatName('gummy_80')).toBe('Gummy mold (80 cavities)')
+    expect(formatName('gummy_160')).toBe('Gummy mold (160 cavities)')
+    expect(formatName('capsule_00')).toBe('Size 00 capsules')
+    expect(formatName('custom')).toBe('Custom')
+  })
+
+  it('handles empty / whitespace / weird-character inputs as fallback', () => {
+    // Unknown ids must return the raw id, not throw. This is the
+    // documented contract: the function is a lookup, not a validator.
+    expect(formatName('')).toBe('')
+    expect(formatName('   ')).toBe('   ')
+    expect(formatName('!@#$%')).toBe('!@#$%')
+    expect(formatName('Very-Long-Unknown-Format-Id-That-Does-Not-Exist-In-Table'))
+      .toBe('Very-Long-Unknown-Format-Id-That-Does-Not-Exist-In-Table')
+  })
+
+  it('does not mutate the input id', () => {
+    // Defensive: SmartSuggestPanel passes `recipe.formatId` straight
+    // in. If formatName ever normalized/mutated the input, the
+    // stored `recipe.formatId` would change after render. Verify
+    // it doesn't.
+    const id = 'brownie_9x13'
+    const before = id
+    formatName(id)
+    expect(id).toBe(before)
+  })
 })

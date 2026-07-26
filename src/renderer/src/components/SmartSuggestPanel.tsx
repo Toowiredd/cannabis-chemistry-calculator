@@ -3,6 +3,7 @@ import { cn } from 'renderer/lib/utils'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import {
   scoreAllRecipes,
+  formatName,
   type ScoredRecipe,
 } from 'renderer/src/engine/recipeScoring'
 import {
@@ -203,6 +204,22 @@ function DetailDrawer({
         <span>Suggested servings: {recipe.defaultServings}</span>
         <span>&middot;</span>
         <span>{recipe.duration}</span>
+      </div>
+
+      {/* P4 wiring: when the user picks a SmartSuggest recipe and
+          taps "Use Recipe", the format id is written to the dose
+          slice (see handleUseRecipe). Show the human-readable format
+          name from `formatName(formatId)` here so the user can see
+          WHICH format (e.g. "Brownie (9×13 pan, 12-24 servings)")
+          will be applied before they confirm. */}
+      <div
+        className="flex items-center gap-2 text-xs text-foreground/60"
+        data-testid="smartsuggest-format-name"
+      >
+        <span className="font-medium uppercase tracking-wider text-foreground/70">
+          Format
+        </span>
+        <span>{formatName(recipe.formatId)}</span>
       </div>
 
       <button
