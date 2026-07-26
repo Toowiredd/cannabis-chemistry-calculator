@@ -57,28 +57,6 @@ export function calculateFillDepth(
 }
 
 /**
- * Calculate total bag volume from dimensions.
- *
- * Formula: width * length * depth
- *
- * @param widthCm Width in cm
- * @param lengthCm Length in cm
- * @param depthCm Depth in cm
- * @returns Bag volume in cm³, rounded to 1 decimal
- */
-export function calculateBagVolume(
-  widthCm: number,
-  lengthCm: number,
-  depthCm: number
-): number {
-  if (widthCm < 0) throw new ValidationError('widthCm cannot be negative')
-  if (lengthCm < 0) throw new ValidationError('lengthCm cannot be negative')
-  if (depthCm < 0) throw new ValidationError('depthCm cannot be negative')
-  if (widthCm === 0 || lengthCm === 0 || depthCm === 0) return 0.0
-  return roundN(widthCm * lengthCm * depthCm, 1)
-}
-
-/**
  * Calculate headspace percentage in a bag.
  *
  * Formula: (bagVolume - materialVolume) / bagVolume * 100
