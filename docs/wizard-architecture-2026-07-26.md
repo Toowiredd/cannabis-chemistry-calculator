@@ -9,7 +9,7 @@ The Cannabis Chemistry Calculator (ccc) is for **beginners and people who need c
 The redesign replaces the coverflow with a two-stage flow:
 
 - **Stage 1 — Configuration wizard:** a vertical stack of step cards, each with a horizontal option carousel scoped to that step. Selections snap-shut the card and reveal the next.
-- **Stage 2 — Execution carousel:** a step-by-step "do this now" view with one step per face, focused on visuals (gauges, timers, prompts) rather than decisions. Re-executable from a saved config.
+- **Stage 2 — Execution stepper:** a vertical list of process steps, all visible at once, current step highlighted, "Mark complete" per step. Focused on visuals (gauges, timers, prompts) rather than decisions. Re-executable from a saved config.
 
 A **Reference rail** (Methods / Advanced / Knowledge / Journal) stays as the library side — unchanged.
 
@@ -100,9 +100,9 @@ The wizard's step sequence is `branches[state.branch].steps` — each branch ret
 - App launch with a saved Recipe: Dashboard offers "Resume last" (→ Stage 2 directly) vs "Start new" (→ product-type step 0).
 - Mid-wizard abandon: persisted state restored on next launch, scroll to last-active step.
 
-## 4. Stage 2: Execution carousel
+## 4. Stage 2: Execution stepper
 
-A separate `<ExecutionCarousel>` — one step per face, full-screen, focused on the user's current action.
+A vertical `<ExecutionStepper>` — all steps visible as a scrollable list, current step highlighted, "Mark complete" per step, progress bar at the top. Like a recipe app (NYT Cooking, Allrecipes) or IKEA assembly instructions. No carousel, no swipe, no hidden steps.
 
 ### 4.1 Step UI shapes
 
@@ -116,13 +116,16 @@ A separate `<ExecutionCarousel>` — one step per face, full-screen, focused on 
 
 The current `DecarbHeatmap` and `MolecularBuilder` widgets become the **Visual state** shells. The `Timer` becomes the **Active timer** shell. The shells are reusable; the wizard's `selections` feed them.
 
-### 4.2 Carousel mechanics
+### 4.2 Stepper mechanics
 
-- One step visible at a time.
-- Horizontal swipe / left-right button navigates between steps.
-- Can't skip forward (must complete each step to advance).
-- Can rewind to review a previous step; going forward re-confirms.
+- All steps visible in a vertical list (the user sees the whole process at once, like a recipe).
+- Current step is highlighted (color, gentle scale, sticky scroll-to-top when navigating).
+- Each step has its own "Mark complete" CTA; tapping advances the current step to the next.
+- Completed steps collapse to a compact summary ("✓ Preheat to 105°C, 12:34 pm") — they stay visible for reference but don't take up screen real estate.
+- For longer processes (decarb + infuse + dose = 10+ steps), steps are grouped by phase (Decarb / Infusion / Dose) and the current phase is expanded; previous phases collapse to their completion summary.
+- Progress bar at the top ("3 of 7 steps complete").
 - "Back to config" button at the top returns to Stage 1's last-active step (re-edit mode).
+- "Skip" allowed only for steps that have a `skipIf` predicate (e.g., decarb timer is skippable if the user already decarbed offline).
 
 ### 4.3 Reusability
 
@@ -132,7 +135,7 @@ Stage 2 reads the Stage 1 `WizardState` to render. A saved Recipe is just a pers
 
 ### 5.1 What gets replaced
 
-- `src/renderer/src/components/TabCarousel.tsx` — Stage 1 wizard skeleton replaces it for the workflow group; Stage 2 reuses the coverflow-style carousel for execution
+- `src/renderer/src/components/TabCarousel.tsx` — Stage 1 wizard skeleton replaces it for the workflow group; the coverflow-style carousel is **not** reused for Stage 2 (Stage 2 is a vertical stepper, not a carousel — see §4)
 - `src/renderer/src/components/GroupedTabNav.tsx` — re-architected to render `<Wizard />` + `<ReferenceRail />` (instead of coverflow + strip)
 - `src/renderer/src/tabs/QuickBatchTab.tsx` — subsumed into the Wizard (its multi-step pattern is the foundation for Stage 1)
 
@@ -154,7 +157,7 @@ Stage 2 reads the Stage 1 `WizardState` to render. A saved Recipe is just a pers
 - `src/renderer/src/components/Wizard.tsx` — the vertical step-stack container
 - `src/renderer/src/components/StepCard.tsx` — single decision card with the 3 states
 - `src/renderer/src/components/OptionTile.tsx` — the horizontal option carousel tile
-- `src/renderer/src/components/ExecutionCarousel.tsx` — Stage 2 shell
+- `src/renderer/src/components/ExecutionStepper.tsx` — Stage 2 vertical stepper shell
 - `src/renderer/src/components/execution/PreheatStep.tsx` — pre-action shell
 - `src/renderer/src/components/execution/TimerStep.tsx` — active-timer shell (wraps existing `Timer.tsx`)
 - `src/renderer/src/components/execution/HeatmapStep.tsx` — visual-state shell (wraps `DecarbHeatmap.tsx`)
@@ -188,7 +191,7 @@ Stage 2 reads the Stage 1 `WizardState` to render. A saved Recipe is just a pers
 |---|---|
 | 1 | Design doc sign-off + Wizard skeleton + Product-type step (one branch end-to-end with one decision step). Behind a feature flag. |
 | 2 | Branch taxonomy + smart-skip logic. All 5 branches navigable; the Flower branch has all 5 steps wired with options. |
-| 3 | Stage 2 skeleton + one execution step (decarb preheat + heatmap visual). |
+| 3 | Stage 2 stepper skeleton + one execution step (decarb preheat + heatmap visual). |
 | 4 | Stage 2 full decarb execution path (timer, "stir now", heatmap updates, transition to infusion). |
 | 5 | Stage 2 infusion + dose execution steps. Recipe save (persists the WizardState). |
 | 6 | "Resume last" entry + "Re-run saved Recipe" UX. Migrate QuickBatchTab users to the new flow. |
@@ -199,7 +202,7 @@ Stage 2 reads the Stage 1 `WizardState` to render. A saved Recipe is just a pers
 
 1. **Re-edit during Stage 2:** if the user changes a selection mid-execution (e.g., changes the temperature override), does Stage 2 re-render the affected steps? Or do they have to go back to Stage 1 to re-edit? Proposal: re-edit is allowed in Stage 2 but flagged with a "recalculating..." indicator. Saves the user a back-and-forth.
 
-2. **Multi-batch UX:** the user wants to make 3 batches of the same recipe. Do they run the Wizard 3 times (3 separate Recipes) or does Stage 2 support a "next batch" CTA that resets the timer without leaving the carousel? Proposal: separate Recipes + a "Run again" CTA at completion.
+2. **Multi-batch UX:** the user wants to make 3 batches of the same recipe. Do they run the Wizard 3 times (3 separate Recipes) or does Stage 2 support a "next batch" CTA that resets the timer without leaving the stepper? Proposal: separate Recipes + a "Run again" CTA at completion.
 
 3. **Stock recipes vs custom:** the Methods tab can show stock recipes (curated by us). Should Stage 1 also have a "use a stock recipe" path that skips the wizard? Proposal: yes, as a separate entry point on the Dashboard, not a wizard mode.
 
