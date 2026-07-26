@@ -601,12 +601,18 @@ describe('appStore Stage 2 Execution stepper — Week 3', () => {
     localStorage.clear()
   })
 
-  it('default `execution` shape is { currentStepId: null, completedStepIds: [], skippedStepIds: [] }', () => {
+  it('default `execution` shape is { currentStepId: null, completedStepIds: [], skippedStepIds: [], isRecalculating: false, affectedStepIds: [] }', () => {
+    // Week 4 (2026-07-26 wizard build, §8.1) added the two
+    // recalculating fields to ExecutionStepState. The default
+    // contract is the "Stage 2 has not been entered yet, no
+    // re-edit in progress" shape.
     const { execution } = useAppStore.getState().wizard
     expect(execution).toEqual({
       currentStepId: null,
       completedStepIds: [],
       skippedStepIds: [],
+      isRecalculating: false,
+      affectedStepIds: [],
     })
     // Pin the contract via the exported default — a future refactor
     // that drifts the literal defaults would break this test.
@@ -798,6 +804,13 @@ describe('appStore Stage 2 Execution stepper — Week 3', () => {
           currentStepId: 'timer',
           completedStepIds: ['preheat'],
           skippedStepIds: [],
+          // Week 4 (2026-07-26 wizard build, §8.1): the two
+          // recalculating fields are seeded as defaults here so
+          // the test exercises the reset path with a
+          // fully-populated execution slice (the type now
+          // requires them).
+          isRecalculating: false,
+          affectedStepIds: [],
         },
       },
       wizardEnabled: true,
@@ -931,5 +944,339 @@ describe('appStore Stage 2 Execution stepper — persistence (Week 3)', () => {
     // The stale `execution` key was dropped — runtime is the
     // empty default, not the stale half-finished Stage 2 run.
     expect(w.execution).toEqual(DEFAULT_EXECUTION_STEP_STATE)
+  })
+})
+
+/**
+ * Stage 2 recalculating flag — Week 4 (2026-07-26 wizard build).
+ *
+ * Per `docs/wizard-architecture-2026-07-26.md` §8.1, the user can
+ * re-edit a Stage 1 selection mid-batch and the engine recomputes
+ * the totals. The stepper shows a "recalculating..." badge on
+ * every step whose data is affected. The two fields
+ * `isRecalculating` + `affectedStepIds` are the store-level
+ * signal for that badge; the three actions
+ * `markRecalculating` / `finishRecalculating` / `recomputeFromEdit`
+ * are the surfaces the WizardScreen calls.
+ *
+ * The tests below cover:
+ *  - the default shape includes both fields
+ *  - `markRecalculating(['a', 'b'])` flips the flag on and stores
+ *    the array
+ *  - `markRecalculating([])` is valid (semantically "all steps
+ *    affected" — the stepper's "all" logic is ui-tabs's scope)
+ *  - `markRecalculating(['x'])` is a no-op when Stage 2 isn't
+ *    active (defensive against `currentStepId === null`)
+ *  - `finishRecalculating()` clears both fields
+ *  - `finishRecalculating()` is a no-op when already false
+ *  - `recomputeFromEdit(['a'])` flips the flags on then off in a
+ *    single dispatch (final state is the empty defaults;
+ *    intermediate on-state is reachable via a subscriber)
+ *  - `recomputeFromEdit(['x'])` is a no-op when Stage 2 isn't
+ *    active
+ *  - `resetWizard()` and `returnToConfig()` both clear the new
+ *    fields
+ *  - the new fields are NOT in the persisted envelope (after a
+ *    `markRecalculating` + persist flush + rehydrate, the runtime
+ *    is the empty default — Stage 2 stays ephemeral)
+ */
+describe('appStore Stage 2 recalculating flag — Week 4', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    resetStage2Wizard()
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+  })
+
+  it('default `execution` shape includes isRecalculating: false and affectedStepIds: []', () => {
+    // Belt-and-suspenders: the Week 3 test on line 614 pins the
+    // shape, but the Week 4 contract deserves its own pin so a
+    // future engineer who lands Week 4 first (e.g. on a branch
+    // cut before Week 3) gets a clear failure pointing at the
+    // new fields.
+    const { execution } = useAppStore.getState().wizard
+    expect(execution.isRecalculating).toBe(false)
+    expect(execution.affectedStepIds).toEqual([])
+  })
+
+  it('markRecalculating(["timer-decarb", "transition-decarb"]) sets isRecalculating: true and stores the array', () => {
+    const { beginExecution, markRecalculating } = useAppStore.getState()
+    beginExecution('preheat')
+    // Pre-condition: not recalculating yet.
+    expect(useAppStore.getState().wizard.execution.isRecalculating).toBe(false)
+
+    markRecalculating(['timer-decarb', 'transition-decarb'])
+
+    const { execution } = useAppStore.getState().wizard
+    expect(execution.isRecalculating).toBe(true)
+    expect(execution.affectedStepIds).toEqual([
+      'timer-decarb',
+      'transition-decarb',
+    ])
+    // The other Stage 2 fields are untouched — the recalculating
+    // flag is an overlay, not a state transition.
+    expect(execution.currentStepId).toBe('preheat')
+    expect(execution.completedStepIds).toEqual([])
+    expect(execution.skippedStepIds).toEqual([])
+  })
+
+  it('markRecalculating([]) is valid — empty array means "all steps affected" (stepper-side logic, not store-side)', () => {
+    // The empty array is a valid input that semantically means
+    // "every step in the visible list is affected". The store
+    // just stores the array verbatim; the stepper (ui-tabs
+    // scope) interprets an empty array as "broadcast the badge
+    // to all rows". Verify the store contract: empty array is
+    // accepted, no coercion, no defaulting.
+    const { beginExecution, markRecalculating } = useAppStore.getState()
+    beginExecution('preheat')
+
+    markRecalculating([])
+
+    const { execution } = useAppStore.getState().wizard
+    expect(execution.isRecalculating).toBe(true)
+    expect(execution.affectedStepIds).toEqual([])
+  })
+
+  it('markRecalculating is a no-op when currentStepId === null (Stage 2 not running)', () => {
+    // Defensive guard: a stale dispatch from a UI bug that
+    // forgot to beginExecution shouldn't put the wizard into a
+    // half-initialized "recalculating" state. Pin the no-op
+    // contract by snapshotting state before + after.
+    const before = useAppStore.getState().wizard.execution
+    expect(before.currentStepId).toBeNull()
+    expect(before.isRecalculating).toBe(false)
+
+    useAppStore.getState().markRecalculating(['timer-decarb'])
+
+    const after = useAppStore.getState().wizard.execution
+    expect(after.isRecalculating).toBe(false)
+    expect(after.affectedStepIds).toEqual([])
+    expect(after.currentStepId).toBeNull()
+  })
+
+  it('finishRecalculating() clears both fields (isRecalculating: false, affectedStepIds: [])', () => {
+    const { beginExecution, markRecalculating, finishRecalculating } =
+      useAppStore.getState()
+    beginExecution('preheat')
+    markRecalculating(['timer-decarb', 'transition-decarb'])
+    // Pre-condition: recalculating with affected steps.
+    let exec = useAppStore.getState().wizard.execution
+    expect(exec.isRecalculating).toBe(true)
+    expect(exec.affectedStepIds).toEqual(['timer-decarb', 'transition-decarb'])
+
+    finishRecalculating()
+
+    exec = useAppStore.getState().wizard.execution
+    expect(exec.isRecalculating).toBe(false)
+    expect(exec.affectedStepIds).toEqual([])
+    // Stage 2 itself is still active (finishRecalculating only
+    // clears the badge, not the stepper state).
+    expect(exec.currentStepId).toBe('preheat')
+  })
+
+  it('finishRecalculating() is a no-op when isRecalculating is already false (idempotent)', () => {
+    // Idempotency contract: calling finish on a stable stepper
+    // must not trigger a spurious re-render that could flicker
+    // the badge. The action returns an empty patch from the
+    // setter (no state change), so subscribers shouldn't fire.
+    // The deep-equal check on the execution slice is the
+    // observable proxy for "no state change".
+    const { beginExecution, finishRecalculating } = useAppStore.getState()
+    beginExecution('preheat')
+    const before = useAppStore.getState().wizard.execution
+    expect(before.isRecalculating).toBe(false)
+
+    finishRecalculating()
+
+    const after = useAppStore.getState().wizard.execution
+    expect(after).toEqual(before)
+  })
+
+  it('recomputeFromEdit(["timer-decarb"]) flips the flags on then off in a single dispatch (final state: defaults)', () => {
+    // The Week 4 contract: `recomputeFromEdit` is a single
+    // dispatch that flips the flag on (synchronous set #1) and
+    // then off (synchronous set #2) so the stepper shows a
+    // brief "recalculating..." flash. The final state is the
+    // empty defaults — the recompute itself is a no-op at the
+    // store level (the engine recomputes, not the store). A
+    // subscriber listening to the store can capture the
+    // intermediate on-state.
+    const { beginExecution, recomputeFromEdit } = useAppStore.getState()
+    beginExecution('preheat')
+
+    // Capture intermediate states via a subscriber. Zustand
+    // subscribers fire synchronously after each `set()` call,
+    // so between the two writes inside `recomputeFromEdit`
+    // we'll see `isRecalculating: true` exactly once.
+    const seenIsRecalculating: boolean[] = []
+    const unsub = useAppStore.subscribe(state => {
+      seenIsRecalculating.push(state.wizard.execution.isRecalculating)
+    })
+
+    recomputeFromEdit(['timer-decarb'])
+
+    unsub()
+
+    // Final state: empty defaults.
+    const { execution } = useAppStore.getState().wizard
+    expect(execution.isRecalculating).toBe(false)
+    expect(execution.affectedStepIds).toEqual([])
+
+    // Intermediate on-state was reachable: the subscriber saw
+    // the `true` transition between the two synchronous set
+    // calls. (If a future refactor makes the two writes async
+    // — e.g. swapping the synchronous pattern for a debounced
+    // one in Week 7 — this assertion will fail loudly, which
+    // is the right signal to update the test contract.)
+    expect(seenIsRecalculating).toContain(true)
+  })
+
+  it('recomputeFromEdit is a no-op when currentStepId === null (Stage 2 not running)', () => {
+    // Defensive: a stale dispatch from a UI bug must not put
+    // the wizard into a "recalculating" state if Stage 2
+    // hasn't started. The two synchronous set() calls inside
+    // recomputeFromEdit each guard on currentStepId === null,
+    // so the action as a whole is a no-op.
+    const before = useAppStore.getState().wizard.execution
+    expect(before.currentStepId).toBeNull()
+
+    useAppStore.getState().recomputeFromEdit(['timer-decarb'])
+
+    const after = useAppStore.getState().wizard.execution
+    expect(after.isRecalculating).toBe(false)
+    expect(after.affectedStepIds).toEqual([])
+    expect(after.currentStepId).toBeNull()
+  })
+
+  it('resetWizard() clears isRecalculating and affectedStepIds along with the rest of execution', () => {
+    // Set up a "recalculating in progress" state.
+    const { beginExecution, markRecalculating, resetWizard } =
+      useAppStore.getState()
+    beginExecution('preheat')
+    markRecalculating(['timer-decarb', 'transition-decarb'])
+    let exec = useAppStore.getState().wizard.execution
+    expect(exec.isRecalculating).toBe(true)
+    expect(exec.affectedStepIds).toEqual(['timer-decarb', 'transition-decarb'])
+
+    resetWizard()
+
+    exec = useAppStore.getState().wizard.execution
+    expect(exec).toEqual(DEFAULT_EXECUTION_STEP_STATE)
+    expect(exec.isRecalculating).toBe(false)
+    expect(exec.affectedStepIds).toEqual([])
+    expect(exec.currentStepId).toBeNull()
+  })
+
+  it('returnToConfig() clears isRecalculating and affectedStepIds along with the rest of execution', () => {
+    // Set up a "recalculating in progress" state with Stage 1
+    // selections populated, then return to Stage 1.
+    const {
+      setProductType,
+      setSelection,
+      beginExecution,
+      markRecalculating,
+      returnToConfig,
+    } = useAppStore.getState()
+    setProductType('flower')
+    setSelection('method', 'oven_sealed')
+    beginExecution('preheat')
+    markRecalculating(['timer-decarb'])
+    let exec = useAppStore.getState().wizard.execution
+    expect(exec.isRecalculating).toBe(true)
+    expect(exec.affectedStepIds).toEqual(['timer-decarb'])
+
+    returnToConfig()
+
+    exec = useAppStore.getState().wizard.execution
+    expect(exec).toEqual(DEFAULT_EXECUTION_STEP_STATE)
+    expect(exec.isRecalculating).toBe(false)
+    expect(exec.affectedStepIds).toEqual([])
+    // Stage 1 selections are preserved (the existing returnToConfig contract).
+    const w = useAppStore.getState().wizard
+    expect(w.branch).toBe('flower')
+    expect(w.stage1Selections.method).toBe('oven_sealed')
+  })
+
+  it('execution.isRecalculating and execution.affectedStepIds are NOT in the persisted envelope (Stage 2 stays ephemeral)', async () => {
+    // Set up a non-default Stage 2 state, including the new
+    // recalculating fields, flush to localStorage, then
+    // rehydrate and verify the runtime is the empty default
+    // — the new fields must NOT survive a reload, just like
+    // the rest of the execution slice.
+    const { beginExecution, markRecalculating } = useAppStore.getState()
+    beginExecution('preheat')
+    markRecalculating(['timer-decarb', 'transition-decarb'])
+    // Sanity-check the pre-flush state.
+    expect(useAppStore.getState().wizard.execution.isRecalculating).toBe(true)
+    await waitForPersisted()
+
+    // The persisted envelope has no `execution` key at all —
+    // the partialize block doesn't write Stage 2 to disk.
+    const persistedWizard = readPersisted()?.state?.wizard as
+      | Record<string, unknown>
+      | undefined
+    expect(persistedWizard).toBeDefined()
+    expect(persistedWizard).not.toHaveProperty('execution')
+
+    // After rehydrate, the new fields are at their default
+    // (empty) values, not the pre-flush "recalculating" state.
+    // This is the Stage 2 ephemerality contract.
+    await useAppStore.persist.rehydrate()
+    const rehydrated = useAppStore.getState().wizard.execution
+    expect(rehydrated).toEqual(DEFAULT_EXECUTION_STEP_STATE)
+    expect(rehydrated.isRecalculating).toBe(false)
+    expect(rehydrated.affectedStepIds).toEqual([])
+  })
+
+  it('merge defensively drops a stale `execution.isRecalculating: true` from a hand-rolled v8 envelope', async () => {
+    // A hand-rolled v8 envelope that has a stale
+    // `isRecalculating: true` — simulating a future build
+    // that regressed on the not-persisted contract, or a
+    // test fixture that wrote `execution` by accident. The
+    // merge function drops the whole `execution` slice on
+    // rehydrate (Week 3) and reseeds it with the empty
+    // default, so the new fields are covered automatically.
+    const handRolledV8 = {
+      state: {
+        wizard: {
+          active: false,
+          dismissed: false,
+          stepIndex: 0,
+          selections: {
+            equipment: [],
+            decarbMethodIds: [],
+            fatIds: [],
+            formatIds: [],
+          },
+          branch: 'flower',
+          currentStep: 0,
+          stage1Selections: {},
+          stepHistory: [],
+          // Stale `execution` with the new recalculating fields
+          // set to non-defaults. Should be dropped on rehydrate.
+          execution: {
+            currentStepId: 'preheat',
+            completedStepIds: ['setup'],
+            skippedStepIds: [],
+            isRecalculating: true,
+            affectedStepIds: ['timer-decarb', 'transition-decarb'],
+          },
+        },
+        wizardEnabled: false,
+      },
+      version: 8,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(handRolledV8))
+
+    await useAppStore.persist.rehydrate()
+
+    // The stale `execution` key was dropped — runtime is the
+    // empty default, not the stale "recalculating" state.
+    const w = useAppStore.getState().wizard
+    expect(w.execution).toEqual(DEFAULT_EXECUTION_STEP_STATE)
+    expect(w.execution.isRecalculating).toBe(false)
+    expect(w.execution.affectedStepIds).toEqual([])
   })
 })

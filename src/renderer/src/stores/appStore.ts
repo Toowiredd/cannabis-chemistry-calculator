@@ -324,6 +324,17 @@ export const DEFAULT_EXECUTION_STEP_STATE: ExecutionStepState = {
   currentStepId: null,
   completedStepIds: [],
   skippedStepIds: [],
+  // Week 4 (2026-07-26 wizard build, §8.1): the recalculating
+  // flag flips on when the user re-edits a Stage 1 selection
+  // mid-batch and the engine recomputes the totals. The stepper
+  // reads these two fields to render a "recalculating..." badge
+  // on the affected rows. Both reset to their no-op defaults
+  // here so `resetWizard` / `returnToConfig` / rehydrate (via
+  // the `merge` function) all clear them automatically — the
+  // `merge` block drops the whole `execution` slice on rehydrate
+  // and reseeds it with this default.
+  isRecalculating: false,
+  affectedStepIds: [],
 }
 
 export const DEFAULT_WIZARD_STATE: WizardState = {
@@ -829,6 +840,38 @@ interface AppStore {
    */
   skipExecutionStep: (stepId: string, nextStepId: string) => void
   /**
+   * Mark Stage 2 as recalculating after the user re-edits a
+   * Stage 1 selection mid-batch. Sets `isRecalculating: true` and
+   * `affectedStepIds` to the provided array. If `affectedStepIds`
+   * is empty, the stepper treats that as "all steps affected" (the
+   * empty-array semantic is the caller's signal — ui-tabs decides
+   * whether to broadcast or be specific). No-op if Stage 2 isn't
+   * active (`currentStepId === null`) — you can't recalculate a
+   * Stage 2 that isn't running. Per §8.1 of the wizard arch doc.
+   * Week 4 commit; Week 7's a11y polish may add a debounced
+   * `finishRecalculating` dispatch if needed.
+   */
+  markRecalculating: (affectedStepIds: string[]) => void
+  /**
+   * Clear the recalculating flag. Sets `isRecalculating: false`
+   * and `affectedStepIds: []`. No-op if not currently recalculating
+   * (idempotent — calling this on a stable stepper is a no-op
+   * rather than a spurious re-render). Per §8.1.
+   */
+  finishRecalculating: () => void
+  /**
+   * Convenience action for the §8.1 re-edit UX: a single
+   * dispatch that flips the recalculating flag on and off so
+   * the stepper shows a brief "recalculating..." flash. The
+   * Week 4 engine recompute is sub-millisecond so the two
+   * `set()` calls happen back-to-back synchronously; Week 7's
+   * polish can swap this for a debounced version if a future
+   * async engine needs the delay. No-op if Stage 2 isn't active.
+   * This is the action the WizardScreen will call when the user
+   * re-edits a Stage 1 selection mid-batch.
+   */
+  recomputeFromEdit: (affectedStepIds: string[]) => void
+  /**
    * Return to Stage 1 from Stage 2. Resets `execution` to the
    * empty defaults (currentStepId null, lists empty). The Stage 1
    * selections (`branch`, `currentStep`, `stage1Selections`,
@@ -1295,7 +1338,13 @@ export const useAppStore = create<AppStore>()(
 
       // Transition to Stage 2. No-op if `firstStepId` is empty
       // (defensive — a malformed dispatch shouldn't put the wizard
-      // into a half-initialized state).
+      // into a half-initialized state). `beginExecution` is a
+      // fresh-start action: it seeds the execution slice from
+      // `DEFAULT_EXECUTION_STEP_STATE` so any in-progress
+      // `isRecalculating` / `affectedStepIds` from a previous run
+      // are cleared. Week 4 added the two new fields to
+      // `DEFAULT_EXECUTION_STEP_STATE`; this action picks them
+      // up automatically through the spread.
       beginExecution: firstStepId =>
         set(state => {
           if (firstStepId.length === 0) return {}
@@ -1303,9 +1352,8 @@ export const useAppStore = create<AppStore>()(
             wizard: {
               ...state.wizard,
               execution: {
+                ...DEFAULT_EXECUTION_STEP_STATE,
                 currentStepId: firstStepId,
-                completedStepIds: [],
-                skippedStepIds: [],
               },
             },
           }
@@ -1314,7 +1362,12 @@ export const useAppStore = create<AppStore>()(
       // `currentStepId === stepId` guard is the contract: a stale
       // dispatch from a previous step (e.g. a delayed click after
       // the user already advanced) is a no-op rather than
-      // corrupting the completed list.
+      // corrupting the completed list. Spreads the previous
+      // execution so the Week 4 recalculating fields
+      // (`isRecalculating`, `affectedStepIds`) are preserved
+      // across the transition — a "Mark complete" click during a
+      // re-edit is a legitimate sequence and must not flash the
+      // badge off.
       completeExecutionStep: (stepId, nextStepId) =>
         set(state => {
           if (state.wizard.execution.currentStepId !== stepId) return {}
@@ -1322,18 +1375,19 @@ export const useAppStore = create<AppStore>()(
             wizard: {
               ...state.wizard,
               execution: {
+                ...state.wizard.execution,
                 currentStepId: nextStepId,
                 completedStepIds: [
                   ...state.wizard.execution.completedStepIds,
                   stepId,
                 ],
-                skippedStepIds: state.wizard.execution.skippedStepIds,
               },
             },
           }
         }),
       // Skip a step and advance. Same defensive guard as
-      // `completeExecutionStep`.
+      // `completeExecutionStep`. Same spread-the-existing-
+      // execution rationale for the Week 4 recalculating fields.
       skipExecutionStep: (stepId, nextStepId) =>
         set(state => {
           if (state.wizard.execution.currentStepId !== stepId) return {}
@@ -1341,8 +1395,8 @@ export const useAppStore = create<AppStore>()(
             wizard: {
               ...state.wizard,
               execution: {
+                ...state.wizard.execution,
                 currentStepId: nextStepId,
-                completedStepIds: state.wizard.execution.completedStepIds,
                 skippedStepIds: [
                   ...state.wizard.execution.skippedStepIds,
                   stepId,
@@ -1351,6 +1405,85 @@ export const useAppStore = create<AppStore>()(
             },
           }
         }),
+      // §8.1 re-edit UX (Week 4, 2026-07-26 wizard build). Mark
+      // Stage 2 as recalculating so the stepper can render a
+      // "recalculating..." badge on the affected rows. No-op if
+      // Stage 2 isn't running (you can't recalculate a Stage 2
+      // that isn't active). The `affectedStepIds` array is
+      // forwarded as-is — an empty array is a valid input that
+      // semantically means "all steps affected" (the caller's
+      // signal; ui-tabs owns the stepper-side "all" logic).
+      markRecalculating: affectedStepIds =>
+        set(state => {
+          if (state.wizard.execution.currentStepId === null) return {}
+          return {
+            wizard: {
+              ...state.wizard,
+              execution: {
+                ...state.wizard.execution,
+                isRecalculating: true,
+                affectedStepIds,
+              },
+            },
+          }
+        }),
+      // §8.1: clear the recalculating flag. No-op if not
+      // currently recalculating (idempotent — calling this on
+      // a stable stepper is a no-op rather than a spurious
+      // re-render that could flicker the badge off and on).
+      finishRecalculating: () =>
+        set(state => {
+          if (!state.wizard.execution.isRecalculating) return {}
+          return {
+            wizard: {
+              ...state.wizard,
+              execution: {
+                ...state.wizard.execution,
+                isRecalculating: false,
+                affectedStepIds: [],
+              },
+            },
+          }
+        }),
+      // §8.1: convenience action for the WizardScreen — a
+      // single dispatch that flips the recalculating flag on
+      // and off so the stepper shows a brief "recalculating..."
+      // flash. The Week 4 engine recompute is synchronous
+      // (sub-millisecond) so the two `set()` calls happen
+      // back-to-back; a subscriber listening to the store will
+      // see the intermediate `isRecalculating: true` state
+      // between the two writes. Week 7's a11y polish may
+      // replace this with a debounced version if a future
+      // async engine needs the delay. No-op if Stage 2 isn't
+      // running.
+      recomputeFromEdit: affectedStepIds => {
+        set(state => {
+          if (state.wizard.execution.currentStepId === null) return {}
+          return {
+            wizard: {
+              ...state.wizard,
+              execution: {
+                ...state.wizard.execution,
+                isRecalculating: true,
+                affectedStepIds,
+              },
+            },
+          }
+        })
+        set(state => {
+          if (state.wizard.execution.currentStepId === null) return {}
+          return {
+            wizard: {
+              ...state.wizard,
+              execution: {
+                ...state.wizard.execution,
+                isRecalculating: false,
+                affectedStepIds: [],
+              },
+            },
+          }
+        })
+      },
       // Return to Stage 1 from Stage 2. Stage 1 fields (branch,
       // currentStep, stage1Selections, stepHistory) are preserved
       // so the user can re-edit their config and re-run Stage 2

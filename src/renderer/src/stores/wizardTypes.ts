@@ -164,6 +164,25 @@ export interface ExecutionStepState {
   completedStepIds: string[]
   /** Ordered list of skipped Stage 2 step IDs. */
   skippedStepIds: string[]
+  /**
+   * When `true`, the engine is recomputing the totals after a
+   * Stage 1 re-edit. Stage 2's stepper shows a "recalculating..."
+   * badge on every step whose data is affected (see
+   * `affectedStepIds`). Resets to `false` once the engine finishes
+   * (or after a short timeout if the engine is synchronous —
+   * Week 4 is the synchronous case; Week 7's a11y polish may
+   * add an explicit `finishRecalculating` dispatch if needed).
+   * Per `docs/wizard-architecture-2026-07-26.md` §8.1.
+   */
+  isRecalculating: boolean
+  /**
+   * Step IDs whose data is being recomputed. The stepper
+   * stamps each member with `data-recalculating="true"` so
+   * the UI can show the badge on just the affected rows
+   * (not on the whole list). Empty when `isRecalculating` is
+   * false.
+   */
+  affectedStepIds: string[]
 }
 
 /**

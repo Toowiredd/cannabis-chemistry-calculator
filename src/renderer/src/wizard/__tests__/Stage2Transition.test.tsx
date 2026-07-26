@@ -28,7 +28,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 
 import { WizardScreen } from '../WizardScreen'
 import { buildExecutionSteps } from '../stage2Steps'
-import { useAppStore } from '../../stores/appStore'
+import { DEFAULT_EXECUTION_STEP_STATE, useAppStore } from '../../stores/appStore'
 import { HeatmapStep } from '../../components/execution/HeatmapStep'
 import { PreheatStep } from '../../components/execution/PreheatStep'
 
@@ -54,17 +54,17 @@ function enableWizard() {
  * — components mount once per test and read whatever the store
  * has at mount time. Each Stage 2 test needs a clean slate so a
  * test that completed a step doesn't leak `currentStepId` into
- * the next test's render.
+ * the next test's render. Week 4 (2026-07-26 wizard build, §8.1)
+ * added two new fields to `ExecutionStepState` (`isRecalculating`,
+ * `affectedStepIds`); this helper imports the default so the
+ * helper stays in lockstep with the canonical shape rather than
+ * hardcoding the literal.
  */
 function resetExecution() {
   useAppStore.setState(state => ({
     wizard: {
       ...state.wizard,
-      execution: {
-        currentStepId: null,
-        completedStepIds: [],
-        skippedStepIds: [],
-      },
+      execution: { ...DEFAULT_EXECUTION_STEP_STATE },
     },
   }))
 }
