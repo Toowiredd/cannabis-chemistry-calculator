@@ -4,7 +4,6 @@ import {
   scoreRecipe,
   scoreAllRecipes,
   compareRecipes,
-  formatName,
 } from '../recipeScoring'
 
 describe('scoreRecipe', () => {
@@ -138,15 +137,5 @@ describe('scoreAllRecipes', () => {
   it('still returns viable recipes when fat is custom', () => {
     const results = scoreAllRecipes(8, 'custom')
     expect(results.length).toBeGreaterThan(0)
-  })
-})
-
-describe('formatName', () => {
-  it('finds known format id', () => {
-    expect(formatName('brownie_9x13')).toContain('Brownie')
-  })
-
-  it('returns raw id for unknown', () => {
-    expect(formatName('unknown-id')).toBe('unknown-id')
   })
 })

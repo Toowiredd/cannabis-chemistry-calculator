@@ -218,11 +218,3 @@ export function scoreAllRecipes(
   viable.sort(compareRecipes)
   return viable
 }
-
-/**
- * Lookup an edible format name by id.
- */
-export function formatName(formatId: string): string {
-  const fmt = EDIBLE_FORMATS.find(f => f.id === formatId)
-  return fmt?.name ?? formatId
-}
