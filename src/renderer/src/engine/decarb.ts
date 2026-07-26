@@ -202,29 +202,3 @@ export function calculateAvbTheoreticalMax(
   // (THCA→THC factor is multiplied by 0 on the thcaPct argument).
   return calculateTheoreticalMax(grams, 0, residualThcPct)
 }
-
-/**
- * Calculate low / expected / high theoretical max (in mg) for an AVB
- * weight + color category.
- *
- * Uses `AVB_RESIDUAL_THC_RANGES[color]` to pick the min / mid / max residual
- * THC percentages, then delegates to `calculateAvbTheoreticalMax` for each.
- *
- * @param grams AVB weight in grams
- * @param color AVB color category ('light' | 'medium' | 'dark')
- * @returns     Object with `low`, `expected`, `high` theoretical max in mg
- *              (all rounded to 1 decimal)
- * @throws {ValidationError} if grams < 0 (propagated from
- *         `calculateAvbTheoreticalMax`)
- */
-export function calculateAvbTheoreticalMaxFromColor(
-  grams: number,
-  color: AVBColor
-): { low: number; expected: number; high: number } {
-  const range = AVB_RESIDUAL_THC_RANGES[color]
-  return {
-    low: calculateAvbTheoreticalMax(grams, range.minPct),
-    expected: calculateAvbTheoreticalMax(grams, range.midPct),
-    high: calculateAvbTheoreticalMax(grams, range.maxPct),
-  }
-}
