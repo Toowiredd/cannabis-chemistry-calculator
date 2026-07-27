@@ -94,6 +94,16 @@ export const STAGE2_STEP_IDS = {
   timerInfusion: 'timer-infusion',
   transitionInfusion: 'transition-infusion',
   completion: 'completion',
+  // Non-decarb branches (avb / concentrate / topical) get a
+  // dedicated preheat step. The Flower / Edible branches use
+  // the same `preheatInfusion` id but with the method-derived
+  // temperature; the non-decarb branches use a static 80°C
+  // for the carrier steep. Distinguishing the ids keeps the
+  // ExecutionStepper's per-step re-edit flow clean — when the
+  // user re-edits the preheat, the wizard knows whether the
+  // previous value came from the decarb method or a static
+  // branch default.
+  preheatSteep: 'preheat-steep',
 } as const
 
 /**
@@ -107,6 +117,51 @@ export const STAGE2_STEP_IDS = {
 function lookupDecarbMethod(id: string | undefined): PresetMethod | undefined {
   if (!id) return undefined
   return DECARB_METHODS.find(m => m.id === id)
+}
+
+/**
+ * Per-branch default steep temperature for the non-decarb
+ * branches (avb / concentrate / topical). The brief calls for
+ * a low-temperature steep to preserve cannabinoids that have
+ * already been activated:
+ *  - AVB: ~80°C — the AVB is already decarbed; the steep is
+ *    a 2-4 hour dissolve in the carrier (alcohol or oil).
+ *  - Concentrate: ~80°C — the concentrate is already active;
+ *    the steep is a 30-60 min dissolve in the carrier.
+ *  - Topical: ~70°C — the topical is already decarbed; the
+ *    steep is a 1-2 hour melt with the carrier (beeswax +
+ *    oil). 70°C is well below the beeswax smoke point and
+ *    preserves the topical's therapeutic cannabinoids.
+ *
+ * Each branch's preheat step renders this temp as the
+ * `targetTemp`; the user can adjust it from the
+ * execution stepper's "Adjust" affordance if their stovetop
+ * runs hot or cold (the brief leaves that affordance as a
+ * Week 7+ extension; the static default is the v1 contract).
+ */
+const STEEP_TEMP_BY_BRANCH: Partial<Record<WizardBranchId, number>> = {
+  avb: 80,
+  concentrate: 80,
+  topical: 70,
+}
+
+/**
+ * Per-branch steep duration (in seconds) for the non-decarb
+ * branches. The brief's contract:
+ *  - AVB: 2 hours (7200s) — long steep to maximise cannabinoid
+ *    transfer from the already-vaped material into the carrier.
+ *  - Concentrate: 45 min (2700s) — the concentrate dissolves
+ *    quickly; longer steeps do not increase yield.
+ *  - Topical: 1 hour (3600s) — the beeswax + oil needs time
+ *    to fully incorporate the decarbed material.
+ *
+ * The Flower / Edible branches reuse `computeTimerTotalSeconds`
+ * (derived from the picked method's `timeMin` / `timeMax`).
+ */
+const STEEP_SECONDS_BY_BRANCH: Partial<Record<WizardBranchId, number>> = {
+  avb: 7200,
+  concentrate: 2700,
+  topical: 3600,
 }
 
 /**
@@ -137,13 +192,22 @@ function computeTimerTotalSeconds(method: PresetMethod): number {
  * stepper renders them in (the stepper preserves input order
  * within a phase).
  *
- * For Week 4 only the Flower branch has Stage 2 steps. Other
- * branches return `[]`; the stepper renders the
- * `execution-stepper-empty` state ("No steps to run") for an
- * empty list, which is the desired behaviour when the user
- * finishes a branch whose Stage 2 work hasn't been defined yet
- * (the build order in the architecture doc §7 schedules the
- * remaining branches for later weeks).
+ * Branches are partitioned per the §3.1 taxonomy:
+ *  - `flower` + `edible` → `buildFlowerOrEdibleSteps`. The
+ *    Flower branch supports a "no infusion" path
+ *    (`selections.fat === null`) which short-circuits to 4
+ *    decarb steps only. The Edible branch always requires a
+ *    fat (the "No infusion" tile is Flower-only per the brief)
+ *    and returns 8 steps.
+ *  - `avb` + `concentrate` + `topical` → `buildNonDecarbSteps`.
+ *    No decarb phase. A preheat-temp + timer shell + transition
+ *    + completion. The 3 branches differ only in the static
+ *    steep temp + duration (see `STEEP_TEMP_BY_BRANCH` +
+ *    `STEEP_SECONDS_BY_BRANCH`).
+ *  - Unknown branch id → empty list. Defensive; should be
+ *    unreachable because `WizardBranchId` is a closed union
+ *    and the wizard's branch selection routes through
+ *    `BRANCH_SEQUENCES`.
  *
  * Week 5 update: the Flower branch's Stage 2 path is conditional
  * on `selections.fat`. The default Flower path (fat is a string
@@ -157,11 +221,11 @@ function computeTimerTotalSeconds(method: PresetMethod): number {
  * to Stage 2: if the user opted out of infusion, there is no
  * batch to save, so the completion step doesn't render.
  *
- * Defensive: if the Flower branch is asked for its Stage 2
- * steps but no method has been selected yet (a malformed
- * flow — the Method step is required in the Flower branch
- * per §3.1), the builder returns an empty array rather than
- * fabricating a method. The store's `beginExecution` action
+ * Defensive: if the Flower / Edible branch is asked for its
+ * Stage 2 steps but no method has been selected yet (a malformed
+ * flow — the Method step is required in the Flower / Edible
+ * branch per §3.1), the builder returns an empty array rather
+ * than fabricating a method. The store's `beginExecution` action
  * is still the entry point; an empty list just means the
  * stepper shows the empty state and the user can re-edit
  * their config.
@@ -170,22 +234,43 @@ export function buildExecutionSteps(
   branch: WizardBranchId,
   selections: WizardSelections
 ): ExecutionStep[] {
-  if (branch !== 'flower') {
-    // Only the Flower branch has Stage 2 work today. The
-    // Concentrate / AVB / Edible / Topical branches' Stage 2
-    // step definitions are tracked in the build order §7 but
-    // haven't been scoped yet. Returning an empty list means
-    // the stepper renders the "No steps to run" empty state
-    // (see `ExecutionStepper.tsx`), which is the desired
-    // behaviour when the user finishes a branch whose Stage 2
-    // work hasn't been defined.
-    return []
+  if (branch === 'flower' || branch === 'edible') {
+    return buildFlowerOrEdibleSteps(branch, selections)
   }
+  if (branch === 'avb' || branch === 'concentrate' || branch === 'topical') {
+    return buildNonDecarbSteps(branch, selections)
+  }
+  // Unknown branch — defensive. Should be unreachable because
+  // `WizardBranchId` is a closed union and the wizard's branch
+  // selection routes through `BRANCH_SEQUENCES`. An empty list
+  // renders the "No steps to run" empty state, which is the
+  // safe fallback.
+  return []
+}
+
+/**
+ * Flower + Edible branches both have a decarb phase (the
+ * Edible branch shares the `flowerMethodStep` in the
+ * `branchSequences.ts` definition) + an infusion phase +
+ * completion. The Flower branch also supports a "no infusion"
+ * path (`selections.fat === null`) which short-circuits to the
+ * 4 decarb steps only. The Edible branch requires a fat — the
+ * "No infusion" tile is Flower-only per the brief — so the
+ * Edible path always returns 8 steps.
+ *
+ * Extracted as a helper so the main `buildExecutionSteps` is a
+ * clean dispatch table (the §3.1 branch taxonomy is the
+ * natural partition: with-decarb / without-decarb).
+ */
+function buildFlowerOrEdibleSteps(
+  branch: 'flower' | 'edible',
+  selections: WizardSelections
+): ExecutionStep[] {
   const method = lookupDecarbMethod(selections.method)
   if (!method) {
-    // Flower without a method is unreachable via the normal
-    // wizard flow (the Method step is always shown), but be
-    // defensive: an empty list is preferable to a fabricated
+    // Flower / Edible without a method is unreachable via the
+    // normal wizard flow (the Method step is always shown), but
+    // be defensive: an empty list is preferable to a fabricated
     // step with bogus temperature / duration values.
     return []
   }
@@ -326,4 +411,96 @@ export function buildExecutionSteps(
     transitionInfusionStep,
     completionStep,
   ]
+}
+
+/**
+ * Build the Stage 2 step list for the non-decarb branches
+ * (AVB / Concentrate / Topical). The material is already
+ * decarbed, so the Stage 2 path is:
+ *  1. Preheat the carrier (low-temp, per branch default in
+ *     `STEEP_TEMP_BY_BRANCH`).
+ *  2. Steep timer (per branch default in `STEEP_SECONDS_BY_BRANCH`).
+ *  3. Transition (tee up the completion step).
+ *  4. Completion (save the recipe to the Journal).
+ *
+ * No heatmap step is rendered for the non-decarb branches — the
+ * heatmap is the canonical "watch the decarb happen" affordance
+ * from §4.1, and there's no decarb to watch. A future iteration
+ * may add a "watch the carrier infuse" heatmap; for v1 the
+ * timer is the primary affordance.
+ *
+ * Defensive: if the carrier is missing (the user somehow
+ * reached Start without picking a carrier — the §3.1 Carrier
+ * step is always shown for these 3 branches, so this should be
+ * unreachable via the wizard UI), the builder still returns a
+ * 4-step list with the static defaults. The carrier only
+ * affects the post-step engine derivation (THC mg, mg/mL), not
+ * the Stage 2 step list itself.
+ */
+function buildNonDecarbSteps(
+  branch: 'avb' | 'concentrate' | 'topical',
+  selections: WizardSelections
+): ExecutionStep[] {
+  const targetTemp = STEEP_TEMP_BY_BRANCH[branch] ?? 80
+  const totalSeconds = STEEP_SECONDS_BY_BRANCH[branch] ?? 3600
+  const stirIntervalSeconds = Math.floor(totalSeconds / 4)
+  // Per-branch phase label — the non-decarb branches have
+  // different "what is happening" semantics:
+  //  - AVB: "steep" — the AVB is dissolving into the carrier
+  //  - Concentrate: "dissolve" — the concentrate is being
+  //    incorporated into the carrier
+  //  - Topical: "infuse" — the decarbed material is being
+  //    incorporated into the beeswax + oil base
+  const phaseVerb =
+    branch === 'avb'
+      ? 'steep'
+      : branch === 'concentrate'
+        ? 'dissolve'
+        : 'infuse'
+  // The material is the wizard's branch — the heatmap step
+  // (when added in a future iteration) would render the
+  // `material` prop to choose the right geometry. For v1
+  // the non-decarb branches don't render a heatmap, but
+  // tagging the `phase` correctly means the per-phase
+  // stepper grouping (§4.2) shows the right label.
+  const preheatStep: ExecutionStep = {
+    id: STAGE2_STEP_IDS.preheatSteep,
+    title: `Preheat for ${phaseVerb}`,
+    phase: 'infusion',
+    shell: 'preheat',
+    targetTemp,
+    duration: `${Math.round(totalSeconds / 60)} min`,
+    isCurrent: false,
+    isComplete: false,
+  }
+  const timerStep: ExecutionStep = {
+    id: STAGE2_STEP_IDS.timerInfusion,
+    title: `${branch === 'avb' ? 'Steep' : branch === 'concentrate' ? 'Dissolve' : 'Infuse'} timer`,
+    phase: 'infusion',
+    shell: 'timer',
+    totalSeconds,
+    stirIntervalSeconds,
+    isCurrent: false,
+    isComplete: false,
+  }
+  const transitionStep: ExecutionStep = {
+    id: STAGE2_STEP_IDS.transitionInfusion,
+    title: `${branch === 'avb' ? 'Steep' : branch === 'concentrate' ? 'Dissolve' : 'Infuse'} complete`,
+    phase: 'transition',
+    shell: 'transition',
+    message: `${branch === 'avb' ? 'Steep' : branch === 'concentrate' ? 'Dissolve' : 'Infuse'} complete. Dose and save recipe →`,
+    isCurrent: false,
+    isComplete: false,
+  }
+  const completionStep: ExecutionStep = {
+    id: STAGE2_STEP_IDS.completion,
+    title: 'Save recipe',
+    phase: 'completion',
+    shell: 'completion',
+    recipeName: '',
+    computedTotals: { thcMg: 0, cbdMg: 0, servings: 0 },
+    isCurrent: false,
+    isComplete: false,
+  }
+  return [preheatStep, timerStep, transitionStep, completionStep]
 }
