@@ -431,15 +431,17 @@ dist/v1.0.0/
 
 ---
 
-## Wizard (opt-in, behind `wizardEnabled`)
+## Wizard (recipe-style, behind `wizardEnabled` for staged rollout)
 
-The Wizard is a two-stage guided workflow that ships behind the `wizardEnabled` feature flag in DevTools. Stage 1 = Configuration (product-type picker → branch-specific sequence of selection steps); Stage 2 = Execution (live timer + heatmap + transition for the user's chosen decarb/infusion). 4 branches cover the user journeys: Flower, Concentrate, AVB (already vaped bud), Edible (infused fat/oil), Topical.
+The Wizard is a recipe-style guided workflow that walks the user from raw cannabis material to a finished edible. The carousel landing is the END PRODUCT (Brownies / Gummies / Capsules / Tincture / Salve / Custom); picking one starts the inline wizard. The equipment carousel is the next step (Oven / Sous vide / Stove / Slow cooker / Toaster oven). Then the recipe opens with a read-only "you'll need" list (cannabis + fat + pantry + equipment) and runs through the steps inline. Extraction (decarb + infusion) and cooking (format-specific: oven bake, set in fridge, salve pour, tincture macerate) each run with live timers, heatmaps, and "stir now" prompts.
 
-The Wizard is the project's "hand-hold-it-for-me" surface — the open-form tabs (Decarb / Infusion / Dose / Quick Batch) remain the canonical power-user interface. The Wizard is rendered as `WizardScreen` on top of the tab surface when the flag is on; the engine math is shared with the open-form tabs (no duplicated chemistry).
+The recipe IS the configuration — there are no separate "do you have X?" follow-up questions. The "you'll need" section is a read-only reference; the user reads it and either gathers what they need or picks a different recipe. Equipment picked from the carousel is the constraint that filters which method options appear in the recipe's step sequence (e.g., an oven-only user doesn't see sous vide methods). The current open-form input grids (Decarb / Infusion / Dose / Quick Batch) are being migrated into recipe steps over the build cycles; the canonical UX going forward is the recipe.
 
-Full architecture rationale (state machine, branch taxonomy, Stage 2 stepper contract, re-edit recalculating UX, plain-language product-type labels) lives in `docs/wizard-architecture-2026-07-26.md` (10 sections, signed off by the user). Build log (54 commits across Weeks 1-7, Week 8 plan, 5 deferred follow-ups) lives in `docs/wizard-build-handoff-2026-07-27.md`.
+Glassmorphism dark aesthetic is preserved across the wizard surface — only the UX flow, presentation, and step sequencing change. The engine math is shared with the open-form tabs (no duplicated chemistry); the wizard walks the user through the same engine calls one step at a time.
 
-**Why a separate doc, not a section here:** DESIGN.md is the engine + architecture rationale for the open-form tab surface; the Wizard is a parallel surface with its own state machine (`wizard` slice), branch taxonomy, and execution runtime (`execution` slice). Inlining the full design here would duplicate the wizard doc and risk drift. A pointer keeps both documents in sync by reference.
+Full architecture rationale (state machine, branch taxonomy, Stage 2 stepper contract, re-edit recalculating UX, plain-language product-type labels) lives in `docs/wizard-architecture-2026-07-26.md` (10 sections, signed off by the user; note that §1 and §5.1 reflect an early framing where the wizard was described as "replacing the coverflow" — the carousel actually stays as the landing). Build log (54 commits across Weeks 1-7, Week 8 plan, 5 deferred follow-ups) lives in `docs/wizard-build-handoff-2026-07-27.md`. UI/UX preview at `wizard-uiux-preview.html` (workspace parent).
+
+**Why a separate doc, not a section here:** DESIGN.md is the engine + architecture rationale for the existing tabs and engine; the Wizard is a parallel surface with its own state machine (`wizard` slice), branch taxonomy, and execution runtime (`execution` slice). Inlining the full design here would duplicate the wizard doc and risk drift. A pointer keeps both documents in sync by reference.
 
 ## Engine Citations & Audit
 
