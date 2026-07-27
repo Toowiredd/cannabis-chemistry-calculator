@@ -17,7 +17,7 @@
 import { useId } from 'react'
 import { cn } from 'renderer/lib/utils'
 import { Check, ChevronDown, ChevronRight, Pencil } from 'lucide-react'
-import { OptionTile } from './OptionTile'
+import { OptionCarousel } from './OptionCarousel'
 import { ProductTypeTooltip } from './ProductTypeTooltip'
 import { EndProductCoverflow } from './EndProductCoverflow'
 import type {
@@ -176,7 +176,15 @@ export function StepCard({
             product maps to a starting-material branch via
             `EndProductCoverflow`'s own table; the coverflow's onSelect
             callback fires with the branch id which the wizard's
-            existing handler interprets correctly. */}
+            existing handler interprets correctly.
+
+            Slide 6 (2026-07-27): slides 2+ also use the carousel
+            treatment. `OptionCarousel` is the same 3D perspective
+            pattern as the end-product coverflow, just with a smaller
+            face size (220x180px vs 240x300px) to match the option
+            tile content (icon + title + subtitle, no description
+            text). One tap to commit — the wizard advances to the
+            next slide immediately, no separate Confirm CTA. */}
         {step.id === 'product-type' ? (
           <EndProductCoverflow
             initialId={
@@ -191,30 +199,24 @@ export function StepCard({
             onSelect={(_endProductId, branch) => onConfirm(branch)}
           />
         ) : options.length > 0 ? (
-          <div
-            aria-label={`${step.title} options`}
-            className="flex gap-2 overflow-x-auto pb-2 [scroll-snap-type:x_mandatory] [scrollbar-width:thin]"
-            data-testid={`step-card-${step.id}-options`}
-            role="radiogroup"
-          >
-            {options.map(option => (
-              <div
-                className="min-w-[180px] flex-1 [scroll-snap-align:start]"
-                data-testid={`step-card-${step.id}-option-${option.id}`}
-                key={option.id}
-              >
-                <OptionTile
-                  isSelected={selectedOptionId === option.id}
-                  onTap={() => onConfirm(option.id)}
-                  option={option}
-                />
-                {option.tooltip ? (
-                  <div className="mt-1.5">
-                    <ProductTypeTooltip text={option.tooltip} />
-                  </div>
-                ) : null}
+          <div data-testid={`step-card-${step.id}-options`}>
+            <OptionCarousel
+              ariaLabel={`${step.title} options`}
+              onSelect={onConfirm}
+              options={options}
+              selectedOptionId={selectedOptionId}
+            />
+            {options.some(o => o.tooltip) ? (
+              <div className="mt-2">
+                {options
+                  .filter(o => o.tooltip)
+                  .map(o => (
+                    <div className="mt-1.5" key={o.id}>
+                      <ProductTypeTooltip text={o.tooltip!} />
+                    </div>
+                  ))}
               </div>
-            ))}
+            ) : null}
           </div>
         ) : (
           // Empty options — the coming-soon placeholder. Render a
@@ -228,23 +230,13 @@ export function StepCard({
           </div>
         )}
 
-        {/* Confirm CTA — only when an option is selected. The CTA
-            fires `onConfirm` with the selected option id. For the
-            product-type step this also advances the wizard to step 1
-            (handled in WizardScreen). */}
-        {options.length > 0 && selectedOptionId ? (
-          <div className="flex justify-end">
-            <button
-              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-accent/20 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/30"
-              data-testid={`step-card-${step.id}-confirm`}
-              onClick={() => onConfirm(selectedOptionId)}
-              type="button"
-            >
-              Confirm
-              <ChevronRight aria-hidden="true" className="size-4" />
-            </button>
-          </div>
-        ) : null}
+        {/* Slide 6 (2026-07-27): the per-step "Confirm" button
+            is removed. The option carousel is one-tap to commit
+            (click any face → onSelect fires → wizard advances).
+            The product-type step (coverflow) keeps its own
+            "Make {name}" confirm CTA inside EndProductCoverflow
+            because the coverflow benefits from a deliberate
+            "I have browsed the options, now commit" affordance. */}
       </div>
     </div>
   )

@@ -103,7 +103,12 @@ describe('StepCard — active state', () => {
     expect(screen.getByTestId('option-tile-opt-b')).toBeTruthy()
   })
 
-  it('does NOT render the Confirm CTA when no option is selected', () => {
+  it('does NOT render a Confirm CTA — the option carousel is one-tap to commit', () => {
+    // Slide 6 of v2.2 (2026-07-27): the per-step "Confirm"
+    // button was removed. The option carousel is one-tap to
+    // commit (click any face → onSelect fires → wizard
+    // advances). The coverflow (slide 1) keeps its own
+    // "Make {name}" confirm CTA inside EndProductCoverflow.
     render(
       <StepCard
         cardState="active"
@@ -116,7 +121,7 @@ describe('StepCard — active state', () => {
     expect(screen.queryByTestId('step-card-test-step-confirm')).toBeNull()
   })
 
-  it('renders the Confirm CTA when an option is selected', () => {
+  it('does NOT render a Confirm CTA even when an option is pre-selected', () => {
     render(
       <StepCard
         cardState="active"
@@ -126,7 +131,7 @@ describe('StepCard — active state', () => {
         step={baseStep}
       />
     )
-    expect(screen.getByTestId('step-card-test-step-confirm')).toBeTruthy()
+    expect(screen.queryByTestId('step-card-test-step-confirm')).toBeNull()
   })
 
   it('tapping a tile calls onConfirm with the option id', () => {
@@ -144,7 +149,13 @@ describe('StepCard — active state', () => {
     expect(onConfirm).toHaveBeenCalledWith('opt-b')
   })
 
-  it('tapping Confirm calls onConfirm with the currently selected option id', () => {
+  it('tapping the centered (pre-selected) option face calls onConfirm with that option id', () => {
+    // Pre-condition: opt-a is the selected option. The
+    // OptionCarousel centers on the selected option on mount,
+    // so its face is the center of the carousel. Clicking
+    // the center face fires onConfirm (the carousel is
+    // one-tap to commit; the center face is a "yes, this
+    // one" affordance).
     const onConfirm = vi.fn()
     render(
       <StepCard
@@ -155,7 +166,7 @@ describe('StepCard — active state', () => {
         step={baseStep}
       />
     )
-    fireEvent.click(screen.getByTestId('step-card-test-step-confirm'))
+    fireEvent.click(screen.getByTestId('option-tile-opt-a'))
     expect(onConfirm).toHaveBeenCalledWith('opt-a')
   })
 
