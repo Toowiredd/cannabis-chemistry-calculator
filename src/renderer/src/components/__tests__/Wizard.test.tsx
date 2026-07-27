@@ -73,8 +73,15 @@ describe('Wizard — slide-by-slide rendering', () => {
     expect(
       screen.queryByTestId('step-card-container-active')
     ).toBeNull()
-    // Step counter shows 1 / 7 (or whatever the total is).
-    expect(screen.getByTestId('wizard-step-counter')).toBeTruthy()
+    // Step counter is rendered. 2026-07-28: the counter
+    // is now DYNAMIC (driven by getStepCounter from the
+    // DAG). On the initial product-type step, the total
+    // is unknown until the user picks an end product, so
+    // the counter shows "1 / 1" (single-element path).
+    // Subsequent steps show the actual position and total.
+    const counter = screen.getByTestId('wizard-step-counter')
+    expect(counter).toBeTruthy()
+    expect(counter.textContent).toBe('1 / 1')
   })
 
   it('renders ONLY the Method step when the branch is set and currentStep is 1 (slide 2 of 7)', () => {
@@ -149,7 +156,7 @@ describe('Wizard — slide-by-slide rendering', () => {
 })
 
 describe('Wizard — callbacks', () => {
-  it('tapping a product-type option fires onSelect with the option id', () => {
+  it('tapping a product-type option fires onSelect with the endProductId (v2.3)', () => {
     useAppStore.setState({
       ...(useAppStore.getState() as unknown as Record<string, unknown>),
       wizardEnabled: true,
@@ -163,7 +170,12 @@ describe('Wizard — callbacks', () => {
         state={DEFAULT_WIZARD_STATE}
       />
     )
+    // v2.3 (2026-07-28): the EndProductCoverflow fires
+    // onSelect with the endProductId ('baked' / 'gummies'
+    // / etc.), NOT the branch. The wizard's decodeSelection
+    // looks up the branch from END_PRODUCT_TO_BRANCH; the
+    // user can override the branch on the Material step.
     fireEvent.click(screen.getByTestId('end-product-face-baked'))
-    expect(captured).toEqual({ stepId: 'product-type', optionId: 'edible' })
+    expect(captured).toEqual({ stepId: 'product-type', optionId: 'baked' })
   })
 })

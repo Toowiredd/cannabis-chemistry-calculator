@@ -20,6 +20,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   getNextStep,
+  getStepCounter,
+  getStepPath,
   isFinished,
   isOnStartStep,
   shouldRecommendDoubleBag,
@@ -317,5 +319,143 @@ describe('shouldRecommendDoubleBag', () => {
       containerWidthCm: 19,
     })
     expect(shouldRecommendDoubleBag(s)).toBe(false)
+  })
+})
+
+describe('getStepPath', () => {
+  // The path is the ordered list of step ids the user will
+  // walk through for the current (endProduct, branch) combo.
+  // The tests below pin the path length + the first/last
+  // step for the 5 canonical (endProduct, branch) combos +
+  // the smart-skip rules.
+
+  it('returns [product-type] when nothing is picked (path unknown until endProduct is set)', () => {
+    const s = stateFor(null, null)
+    expect(getStepPath(s)).toEqual(['product-type'])
+  })
+
+  it('returns [product-type, material] when endProduct is set but branch is not', () => {
+    const s = stateFor('baked', null)
+    expect(getStepPath(s)).toEqual(['product-type', 'material'])
+  })
+
+  it('returns the 11-step path for baked + flower (longest path)', () => {
+    // baked (edible) + flower has: product-type, material,
+    // method, container, weight, efficiency, fat, volume,
+    // servings, name, start = 11 steps
+    const s = stateFor('baked', 'flower')
+    const path = getStepPath(s)
+    expect(path).toHaveLength(11)
+    expect(path[0]).toBe('product-type')
+    expect(path[1]).toBe('material')
+    expect(path[2]).toBe('method')
+    expect(path[path.length - 1]).toBe('start')
+  })
+
+  it('returns the 10-step path for baked + avb (no method/efficiency/fat)', () => {
+    // baked (edible) + avb has: product-type, material,
+    // container, weight, color, fat, volume, servings, name,
+    // start = 10 steps
+    const s = stateFor('baked', 'avb')
+    const path = getStepPath(s)
+    expect(path).toHaveLength(10)
+    expect(path).not.toContain('method')
+    expect(path).not.toContain('efficiency')
+    expect(path).toContain('color')
+  })
+
+  it('returns the 10-step path for baked + concentrate (potency instead of color)', () => {
+    const s = stateFor('baked', 'concentrate')
+    const path = getStepPath(s)
+    expect(path).toHaveLength(10)
+    expect(path).not.toContain('color')
+    expect(path).toContain('potency')
+  })
+
+  it('returns the path for salve (carrier + app-area, no servings)', () => {
+    const s = stateFor('salve', 'flower')
+    const path = getStepPath(s)
+    expect(path).toContain('carrier')
+    expect(path).toContain('app-area')
+    expect(path).not.toContain('servings')
+  })
+
+  it('returns the path for tincture (carrier + servings, no fat/app-area)', () => {
+    const s = stateFor('tincture', 'avb')
+    const path = getStepPath(s)
+    expect(path).toContain('carrier')
+    expect(path).toContain('servings')
+    expect(path).not.toContain('fat')
+    expect(path).not.toContain('app-area')
+  })
+})
+
+describe('getStepCounter', () => {
+  // The step counter is the source of truth for the
+  // "{n} / {total}" widget. It should:
+  //  - start at "1 / 1" on the product-type step (path
+  //    unknown until the user picks an end product)
+  //  - move to "2 / 2" on the material step
+  //  - move to "3 / 11" (or whatever the path length is)
+  //    on the method step of the baked + flower path
+  //  - end at "{n} / {n}" on the start step (the user is
+  //    on the last step of the path)
+
+  it('returns 1 / 1 on the product-type step (no endProduct yet)', () => {
+    const s = stateFor(null, null)
+    expect(getStepCounter(s)).toEqual({ stepNumber: 1, totalSteps: 1 })
+  })
+
+  it('returns 2 / 2 on the material step (endProduct set, branch not)', () => {
+    const s: WizardState = {
+      endProduct: 'baked',
+      branch: null,
+      currentStepId: 'material',
+      selections: {},
+    }
+    expect(getStepCounter(s)).toEqual({ stepNumber: 2, totalSteps: 2 })
+  })
+
+  it('returns 3 / 11 on the method step of the baked + flower path', () => {
+    const s: WizardState = {
+      endProduct: 'baked',
+      branch: 'flower',
+      currentStepId: 'method',
+      selections: {},
+    }
+    expect(getStepCounter(s).stepNumber).toBe(3)
+    expect(getStepCounter(s).totalSteps).toBe(11)
+  })
+
+  it('returns the correct position for the start step (last step in the path)', () => {
+    const s: WizardState = {
+      endProduct: 'baked',
+      branch: 'flower',
+      currentStepId: 'start',
+      selections: {
+        method: 'oven_sealed',
+        container: 'vac-19',
+        containerWidthCm: 19,
+        weight: { value: 7, unit: 'g' },
+        efficiency: 0.9,
+        fat: 'coconut',
+        volume: { value: 240, unit: 'mL' },
+        servings: 12,
+        name: 'My recipe',
+      },
+    }
+    const counter = getStepCounter(s)
+    expect(counter.stepNumber).toBe(counter.totalSteps)
+  })
+
+  it('uses getNextStep to find the current step when currentStepId is null', () => {
+    // Defensive: the Wizard's render block uses
+    // `state.currentStepId ?? getNextStep(state)`. The
+    // counter helper should do the same — if the user is
+    // on the initial state (currentStepId is null), the
+    // counter should reflect the first DAG step.
+    const s = stateFor(null, null)
+    const counter = getStepCounter(s)
+    expect(counter.stepNumber).toBe(1)
   })
 })

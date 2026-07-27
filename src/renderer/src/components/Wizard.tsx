@@ -29,7 +29,7 @@
 import { useCallback } from 'react'
 import { useWizardEnabled } from 'renderer/src/wizard/wizardFeatureFlag'
 import { STEP_MAP } from 'renderer/src/wizard/steps'
-import { getNextStep, isFinished } from 'renderer/src/wizard/wizardFlow'
+import { getNextStep, getStepCounter, isFinished } from 'renderer/src/wizard/wizardFlow'
 import type { WizardState } from 'renderer/src/wizard/wizardTypes'
 import { StepCard } from './StepCard'
 
@@ -66,18 +66,14 @@ export function Wizard({ state, onSelect }: WizardProps) {
   const step = STEP_MAP[stepId]
   if (!step) return null
 
-  // Slide counter — "1 / 7" in the top-right. Minimal chrome.
-  // Slide 1 (the coverflow) shows "1 / 7" so the user knows
-  // how many decisions are left. The total is the count of
-  // unique step ids the DAG would walk through for the
-  // current state — computed by following the DAG forward
-  // from the current step and counting the steps that
-  // would be rendered (not asked, just walkable). For
-  // the v2.3 MVP this is a simple count of all the steps
-  // the user will see in a typical path; a future iteration
-  // can compute it exactly from the DAG.
-  const stepNumber = 1
-  const totalSteps = 7
+  // Slide counter — "{n} / {total}" in the top-right. The
+  // counter is dynamic: the DAG walks forward from the
+  // current state (with dummy fill-in for unanswered
+  // selections) to compute the total path length, and the
+  // current step's index gives the position. As the user
+  // advances, the counter increments. See
+  // `wizardFlow.getStepCounter` for the algorithm.
+  const { stepNumber, totalSteps } = getStepCounter(state)
 
   return (
     <section

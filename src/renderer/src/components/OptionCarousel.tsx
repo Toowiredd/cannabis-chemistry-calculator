@@ -74,6 +74,11 @@ export function OptionCarousel({
       // the face without empty space below, and the Carousel's
       // new 26vw fluid + 0.78×/1.32× side offsets keep the
       // l-2/r-2 faces inside the panel.
+      //
+      // 2026-07-28 (take 5): the side offsets are bumped
+      // to 1.05× / 1.75× (see Carousel.tsx) so the l-1/l-2
+      // bounding boxes no longer overlap the center face
+      // or each other.
       baseFaceHeight={300}
       baseFaceWidth={380}
       faceClassName="p-6"
@@ -86,6 +91,22 @@ export function OptionCarousel({
       // the right end and you wrap back to the left).
       wrap={options.length >= 5}
       onSelect={option => onSelect(option.id)}
+      // 2026-07-28: the option carousel now shows the
+      // same "← tap a face · or use ← / →" hint as the
+      // end-product coverflow. The user called this out as
+      // missing on slides 2+ — without the hint, the
+      // first-time user doesn't realise the side faces are
+      // interactive (the rotateY + opacity dim makes them
+      // look decorative, not clickable).
+      renderHint={() => (
+        <span
+          aria-hidden="true"
+          className="font-mono text-[11px] text-foreground/50"
+          data-testid="option-carousel-hint"
+        >
+          ← tap a face · or use ← / →
+        </span>
+      )}
       renderItem={(option, isCenter) => {
         const Icon = option.icon
         return (

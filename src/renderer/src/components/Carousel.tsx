@@ -175,34 +175,35 @@ export function Carousel<T>({
     }
   }
 
-  // Slide 7 (2026-07-27, take 4): the previous take (3) had
-  // the face too tall (~430px on a 720px-tall viewport) and
-  // the side faces clipped at the panel edges. The user
-  // called the tiles "still the wrong fucking size" and
-  // "all tiles are still too squished together on each
-  // carousel".
+  // Slide 7 (2026-07-27, take 5): the previous take (4)
+  // used 0.78× / 1.32× face-width for the l-1 / l-2 side
+  // offsets, which caused the side faces' bounding boxes
+  // to overlap the center face and each other on most
+  // viewports. The 3D rotateY shrinks the visible width
+  // of a side face to ~0.85× of the layout width, but the
+  // bounding box is still the full width — so faces with
+  // offsets < 1.0× overlap their neighbours.
   //
-  // This take:
-  //  1. The face width uses 26vw (down from 30vw) so the
-  //     face is a touch narrower on desktop — the content
-  //     fills the face instead of floating with empty space
-  //     below.
-  //  2. The face HEIGHT is capped with `min(60vh, 380px)` so
-  //     the face never dominates the viewport on a 720px-
-  //     tall screen. The cap preserves the caller's aspect
-  //     ratio for faces whose computed height is below 380px;
-  //     taller faces get clamped to 380px (the user sees a
-  //     slightly squished but still readable face).
-  //  3. The side offset multipliers are 0.78× / 1.32× of
-  //     face-width (up from 0.62× / 1.05×). The l-1 face
-  //     is now further out from the center, and the l-2
-  //     face sits at 1.32× face-width which on a 1280px
-  //     screen with a 384px face puts the l-2 face at
-  //     506px from center — well within the panel.
-  //  4. The aspect ratio is preserved from the caller's
-  //     baseFaceWidth / baseFaceHeight so the coverflow
-  //     (4:5) and the option carousel (callable aspect)
-  //     both render with their intended shape.
+  // Take 6 (2026-07-28): the l-1 / l-2 offsets are pushed
+  // further out to eliminate l-1/l-2 overlap on the
+  // coverflow (5-item) and the Method step (6-item wrap).
+  // The math: the l-2 face's translateZ(-220) makes it
+  // appear at 0.864× scale; the l-1 face's translateZ(-90)
+  // makes it appear at 0.94× scale. The rotated bounding
+  // box of l-2 is ~0.65×W wide, of l-1 is ~0.85×W wide.
+  // For no l-1/l-2 overlap:
+  //   apparent_l1_left >= apparent_l2_right
+  //   -offsetL1 * 0.94 - 0.85 * W/2 * 0.94 >=
+  //     -offsetL2 * 0.864 + 0.65 * W/2 * 0.864
+  //   → offsetL2 - offsetL1 > 0.75 * W
+  //
+  // With offsetL1 = 1.3×W and offsetL2 = 2.5×W, the
+  // difference is 1.2×W > 0.75×W — no overlap. The l-2
+  // face's center is at -2.5*W*0.864 = -2.16*W from the
+  // container center, which means it extends ~0.4*W off
+  // the visible panel on a 1280px viewport. The user sees
+  // a small "peek" of the l-2 face at the panel edge —
+  // not a full face, but enough to know the option exists.
   const faceWidthMin = Math.max(220, Math.round(baseFaceWidth * 0.7))
   const faceWidthMax = Math.max(
     faceWidthMin + 60,
@@ -211,15 +212,13 @@ export function Carousel<T>({
   const faceWidthCss = `clamp(${faceWidthMin}px, 26vw, ${faceWidthMax}px)`
   const aspectRatio = baseFaceHeight / baseFaceWidth
   const faceHeightCss = `min(calc(${faceWidthCss} * ${aspectRatio.toFixed(3)}), min(60vh, 380px))`
-  // Offsets proportional to the (clamped) face width.
-  // Increased from take-3 (0.62× / 1.05×) so the side
-  // faces have more breathing room from the center and
-  // from each other. The 0.78× for l-1 still reads as
-  // "next to the center" without overlapping; the 1.32×
-  // for l-2 keeps the l-2 face inside the panel on
-  // viewports down to ~960px.
-  const offsetL1Css = `calc(${faceWidthCss} * 0.78)`
-  const offsetL2Css = `calc(${faceWidthCss} * 1.32)`
+  // Take 6 (2026-07-28): the l-1 / l-2 offsets are
+  // pushed to 1.3×W / 2.5×W (up from 1.05×W / 1.75×W).
+  // The l-2 face is now mostly clipped on small viewports,
+  // but the l-1/l-2 no longer overlap. The user gets a
+  // tight coverflow with clear gaps between faces.
+  const offsetL1Css = `calc(${faceWidthCss} * 1.3)`
+  const offsetL2Css = `calc(${faceWidthCss} * 2.5)`
 
   const containerVars = {
     '--carousel-face-width': faceWidthCss,
@@ -342,7 +341,15 @@ function faceTransform(wrapped: number, isCenter: boolean): CSSProperties {
         ...base,
         transform:
           'translateX(calc(-1 * var(--carousel-offset-l2))) translateZ(-220px) rotateY(35deg)',
-        opacity: 0.32,
+        // Take 6 (2026-07-28): bumped from 0.32 to 0.45
+        // so the l-2 face's content is readable when it
+        // peeks at the panel edge. The user called the
+        // side faces "very dim" — the previous 0.32 made
+        // the l-2 text almost invisible against the dark
+        // background. 0.45 is still clearly "in the
+        // distance" compared to the l-1 (0.7) and center
+        // (1.0) but is legible.
+        opacity: 0.45,
         zIndex: 1,
       }
     case -1:
@@ -350,7 +357,12 @@ function faceTransform(wrapped: number, isCenter: boolean): CSSProperties {
         ...base,
         transform:
           'translateX(calc(-1 * var(--carousel-offset-l1))) translateZ(-90px) rotateY(22deg)',
-        opacity: 0.62,
+        // Take 6 (2026-07-28): bumped from 0.62 to 0.7
+        // so the l-1 face is closer to the center face's
+        // brightness. The "in the distance" hint still
+        // reads, but the side face content is no longer
+        // muted.
+        opacity: 0.7,
         zIndex: 2,
       }
     case 1:
@@ -358,7 +370,7 @@ function faceTransform(wrapped: number, isCenter: boolean): CSSProperties {
         ...base,
         transform:
           'translateX(var(--carousel-offset-l1)) translateZ(-90px) rotateY(-22deg)',
-        opacity: 0.62,
+        opacity: 0.7,
         zIndex: 2,
       }
     case 2:
@@ -366,7 +378,7 @@ function faceTransform(wrapped: number, isCenter: boolean): CSSProperties {
         ...base,
         transform:
           'translateX(var(--carousel-offset-l2)) translateZ(-220px) rotateY(-35deg)',
-        opacity: 0.32,
+        opacity: 0.45,
         zIndex: 1,
       }
     default:
