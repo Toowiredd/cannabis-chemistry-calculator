@@ -34,7 +34,12 @@ import {
   DECARB_METHODS,
   INFUSION_FATS,
 } from 'renderer/src/engine/models'
-import type { WizardOption, WizardState, WizardStep } from './wizardTypes'
+import type {
+  WizardOption,
+  WizardState,
+  WizardStep,
+  WizardStepId,
+} from './wizardTypes'
 
 /* ------------------------------------------------------------------ */
 /* Product-type step (step 0 for every branch)                         */
@@ -155,6 +160,59 @@ export const productTypeStep: WizardStep = {
         return null
     }
   },
+}
+
+/* ------------------------------------------------------------------ */
+/* Material step (the v2.3 "what are you using?" question)              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The Material step — slide 2 of the wizard. The user picks
+ * their starting material (Flower / AVB / Concentrate) which
+ * drives the decarb-side decisions downstream:
+ *  - Flower → Method (decarb method) + Efficiency
+ *  - AVB    → Color (proxy for residual THC)
+ *  - Concentrate → Potency (THC %)
+ *
+ * Added in v2.3 (2026-07-28) to make the wizard's flow
+ * dynamic: a user can now pick any combination of end product
+ * (Baked / Gummies / Capsules / Tincture / Salve) AND
+ * starting material (Flower / AVB / Concentrate). The old
+ * per-branch sequence tables hardcoded 5 end products to 3
+ * materials, which prevented e.g. a "Tincture + Flower" path
+ * (a real recipe — flower-based alcohol tincture).
+ *
+ * The Material step writes the user's choice to
+ * `state.branch` (overriding the end-product coverflow's
+ * default mapping). The Material step is ALWAYS shown after
+ * the product-type picker (no smart-skip), so the user has
+ * an explicit choice.
+ */
+export const materialStep: WizardStep = {
+  id: 'material',
+  title: 'Starting material',
+  description:
+    'What are you using? This determines whether the wizard walks you through decarb or skips straight to infusion.',
+  getOptions: (_state: WizardState): WizardOption[] => [
+    {
+      id: 'flower',
+      title: 'Flower',
+      subtitle:
+        'Raw flower — the wizard walks you through decarb first.',
+    },
+    {
+      id: 'avb',
+      title: 'AVB (already vaped bud)',
+      subtitle:
+        'Already decarbed; the wizard asks for the color to estimate how much THC is left.',
+    },
+    {
+      id: 'concentrate',
+      title: 'Concentrate',
+      subtitle: 'Already active — no decarb needed.',
+    },
+  ],
+  getSelectedOptionId: (state: WizardState) => state.branch ?? null,
 }
 
 /* ------------------------------------------------------------------ */
@@ -765,4 +823,81 @@ export const startStep: WizardStep = {
     },
   ],
   getSelectedOptionId: (_state: WizardState) => 'begin',
+}
+
+/* ------------------------------------------------------------------ */
+/* Name step (the §8.5 "Name this recipe" question)                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The Name step — the user types a recipe name. The name is
+ * stored on `selections.name` (per the §8.5 contract) and
+ * flows to the Stage 2 completion step's "Save recipe" tile.
+ *
+ * The actual input widget lives in `NameRecipeStep.tsx`
+ * (rendered by WizardScreen below the Begin batch CTA on the
+ * Start step). The wizard's "Name" step is a single
+ * "Type a name →" tile that the user taps to focus the input
+ * — the input itself is the NameRecipeStep inline card.
+ *
+ * For the v2.3 DAG this is a minimal step: a single option
+ * that the user taps to acknowledge they've seen the name
+ * prompt. Future iterations can make the name input the step
+ * itself (the wizard advances when the user types a name +
+ * taps "Continue").
+ */
+export const nameStep: WizardStep = {
+  id: 'name',
+  title: 'Name this recipe',
+  description:
+    'Give this batch a name so you can find it later. The name appears on the Journal card and the saved Recipe.',
+  getOptions: (_state: WizardState): WizardOption[] => [
+    {
+      id: 'named',
+      title: 'Name saved',
+      subtitle: 'Tap to confirm — the typed name is the recipe name.',
+    },
+  ],
+  getSelectedOptionId: (state: WizardState) =>
+    state.selections.name ? 'named' : null,
+}
+
+/* ------------------------------------------------------------------ */
+/* Step map (DAG lookup)                                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The map from `WizardStepId` to the `WizardStep` definition.
+ * Replaces the old `BRANCH_SEQUENCES[id]` array indexing — the
+ * Wizard now looks up the current step by id rather than by a
+ * numeric index into a per-branch sequence. The map covers
+ * every step id in the `WizardStepId` union, so TypeScript will
+ * fail to compile if a new step is added but not registered.
+ *
+ * The `productTypeStep` is the only step that has a custom
+ * renderer (`EndProductCoverflow`); all other steps render the
+ * `OptionCarousel` with their `getOptions(state)` tiles. The
+ * StepCard branches on `step.id === 'product-type'` to pick
+ * the coverflow vs carousel.
+ */
+export const STEP_MAP: Record<WizardStepId, WizardStep> = {
+  'product-type': productTypeStep,
+  material: materialStep,
+  method: flowerMethodStep,
+  container: containerStep,
+  weight: weightStep,
+  efficiency: efficiencyStep,
+  potency: potencyStep,
+  color: colorStep,
+  fat: fatStep,
+  carrier: carrierStep,
+  volume: volumeStep,
+  servings: servingsStep,
+  // The application-area step is registered under its
+  // existing id `applicationArea` (matches the existing
+  // branchSequences test). Commit 2 renames it to `app-area`
+  // to match the DAG's stepId union.
+  'app-area': applicationAreaStep,
+  name: nameStep,
+  start: startStep,
 }

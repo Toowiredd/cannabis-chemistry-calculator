@@ -10,17 +10,34 @@
  * branches are end-to-end wired (Flower / Concentrate / AVB /
  * Edible / Topical). The "Coming in week 2" placeholder was
  * removed in Week 7's full-codebase-review.
+ *
+ * 2026-07-28 update: the wizard is now driven by a `getNextStep`
+ * DAG (see `wizardFlow.ts`) rather than per-branch sequence
+ * arrays. The DAG's step ids are declared here as `WizardStepId`
+ * so both the flow module and the screen can import the closed
+ * union without a circular dependency on `wizardFlow.ts`. The
+ * end product + starting material are split into two separate
+ * fields (`endProduct` + `branch`) so a user can pick any
+ * combination (e.g. Baked + Flower, Tincture + AVB).
  */
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
+import type { EndProductId } from 'renderer/src/components/EndProductCoverflow'
 
 /* ------------------------------------------------------------------ */
 /* Branch taxonomy (§3.1)                                              */
 /* ------------------------------------------------------------------ */
 
 /**
- * The five product-type branches. `null` means "no branch picked yet"
- * — the wizard is on the product-type picker (step 0).
+ * The five starting-material branches. `null` means "no branch
+ * picked yet" — the wizard is on the product-type picker.
+ *
+ * The branch is now set by the Material step (the user's choice
+ * of starting material), not the end-product coverflow. The
+ * coverflow sets `endProduct`; the Material step sets `branch`.
+ * The two are independent: a user can pick "Baked" + "Flower"
+ * (canonical edible+flower batch) OR "Tincture" + "Concentrate"
+ * (concentrate-based tincture).
  */
 export type WizardBranchId =
   | 'flower'
@@ -28,6 +45,38 @@ export type WizardBranchId =
   | 'avb'
   | 'edible'
   | 'topical'
+
+/* ------------------------------------------------------------------ */
+/* Step IDs (DAG)                                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The 14 step ids the dynamic `getNextStep` DAG returns. Listed
+ * as a closed union so the Wizard's STEP_MAP (`steps.ts`) can
+ * be a `Record<WizardStepId, WizardStep>` and TypeScript can
+ * guarantee the map covers every reachable step.
+ *
+ * The id is the canonical key for both the step definition
+ * (`steps.ts`) and the wizard state's `currentStepId`. `null`
+ * means "past the Start step" (the wizard is finished; the
+ * Stage 2 stepper is mounted).
+ */
+export type WizardStepId =
+  | 'product-type'
+  | 'material'
+  | 'method'
+  | 'container'
+  | 'weight'
+  | 'efficiency'
+  | 'potency'
+  | 'color'
+  | 'fat'
+  | 'carrier'
+  | 'volume'
+  | 'servings'
+  | 'app-area'
+  | 'name'
+  | 'start'
 
 /* ------------------------------------------------------------------ */
 /* Selections (per-branch)                                             */
@@ -49,25 +98,24 @@ export type WizardBranchId =
 export interface WizardSelections {
   method?: string
   /**
-   * Container id from the `BAG_PRESETS` table, OR a
-   * `customContainer` payload when the user has typed in
-   * their own bag dimensions. The two are mutually exclusive —
-   * the wizard's `container` step (v2.2 slide 1) replaced the
-   * preset-only carousel with a custom-input-only form, so
-   * production code reads the `customContainer` shape. The
-   * preset-id path is kept for the engine tests + the legacy
-   * `BAG_PRESETS` lookup paths.
+   * Container id from the v2.3 wizard. Two vacuum bag widths
+   * (`vac-19`, `vac-28`) — the user picks the width and the
+   * engine derives the length from the material amount. The
+   * legacy `BAG_PRESETS` ids (gallon, quart, etc.) are still
+   * accepted by the decoder for the engine tests + the
+   * legacy data flows, but the wizard's UI is the 2-width
+   * carousel.
    */
   container?: string
   /**
-   * The user-typed bag dimensions for the wizard's container
-   * step. The width + length + depth are stored verbatim in
-   * the user's chosen unit; the `volumeCm3` is the engine's
-   * derived value (`calculateBagVolume`) rounded to 1 decimal
-   * per `bagVolume.ts:79`. Downstream steps (the Weight
-   * smart-skip, the Volume step's valid range check) read
-   * `volumeCm3` directly so the custom input flows through
-   * the same shape as the preset.
+   * Legacy v2.2 custom-input shape — `customContainer` was
+   * the v2.2 contract where the user typed in their own bag
+   * dimensions (width / length / depth in cm) and the wizard
+   * derived the volume. The v2.3 wizard replaces this with
+   * the 2-width carousel + `containerWidthCm` + the engine-
+   * computed `containerLengthCm`. Kept for commit 1's
+   * typecheck (StepCard.tsx still reads it on re-edit);
+   * commit 5 removes it.
    */
   customContainer?: {
     widthCm: number
@@ -75,6 +123,31 @@ export interface WizardSelections {
     depthCm: number
     volumeCm3: number
   }
+  /**
+   * Width of the chosen vacuum bag in cm. The 2-width carousel
+   * (19cm / 28cm) sets this when the user taps a tile. The
+   * engine's `getRequiredBagLengthCm(weight, width)` uses it
+   * to compute the minimum bag length for the user's amount.
+   */
+  containerWidthCm?: number
+  /**
+   * Calculated minimum bag length in cm. Set by the wizard
+   * when the user picks a Weight; the engine re-derives it
+   * any time the weight changes. Used by Stage 2 / dosing
+   * derivations downstream.
+   */
+  containerLengthCm?: number
+  /**
+   * Sous vide double-bag interjection answer. `true` when
+   * the user confirmed they're using an outer bag for
+   * sous vide (the engine's `recommendDoubleBag` heuristic
+   * also flags this when method is sous vide + width is
+   * 19cm). `false` when the user explicitly chose a single
+   * bag. `undefined` when the interjection hasn't fired
+   * yet (i.e. user picked a non-sous-vide method, or picked
+   * a 28cm bag where double-bagging isn't recommended).
+   */
+  doubleBagged?: boolean
   weight?: { value: number; unit: 'g' | 'oz' }
   efficiency?: number
   /**
@@ -105,11 +178,32 @@ export interface WizardSelections {
  * runtime-only fields (the `execution` sub-slice, the
  * `stepHistory` for back-button support, the Stage 2
  * routing).
+ *
+ * 2026-07-28 update (refactor): added `endProduct` and
+ * `currentStepId` alongside the existing `branch` and
+ * `currentStep` fields. The DAG's `getNextStep` (see
+ * `wizardFlow.ts`) uses `endProduct` + `branch` + `selections`
+ * to compute the next step id. The old `currentStep` index
+ * is kept for commit 1 so the existing `WizardScreen` code
+ * keeps typechecking; commit 2 replaces it with
+ * `currentStepId` end-to-end.
  */
 export interface WizardState {
+  /** The user's end product (Baked / Gummies / Capsules /
+   *  Tincture / Salve). Set by the coverflow on slide 1. */
+  endProduct?: EndProductId | null
+  /** The user's starting material (set by the Material step).
+   *  `null` means the Material step hasn't been answered yet. */
   branch: WizardBranchId | null
-  /** Index into the branch sequence (0 = product-type step). */
+  /** Numeric index into the per-branch sequence array. Kept
+   *  for commit 1's typecheck; commit 2 replaces this with
+   *  `currentStepId` (the literal step id). */
   currentStep: number
+  /** The current step the wizard is on (the new DAG field).
+   *  Commit 1 sets this to the same value as the sequence
+   *  index for backward compat; commit 2 makes it the
+   *  canonical source of truth and drops `currentStep`. */
+  currentStepId?: WizardStepId | null
   selections: WizardSelections
 }
 
@@ -222,6 +316,8 @@ export type WizardStepCardState =
 
 export const DEFAULT_WIZARD_STATE: WizardState = {
   branch: null,
+  endProduct: null,
   currentStep: 0,
+  currentStepId: null,
   selections: {},
 }

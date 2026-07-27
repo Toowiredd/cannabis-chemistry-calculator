@@ -102,7 +102,22 @@ export function isProductType(value: unknown): value is ProductType {
  */
 export type WizardSelections = Partial<{
   method: DecarbMethodId
+  /** Container id — the v2.3 wizard writes `vac-19` or `vac-28`
+   *  (the 2 vacuum bag widths). The legacy `BAG_PRESETS` ids
+   *  (gallon, quart, etc.) are still accepted by the decoder
+   *  for the engine tests + the legacy data flows. */
   container: BagPresetId
+  /** Width of the chosen vacuum bag in cm — written by the
+   *  Container step's 2-width carousel. The engine's
+   *  `getRequiredBagLengthCm(weight, width)` uses it to
+   *  compute the minimum bag length for the user's amount. */
+  containerWidthCm: number
+  /** Calculated minimum bag length in cm — derived by the
+   *  engine when the weight is set. */
+  containerLengthCm: number
+  /** Sous vide double-bag interjection answer. `true` when
+   *  the user confirmed they're using an outer bag. */
+  doubleBagged: boolean
   weight: { value: number; unit: 'g' | 'oz' }
   efficiency: number
   /**
