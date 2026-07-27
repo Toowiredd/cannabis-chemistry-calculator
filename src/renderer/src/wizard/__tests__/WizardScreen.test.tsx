@@ -90,58 +90,61 @@ describe('WizardScreen — feature flag', () => {
 })
 
 describe('WizardScreen — product-type step', () => {
-  it('tapping "From raw flower" sets branch=flower and advances to step 1 (Method)', () => {
+  // Per the v2.2 mockup: the product-type step renders a 3D
+  // coverflow of 5 end-product faces (Brownies / Gummies / Capsules
+  // / Tincture / Salve). The coverflow maps each end product to
+  // a starting-material branch: 3 end products → edible, Tincture
+  // → avb, Salve → topical. The 5 starting-material branches are
+  // no longer the user-facing primary decision — they're the
+  // internal state that drives the rest of the wizard.
+
+  it('tapping Brownies sets branch=edible and advances to step 1 (Method)', () => {
     enableWizard()
     render(<WizardScreen />)
-    fireEvent.click(screen.getByTestId('option-tile-flower'))
-    // After tapping, the product-type step is collapsed-with-selection
-    // and the Method step becomes active (Flower branch).
+    fireEvent.click(screen.getByTestId('end-product-face-brownies'))
     expect(
       screen.getByTestId('step-card-product-type-collapsed-with-selection')
     ).toBeTruthy()
     expect(screen.getByTestId('step-card-method-active')).toBeTruthy()
     expect(screen.getByTestId('wizard-screen').textContent).toContain(
-      'From raw flower'
+      'Brownies'
     )
   })
 
-  it('tapping "For an edible or recipe" advances to the Edible branch Method step', () => {
+  it('tapping Gummies sets branch=edible and advances to Method', () => {
     enableWizard()
     render(<WizardScreen />)
-    fireEvent.click(screen.getByTestId('option-tile-edible'))
-    // Week 2: the Edible branch has a real sequence starting
-    // with the Method step. No more "coming-soon" placeholder.
+    fireEvent.click(screen.getByTestId('end-product-face-gummies'))
     expect(
       screen.getByTestId('step-card-product-type-collapsed-with-selection')
     ).toBeTruthy()
     expect(screen.getByTestId('step-card-method-active')).toBeTruthy()
   })
 
-  it('tapping "From concentrate or hash" advances to the Concentrate branch Potency step', () => {
+  it('tapping Capsules sets branch=edible and advances to Method', () => {
     enableWizard()
     render(<WizardScreen />)
-    fireEvent.click(screen.getByTestId('option-tile-concentrate'))
+    fireEvent.click(screen.getByTestId('end-product-face-capsules'))
     expect(
       screen.getByTestId('step-card-product-type-collapsed-with-selection')
     ).toBeTruthy()
-    // Concentrate branch starts with Potency (no Method step).
-    expect(screen.getByTestId('step-card-potency-active')).toBeTruthy()
+    expect(screen.getByTestId('step-card-method-active')).toBeTruthy()
   })
 
-  it('tapping "From already-used flower (AVB)" advances to the AVB branch Color step', () => {
+  it('tapping Tincture advances to the AVB branch Color step', () => {
     enableWizard()
     render(<WizardScreen />)
-    fireEvent.click(screen.getByTestId('option-tile-avb'))
+    fireEvent.click(screen.getByTestId('end-product-face-tincture'))
     expect(
       screen.getByTestId('step-card-product-type-collapsed-with-selection')
     ).toBeTruthy()
     expect(screen.getByTestId('step-card-color-active')).toBeTruthy()
   })
 
-  it('tapping "For a skin or topical product" advances to the Topical branch Carrier step', () => {
+  it('tapping Salve advances to the Topical branch Carrier step', () => {
     enableWizard()
     render(<WizardScreen />)
-    fireEvent.click(screen.getByTestId('option-tile-topical'))
+    fireEvent.click(screen.getByTestId('end-product-face-salve'))
     expect(
       screen.getByTestId('step-card-product-type-collapsed-with-selection')
     ).toBeTruthy()
@@ -149,101 +152,76 @@ describe('WizardScreen — product-type step', () => {
   })
 })
 
-describe('WizardScreen — Flower branch navigation', () => {
-  it('navigates Method → Container → Weight → Efficiency', () => {
+describe('WizardScreen — Brownies (edible) branch navigation', () => {
+  it('navigates Method → Container → Weight → Fat', () => {
     enableWizard()
     render(<WizardScreen />)
-    // Step 0 → Flower
-    fireEvent.click(screen.getByTestId('option-tile-flower'))
+    // Step 0 → Brownies (→ edible branch).
+    fireEvent.click(screen.getByTestId('end-product-face-brownies'))
     // Step 1 → Oven, sealed bag
     fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
     // Step 2 → Container
     fireEvent.click(screen.getByTestId('option-tile-quart'))
     // Step 3 → Weight
     fireEvent.click(screen.getByTestId('option-tile-g-7'))
-    // Step 4 → Efficiency (picks the 90% tile)
-    fireEvent.click(screen.getByTestId('option-tile-eff-90'))
-    // After the four taps, the previous steps are
-    // collapsed-with-selection and Efficiency is the next
-    // collapsed (the user hasn't picked an efficiency yet
-    // because the tap on eff-90 advanced past Efficiency).
-    expect(
-      screen.getByTestId('step-card-efficiency-collapsed-with-selection')
-    ).toBeTruthy()
-    // The next active step is Fat.
-    expect(screen.getByTestId('step-card-fat-active')).toBeTruthy()
-  })
-
-  it('Flower "no infusion" path auto-skips the Volume step', () => {
-    enableWizard()
-    render(<WizardScreen />)
-    // Step 0 → Flower
-    fireEvent.click(screen.getByTestId('option-tile-flower'))
-    // Step 1 → Method
-    fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
-    // Step 2 → Container
-    fireEvent.click(screen.getByTestId('option-tile-quart'))
-    // Step 3 → Weight
-    fireEvent.click(screen.getByTestId('option-tile-g-7'))
-    // Step 4 → Efficiency
-    fireEvent.click(screen.getByTestId('option-tile-eff-90'))
-    // Step 5 → Fat — pick the "No infusion" tile.
-    fireEvent.click(screen.getByTestId('option-tile-none'))
-    // The Volume step should be auto-skipped (smart-skip
-    // filters it out because selections.fat === null), so
-    // the Start step is the next active step.
-    expect(screen.getByTestId('step-card-start-active')).toBeTruthy()
-    // The Volume step should not be in the rendered tree at all.
-    expect(screen.queryByTestId('step-card-volume-active')).toBeNull()
-  })
-
-  it('Flower "with infusion" path shows the Volume step after Fat', () => {
-    enableWizard()
-    render(<WizardScreen />)
-    // Step 0 → Flower
-    fireEvent.click(screen.getByTestId('option-tile-flower'))
-    // Step 1 → Method
-    fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
-    // Step 2 → Container
-    fireEvent.click(screen.getByTestId('option-tile-quart'))
-    // Step 3 → Weight
-    fireEvent.click(screen.getByTestId('option-tile-g-7'))
-    // Step 4 → Efficiency
-    fireEvent.click(screen.getByTestId('option-tile-eff-90'))
-    // Step 5 → Fat — pick coconut (real fat, not 'none').
+    // Step 4 → Fat (edible branch skips Efficiency; jumps
+    // straight from Weight to Fat).
     fireEvent.click(screen.getByTestId('option-tile-coconut'))
-    // Volume should be the next active step (not auto-skipped).
+    // Volume is the next active step.
     expect(screen.getByTestId('step-card-volume-active')).toBeTruthy()
+  })
+
+  it('Brownies (edible) "with infusion" path: Fat → Volume → Servings → Start', () => {
+    enableWizard()
+    render(<WizardScreen />)
+    // Step 0 → Brownies (→ edible branch)
+    fireEvent.click(screen.getByTestId('end-product-face-brownies'))
+    // Step 1 → Method
+    fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
+    // Step 2 → Container
+    fireEvent.click(screen.getByTestId('option-tile-quart'))
+    // Step 3 → Weight
+    fireEvent.click(screen.getByTestId('option-tile-g-7'))
+    // Step 4 → Fat — pick coconut (with infusion, not 'none').
+    fireEvent.click(screen.getByTestId('option-tile-coconut'))
+    // Step 5 → Volume (rendered, not auto-skipped, because
+    // selections.fat !== null on the Edible branch).
+    expect(screen.getByTestId('step-card-volume-active')).toBeTruthy()
+    fireEvent.click(screen.getByTestId('option-tile-mL-100'))
+    // Step 6 → Servings
+    expect(screen.getByTestId('step-card-servings-active')).toBeTruthy()
+    fireEvent.click(screen.getByTestId('option-tile-s-12'))
+    // Step 7 → Start.
+    expect(screen.getByTestId('step-card-start-active')).toBeTruthy()
   })
 })
 
-describe('WizardScreen — Concentrate branch navigation', () => {
-  it('navigates Potency → Carrier → Volume → Servings → Start', () => {
+describe('WizardScreen — Tincture (avb) branch navigation', () => {
+  it('navigates Color → Carrier → Volume → Servings → Start', () => {
     enableWizard()
     render(<WizardScreen />)
-    // Step 0 → Concentrate
-    fireEvent.click(screen.getByTestId('option-tile-concentrate'))
-    // Step 1 → Potency
-    fireEvent.click(screen.getByTestId('option-tile-p-75'))
-    // Step 2 → Carrier
-    fireEvent.click(screen.getByTestId('option-tile-mct'))
+    // Step 0 → Tincture (→ avb branch)
+    fireEvent.click(screen.getByTestId('end-product-face-tincture'))
+    // Step 1 → Color (light AVB)
+    fireEvent.click(screen.getByTestId('option-tile-light'))
+    // Step 2 → Carrier (alcohol)
+    fireEvent.click(screen.getByTestId('option-tile-alcohol'))
     // Step 3 → Volume
-    fireEvent.click(screen.getByTestId('option-tile-mL-240'))
+    fireEvent.click(screen.getByTestId('option-tile-mL-100'))
     // Step 4 → Servings
     fireEvent.click(screen.getByTestId('option-tile-s-12'))
     // Start should be the next active step.
     expect(screen.getByTestId('step-card-start-active')).toBeTruthy()
-    // The "Begin batch" CTA section should be visible.
     expect(screen.getByTestId('wizard-begin-section')).toBeTruthy()
   })
 })
 
-describe('WizardScreen — Topical branch smart-skip', () => {
+describe('WizardScreen — Salve (topical) branch smart-skip', () => {
   it('skips the Servings step (topicals are not dose-divided)', () => {
     enableWizard()
     render(<WizardScreen />)
-    // Step 0 → Topical
-    fireEvent.click(screen.getByTestId('option-tile-topical'))
+    // Step 0 → Salve (→ topical branch)
+    fireEvent.click(screen.getByTestId('end-product-face-salve'))
     // Step 1 → Carrier
     fireEvent.click(screen.getByTestId('option-tile-alcohol'))
     // Step 2 → Volume
@@ -261,12 +239,11 @@ describe('WizardScreen — terminal Start step', () => {
   it('shows a "Begin batch" CTA when the user reaches the Start step', () => {
     enableWizard()
     render(<WizardScreen />)
-    // Walk the Concentrate branch (shortest non-Flower path)
-    // to the Start step.
-    fireEvent.click(screen.getByTestId('option-tile-concentrate'))
-    fireEvent.click(screen.getByTestId('option-tile-p-75'))
-    fireEvent.click(screen.getByTestId('option-tile-mct'))
-    fireEvent.click(screen.getByTestId('option-tile-mL-240'))
+    // Walk the Tincture branch (shortest path) to the Start step.
+    fireEvent.click(screen.getByTestId('end-product-face-tincture'))
+    fireEvent.click(screen.getByTestId('option-tile-light'))
+    fireEvent.click(screen.getByTestId('option-tile-alcohol'))
+    fireEvent.click(screen.getByTestId('option-tile-mL-100'))
     fireEvent.click(screen.getByTestId('option-tile-s-12'))
     // The "Begin batch" CTA is visible.
     expect(screen.getByTestId('wizard-begin-cta')).toBeTruthy()
@@ -280,8 +257,8 @@ describe('WizardScreen — reset', () => {
   it('clicking Reset wizard returns the state to default', () => {
     enableWizard()
     render(<WizardScreen />)
-    // Advance the state: pick Flower.
-    fireEvent.click(screen.getByTestId('option-tile-flower'))
+    // Advance the state: pick Brownies.
+    fireEvent.click(screen.getByTestId('end-product-face-brownies'))
     expect(
       screen.getByTestId('step-card-product-type-collapsed-with-selection')
     ).toBeTruthy()

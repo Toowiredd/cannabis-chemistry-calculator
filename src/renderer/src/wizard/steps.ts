@@ -40,56 +40,66 @@ import type { WizardOption, WizardState, WizardStep } from './wizardTypes'
 /* ------------------------------------------------------------------ */
 
 /**
- * Icon helper for the product-type tiles. These match the visual
- * metaphors the user can verify in the wild:
- *  - raw flower → sprout (unprocessed plant)
- *  - concentrate → droplets (oil/wax)
- *  - AVB → cloud (vaporizer)
- *  - edible → cookie (baked good)
- *  - topical → pill (lotions live in the same shelf as salves)
+ * End-product IDs at the wizard's landing. The v2.2 mockup reframes
+ * the first decision from "what starting material" to "what end
+ * product are you making" — brownies / gummies / capsules / tincture
+ * / salve. The end product then maps to a starting-material branch
+ * for the rest of the wizard (see `END_PRODUCT_TO_BRANCH` in
+ * `EndProductCoverflow.tsx`).
+ *
+ * The 5 end products map to 3 distinct branches in the v1 mapping:
+ *  - Brownies / Gummies / Capsules → `edible` (shared branch;
+ *    future iterations will add a format sub-decision)
+ *  - Tincture → `avb`
+ *  - Salve → `topical`
+ *
+ * The `id` field on each option is the END-PRODUCT id (not the
+ * branch id) so the `EndProductCoverflow` component can render
+ * 5 distinct faces. The branch mapping lives in the coverflow
+ * component, not here.
  */
 const PRODUCT_TYPE_ICONS: Record<string, LucideIcon> = {
-  flower: Sprout,
-  concentrate: Droplets,
-  avb: Cloud,
-  edible: Cookie,
-  topical: Pill,
+  brownies: Cookie,
+  gummies: Cookie,
+  capsules: Pill,
+  tincture: Droplets,
+  salve: Cloud,
 }
 
 export const PRODUCT_TYPE_OPTIONS: ReadonlyArray<{
-  id: 'flower' | 'concentrate' | 'avb' | 'edible' | 'topical'
+  id: 'brownies' | 'gummies' | 'capsules' | 'tincture' | 'salve'
   title: string
   tooltip: string
 }> = [
   {
-    id: 'flower',
-    title: 'From raw flower',
+    id: 'brownies',
+    title: 'Brownies',
     tooltip:
-      'You have raw, unprocessed cannabis flower and want to decarboxylate it (heat it to activate the THC) before infusing or dosing.',
+      'Classic chocolate brownies infused with cannabis coconut oil. The workhorse recipe — straightforward, hard to mess up.',
   },
   {
-    id: 'concentrate',
-    title: 'From concentrate or hash',
+    id: 'gummies',
+    title: 'Gummies',
     tooltip:
-      'You have a concentrated form of cannabis — kief, hash, wax, shatter, RSO. Skip the decarb step.',
+      'Fruit-flavored gummies made with infused oil + gelatin + juice. Set in a silicone mold, 4–6 mg per piece.',
   },
   {
-    id: 'avb',
-    title: 'From already-used flower (AVB)',
+    id: 'capsules',
+    title: 'Capsules',
     tooltip:
-      "AVB = 'Already Vaped Bud'. The material left in a dry-herb vaporizer after a session. Already decarboxylated; just needs a carrier.",
+      'Size 00 capsules filled with infused coconut oil. Quick to make, easy to dose by the pill.',
   },
   {
-    id: 'edible',
-    title: 'For an edible or recipe',
+    id: 'tincture',
+    title: 'Tincture',
     tooltip:
-      'Decarb + infuse into a fat or oil, then dose into your recipe (brownies, gummies, capsules, etc.).',
+      'Alcohol-based drops, sublingual. Best for AVB or quick onset. Long shelf life, dose by the dropper.',
   },
   {
-    id: 'topical',
-    title: 'For a skin or topical product',
+    id: 'salve',
+    title: 'Salve',
     tooltip:
-      'Infuse into a carrier oil for a salve, lotion, or balm applied to the skin. No decarb needed.',
+      'Topical for joints, muscles, skin. Carrier oil + beeswax, melts and sets. No decarb needed.',
   },
 ]
 
@@ -97,23 +107,47 @@ export const PRODUCT_TYPE_OPTIONS: ReadonlyArray<{
  * The product-type step. Shown to every branch (no skipIf predicate).
  * The options are static — no per-state filtering yet (week 2 may
  * need to re-order based on commonality).
+ *
+ * The selected option id is the end-product id (e.g. 'brownies'),
+ * not the branch id. The coverflow component maps end-product →
+ * branch via its own table.
  */
 export const productTypeStep: WizardStep = {
   id: 'product-type',
   title: 'What are you making?',
   description:
-    'Pick the starting material. This routes the rest of the wizard down the right path.',
+    'Pick the end product. The wizard routes the rest of the recipe down the right path.',
   getOptions: (_state: WizardState): WizardOption[] =>
     PRODUCT_TYPE_OPTIONS.map(opt => ({
       id: opt.id,
       title: opt.title,
       subtitle: '', // product type uses the tooltip for plain-language
-      icon: PRODUCT_TYPE_ICONS[opt.id] ?? Sprout,
+      icon: PRODUCT_TYPE_ICONS[opt.id] ?? Cookie,
       tooltip: opt.tooltip,
     })),
-  // The product-type step's "selection" is the branch id, not a
-  // key in `selections`. We read it directly from `state.branch`.
-  getSelectedOptionId: (state: WizardState) => state.branch,
+  /**
+   * Map `state.branch` back to an end-product id so the coverflow
+   * shows the right face as the initial center on re-edit.
+   *
+   * The mapping is many-to-one (3 end products → edible branch) so
+   * we default to the first end product for any branch with multiple
+   * end products. A future iteration will add `endProduct` to the
+   * wizard state to make this lossless.
+   */
+  getSelectedOptionId: (state: WizardState) => {
+    switch (state.branch) {
+      case 'flower':
+      case 'concentrate':
+      case 'edible':
+        return 'brownies'
+      case 'avb':
+        return 'tincture'
+      case 'topical':
+        return 'salve'
+      default:
+        return null
+    }
+  },
 }
 
 /* ------------------------------------------------------------------ */

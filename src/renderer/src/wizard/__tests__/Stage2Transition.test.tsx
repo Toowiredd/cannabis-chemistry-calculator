@@ -34,6 +34,7 @@ import {
 } from '../../stores/appStore'
 import { HeatmapStep } from '../../components/execution/HeatmapStep'
 import { PreheatStep } from '../../components/execution/PreheatStep'
+import type { WizardState } from '../wizardTypes'
 
 /* ------------------------------------------------------------------ */
 /* Test helpers                                                        */
@@ -144,20 +145,36 @@ describe('WizardScreen — Stage 1 default', () => {
 describe('WizardScreen — Begin batch transitions to Stage 2', () => {
   it('mounts the stepper with the Flower oven_sealed preheat step after Begin batch', () => {
     enableWizard()
-    render(<WizardScreen />)
-    // Walk the Flower branch in full ("with infusion" path) so
-    // the test mirrors the brief's path verbatim: product-type
-    // → method → container → weight → efficiency → fat → volume
-    // → start.
-    fireEvent.click(screen.getByTestId('option-tile-flower'))
-    fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
-    fireEvent.click(screen.getByTestId('option-tile-quart'))
-    fireEvent.click(screen.getByTestId('option-tile-g-7'))
-    fireEvent.click(screen.getByTestId('option-tile-eff-90'))
-    fireEvent.click(screen.getByTestId('option-tile-coconut'))
-    fireEvent.click(screen.getByTestId('option-tile-mL-240'))
-    // The user is now on the Start step. The "Begin batch"
-    // CTA section is visible.
+    // The Stage 2 builder only returns steps for the Flower
+    // branch (the Edible / AVB / Topical / Concentrate branch
+    // Stage 2 work is scoped in the architecture but not
+    // implemented in the current build — see
+    // `stage2Steps.ts:175-183`). Slide 1 of the v2.2 model
+    // collapsed the coverflow from "starting material"
+    // (Flower / Concentrate / AVB / Edible / Topical) to
+    // "end product" (Brownies / Gummies / Capsules / Tincture
+    // / Salve), so the Flower branch is no longer reachable
+    // from the coverflow in the UI. The Stage 2 tests
+    // position the wizard at the Start step with a Flower
+    // branch + full selections via the `initialState` prop
+    // (test-only — production code does not pass it) so the
+    // Stage 2 stepper is exercised end-to-end without
+    // coupling the test to the coverflow's entry surface.
+    const initialState: WizardState = {
+      branch: 'flower',
+      currentStep: 7, // Start step in the 8-step Flower-with-infusion sequence.
+      selections: {
+        method: 'oven_sealed',
+        container: 'quart',
+        weight: { value: 7, unit: 'g' },
+        efficiency: 0.9,
+        fat: 'coconut',
+        volume: { value: 240, unit: 'mL' },
+      },
+    }
+    render(<WizardScreen initialState={initialState} />)
+    // The user is on the Start step. The "Begin batch" CTA
+    // section is visible.
     expect(screen.getByTestId('wizard-begin-section')).toBeTruthy()
     fireEvent.click(screen.getByTestId('wizard-begin-cta'))
     // Stage 2 mounted.
@@ -206,19 +223,23 @@ describe('WizardScreen — Begin batch transitions to Stage 2', () => {
 describe('WizardScreen — Stage 2 advance', () => {
   it('advancing past the preheat step reveals the heatmap step', () => {
     enableWizard()
-    render(<WizardScreen />)
-    // Walk the shortest Flower path that lands on the Start
-    // step: "no infusion" skips the Volume step, so 6 taps
-    // instead of 7. The "no infusion" path still has a method
-    // selection (oven_sealed), which is what the Stage 2
-    // builder needs to look up the target temp.
-    fireEvent.click(screen.getByTestId('option-tile-flower'))
-    fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
-    fireEvent.click(screen.getByTestId('option-tile-quart'))
-    fireEvent.click(screen.getByTestId('option-tile-g-7'))
-    fireEvent.click(screen.getByTestId('option-tile-eff-90'))
-    fireEvent.click(screen.getByTestId('option-tile-none'))
-    // Volume is auto-skipped; Start is now the next active step.
+    // See Test 2's comment for the rationale on using
+    // `initialState` to position the wizard at the Start
+    // step with a Flower branch (the only branch whose
+    // Stage 2 path is built today).
+    const initialState: WizardState = {
+      branch: 'flower',
+      currentStep: 7, // Start step.
+      selections: {
+        method: 'oven_sealed',
+        container: 'quart',
+        weight: { value: 7, unit: 'g' },
+        efficiency: 0.9,
+        fat: 'coconut',
+        volume: { value: 100, unit: 'mL' },
+      },
+    }
+    render(<WizardScreen initialState={initialState} />)
     expect(screen.getByTestId('step-card-start-active')).toBeTruthy()
     fireEvent.click(screen.getByTestId('wizard-begin-cta'))
     // Stage 2 mounted on the preheat step. Assert via the
@@ -242,7 +263,17 @@ describe('WizardScreen — Stage 2 advance', () => {
     // The preheat's "I'm ready" CTA fires the stepper's
     // onComplete, which the WizardScreen wires to
     // `completeExecutionStep('preheat-decarb', 'heatmap-decarb')`.
-    fireEvent.click(screen.getByTestId('preheat-step-ready'))
+    // The with-infusion path renders BOTH a preheat-decarb and
+    // a preheat-infusion shell at the same time (Week 5), so
+    // `preheat-step-ready` matches 2 elements on the global
+    // `screen`; scope the click to the preheat-decarb shell
+    // via `within`.
+    const preheatDecarbShellForReady = screen.getByTestId(
+      'execution-step-preheat-decarb-shell'
+    )
+    fireEvent.click(
+      within(preheatDecarbShellForReady).getByTestId('preheat-step-ready')
+    )
     // The preheat collapses to its completed summary.
     expect(
       screen.getByTestId('execution-step-preheat-decarb-complete')

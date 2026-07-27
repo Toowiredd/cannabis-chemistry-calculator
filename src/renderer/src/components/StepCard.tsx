@@ -9,10 +9,10 @@
  *  - **Collapsed-with-selection (done):** green check + the chosen
  *    option, tap to re-edit.
  *
- * The option carousel inside the active card is a horizontal
- * scroll-snap of `<OptionTile>` cards. For Week 1, "Confirm" is
- * a single button that fires `onConfirm`; week 2+ may need a
- * disabled-until-validation gate.
+ * The product-type step (step 0, id='product-type') renders a
+ * 3D coverflow of 5 end-product faces (`EndProductCoverflow`)
+ * instead of the horizontal scroll-snap `<OptionTile>` row. The
+ * rest of the wizard's steps use the scroll-snap row.
  */
 import { useId } from 'react'
 import { cn } from 'renderer/lib/utils'
@@ -20,6 +20,7 @@ import { Check, ChevronDown, ChevronRight, Pencil } from 'lucide-react'
 import { GlassCard } from './GlassCard'
 import { OptionTile } from './OptionTile'
 import { ProductTypeTooltip } from './ProductTypeTooltip'
+import { EndProductCoverflow } from './EndProductCoverflow'
 import type {
   WizardOption,
   WizardState,
@@ -156,11 +157,26 @@ export function StepCard({
           ) : null}
         </header>
 
-        {/* Option carousel — horizontal scroll-snap. Each tile is
-            an OptionTile. For step 0 (product type) the ProductTypeTooltip
-            is appended below the tile (per §8.4). For other steps
-            the tile's own tooltip / subtitle is the affordance. */}
-        {options.length > 0 ? (
+        {/* Product-type step: render the 3D coverflow of 5 end-product
+            faces (Brownies / Gummies / Capsules / Tincture / Salve)
+            per the v2.2 mockup. The end product maps to a starting-
+            material branch via `EndProductCoverflow`'s own table;
+            the coverflow's onSelect callback fires with the branch id
+            which the wizard's existing handler interprets correctly. */}
+        {step.id === 'product-type' ? (
+          <EndProductCoverflow
+            initialId={
+              (selectedOptionId as
+                | 'brownies'
+                | 'gummies'
+                | 'capsules'
+                | 'tincture'
+                | 'salve'
+                | null) ?? undefined
+            }
+            onSelect={(_endProductId, branch) => onConfirm(branch)}
+          />
+        ) : options.length > 0 ? (
           <div
             aria-label={`${step.title} options`}
             className="flex gap-2 overflow-x-auto pb-2 [scroll-snap-type:x_mandatory] [scrollbar-width:thin]"

@@ -269,29 +269,29 @@ describe('WizardScreen — Begin batch happy path', () => {
 
     render(<WizardScreen />)
 
-    // Walk the Flower no-infusion path: the same
-    // sequence the existing `Stage2Recalculating.test.tsx`
-    // uses. Six tile clicks take the user from
-    // product-type picker to the Start step. The Volume
-    // step is auto-skipped (the `fat: null` smart-skip
-    // rule), so the Start step is reached after the
-    // fat:null selection.
-    fireEvent.click(screen.getByTestId('option-tile-flower'))
+    // Walk the Brownies (edible) branch — the end-product
+    // that maps to the edible branch in v2. Seven tile
+    // clicks take the user from product-type picker to
+    // the Start step: Method → Container → Weight → Fat
+    // → Volume → Servings. The Edible branch has no
+    // Efficiency step and no "No infusion" tile (those
+    // were Flower-only), so the test walks the canonical
+    // "with infusion" path.
+    fireEvent.click(screen.getByTestId('end-product-face-brownies'))
     fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
     fireEvent.click(screen.getByTestId('option-tile-quart'))
     fireEvent.click(screen.getByTestId('option-tile-g-7'))
-    fireEvent.click(screen.getByTestId('option-tile-eff-90'))
-    fireEvent.click(screen.getByTestId('option-tile-none'))
+    fireEvent.click(screen.getByTestId('option-tile-coconut'))
+    fireEvent.click(screen.getByTestId('option-tile-mL-100'))
+    fireEvent.click(screen.getByTestId('option-tile-s-12'))
     expect(screen.getByTestId('step-card-start-active')).toBeTruthy()
     expect(screen.getByTestId('wizard-begin-cta')).toBeTruthy()
 
-    // Click "Begin batch". The validation passes (the
-    // no-infusion path is canonical — method, container,
-    // weight, efficiency are all set, fat:null is the
-    // documented "no infusion" sentinel), the
-    // validationError state stays null, and
-    // `beginExecution` is called with the Flower's
-    // first Stage 2 step.
+    // Click "Begin batch". The validation passes (all
+    // required selections are set for the Brownies →
+    // edible branch), the validationError state stays
+    // null, and `beginExecution` is called with the
+    // edible branch's first Stage 2 step.
     fireEvent.click(screen.getByTestId('wizard-begin-cta'))
 
     // No validation error rendered.

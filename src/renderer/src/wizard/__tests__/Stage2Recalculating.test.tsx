@@ -250,13 +250,14 @@ describe('WizardScreen — in-flight Stage 2 re-edit (§8.1)', () => {
     // Walk the Flower branch ("no infusion" path — shorter,
     // still selects oven_sealed so the Stage 2 builder has a
     // valid method).
-    fireEvent.click(screen.getByTestId('option-tile-flower'))
+    fireEvent.click(screen.getByTestId('end-product-face-brownies'))
     fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
     fireEvent.click(screen.getByTestId('option-tile-quart'))
     fireEvent.click(screen.getByTestId('option-tile-g-7'))
-    fireEvent.click(screen.getByTestId('option-tile-eff-90'))
-    fireEvent.click(screen.getByTestId('option-tile-none'))
-    // Volume auto-skipped; Start is the next active step.
+    fireEvent.click(screen.getByTestId('option-tile-coconut'))
+    fireEvent.click(screen.getByTestId('option-tile-mL-100'))
+    fireEvent.click(screen.getByTestId('option-tile-s-12'))
+    // Start is the next active step.
     expect(screen.getByTestId('step-card-start-active')).toBeTruthy()
     // Begin batch → Stage 2 mounts.
     fireEvent.click(screen.getByTestId('wizard-begin-cta'))
@@ -335,7 +336,7 @@ describe('WizardScreen — Stage 1 re-edit (Stage 2 not active)', () => {
     // product-type step is `collapsed-with-selection` and
     // re-editing it is the canonical "I want to switch
     // branches" affordance.
-    fireEvent.click(screen.getByTestId('option-tile-flower'))
+    fireEvent.click(screen.getByTestId('end-product-face-brownies'))
     fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
     // The product-type step is the re-edit target.
     const productTypeReEditButton = screen.getByTestId(

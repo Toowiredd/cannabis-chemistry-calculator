@@ -66,7 +66,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 
 import { WizardScreen } from '../WizardScreen'
 import { buildExecutionSteps, STAGE2_STEP_IDS } from '../stage2Steps'
-import type { WizardSelections } from '../wizardTypes'
+import type { WizardSelections, WizardState } from '../wizardTypes'
 import {
   DEFAULT_EXECUTION_STEP_STATE,
   DEFAULT_DECARB,
@@ -290,33 +290,30 @@ describe('WizardScreen — completion save flow (Week 5 §8.2)', () => {
       setRecipeJournalEntry: linkSpy,
     })
 
-    render(<WizardScreen />)
-
-    // Walk the Flower branch with an infusion path.
-    // The branch sequence is product-type → method →
-    // container → weight → efficiency → fat (coconut —
-    // NOT 'none', so the volume + servings steps are
-    // NOT smart-skipped) → volume (100 mL) → servings
-    // (10) → start. The Start step is the terminal
-    // "Begin batch" CTA; tapping it calls
-    // `beginExecution('preheat-decarb')` on the store
-    // and mounts the Stage 2 stepper.
-    fireEvent.click(screen.getByTestId('option-tile-flower'))
-    fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
-    fireEvent.click(screen.getByTestId('option-tile-quart'))
-    fireEvent.click(screen.getByTestId('option-tile-g-7'))
-    fireEvent.click(screen.getByTestId('option-tile-eff-90'))
-    // Fat = coconut (NOT 'none'). The Volume step renders
-    // next (the §3.1 smart-skip filter only skips Volume
-    // when fat === null).
-    fireEvent.click(screen.getByTestId('option-tile-coconut'))
-    fireEvent.click(screen.getByTestId('option-tile-mL-100'))
-    // The Flower branch has no Servings step (per
-    // `branchSequences.ts:62-71` — the canonical Flower
-    // sequence is productType → method → container →
-    // weight → efficiency → fat → volume → start). The
-    // next active step IS the Start step. The "Begin
-    // batch" CTA is visible.
+    // The Stage 2 builder only returns steps for the Flower
+    // branch (see `stage2Steps.ts:175-183`); the slide-1
+    // coverflow collapsed starting-material options into
+    // end-product options, so the Flower branch is no longer
+    // reachable from the coverflow. We position the wizard
+    // at the Start step with a Flower branch + full
+    // selections via the `initialState` prop (test-only,
+    // see Stage2Transition.test.tsx for the full rationale).
+    // The selections are the canonical §8.5 default-name
+    // fixtures (oven_sealed + 7g + coconut) so the
+    // `validateWizardSelections` Begin-batch gate passes.
+    const initialState: WizardState = {
+      branch: 'flower',
+      currentStep: 7, // Start step in the 8-step Flower-with-infusion sequence.
+      selections: {
+        method: 'oven_sealed',
+        container: 'quart',
+        weight: { value: 7, unit: 'g' },
+        efficiency: 0.9,
+        fat: 'coconut',
+        volume: { value: 100, unit: 'mL' },
+      },
+    }
+    render(<WizardScreen initialState={initialState} />)
     expect(screen.getByTestId('step-card-start-active')).toBeTruthy()
     // Pre-condition: no journal entries, no recipes, no
     // execution entered.

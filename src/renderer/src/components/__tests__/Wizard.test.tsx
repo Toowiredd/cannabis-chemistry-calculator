@@ -73,12 +73,13 @@ describe('Wizard — feature flag', () => {
     // The product-type step is active at step 0. The active
     // StepCard has testid `step-card-product-type-active`.
     expect(screen.getByTestId('step-card-product-type-active')).toBeTruthy()
-    // All 5 product-type options are rendered as tiles.
-    expect(screen.getByTestId('option-tile-flower')).toBeTruthy()
-    expect(screen.getByTestId('option-tile-concentrate')).toBeTruthy()
-    expect(screen.getByTestId('option-tile-avb')).toBeTruthy()
-    expect(screen.getByTestId('option-tile-edible')).toBeTruthy()
-    expect(screen.getByTestId('option-tile-topical')).toBeTruthy()
+    // Per the v2.2 mockup: the product-type step renders a 3D
+    // coverflow of 5 end-product faces (Brownies / Gummies /
+    // Capsules / Tincture / Salve).
+    expect(screen.getByTestId('end-product-coverflow')).toBeTruthy()
+    for (const id of ['brownies', 'gummies', 'capsules', 'tincture', 'salve']) {
+      expect(screen.getByTestId(`end-product-face-${id}`)).toBeTruthy()
+    }
   })
 })
 
@@ -139,7 +140,12 @@ describe('Wizard — callbacks', () => {
         state={DEFAULT_WIZARD_STATE}
       />
     )
-    fireEvent.click(screen.getByTestId('option-tile-flower'))
-    expect(captured).toEqual({ stepId: 'product-type', optionId: 'flower' })
+    // Per the v2.2 mockup: the product-type step renders a 3D
+    // coverflow of 5 end-product faces. Each face's onSelect
+    // returns the END-PRODUCT branch id (not the end-product id)
+    // so the wizard's onSelect handler can set `state.branch`
+    // without further mapping. Brownies → 'edible' branch.
+    fireEvent.click(screen.getByTestId('end-product-face-brownies'))
+    expect(captured).toEqual({ stepId: 'product-type', optionId: 'edible' })
   })
 })
