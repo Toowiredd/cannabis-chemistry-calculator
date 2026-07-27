@@ -6,6 +6,16 @@
  * for slides 2+ in the wizard. The user wants the same carousel
  * treatment on every step, not just slide 1.
  *
+ * Slide 7 of v2.2 (2026-07-27): face dimensions and side-face
+ * offsets are now CSS custom properties (`--carousel-face-width`,
+ * `--carousel-face-height`, `--carousel-offset-l1`, etc.) using
+ * `clamp()` for fluid responsive sizing. The carousel scales with
+ * the viewport: small screens get smaller faces + tighter
+ * spacing; large screens get bigger faces + more breathing room.
+ * The face's content layout (icon + title + subtitle, etc.) is
+ * the caller's responsibility — this component only owns the
+ * 3D geometry.
+ *
  * Visual: items in a perspective container, 1 center + 2 left +
  * 2 right peek. The center item is fully visible; side items
  * are rotated around the Y axis, dimmed, and pulled back. Click
@@ -55,10 +65,18 @@ export interface CarouselProps<T> {
   getItemAriaLabel?: (item: T, index: number) => string
   /** Perspective in pixels. Default 1400 (matches the v2.2 mockup). */
   perspective?: number
-  /** Face width in pixels. Default 240. */
-  faceWidth?: number
-  /** Face height in pixels. Default 300. */
-  faceHeight?: number
+  /**
+   * Face width — used as the base for responsive `clamp()`.
+   * The default 240px is the coverflow size. The OptionCarousel
+   * passes 220 for its smaller faces. The actual rendered width
+   * scales with the viewport via `clamp(0.6 * base, 22vw, 1.2 * base)`.
+   */
+  baseFaceWidth?: number
+  /**
+   * Face height — used as the base for responsive `clamp()`.
+   * Default 300 (coverflow). OptionCarousel uses 180.
+   */
+  baseFaceHeight?: number
   /** aria-label for the radiogroup. */
   ariaLabel?: string
   /**
@@ -100,8 +118,8 @@ export function Carousel<T>({
   getItemTestId,
   getItemAriaLabel,
   perspective = 1400,
-  faceWidth = 240,
-  faceHeight = 300,
+  baseFaceWidth = 240,
+  baseFaceHeight = 300,
   ariaLabel = 'Carousel',
   wrap = true,
   faceClassName,
@@ -157,6 +175,33 @@ export function Carousel<T>({
     }
   }
 
+  // Slide 7: face dimensions + side-face offsets are CSS
+  // custom properties so the carousel scales fluidly with the
+  // viewport. `clamp(min, fluid, max)` keeps the carousel
+  // readable on phone-sized screens (down to ~360px wide) and
+  // proportionally larger on desktop (up to ~1400px).
+  //
+  // The face width is the base for the side-face offsets: the
+  // coverflow uses a 1.0× / 1.7× ratio (the v2.2 mockup
+  // proportion), the option carousel uses 1.05× / 1.7× (slightly
+  // wider l-1 to accommodate the option tile content).
+  const faceWidthCss = `clamp(${Math.round(baseFaceWidth * 0.7)}px, ${Math.round(baseFaceWidth * 0.22)}vw, ${Math.round(baseFaceWidth * 1.15)}px)`
+  const faceHeightCss = `clamp(${Math.round(baseFaceHeight * 0.7)}px, ${Math.round(baseFaceHeight * 0.22)}vw, ${Math.round(baseFaceHeight * 1.15)}px)`
+  // Offsets proportional to the (clamped) face width. The 1.0×
+  // and 1.7× multipliers match the v2.2 mockup's spacing
+  // proportion; the offsets are scaled with the face width so
+  // a smaller face gets tighter spacing and a larger face gets
+  // more breathing room.
+  const offsetL1Css = `calc(${faceWidthCss} * 1.0)`
+  const offsetL2Css = `calc(${faceWidthCss} * 1.7)`
+
+  const containerVars = {
+    '--carousel-face-width': faceWidthCss,
+    '--carousel-face-height': faceHeightCss,
+    '--carousel-offset-l1': offsetL1Css,
+    '--carousel-offset-l2': offsetL2Css,
+  } as CSSProperties
+
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <div
@@ -172,8 +217,9 @@ export function Carousel<T>({
           aria-hidden="false"
           className="relative mx-auto"
           style={{
-            width: `${faceWidth}px`,
-            height: `${faceHeight}px`,
+            ...containerVars,
+            width: 'var(--carousel-face-width)',
+            height: 'var(--carousel-face-height)',
             transformStyle: 'preserve-3d',
           }}
         >
@@ -238,12 +284,18 @@ export function Carousel<T>({
 /**
  * Slide 6 spacing — the user said the coverflow faces were
  * "too tightly bunched up". The v2.2 mockup used ±170px /
- * ±300px; that's the original CSS in the EndProductCoverflow
- * component, but the user is looking at the live deployment
- * and it reads as cramped. Increase to ±210px / ±360px (and
- * pull the side faces a bit further back) so the carousel
- * reads as a deck of cards with deliberate breathing room
- * between them.
+ * ±300px; the original EndProductCoverflow component used
+ * the same values, but the user is looking at the live
+ * deployment and it reads as cramped.
+ *
+ * Slide 7 (2026-07-27): the offsets are now derived from
+ * `--carousel-face-width` via `calc()`, so the spacing
+ * scales with the face size. A smaller face on a phone
+ * gets tighter spacing; a larger face on a desktop gets
+ * more breathing room. The translateZ values stay fixed
+ * because they're perspective-relative (the perspective
+ * container's `perspective: 1400px` makes them feel right
+ * at any face size).
  */
 function faceTransform(wrapped: number, isCenter: boolean): CSSProperties {
   const base: CSSProperties = {
@@ -262,28 +314,32 @@ function faceTransform(wrapped: number, isCenter: boolean): CSSProperties {
     case -2:
       return {
         ...base,
-        transform: 'translateX(-360px) translateZ(-220px) rotateY(35deg)',
+        transform:
+          'translateX(calc(-1 * var(--carousel-offset-l2))) translateZ(-220px) rotateY(35deg)',
         opacity: 0.32,
         zIndex: 1,
       }
     case -1:
       return {
         ...base,
-        transform: 'translateX(-210px) translateZ(-90px) rotateY(22deg)',
+        transform:
+          'translateX(calc(-1 * var(--carousel-offset-l1))) translateZ(-90px) rotateY(22deg)',
         opacity: 0.62,
         zIndex: 2,
       }
     case 1:
       return {
         ...base,
-        transform: 'translateX(210px) translateZ(-90px) rotateY(-22deg)',
+        transform:
+          'translateX(var(--carousel-offset-l1)) translateZ(-90px) rotateY(-22deg)',
         opacity: 0.62,
         zIndex: 2,
       }
     case 2:
       return {
         ...base,
-        transform: 'translateX(360px) translateZ(-220px) rotateY(-35deg)',
+        transform:
+          'translateX(var(--carousel-offset-l2)) translateZ(-220px) rotateY(-35deg)',
         opacity: 0.32,
         zIndex: 1,
       }

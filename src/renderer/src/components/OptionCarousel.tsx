@@ -64,8 +64,8 @@ export function OptionCarousel({
   return (
     <Carousel
       ariaLabel={ariaLabel}
-      faceHeight={180}
-      faceWidth={220}
+      baseFaceHeight={180}
+      baseFaceWidth={220}
       getItemAriaLabel={option => option.title}
       getItemTestId={option => `option-tile-${option.id}`}
       initialIndex={initialIndex}

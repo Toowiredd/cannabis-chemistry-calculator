@@ -341,8 +341,25 @@ export function MainScreen() {
           {/* Layer 0: Background animation filling the panel */}
           <TransformationCanvas />
 
-          {/* Layer 1: Strong glass surface (GlassCard's glass-strong classes) */}
-          <div className="absolute inset-0 z-[1] glass-strong" />
+          {/* Layer 1: Strong glass surface (GlassCard's glass-strong classes).
+              Slide 7 of v2.2 (2026-07-27): when the wizard is the active
+              surface (`wizardEnabled: true`), this glass layer drops to
+              0 opacity. The user said the outer wizard panel was still
+              "an opaque glass panel in the way" after the active step's
+              GlassCard was removed — this layer was the remaining
+              culprit. The legacy GroupedTabNav still gets the glass
+              treatment (it's a tab nav, the glass there reads as a
+              content surface). The wizard gets the bare page background
+              so the carousel + the radial-gradient blobs are the only
+              visual elements. */}
+          <div
+            className={cn(
+              'absolute inset-0 z-[1] transition-opacity duration-300',
+              wizardEnabled
+                ? 'opacity-0'
+                : 'opacity-100 glass-strong'
+            )}
+          />
 
           {/* Layer 2: Content above glass */}
           <div className="relative z-[2] h-full min-w-0 p-3 sm:p-6">
