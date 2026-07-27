@@ -64,7 +64,7 @@ import {
 import { DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
 import { calculateInfusedThc } from 'renderer/src/engine/infusion'
 import { calculateMgPerServing } from 'renderer/src/engine/dosing'
-import { calculateBagVolume } from 'renderer/src/engine/bagVolume'
+import { calculateBagVolume, getRequiredBagLengthCm } from 'renderer/src/engine/bagVolume'
 import { END_PRODUCT_TO_BRANCH, type EndProductId } from 'renderer/src/components/EndProductCoverflow'
 
 export interface WizardScreenProps {
@@ -253,13 +253,31 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
           }
         }
         case 'container': {
-          // v2.2 (kept for commit 2's typecheck): the
-          // Container step is still a custom input form. The
-          // form's onConfirm fires with the encoded id
-          // `custom-{w}-{l}-{d}` where each value is the
-          // engine's cm measurement. Commit 3 replaces this
-          // with the v2.3 2-width carousel (`vac-19` /
-          // `vac-28`).
+          // v2.3 (commit 3): the Container step is a
+          // 2-width carousel. The user picks `vac-19` or
+          // `vac-28`; the wizard stores the width in
+          // `selections.containerWidthCm` and the optionId
+          // in `selections.container` (for backward compat
+          // with the engine tests + the BAG_PRESETS lookup
+          // paths). The bag length is computed separately
+          // by the engine once the weight is set (see
+          // `getRequiredBagLengthCm` in `engine/bagVolume.ts`).
+          const vacMatch = /^vac-(\d+)$/.exec(optionId)
+          if (vacMatch) {
+            const widthCm = Number.parseInt(vacMatch[1] ?? '0', 10)
+            return {
+              selections: {
+                container: optionId,
+                containerWidthCm: widthCm,
+              },
+            }
+          }
+          // v2.2 (kept for backward compat with the engine
+          // tests + the legacy BAG_PRESETS lookup paths):
+          // the custom-input form's onConfirm fires with
+          // `custom-{w}-{l}-{d}`. The decoder still parses
+          // it for callers that haven't migrated yet, but
+          // the v2.3 wizard UI never produces this shape.
           const customMatch = /^custom-(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)$/.exec(
             optionId
           )
@@ -284,7 +302,7 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
               },
             }
           }
-          // Legacy preset ids (gallon / quart / vac-19 / vac-28).
+          // Legacy preset ids (gallon / quart).
           return { selections: { container: optionId } }
         }
         case 'fat': {
@@ -403,6 +421,21 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
         // material's downstream selections.)
         if (stepId === 'product-type' || stepId === 'material') {
           next.selections = { ...decoded.selections }
+        }
+        // v2.3 (commit 3): recompute the bag length
+        // whenever both the weight and the width are set.
+        // The engine's `getRequiredBagLengthCm` derives
+        // the length from the material volume + bag
+        // width. Re-derived on every selection (not just
+        // the weight step) so re-editing the width also
+        // updates the length.
+        const weightG = next.selections.weight?.value ?? 0
+        const widthCm = next.selections.containerWidthCm
+        if (weightG > 0 && (widthCm === 19 || widthCm === 28)) {
+          next.selections.containerLengthCm = getRequiredBagLengthCm(
+            weightG,
+            widthCm
+          )
         }
         // Compute the next step id via the DAG. The DAG
         // IS the smart-skip — it returns the right step

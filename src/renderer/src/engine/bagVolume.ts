@@ -211,3 +211,54 @@ export function selectBestBag(
   })
   return { best: scored[0].bag, alternative: null }
 }
+
+/**
+ * Compute the minimum bag length (in cm) for a given material
+ * weight + bag width. Used by the v2.3 Container step to
+ * auto-derive the bag length from the user's amount (the
+ * user only picks the width; the engine figures out the
+ * length once the weight is known).
+ *
+ * Formula:
+ *   materialVolumeCm3 = grams * grindCm3PerGram
+ *   targetFillDepthCm = 0.5 (a thin layer for decarb)
+ *   lengthCm = materialVolumeCm3 / (widthCm * targetFillDepthCm)
+ *
+ * The fill depth is the canonical "spread the material thin
+ * for even decarb" heuristic — 0.5 cm is roughly 1/4" and
+ * gives a single-layer spread for typical decarb workflows.
+ * The result is rounded UP to the nearest cm so the user
+ * has a bag that's at least long enough (a 0.3cm-short bag
+ * would leave the material bunched at the seal).
+ *
+ * Default grind factor: 1.5 cm³/g. This is a mid-range
+ * estimate for medium-grind cannabis flower (the v2.3 wizard
+ * doesn't ask for grind level; the user can manually adjust
+ * the bag length on re-edit if their grind is finer or
+ * coarser).
+ *
+ * @param weightG Material weight in grams
+ * @param widthCm Bag width in cm (19 or 28)
+ * @param grindCm3PerGram Optional bulk density factor (default 1.5)
+ * @returns Minimum bag length in cm, rounded up to whole cm
+ */
+export function getRequiredBagLengthCm(
+  weightG: number,
+  widthCm: number,
+  grindCm3PerGram: number = 1.5
+): number {
+  if (weightG < 0) {
+    throw new ValidationError('weightG cannot be negative')
+  }
+  if (widthCm <= 0) {
+    throw new ValidationError('widthCm must be positive')
+  }
+  if (grindCm3PerGram < 0) {
+    throw new ValidationError('grindCm3PerGram cannot be negative')
+  }
+  if (weightG === 0) return 0
+  const materialVolumeCm3 = weightG * grindCm3PerGram
+  const targetFillDepthCm = 0.5
+  const lengthCm = materialVolumeCm3 / (widthCm * targetFillDepthCm)
+  return Math.ceil(lengthCm)
+}

@@ -319,44 +319,55 @@ const WEIGHT_PRESETS: ReadonlyArray<{
 ]
 
 /**
- * Container step — custom input form (v2.2).
+ * Container step — 2 vacuum bag widths (v2.3).
  *
- * The previous carousel of `BAG_PRESETS` (1 Gallon, 1 Quart,
- * etc.) was removed at the user's request: vacuum bags come
- * in many sizes and the user often uses non-standard
- * containers (mason jars, stasher bags, sous-vide pouches
- * from bulk rolls). The user types in their own width,
- * length, and depth in cm; the engine's
- * `calculateBagVolume` derives the volume in cm³; that
- * volume flows downstream to the Weight + Volume +
- * Servings steps via `selections.customContainer`.
+ * The user picks the bag width (19cm or 28cm); the engine
+ * derives the bag length from the material weight via
+ * `getRequiredBagLengthCm` (see `engine/bagVolume.ts`). The
+ * container is encoded as `vac-19` or `vac-28` and stored in
+ * `selections.container` + `selections.containerWidthCm`.
  *
- * `getOptions` returns `[]` because the StepCard renders the
- * `renderCustom` form in place of the carousel when the
- * step has a custom renderer. The two paths are mutually
- * exclusive — see the `WizardStep.renderCustom` field's
- * docstring in `wizardTypes.ts`.
+ * The previous v2.2 custom-input form (width/length/depth
+ * typed by the user) was removed in v2.3: vacuum bags come
+ * in standard widths (the 2 sizes here cover the typical
+ * home-decarb range, ~30g and ~80g respectively) and the
+ * length is purely a function of the material amount. The
+ * user picks the width, enters the weight, and the wizard
+ * tells them the bag length they need.
+ *
+ * The two tile subtitles give the user a sense of which
+ * width to pick (small batch vs large batch) without
+ * requiring them to know the bag inventory upfront.
  *
  * Used by: Flower (Method → Container), Edible (Method →
  * Container).
  */
 export const containerStep: WizardStep = {
   id: 'container',
-  title: 'Container dimensions',
+  title: 'Container size',
   description:
-    'Type in the width, length, and depth of the bag or container you will decarb in. The wizard calculates the volume from your measurements.',
-  getOptions: (_state: WizardState): WizardOption[] => [],
+    'Pick the vacuum bag width. The wizard calculates the bag length from your material amount.',
+  getOptions: (_state: WizardState): WizardOption[] => [
+    {
+      id: 'vac-19',
+      title: '19 cm vacuum bag',
+      subtitle: 'Standard width — fits small batches (up to ~30g).',
+    },
+    {
+      id: 'vac-28',
+      title: '28 cm vacuum bag',
+      subtitle: 'Wide width — fits larger batches (up to ~80g).',
+    },
+  ],
   getSelectedOptionId: (state: WizardState) => {
-    // The v2.2 custom input writes to
-    // `selections.customContainer`; legacy preset ids (e.g.
-    // 'gallon' / 'quart' from the old carousel) are kept
-    // in `selections.container` for the engine tests + the
-    // legacy data flows. The custom form is the canonical
-    // v2.2 path; the legacy branch is the no-op fallback
-    // for callers that haven't migrated yet.
-    const c = state.selections.customContainer
-    if (c) return `custom-${c.widthCm}-${c.lengthCm}-${c.depthCm}`
-    if (state.selections.container) return state.selections.container
+    if (state.selections.containerWidthCm === 19) return 'vac-19'
+    if (state.selections.containerWidthCm === 28) return 'vac-28'
+    // Legacy fallback — old selections that still use the
+    // raw `container` field. The wizard's UI no longer
+    // produces these, but the engine tests + the engine
+    // BAG_PRESETS lookup paths may still set them.
+    if (state.selections.container === 'vac-19') return 'vac-19'
+    if (state.selections.container === 'vac-28') return 'vac-28'
     return null
   },
 }
