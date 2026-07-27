@@ -64,7 +64,7 @@ import {
 import { DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
 import { calculateInfusedThc } from 'renderer/src/engine/infusion'
 import { calculateMgPerServing } from 'renderer/src/engine/dosing'
-import { calculateBagVolume, getRequiredBagLengthCm } from 'renderer/src/engine/bagVolume'
+import { getRequiredBagLengthCm } from 'renderer/src/engine/bagVolume'
 import { END_PRODUCT_TO_BRANCH, type EndProductId } from 'renderer/src/components/EndProductCoverflow'
 
 export interface WizardScreenProps {
@@ -289,37 +289,9 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
               },
             }
           }
-          // v2.2 (kept for backward compat with the engine
-          // tests + the legacy BAG_PRESETS lookup paths):
-          // the custom-input form's onConfirm fires with
-          // `custom-{w}-{l}-{d}`. The decoder still parses
-          // it for callers that haven't migrated yet, but
-          // the v2.3 wizard UI never produces this shape.
-          const customMatch = /^custom-(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)$/.exec(
-            optionId
-          )
-          if (customMatch) {
-            const widthCm = Number.parseFloat(customMatch[1] ?? '0')
-            const lengthCm = Number.parseFloat(customMatch[2] ?? '0')
-            const depthCm = Number.parseFloat(customMatch[3] ?? '0')
-            const volumeCm3 = calculateBagVolume(
-              widthCm,
-              lengthCm,
-              depthCm
-            )
-            return {
-              selections: {
-                container: optionId,
-                customContainer: {
-                  widthCm,
-                  lengthCm,
-                  depthCm,
-                  volumeCm3,
-                },
-              },
-            }
-          }
-          // Legacy preset ids (gallon / quart).
+          // Legacy preset ids (gallon / quart) are still
+          // accepted by the decoder for the engine tests
+          // + the BAG_PRESETS lookup paths.
           return { selections: { container: optionId } }
         }
         case 'name': {

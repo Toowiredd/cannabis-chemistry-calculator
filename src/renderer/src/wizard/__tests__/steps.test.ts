@@ -40,69 +40,53 @@ import type { WizardState } from '../wizardTypes'
 /** Minimal `WizardState` for tests that need a branch set. */
 const flowerState: WizardState = {
   branch: 'flower',
-  currentStep: 0,
+  currentStepId: 'material',
   selections: {},
 }
 
 const edibleState: WizardState = {
   branch: 'edible',
-  currentStep: 0,
+  currentStepId: 'material',
   selections: {},
 }
 
 const topicalState: WizardState = {
   branch: 'topical',
-  currentStep: 0,
+  currentStepId: 'material',
   selections: {},
 }
 
 describe('containerStep', () => {
-  it('returns an empty options list (the custom input form is the only path)', () => {
-    // v2.2 (2026-07-27): the Container step's preset carousel
-    // was replaced with a custom-input form. The step's
-    // `getOptions` returns `[]` so the StepCard renders the
-    // custom form (see `ContainerCustomInput.tsx`) in place of
-    // the option carousel. The empty list is the contract —
-    // the StepCard branches on `options.length > 0` to decide
-    // which path to render.
+  it('returns 2 vacuum bag widths (vac-19 and vac-28)', () => {
+    // v2.3 (2026-07-28): the Container step's custom-input
+    // form was replaced with a 2-width carousel. The user
+    // picks the width (19cm or 28cm); the engine derives the
+    // bag length from the material amount via
+    // `getRequiredBagLengthCm`. The step's `getOptions`
+    // returns the 2 width tiles for the OptionCarousel to
+    // render.
     const options = containerStep.getOptions(flowerState)
-    expect(options).toEqual([])
+    expect(options).toHaveLength(2)
+    const ids = options.map(o => o.id)
+    expect(ids).toEqual(['vac-19', 'vac-28'])
   })
 
-  it('encodes a custom container as custom-{w}-{l}-{d}', () => {
-    // The custom-input form's onConfirm fires with
-    // `custom-{w}-{l}-{d}` (the same `${step}-${value}` pattern
-    // the Weight / Volume / Servings / Potency steps use). The
-    // `getSelectedOptionId` reads from `selections.customContainer`
-    // and returns the matching encoded id so the wizard's re-edit
-    // path can find the right state.
-    const state: WizardState = {
+  it('encodes the container selection as the vac-{w} optionId', () => {
+    // The 2-width carousel's tile click fires
+    // `onConfirm('vac-19')` (or 'vac-28'). The step's
+    // getSelectedOptionId reads `selections.containerWidthCm`
+    // and returns the matching optionId so the wizard's
+    // re-edit path can find the right state.
+    const state19: WizardState = {
       ...flowerState,
-      selections: {
-        customContainer: {
-          widthCm: 30,
-          lengthCm: 40,
-          depthCm: 0.2,
-          volumeCm3: 240,
-        },
-      },
+      selections: { containerWidthCm: 19 },
     }
-    expect(containerStep.getSelectedOptionId?.(state)).toBe(
-      'custom-30-40-0.2'
-    )
-  })
-
-  it('encodes a legacy preset container id verbatim', () => {
-    // The legacy `BAG_PRESETS` path (gallon / quart / etc.) is
-    // preserved for engine tests + the legacy data flows. The
-    // decoder in `WizardScreen.tsx` returns
-    // `{ container: optionId }` for any id that doesn't match
-    // the `custom-{w}-{l}-{d}` pattern.
-    const state: WizardState = {
+    expect(containerStep.getSelectedOptionId?.(state19)).toBe('vac-19')
+    const state28: WizardState = {
       ...flowerState,
-      selections: { container: 'gallon' },
+      selections: { containerWidthCm: 28 },
     }
-    expect(containerStep.getSelectedOptionId?.(state)).toBe('gallon')
+    expect(containerStep.getSelectedOptionId?.(state28)).toBe('vac-28')
   })
 
   it('returns null when no container has been picked', () => {
@@ -280,12 +264,12 @@ describe('servingsStep', () => {
     expect(
       servingsStep.skipIf?.({
         branch: 'concentrate',
-        currentStep: 0,
+        currentStepId: 'material',
         selections: {},
       })
     ).toBe(false)
     expect(
-      servingsStep.skipIf?.({ branch: 'avb', currentStep: 0, selections: {} })
+      servingsStep.skipIf?.({ branch: 'avb', currentStepId: 'material', selections: {} })
     ).toBe(false)
   })
 })

@@ -32,7 +32,8 @@ const baseStep: WizardStep = {
 
 const baseState: WizardState = {
   branch: null,
-  currentStep: 0,
+  endProduct: null,
+  currentStepId: null,
   selections: {},
 }
 

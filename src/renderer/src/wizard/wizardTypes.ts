@@ -108,22 +108,6 @@ export interface WizardSelections {
    */
   container?: string
   /**
-   * Legacy v2.2 custom-input shape — `customContainer` was
-   * the v2.2 contract where the user typed in their own bag
-   * dimensions (width / length / depth in cm) and the wizard
-   * derived the volume. The v2.3 wizard replaces this with
-   * the 2-width carousel + `containerWidthCm` + the engine-
-   * computed `containerLengthCm`. Kept for commit 1's
-   * typecheck (StepCard.tsx still reads it on re-edit);
-   * commit 5 removes it.
-   */
-  customContainer?: {
-    widthCm: number
-    lengthCm: number
-    depthCm: number
-    volumeCm3: number
-  }
-  /**
    * Width of the chosen vacuum bag in cm. The 2-width carousel
    * (19cm / 28cm) sets this when the user taps a tile. The
    * engine's `getRequiredBagLengthCm(weight, width)` uses it
@@ -179,14 +163,11 @@ export interface WizardSelections {
  * `stepHistory` for back-button support, the Stage 2
  * routing).
  *
- * 2026-07-28 update (refactor): added `endProduct` and
- * `currentStepId` alongside the existing `branch` and
- * `currentStep` fields. The DAG's `getNextStep` (see
- * `wizardFlow.ts`) uses `endProduct` + `branch` + `selections`
- * to compute the next step id. The old `currentStep` index
- * is kept for commit 1 so the existing `WizardScreen` code
- * keeps typechecking; commit 2 replaces it with
- * `currentStepId` end-to-end.
+ * 2026-07-28 update: the `currentStep` (numeric index)
+ * field is dropped in commit 5. The DAG's `getNextStep`
+ * (see `wizardFlow.ts`) computes the step id on every
+ * render; `currentStepId` is the canonical source of truth.
+ * `null` means the wizard is finished (Stage 2 is mounted).
  */
 export interface WizardState {
   /** The user's end product (Baked / Gummies / Capsules /
@@ -195,15 +176,9 @@ export interface WizardState {
   /** The user's starting material (set by the Material step).
    *  `null` means the Material step hasn't been answered yet. */
   branch: WizardBranchId | null
-  /** Numeric index into the per-branch sequence array. Kept
-   *  for commit 1's typecheck; commit 2 replaces this with
-   *  `currentStepId` (the literal step id). */
-  currentStep: number
-  /** The current step the wizard is on (the new DAG field).
-   *  Commit 1 sets this to the same value as the sequence
-   *  index for backward compat; commit 2 makes it the
-   *  canonical source of truth and drops `currentStep`. */
-  currentStepId?: WizardStepId | null
+  /** The current step the wizard is on. `null` means the
+   *  wizard is finished (Stage 2 is mounted). */
+  currentStepId: WizardStepId | null
   selections: WizardSelections
 }
 
@@ -317,7 +292,6 @@ export type WizardStepCardState =
 export const DEFAULT_WIZARD_STATE: WizardState = {
   branch: null,
   endProduct: null,
-  currentStep: 0,
   currentStepId: null,
   selections: {},
 }

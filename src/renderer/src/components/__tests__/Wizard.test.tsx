@@ -57,7 +57,8 @@ describe('Wizard — slide-by-slide rendering', () => {
     } as Partial<ReturnType<typeof useAppStore.getState>>)
     const state: WizardState = {
       branch: null,
-      currentStep: 0,
+      endProduct: null,
+      currentStepId: null,
       selections: {},
     }
     render(<Wizard onSelect={() => {}} state={state} />)
@@ -83,7 +84,8 @@ describe('Wizard — slide-by-slide rendering', () => {
     } as Partial<ReturnType<typeof useAppStore.getState>>)
     const state: WizardState = {
       branch: 'flower',
-      currentStep: 1,
+      endProduct: 'baked',
+      currentStepId: 'method',
       selections: {},
     }
     render(<Wizard onSelect={() => {}} state={state} />)
@@ -113,7 +115,8 @@ describe('Wizard — slide-by-slide rendering', () => {
     } as Partial<ReturnType<typeof useAppStore.getState>>)
     const state: WizardState = {
       branch: 'concentrate',
-      currentStep: 1,
+      endProduct: 'baked',
+      currentStepId: 'potency',
       selections: {},
     }
     render(<Wizard onSelect={() => {}} state={state} />)
@@ -128,11 +131,14 @@ describe('Wizard — slide-by-slide rendering', () => {
       ...(useAppStore.getState() as unknown as Record<string, unknown>),
       wizardEnabled: true,
     } as Partial<ReturnType<typeof useAppStore.getState>>)
-    // The Flower branch has 8 steps (currentStep > 7 means
-    // the user has completed every step).
+    // The wizard is finished when `currentStepId === null`
+    // and the user has picked an endProduct + branch
+    // (the parent renders the Begin batch CTA / the
+    // "Batch ready" badge via the `isFinished` helper).
     const state: WizardState = {
       branch: 'flower',
-      currentStep: 99,
+      endProduct: 'baked',
+      currentStepId: null,
       selections: {},
     }
     const { container } = render(

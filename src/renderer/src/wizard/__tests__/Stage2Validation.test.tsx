@@ -212,7 +212,7 @@ describe('WizardScreen — Begin batch validation (§3.4, Step 2)', () => {
     // fields" case.
     const initialState: WizardState = {
       branch: 'flower',
-      currentStep: 7,
+      currentStepId: 'start',
       selections: {},
     }
     render(<WizardScreen initialState={initialState} />)
@@ -325,14 +325,14 @@ describe('WizardScreen — "Reset wizard" clears the validation error (slide 4 o
     // per-branch validation and the error renders inline
     // next to the CTA.
     //
-    // `currentStep: 7` because the partial selections
+    // `currentStepId: 'start'` because the partial selections
     // have `selections.fat === undefined` (not `null`),
     // so the Volume step is NOT smart-skipped and the
     // Start step is at index 7 in the effective 8-step
     // sequence.
     const initialState: WizardState = {
       branch: 'flower',
-      currentStep: 7,
+      currentStepId: 'start',
       selections: {
         method: 'oven_sealed',
         container: 'quart',
@@ -417,13 +417,13 @@ describe('WizardScreen — Run again on completion step (§8.2)', () => {
     useAppStore.setState({ rerunRecipe: rerunSpy, returnToConfig: returnSpy })
 
     // Render with the `initialState` prop positioned at
-    // the Flower+infusion Start step (currentStep: 7 —
+    // the Flower+infusion Start step (currentStepId: 'start' —
     // the canonical sequence has 8 steps
     // productType+method+container+weight+efficiency+fat
     // +volume+start; the Start step is at index 7).
     const initialState: WizardState = {
       branch: 'flower',
-      currentStep: 7,
+      currentStepId: 'start',
       selections: testSelections,
     }
     render(<WizardScreen initialState={initialState} />)
@@ -517,7 +517,7 @@ describe('WizardScreen — Run again defensive edge case', () => {
 
     const initialState: WizardState = {
       branch: 'flower',
-      currentStep: 7,
+      currentStepId: 'start',
       selections: testSelections,
     }
     render(<WizardScreen initialState={initialState} />)

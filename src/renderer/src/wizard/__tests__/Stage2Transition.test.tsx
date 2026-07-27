@@ -162,7 +162,7 @@ describe('WizardScreen — Begin batch transitions to Stage 2', () => {
     // coupling the test to the coverflow's entry surface.
     const initialState: WizardState = {
       branch: 'flower',
-      currentStep: 7, // Start step in the 8-step Flower-with-infusion sequence.
+      currentStepId: 'start', // Start step — committed directly via initialState.
       selections: {
         method: 'oven_sealed',
         container: 'quart',
@@ -229,7 +229,7 @@ describe('WizardScreen — Stage 2 advance', () => {
     // Stage 2 path is built today).
     const initialState: WizardState = {
       branch: 'flower',
-      currentStep: 7, // Start step.
+      currentStepId: 'start', // Start step.
       selections: {
         method: 'oven_sealed',
         container: 'quart',

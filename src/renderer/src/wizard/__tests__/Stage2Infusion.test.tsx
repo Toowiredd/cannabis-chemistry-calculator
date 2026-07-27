@@ -303,7 +303,7 @@ describe('WizardScreen — completion save flow (Week 5 §8.2)', () => {
     // `validateWizardSelections` Begin-batch gate passes.
     const initialState: WizardState = {
       branch: 'flower',
-      currentStep: 7, // Start step in the 8-step Flower-with-infusion sequence.
+      currentStepId: 'start', // Start step — committed directly via initialState.
       selections: {
         method: 'oven_sealed',
         container: 'quart',
