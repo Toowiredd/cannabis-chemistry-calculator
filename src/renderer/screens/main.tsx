@@ -33,9 +33,6 @@ const InfusionTab = lazy(() =>
 const DoseTab = lazy(() =>
   import('renderer/src/tabs/DoseTab').then(m => ({ default: m.DoseTab }))
 )
-const MethodsTab = lazy(() =>
-  import('renderer/src/tabs/MethodsTab').then(m => ({ default: m.MethodsTab }))
-)
 const AdvancedToolsTab = lazy(() =>
   import('renderer/src/tabs/AdvancedToolsTab').then(m => ({
     default: m.AdvancedToolsTab,
@@ -358,14 +355,17 @@ export function MainScreen() {
               {wizardEnabled ? (
                 // 2026-07-26 wizard Week 1: when `wizardEnabled` is
                 // true, the Stage 1 wizard replaces the workflow
-                // group. The ReferenceStrip (Methods/Advanced/
-                // Knowledge/Journal) still renders below the
-                // wizard — per the brief, the reference rail is
-                // unchanged. The `useAppStore` reading is
-                // defensive (see comment at the top of the
-                // component) so the wizard auto-appears when the
-                // state-routing rein lands `wizardEnabled: true`
-                // on the store.
+                // group. The ReferenceStrip (Advanced / Knowledge /
+                // Journal) renders below the wizard — the Methods
+                // tab was removed because every end-product branch
+                // in the wizard already includes a method step
+                // (oven_sealed, oven_open, sv_combined, etc.),
+                // and the method is re-editable from the
+                // collapsed card on the wizard's Method step.
+                // The `useAppStore` reading is defensive (see
+                // comment at the top of the component) so the
+                // wizard auto-appears when the state-routing rein
+                // lands `wizardEnabled: true` on the store.
                 <div
                   className="flex h-full w-full flex-col gap-3 sm:gap-4"
                   data-testid="main-wizard-enabled"
@@ -378,11 +378,6 @@ export function MainScreen() {
                   </div>
                   <ReferenceStrip
                     items={[
-                      {
-                        id: 'methods',
-                        label: 'Methods',
-                        bullets: ['Oven Decarb', 'Sous Vide · Slow Cooker'],
-                      },
                       {
                         id: 'advanced',
                         label: 'Advanced',
@@ -404,12 +399,6 @@ export function MainScreen() {
               ) : (
                 <GroupedTabNav
                   reference={[
-                    {
-                      id: 'methods',
-                      label: 'Methods',
-                      bullets: ['Oven Decarb', 'Sous Vide · Slow Cooker'],
-                      content: <MethodsTab />,
-                    },
                     {
                       id: 'advanced',
                       label: 'Advanced',

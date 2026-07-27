@@ -19,16 +19,22 @@
 /* ──────────────────────────────────────────────────────────────── */
 :root {
   --background: #f4f2ef;
+  /* Slide 2 (2026-07-27): animated backgrounds sharpened. The radial
+   * gradient opacities went 0.06 / 0.04 → 0.16 / 0.12 (more present)
+   * and the fall-off shrunk from 50% / 40% → 32% / 28% (less blur,
+   * tighter shapes). The user complaint was the blobs were "too out
+   * of focus" / "almost pointless" because the soft fall-off + low
+   * opacity + heavy glass on top of them hid them entirely. */
   --background-radial:
     radial-gradient(
       circle at 50% 0%,
-      rgba(20, 184, 166, 0.06) 0%,
-      transparent 50%
+      rgba(20, 184, 166, 0.16) 0%,
+      transparent 32%
     ),
     radial-gradient(
       circle at 80% 80%,
-      rgba(245, 158, 11, 0.04) 0%,
-      transparent 40%
+      rgba(245, 158, 11, 0.12) 0%,
+      transparent 28%
     );
   --background-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
   --foreground: oklch(0.1 0 0);
@@ -76,16 +82,18 @@
 /* ──────────────────────────────────────────────────────────────── */
 .dark {
   --background: #0c0b10;
+  /* Slide 2 dark (2026-07-27): opacities 0.08 / 0.06 → 0.22 / 0.16;
+   * fall-off 45% / 35% → 28% / 24% (tighter, more present blobs). */
   --background-radial:
     radial-gradient(
       circle at 50% 0%,
-      rgba(20, 184, 166, 0.08) 0%,
-      transparent 45%
+      rgba(20, 184, 166, 0.22) 0%,
+      transparent 28%
     ),
     radial-gradient(
       circle at 80% 70%,
-      rgba(217, 119, 6, 0.06) 0%,
-      transparent 35%
+      rgba(217, 119, 6, 0.16) 0%,
+      transparent 24%
     );
   --background-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
   --foreground: oklch(0.95 0 0);
@@ -296,65 +304,79 @@ header {
 /* ──────────────────────────────────────────────────────────────── */
 /* Glass utilities (hierarchy fixed: light mode readable)           */
 /* ──────────────────────────────────────────────────────────────── */
+/* Slide 2 (2026-07-27): glass lightened across the board. The user
+ * said the previous glass was "too heavy" — saturate(160-180%) pumped
+ * colour, 12-14px blur was too thick, the white/dark background
+ * opacities were 0.72-0.88 / 0.08-0.12 (very visible), and the
+ * borders were 0.10-0.12 / 0.14-0.22 (very prominent). New values:
+ *   - blur 12-14px → 4-6px (still glassy, not blurry)
+ *   - saturate 160-180% → 110-120% (no colour pump)
+ *   - background 0.72-0.88 → 0.50-0.65 / 0.08-0.12 → 0.04-0.06
+ *   - border 0.10-0.12 → 0.06-0.08 / 0.14-0.22 → 0.08-0.12
+ *   - shadows halved
+ * The animated background gradients (in the dark/light tokens above)
+ * go MORE present in the same pass — the lighter glass lets the
+ * sharper radial blobs show through instead of being lost behind
+ * a thick blur. */
 @layer utilities {
   .glass {
-    background: rgba(255, 255, 255, 0.72);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    -webkit-backdrop-filter: blur(12px) saturate(160%);
-    backdrop-filter: blur(12px) saturate(160%);
+      0 4px 16px rgba(0, 0, 0, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(6px) saturate(120%);
+    backdrop-filter: blur(6px) saturate(120%);
   }
 
   .dark .glass {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.35),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    -webkit-backdrop-filter: blur(12px) saturate(160%);
-    backdrop-filter: blur(12px) saturate(160%);
+      0 4px 16px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    -webkit-backdrop-filter: blur(6px) saturate(120%);
+    backdrop-filter: blur(6px) saturate(120%);
   }
 
   .glass-strong {
-    background: rgba(255, 255, 255, 0.82);
-    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: rgba(255, 255, 255, 0.65);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.7);
-    -webkit-backdrop-filter: blur(14px) saturate(180%);
-    backdrop-filter: blur(14px) saturate(180%);
+      0 4px 16px rgba(0, 0, 0, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
+    backdrop-filter: blur(8px) saturate(120%);
   }
 
   .dark .glass-strong {
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    -webkit-backdrop-filter: blur(14px) saturate(180%);
-    backdrop-filter: blur(14px) saturate(180%);
+      0 4px 16px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
+    backdrop-filter: blur(8px) saturate(120%);
   }
 
   .glass-xl {
-    background: rgba(255, 255, 255, 0.88);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     box-shadow:
-      0 12px 40px rgba(0, 0, 0, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.75);
-    -webkit-backdrop-filter: blur(8.77px) saturate(180%);
-    backdrop-filter: blur(8.77px) saturate(180%);
+      0 6px 20px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    -webkit-backdrop-filter: blur(4px) saturate(120%);
+    backdrop-filter: blur(4px) saturate(120%);
   }
 
   .dark .glass-xl {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow:
-      0 12px 40px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.12);
-    -webkit-backdrop-filter: blur(8.77px) saturate(180%);
-    backdrop-filter: blur(8.77px) saturate(180%);
+      0 6px 20px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    -webkit-backdrop-filter: blur(4px) saturate(120%);
+    backdrop-filter: blur(4px) saturate(120%);
   }
 
   /* Non-glass card for contrast against glass */

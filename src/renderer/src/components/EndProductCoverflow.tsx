@@ -228,7 +228,13 @@ export function EndProductCoverflow({
                 aria-label={product.name}
                 className={cn(
                   'absolute inset-0 flex flex-col gap-1.5 rounded-[18px] border p-5 text-left transition-all duration-500',
-                  'border-foreground/10 bg-foreground/10 backdrop-blur-xl',
+                  // Slide 2: backdrop-blur-xl (24px) → backdrop-blur (4px).
+                  // The previous value was too heavy — the end product
+                  // names + descriptions got lost behind a thick blur.
+                  // 4px keeps the glassmorphism read while letting the
+                  // sharper animated backgrounds (in the dark/light
+                  // radial-gradient tokens in globals.css) show through.
+                  'border-foreground/10 bg-foreground/5 backdrop-blur',
                   isCenter
                     ? 'cursor-default border-accent/70 shadow-[0_14px_44px_-8px_rgba(34,211,238,0.3)]'
                     : 'cursor-pointer opacity-90 hover:opacity-100'

@@ -146,8 +146,9 @@ function ReferenceCard({
         // Glass base — same as .glass utility but with explicit
         // border + hover transform so the strip is self-contained
         // (the parent .glass-strong layer in MainScreen would
-        // double-stack otherwise).
-        'border-foreground/10 bg-foreground/5 backdrop-blur-md',
+        // double-stack otherwise). Slide 2: backdrop-blur-md
+        // (12px) → backdrop-blur (4px) for the lighter glass pass.
+        'border-foreground/10 bg-foreground/5 backdrop-blur',
         isActive
           ? 'border-accent/60 bg-accent/10 shadow-[0_0_24px_-4px_rgba(34,211,238,0.45)]'
           : 'hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-foreground/10 hover:shadow-md',

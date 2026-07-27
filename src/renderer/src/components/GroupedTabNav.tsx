@@ -379,7 +379,7 @@ function NextIndicator({
       <button
         aria-label={`Go to next: ${nextLabel} (after ${prettyLabel(currentTab)})`}
         className={cn(
-          'group relative flex items-center gap-2 rounded-full border border-foreground/10 bg-foreground/5 px-3 py-1 backdrop-blur-md transition-all duration-300',
+          'group relative flex items-center gap-2 rounded-full border border-foreground/10 bg-foreground/5 px-3 py-1 backdrop-blur transition-all duration-300',
           'hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/10 hover:shadow-[0_0_18px_-4px_rgba(34,211,238,0.5)]'
         )}
         data-testid="next-indicator"
