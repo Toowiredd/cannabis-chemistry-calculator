@@ -67,6 +67,7 @@ import {
 import { DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
 import { calculateInfusedThc } from 'renderer/src/engine/infusion'
 import { calculateMgPerServing } from 'renderer/src/engine/dosing'
+import { calculateBagVolume } from 'renderer/src/engine/bagVolume'
 
 export interface WizardScreenProps {
   className?: string
@@ -212,6 +213,44 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
           const match = /^p-(\d+)$/.exec(optionId)
           if (!match) return {}
           return { potency: Number.parseInt(match[1], 10) }
+        }
+        case 'container': {
+          // v2.2 (2026-07-27): the Container step was
+          // reworked from a preset carousel into a custom
+          // input form. The user types in their own bag
+          // dimensions; the form's onConfirm fires with
+          // the encoded id `custom-{w}-{l}-{d}` where each
+          // value is the engine's cm measurement. The
+          // decoder parses the id back into a
+          // `customContainer` payload so downstream steps
+          // (the Weight smart-skip, the Volume valid-range
+          // check) read the derived volume + dimensions
+          // without re-deriving them.
+          //
+          // Legacy preset ids (e.g. 'gallon', 'quart') are
+          // still accepted — the engine tests + the
+          // `BAG_PRESETS` lookup paths use them. The
+          // `customContainer` field is left undefined for
+          // legacy ids; the engine falls back to the preset
+          // volume when `customContainer` is missing.
+          const customMatch = /^custom-(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)$/.exec(
+            optionId
+          )
+          if (!customMatch) {
+            return { container: optionId }
+          }
+          const widthCm = Number.parseFloat(customMatch[1] ?? '0')
+          const lengthCm = Number.parseFloat(customMatch[2] ?? '0')
+          const depthCm = Number.parseFloat(customMatch[3] ?? '0')
+          // Reuse the engine's `calculateBagVolume` for the
+          // derived cm³ so the wizard never re-derives
+          // volume independently — the engine is the single
+          // source of truth.
+          const volumeCm3 = calculateBagVolume(widthCm, lengthCm, depthCm)
+          return {
+            container: optionId,
+            customContainer: { widthCm, lengthCm, depthCm, volumeCm3 },
+          }
         }
         case 'fat': {
           // The 'none' tile sets `selections.fat = null` —

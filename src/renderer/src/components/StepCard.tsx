@@ -20,6 +20,7 @@ import { Check, ChevronDown, ChevronRight, Pencil } from 'lucide-react'
 import { OptionCarousel } from './OptionCarousel'
 import { ProductTypeTooltip } from './ProductTypeTooltip'
 import { EndProductCoverflow } from './EndProductCoverflow'
+import { ContainerCustomInput } from './ContainerCustomInput'
 import type {
   WizardOption,
   WizardState,
@@ -197,6 +198,32 @@ export function StepCard({
                 | null) ?? undefined
             }
             onSelect={(_endProductId, branch) => onConfirm(branch)}
+          />
+        ) : step.renderCustom ? (
+          // Custom-input step (e.g. the Container step's
+          // bag-dimension form). The step's `renderCustom`
+          // callback owns its own form widgets + confirm CTA;
+          // the StepCard just routes the props through.
+          <div data-testid={`step-card-${step.id}-custom`}>
+            {step.renderCustom({
+              onConfirm,
+              selectedOptionId,
+              state,
+            })}
+          </div>
+        ) : step.id === 'container' ? (
+          // The Container step's custom input is hardcoded
+          // here for v2.2. The step's `getOptions` returns
+          // `[]` (no preset carousel), and the form below
+          // is the canonical surface. A future iteration
+          // can hoist this into `step.renderCustom` once a
+          // second custom-input step (e.g. the NameRecipeStep)
+          // exists to share the pattern with.
+          <ContainerCustomInput
+            initialDepthCm={state.selections.customContainer?.depthCm}
+            initialLengthCm={state.selections.customContainer?.lengthCm}
+            initialWidthCm={state.selections.customContainer?.widthCm}
+            onConfirm={onConfirm}
           />
         ) : options.length > 0 ? (
           <div data-testid={`step-card-${step.id}-options`}>

@@ -260,7 +260,10 @@ describe('WizardScreen — "Back to config" from Stage 2 (slide 4 of v2.2)', () 
     // Walk the Baked (edible) branch to the Start step.
     fireEvent.click(screen.getByTestId('end-product-face-baked'))
     fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
-    fireEvent.click(screen.getByTestId('option-tile-quart'))
+    // Container (v2.2 custom input form).
+    fireEvent.change(screen.getByTestId('container-width-input').querySelector('input')!, { target: { value: '15' } })
+    fireEvent.change(screen.getByTestId('container-length-input').querySelector('input')!, { target: { value: '20' } })
+    fireEvent.click(screen.getByTestId('container-continue-cta'))
     fireEvent.click(screen.getByTestId('option-tile-g-7'))
     fireEvent.click(screen.getByTestId('option-tile-coconut'))
     fireEvent.click(screen.getByTestId('option-tile-mL-100'))

@@ -12,6 +12,7 @@
  * removed in Week 7's full-codebase-review.
  */
 import type { LucideIcon } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 /* ------------------------------------------------------------------ */
 /* Branch taxonomy (§3.1)                                              */
@@ -47,7 +48,33 @@ export type WizardBranchId =
  */
 export interface WizardSelections {
   method?: string
+  /**
+   * Container id from the `BAG_PRESETS` table, OR a
+   * `customContainer` payload when the user has typed in
+   * their own bag dimensions. The two are mutually exclusive —
+   * the wizard's `container` step (v2.2 slide 1) replaced the
+   * preset-only carousel with a custom-input-only form, so
+   * production code reads the `customContainer` shape. The
+   * preset-id path is kept for the engine tests + the legacy
+   * `BAG_PRESETS` lookup paths.
+   */
   container?: string
+  /**
+   * The user-typed bag dimensions for the wizard's container
+   * step. The width + length + depth are stored verbatim in
+   * the user's chosen unit; the `volumeCm3` is the engine's
+   * derived value (`calculateBagVolume`) rounded to 1 decimal
+   * per `bagVolume.ts:79`. Downstream steps (the Weight
+   * smart-skip, the Volume step's valid range check) read
+   * `volumeCm3` directly so the custom input flows through
+   * the same shape as the preset.
+   */
+  customContainer?: {
+    widthCm: number
+    lengthCm: number
+    depthCm: number
+    volumeCm3: number
+  }
   weight?: { value: number; unit: 'g' | 'oz' }
   efficiency?: number
   /**
@@ -134,6 +161,26 @@ export interface WizardStep {
   /** Returns the options for the current step. Stateful — re-runs
    * on every render so `state` can influence the option list. */
   getOptions: (state: WizardState) => WizardOption[]
+  /**
+   * Optional custom-input renderer. When set, the StepCard
+   * renders this node in place of the option carousel. Used
+   * for steps where the user types in their own data (e.g.
+   * the Container step's bag-dimension form) rather than
+   * picking from a preset list. The custom renderer is
+   * responsible for firing `onConfirm(optionId)` when the
+   * user has entered a valid value.
+   *
+   * When `renderCustom` is set, `getOptions` should return an
+   * empty array (the StepCard renders the custom renderer
+   * instead of the carousel). The two paths are mutually
+   * exclusive — a step either shows a carousel of options or
+   * a custom input, never both.
+   */
+  renderCustom?: (props: {
+    state: WizardState
+    selectedOptionId: string | null
+    onConfirm: (optionId: string) => void
+  }) => React.ReactNode
   /**
    * Returns the option id of the currently-selected option for
    * this step, or `null` if no selection has been made. Optional —

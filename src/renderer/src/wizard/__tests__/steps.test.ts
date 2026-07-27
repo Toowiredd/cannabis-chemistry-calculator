@@ -57,17 +57,47 @@ const topicalState: WizardState = {
 }
 
 describe('containerStep', () => {
-  it('returns one tile per BAG_PRESETS entry with the real bag name', () => {
+  it('returns an empty options list (the custom input form is the only path)', () => {
+    // v2.2 (2026-07-27): the Container step's preset carousel
+    // was replaced with a custom-input form. The step's
+    // `getOptions` returns `[]` so the StepCard renders the
+    // custom form (see `ContainerCustomInput.tsx`) in place of
+    // the option carousel. The empty list is the contract —
+    // the StepCard branches on `options.length > 0` to decide
+    // which path to render.
     const options = containerStep.getOptions(flowerState)
-    expect(options).toHaveLength(BAG_PRESETS.length)
-    for (const preset of BAG_PRESETS) {
-      const tile = options.find(o => o.id === preset.id)
-      expect(tile).toBeTruthy()
-      expect(tile?.title).toBe(preset.name)
-    }
+    expect(options).toEqual([])
   })
 
-  it('encodes the selection as the option id', () => {
+  it('encodes a custom container as custom-{w}-{l}-{d}', () => {
+    // The custom-input form's onConfirm fires with
+    // `custom-{w}-{l}-{d}` (the same `${step}-${value}` pattern
+    // the Weight / Volume / Servings / Potency steps use). The
+    // `getSelectedOptionId` reads from `selections.customContainer`
+    // and returns the matching encoded id so the wizard's re-edit
+    // path can find the right state.
+    const state: WizardState = {
+      ...flowerState,
+      selections: {
+        customContainer: {
+          widthCm: 30,
+          lengthCm: 40,
+          depthCm: 0.2,
+          volumeCm3: 240,
+        },
+      },
+    }
+    expect(containerStep.getSelectedOptionId?.(state)).toBe(
+      'custom-30-40-0.2'
+    )
+  })
+
+  it('encodes a legacy preset container id verbatim', () => {
+    // The legacy `BAG_PRESETS` path (gallon / quart / etc.) is
+    // preserved for engine tests + the legacy data flows. The
+    // decoder in `WizardScreen.tsx` returns
+    // `{ container: optionId }` for any id that doesn't match
+    // the `custom-{w}-{l}-{d}` pattern.
     const state: WizardState = {
       ...flowerState,
       selections: { container: 'gallon' },

@@ -173,8 +173,14 @@ describe('WizardScreen — Baked (edible) branch navigation', () => {
     fireEvent.click(screen.getByTestId('end-product-face-baked'))
     // Step 1 → Oven, sealed bag
     fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
-    // Step 2 → Container
-    fireEvent.click(screen.getByTestId('option-tile-quart'))
+    // Step 2 → Container (custom input form — v2.2).
+    // The user types in width / length / depth in cm, and
+    // the engine's calculateBagVolume derives the volume
+    // for downstream steps. The "Use these dimensions"
+    // CTA advances the wizard.
+    fireEvent.change(screen.getByTestId('container-width-input').querySelector('input')!, { target: { value: '15' } })
+    fireEvent.change(screen.getByTestId('container-length-input').querySelector('input')!, { target: { value: '20' } })
+    fireEvent.click(screen.getByTestId('container-continue-cta'))
     // Step 3 → Weight
     fireEvent.click(screen.getByTestId('option-tile-g-7'))
     // Step 4 → Fat (edible branch skips Efficiency; jumps
@@ -191,8 +197,10 @@ describe('WizardScreen — Baked (edible) branch navigation', () => {
     fireEvent.click(screen.getByTestId('end-product-face-baked'))
     // Step 1 → Method
     fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
-    // Step 2 → Container
-    fireEvent.click(screen.getByTestId('option-tile-quart'))
+    // Step 2 → Container (custom input form — v2.2).
+    fireEvent.change(screen.getByTestId('container-width-input').querySelector('input')!, { target: { value: '15' } })
+    fireEvent.change(screen.getByTestId('container-length-input').querySelector('input')!, { target: { value: '20' } })
+    fireEvent.click(screen.getByTestId('container-continue-cta'))
     // Step 3 → Weight
     fireEvent.click(screen.getByTestId('option-tile-g-7'))
     // Step 4 → Fat — pick coconut (with infusion, not 'none').

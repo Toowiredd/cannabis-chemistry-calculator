@@ -261,30 +261,46 @@ const WEIGHT_PRESETS: ReadonlyArray<{
 ]
 
 /**
- * Container step — reads the real bag presets from
- * `engine/models.ts BAG_PRESETS`. Per the brief: "Each tile: bag
- * name + size (e.g., '1 Gallon Bag — 3,785 cm³')." We surface the
- * engine's computed `volumeCm3` as the size; the engine cm³ values
- * are geometric (width × length × depth) rather than usable
- * interior volume, so the subtitle reads as "geometric volume" to
- * be honest about what the number means.
+ * Container step — custom input form (v2.2).
  *
- * Used by: Flower (Method → Container), Edible (Method → Container).
+ * The previous carousel of `BAG_PRESETS` (1 Gallon, 1 Quart,
+ * etc.) was removed at the user's request: vacuum bags come
+ * in many sizes and the user often uses non-standard
+ * containers (mason jars, stasher bags, sous-vide pouches
+ * from bulk rolls). The user types in their own width,
+ * length, and depth in cm; the engine's
+ * `calculateBagVolume` derives the volume in cm³; that
+ * volume flows downstream to the Weight + Volume +
+ * Servings steps via `selections.customContainer`.
+ *
+ * `getOptions` returns `[]` because the StepCard renders the
+ * `renderCustom` form in place of the carousel when the
+ * step has a custom renderer. The two paths are mutually
+ * exclusive — see the `WizardStep.renderCustom` field's
+ * docstring in `wizardTypes.ts`.
+ *
+ * Used by: Flower (Method → Container), Edible (Method →
+ * Container).
  */
 export const containerStep: WizardStep = {
   id: 'container',
-  title: 'Container',
+  title: 'Container dimensions',
   description:
-    'Pick the bag or container you will decarb in. The size determines how much material you can fit in a single decarb session.',
-  getOptions: (_state: WizardState): WizardOption[] =>
-    BAG_PRESETS.map(b => ({
-      id: b.id,
-      title: b.name,
-      subtitle: `${b.volumeCm3.toFixed(1)} cm³ geometric — ${b.bagType} bag`,
-      badge: b.bagType === 'vacuum' ? 'Vacuum-seal' : undefined,
-    })),
-  getSelectedOptionId: (state: WizardState) =>
-    state.selections.container ?? null,
+    'Type in the width, length, and depth of the bag or container you will decarb in. The wizard calculates the volume from your measurements.',
+  getOptions: (_state: WizardState): WizardOption[] => [],
+  getSelectedOptionId: (state: WizardState) => {
+    // The v2.2 custom input writes to
+    // `selections.customContainer`; legacy preset ids (e.g.
+    // 'gallon' / 'quart' from the old carousel) are kept
+    // in `selections.container` for the engine tests + the
+    // legacy data flows. The custom form is the canonical
+    // v2.2 path; the legacy branch is the no-op fallback
+    // for callers that haven't migrated yet.
+    const c = state.selections.customContainer
+    if (c) return `custom-${c.widthCm}-${c.lengthCm}-${c.depthCm}`
+    if (state.selections.container) return state.selections.container
+    return null
+  },
 }
 
 /**
