@@ -21,6 +21,8 @@ import { OptionCarousel } from './OptionCarousel'
 import { ProductTypeTooltip } from './ProductTypeTooltip'
 import { EndProductCoverflow } from './EndProductCoverflow'
 import { ContainerCustomInput } from './ContainerCustomInput'
+import { InterjectionBanner } from './InterjectionBanner'
+import { shouldRecommendDoubleBag } from 'renderer/src/wizard/wizardFlow'
 import type {
   WizardOption,
   WizardState,
@@ -242,6 +244,31 @@ export function StepCard({
                       <ProductTypeTooltip text={o.tooltip!} />
                     </div>
                   ))}
+              </div>
+            ) : null}
+            {/* 2026-07-28 (Fix 6): the double-bag
+                interjection for sous vide. Renders below
+                the Container carousel when
+                `shouldRecommendDoubleBag(state)` returns
+                true. The banner's tiles fire onConfirm
+                with optionId `db-yes` / `db-no`; the
+                wizard's decodeSelection stores the
+                boolean in `selections.doubleBagged`. */}
+            {shouldRecommendDoubleBag(state) ? (
+              <div className="mt-3">
+                <InterjectionBanner
+                  description="Small bags + sous vide temperatures are at risk of puncturing. An outer bag protects the seal."
+                  selectedOptionId={
+                    state.selections.doubleBagged === true
+                      ? 'db-yes'
+                      : state.selections.doubleBagged === false
+                        ? 'db-no'
+                        : null
+                  }
+                  stepId={step.id}
+                  title="We recommend double-bagging for sous vide. Are you using an outer bag?"
+                  onConfirm={onConfirm}
+                />
               </div>
             ) : null}
           </div>

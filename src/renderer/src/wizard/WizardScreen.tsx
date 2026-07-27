@@ -252,7 +252,24 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
             selections: { potency: Number.parseInt(match[1], 10) },
           }
         }
+        case 'fat': {
+          // The 'none' tile sets `selections.fat = null` —
+          // the brief-mandated sentinel for the "no infusion"
+          // path.
+          if (optionId === 'none') return { selections: { fat: null } }
+          return { selections: { fat: optionId } }
+        }
         case 'container': {
+          // Handle the double-bag interjection tiles
+          // first. The InterjectionBanner fires onConfirm
+          // with `db-yes` / `db-no`; we map them to
+          // selections.doubleBagged.
+          if (optionId === 'db-yes') {
+            return { selections: { doubleBagged: true } }
+          }
+          if (optionId === 'db-no') {
+            return { selections: { doubleBagged: false } }
+          }
           // v2.3 (commit 3): the Container step is a
           // 2-width carousel. The user picks `vac-19` or
           // `vac-28`; the wizard stores the width in
@@ -304,13 +321,6 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
           }
           // Legacy preset ids (gallon / quart).
           return { selections: { container: optionId } }
-        }
-        case 'fat': {
-          // The 'none' tile sets `selections.fat = null` —
-          // the brief-mandated sentinel for the "no infusion"
-          // path.
-          if (optionId === 'none') return { selections: { fat: null } }
-          return { selections: { fat: optionId } }
         }
         case 'name': {
           // The Name step's only option is 'named' (a marker
