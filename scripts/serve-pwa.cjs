@@ -97,8 +97,14 @@ function safeJoin(root, urlPath) {
   // Decode percent-encoding, normalize, then make sure the resolved
   // path stays inside `root` — no path-traversal escapes.
   const decoded = decodeURIComponent(urlPath.split('?')[0].split('#')[0])
+  // Strip the `/ccc/` base path if present so the server works both
+  // behind Tailscale Funnel (which strips `/ccc` before forwarding)
+  // and when hit directly at `http://127.0.0.1:8765/ccc/` (where the
+  // prefix is part of the request URL). Without this, direct access
+  // looks for files at `dist/ccc/assets/...` and 404s on everything.
+  const stripped = decoded.replace(/^\/ccc(?=\/|$)/, '')
   const normalized = path
-    .normalize(decoded)
+    .normalize(stripped)
     .replace(/^([/\\])+/, '')
   const candidate = path.join(root, normalized)
   if (!candidate.startsWith(root)) return null
