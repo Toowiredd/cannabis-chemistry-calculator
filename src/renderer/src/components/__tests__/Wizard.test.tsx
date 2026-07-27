@@ -1,17 +1,16 @@
 /**
  * Tests for the Wizard container component.
  *
- * The Wizard is the vertical step-stack container. Two key
- * behaviors:
- *  - Feature flag: when `wizardEnabled` is false, the component
- *    returns `null` (the existing GroupedTabNav takes over).
- *  - Step stack: when the flag is on, it renders the steps for
- *    the current branch sequence.
+ * The Wizard is a slide-by-slide stepper (slide 4 of v2.2,
+ * 2026-07-27). One step is in view at a time. No collapsed
+ * future steps, no "make a batch" multi-step view, no back
+ * button — just the current step + a small step counter.
  *
- * The feature-flag read is defensive (see wizardFeatureFlag.ts):
- * when the state-routing rein hasn't shipped the `wizardEnabled`
- * field yet, the read returns `false`. The tests below exercise
- * both branches.
+ * Two key behaviors:
+ *  - Feature flag: when `wizardEnabled` is false, the component
+ *    returns `null` (the legacy GroupedTabNav takes over).
+ *  - Slide-by-slide: only the current step's StepCard is in
+ *    the DOM. Future steps are NOT rendered.
  */
 import { beforeEach, describe, expect, it } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
@@ -24,75 +23,60 @@ import {
 } from 'renderer/src/wizard/wizardTypes'
 
 beforeEach(() => {
-  // Reset the wizardEnabled field between tests so the cast in
-  // the wizardFeatureFlag module doesn't leak state.
   useAppStore.setState({
     ...(useAppStore.getState() as unknown as Record<string, unknown>),
   })
 })
 
 describe('Wizard — feature flag', () => {
-  // Slide 3 (2026-07-27): the wizard IS the UX. The default
-  // flipped to `true` (the v10→v11 migration forces this on
-  // persisted envelopes). The "default is false" test is gone;
-  // a user who explicitly rolls back to `wizardEnabled: false`
-  // (via localStorage) lands on the legacy GroupedTabNav surface
-  // — that's the only path to `wizardEnabled: false` now.
   it('renders the product-type coverflow by default (wizardEnabled: true is the new default)', () => {
     const { container } = render(
-      <Wizard
-        onEdit={() => {}}
-        onSelect={() => {}}
-        state={DEFAULT_WIZARD_STATE}
-      />
+      <Wizard onSelect={() => {}} state={DEFAULT_WIZARD_STATE} />
     )
     expect(container.firstChild).not.toBeNull()
     expect(screen.getByTestId('end-product-coverflow')).toBeTruthy()
   })
 
-  it('renders nothing when wizardEnabled is explicitly false', () => {
+  it('renders nothing when wizardEnabled is explicitly false (legacy rollback)', () => {
     useAppStore.setState({
       ...(useAppStore.getState() as unknown as Record<string, unknown>),
       wizardEnabled: false,
     } as Partial<ReturnType<typeof useAppStore.getState>>)
     const { container } = render(
-      <Wizard
-        onEdit={() => {}}
-        onSelect={() => {}}
-        state={DEFAULT_WIZARD_STATE}
-      />
+      <Wizard onSelect={() => {}} state={DEFAULT_WIZARD_STATE} />
     )
     expect(container.firstChild).toBeNull()
   })
+})
 
-  it('renders the product-type step when wizardEnabled is true and branch is null', () => {
+describe('Wizard — slide-by-slide rendering', () => {
+  it('renders ONLY the product-type step when branch is null (slide 1 of 7)', () => {
     useAppStore.setState({
       ...(useAppStore.getState() as unknown as Record<string, unknown>),
       wizardEnabled: true,
     } as Partial<ReturnType<typeof useAppStore.getState>>)
-    render(
-      <Wizard
-        onEdit={() => {}}
-        onSelect={() => {}}
-        state={DEFAULT_WIZARD_STATE}
-      />
-    )
-    // The product-type step is active at step 0. The active
-    // StepCard has testid `step-card-product-type-active`.
-    expect(screen.getByTestId('step-card-product-type-active')).toBeTruthy()
-    // Per the v2.2 mockup: the product-type step renders a 3D
-    // coverflow of 5 end-product category faces (Baked / Gummies /
-    // Capsules / Tincture / Salve). "Baked" is the category for
-    // brownies / cookies / cakes / pancakes / muffins.
-    expect(screen.getByTestId('end-product-coverflow')).toBeTruthy()
-    for (const id of ['baked', 'gummies', 'capsules', 'tincture', 'salve']) {
-      expect(screen.getByTestId(`end-product-face-${id}`)).toBeTruthy()
+    const state: WizardState = {
+      branch: null,
+      currentStep: 0,
+      selections: {},
     }
+    render(<Wizard onSelect={() => {}} state={state} />)
+    // The active step is the product-type coverflow.
+    expect(screen.getByTestId('step-card-product-type-active')).toBeTruthy()
+    expect(screen.getByTestId('end-product-coverflow')).toBeTruthy()
+    // NO collapsed future steps — slide-by-slide means
+    // nothing else is in the DOM.
+    expect(
+      screen.queryByTestId('step-card-method-active')
+    ).toBeNull()
+    expect(
+      screen.queryByTestId('step-card-container-active')
+    ).toBeNull()
+    // Step counter shows 1 / 7 (or whatever the total is).
+    expect(screen.getByTestId('wizard-step-counter')).toBeTruthy()
   })
-})
 
-describe('Wizard — branch sequences', () => {
-  it('renders the product-type step as collapsed-with-selection when the branch is set', () => {
+  it('renders ONLY the Method step when the branch is set and currentStep is 1 (slide 2 of 7)', () => {
     useAppStore.setState({
       ...(useAppStore.getState() as unknown as Record<string, unknown>),
       wizardEnabled: true,
@@ -102,17 +86,27 @@ describe('Wizard — branch sequences', () => {
       currentStep: 1,
       selections: {},
     }
-    render(<Wizard onEdit={() => {}} onSelect={() => {}} state={state} />)
-    // Step 0 (product type) is collapsed-with-selection because
-    // the branch is set and currentStep is past 0.
-    expect(
-      screen.getByTestId('step-card-product-type-collapsed-with-selection')
-    ).toBeTruthy()
-    // Step 1 (Method) is active.
+    render(<Wizard onSelect={() => {}} state={state} />)
+    // Slide 2: Method step is active.
     expect(screen.getByTestId('step-card-method-active')).toBeTruthy()
+    // The product-type step is NOT in the DOM (no collapsed
+    // sibling, no breadcrumb).
+    expect(
+      screen.queryByTestId('step-card-product-type-collapsed-with-selection')
+    ).toBeNull()
+    expect(
+      screen.queryByTestId('step-card-product-type-active')
+    ).toBeNull()
+    // Future steps are NOT in the DOM.
+    expect(
+      screen.queryByTestId('step-card-container-active')
+    ).toBeNull()
+    expect(
+      screen.queryByTestId('step-card-weight-active')
+    ).toBeNull()
   })
 
-  it('renders the Potency step for the Concentrate branch (Week 2)', () => {
+  it('renders ONLY the Potency step for the Concentrate branch (slide 2 of 6)', () => {
     useAppStore.setState({
       ...(useAppStore.getState() as unknown as Record<string, unknown>),
       wizardEnabled: true,
@@ -122,13 +116,29 @@ describe('Wizard — branch sequences', () => {
       currentStep: 1,
       selections: {},
     }
-    render(<Wizard onEdit={() => {}} onSelect={() => {}} state={state} />)
-    // Week 2: the Concentrate branch's first decision step
-    // is Potency (the coming-soon placeholder is gone). The
-    // active StepCard renders the option carousel.
+    render(<Wizard onSelect={() => {}} state={state} />)
+    // The Concentrate branch's first decision step is Potency.
     expect(screen.getByTestId('step-card-potency-active')).toBeTruthy()
     expect(screen.getByTestId('option-tile-p-50')).toBeTruthy()
     expect(screen.getByTestId('option-tile-p-85')).toBeTruthy()
+  })
+
+  it('renders nothing when the wizard is complete (the parent renders the Begin batch CTA)', () => {
+    useAppStore.setState({
+      ...(useAppStore.getState() as unknown as Record<string, unknown>),
+      wizardEnabled: true,
+    } as Partial<ReturnType<typeof useAppStore.getState>>)
+    // The Flower branch has 8 steps (currentStep > 7 means
+    // the user has completed every step).
+    const state: WizardState = {
+      branch: 'flower',
+      currentStep: 99,
+      selections: {},
+    }
+    const { container } = render(
+      <Wizard onSelect={() => {}} state={state} />
+    )
+    expect(container.firstChild).toBeNull()
   })
 })
 
@@ -141,18 +151,12 @@ describe('Wizard — callbacks', () => {
     let captured: { stepId: string; optionId: string } | null = null
     render(
       <Wizard
-        onEdit={() => {}}
         onSelect={(stepId, optionId) => {
           captured = { stepId, optionId }
         }}
         state={DEFAULT_WIZARD_STATE}
       />
     )
-    // Per the v2.2 mockup: the product-type step renders a 3D
-    // coverflow of 5 end-product category faces. Each face's onSelect
-    // returns the END-PRODUCT branch id (not the end-product id)
-    // so the wizard's onSelect handler can set `state.branch`
-    // without further mapping. Baked → 'edible' branch.
     fireEvent.click(screen.getByTestId('end-product-face-baked'))
     expect(captured).toEqual({ stepId: 'product-type', optionId: 'edible' })
   })

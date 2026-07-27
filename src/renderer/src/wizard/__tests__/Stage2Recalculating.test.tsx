@@ -227,29 +227,37 @@ describe('TimerStep — totalSeconds caption (Week 4)', () => {
 })
 
 /* ------------------------------------------------------------------ */
-/* Test 3: in-flight Stage 2 re-edit fires the recalculating flow     */
+/* Test 3: "Back to config" from the Stage 2 stepper (§8.1)             */
 /* ------------------------------------------------------------------ */
 
-describe('WizardScreen — in-flight Stage 2 re-edit (§8.1)', () => {
-  it('recomputing fires on re-edit and Stage 2 exits (currentStepId back to null)', () => {
+describe('WizardScreen — "Back to config" from Stage 2 (slide 4 of v2.2)', () => {
+  it('tapping "Back to config" clears execution and rewinds to the Start step', () => {
     enableWizard()
-    // Spy on `recomputeFromEdit` so we can assert it was
-    // called with the Week 4 contract (the full Flower Stage 2
-    // step id list). The spy is installed BEFORE render so
-    // the wizard's `useAppStore(s => s.recomputeFromEdit)`
-    // selector picks up the spy on its first render. (See the
-    // file header "Testid / selector notes" for the full
-    // rationale.)
+    // Spy on `recomputeFromEdit` so we can assert it was NOT
+    // called — the slide-by-slide view (slide 4 of v2.2,
+    // 2026-07-27) removed the per-step re-edit affordance;
+    // the only path back to Stage 1 from the Stepper is
+    // "Back to config", which calls `returnToConfig` and
+    // rewinds `currentStep` to the Start step. The recompute
+    // path is still wired in `onEdit` (per the §8.1
+    // contract) but no user-facing UI surfaces it today.
+    // The action itself stays in the codebase for future
+    // use (the state-routing rein's appStore tests cover
+    // the action in isolation).
     const { recomputeFromEdit } = useAppStore.getState()
-    const spy = vi.fn((affectedStepIds: string[]) => {
+    const recomputeSpy = vi.fn((affectedStepIds: string[]) => {
       recomputeFromEdit(affectedStepIds)
     })
-    useAppStore.setState({ recomputeFromEdit: spy })
+    useAppStore.setState({ recomputeFromEdit: recomputeSpy })
+
+    // Spy on `returnToConfig` so we can assert it was
+    // called by the "Back to config" path.
+    const { returnToConfig } = useAppStore.getState()
+    const returnSpy = vi.fn(() => returnToConfig())
+    useAppStore.setState({ returnToConfig: returnSpy })
 
     render(<WizardScreen />)
-    // Walk the Flower branch ("no infusion" path — shorter,
-    // still selects oven_sealed so the Stage 2 builder has a
-    // valid method).
+    // Walk the Baked (edible) branch to the Start step.
     fireEvent.click(screen.getByTestId('end-product-face-baked'))
     fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
     fireEvent.click(screen.getByTestId('option-tile-quart'))
@@ -262,97 +270,68 @@ describe('WizardScreen — in-flight Stage 2 re-edit (§8.1)', () => {
     // Begin batch → Stage 2 mounts.
     fireEvent.click(screen.getByTestId('wizard-begin-cta'))
     expect(screen.getByTestId('execution-stepper')).toBeTruthy()
-    // The re-edit affordance for a Stage 1 step is the
-    // collapsed-with-selection card. The Method step is the
-    // first Stage 1 step after the product-type picker, so
-    // it's a safe target — it's a "method" step, not the
-    // product-type step (which uses the special
-    // `step-card-product-type-collapsed-with-selection`
-    // testid).
-    const methodReEditButton = screen.getByTestId(
-      'step-card-method-collapsed-with-selection'
-    )
     // Pre-condition: Stage 2 is live.
     expect(useAppStore.getState().wizard.execution.currentStepId).not.toBeNull()
-    // Tap "Edit" on the Method step. The `onEdit` handler in
-    // WizardScreen checks `execution.currentStepId !== null`
-    // and routes through the §8.1 recompute path BEFORE
-    // rewinding `state.currentStep` to the Method step's
-    // index in the effective sequence.
-    fireEvent.click(methodReEditButton)
-    // `recomputeFromEdit` was called with the full Flower
-    // Stage 2 list (the Week 4 contract). The list is
-    // sorted in the order the steps appear in the builder.
-    expect(spy).toHaveBeenCalledTimes(1)
-    expect(spy).toHaveBeenCalledWith([
-      'preheat-decarb',
-      'heatmap-decarb',
-      'timer-decarb',
-      'transition-decarb',
-    ])
-    // `recomputeFromEdit` is a synchronous on-then-off
-    // pattern (per the state-routing brief); the final
-    // state has `isRecalculating: false` and
-    // `affectedStepIds: []`. A subscriber listening to the
-    // store would have seen the intermediate `true` once
-    // — the canonical "intermediate on-state" assertion
-    // lives in the state-routing rein's own test file.
-    const finalExec = useAppStore.getState().wizard.execution
-    expect(finalExec.isRecalculating).toBe(false)
-    expect(finalExec.affectedStepIds).toEqual([])
-    // `returnToConfig` is the second half of the §8.1
-    // sequence: it clears `currentStepId` so the stepper
-    // unmounts and the user is back in Stage 1.
-    expect(finalExec.currentStepId).toBeNull()
-    // The Stage 1 wizard reflects the rewind: the Method
-    // step is now `active` again.
-    expect(screen.getByTestId('step-card-method-active')).toBeTruthy()
-    // The Stage 2 stepper has unmounted because
-    // `currentStepId === null`.
+    // Tap "Back to config" — the canonical "go back to Stage
+    // 1" affordance on the stepper. (This testid is owned
+    // by the design-system rein; see ExecutionStepper.tsx.)
+    fireEvent.click(screen.getByTestId('execution-stepper-back'))
+    // `returnToConfig` was called — the canonical
+    // "Stage 2 exited" sentinel.
+    expect(returnSpy).toHaveBeenCalledTimes(1)
+    // `recomputeFromEdit` was NOT called — the slide-by-
+    // slide view has no per-step re-edit affordance, so
+    // the §8.1 recompute path is dormant in the user-
+    // facing UI today. (The action is still wired in
+    // `onEdit`; the appStore tests cover it.)
+    expect(recomputeSpy).not.toHaveBeenCalled()
+    // The store's execution slice is cleared.
+    expect(useAppStore.getState().wizard.execution.currentStepId).toBeNull()
+    // The Stage 2 stepper has unmounted.
     expect(screen.queryByTestId('execution-stepper')).toBeNull()
+    // The Stage 1 wizard is back at the Start step (the
+    // slide-by-slide view: ONLY the current step is in the
+    // DOM, no collapsed past-step breadcrumb).
+    expect(screen.getByTestId('step-card-start-active')).toBeTruthy()
   })
 })
 
 /* ------------------------------------------------------------------ */
-/* Test 4 (negative): re-edit before Stage 2 does NOT call recompute   */
+/* Test 4 (negative): "Reset wizard" before Stage 2 does NOT recompute */
 /* ------------------------------------------------------------------ */
 
-describe('WizardScreen — Stage 1 re-edit (Stage 2 not active)', () => {
-  it('tapping Edit on a Stage 1 step does NOT call recomputeFromEdit when Stage 2 is not running', () => {
+describe('WizardScreen — "Reset wizard" (slide 4 of v2.2)', () => {
+  it('tapping "Reset wizard" clears the wizard state and does NOT call recomputeFromEdit', () => {
     enableWizard()
-    // Spy on `recomputeFromEdit`. The action is wrapped so
-    // we can assert the call count without changing the
-    // store's actual behaviour. Same install-before-render
-    // pattern as Test 3.
+    // Spy on `recomputeFromEdit`. The slide-by-slide view
+    // has no per-step re-edit affordance; "Reset wizard"
+    // just clears the wizard's local state, so the §8.1
+    // recompute path stays dormant. The action itself is
+    // still wired in `onEdit` and the appStore tests cover
+    // it in isolation.
     const { recomputeFromEdit } = useAppStore.getState()
-    const spy = vi.fn((affectedStepIds: string[]) => {
+    const recomputeSpy = vi.fn((affectedStepIds: string[]) => {
       recomputeFromEdit(affectedStepIds)
     })
-    useAppStore.setState({ recomputeFromEdit: spy })
+    useAppStore.setState({ recomputeFromEdit: recomputeSpy })
 
     render(<WizardScreen />)
-    // Walk the Flower branch's first two steps: product-type
-    // → Method. After the user picks the Method tile, the
-    // product-type step is `collapsed-with-selection` and
-    // re-editing it is the canonical "I want to switch
-    // branches" affordance.
+    // Walk past the product-type picker so the wizard has
+    // some non-default state.
     fireEvent.click(screen.getByTestId('end-product-face-baked'))
-    fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
-    // The product-type step is the re-edit target.
-    const productTypeReEditButton = screen.getByTestId(
-      'step-card-product-type-collapsed-with-selection'
-    )
-    // Pre-condition: Stage 2 is NOT active (we never tapped
-    // "Begin batch").
+    expect(screen.getByTestId('step-card-method-active')).toBeTruthy()
+    // Pre-condition: Stage 2 is NOT active.
     expect(useAppStore.getState().wizard.execution.currentStepId).toBeNull()
-    // Tap "Edit" on the product-type step.
-    fireEvent.click(productTypeReEditButton)
+    // Tap "Reset wizard".
+    fireEvent.click(screen.getByTestId('wizard-reset'))
     // The recompute must NOT have been called — there are
     // no Stage 2 rows to re-derive because Stage 2 was
-    // never entered. The existing rewind logic is enough.
-    expect(spy).not.toHaveBeenCalled()
+    // never entered. The existing reset logic is enough.
+    expect(recomputeSpy).not.toHaveBeenCalled()
     // The product-type step is back to active (the user
-    // re-entered the branch picker).
+    // is back at the start of the wizard).
     expect(screen.getByTestId('step-card-product-type-active')).toBeTruthy()
+    // The Method step is GONE (reset cleared all state).
+    expect(screen.queryByTestId('step-card-method-active')).toBeNull()
   })
 })

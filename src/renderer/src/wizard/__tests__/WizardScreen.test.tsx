@@ -98,57 +98,70 @@ describe('WizardScreen — product-type step', () => {
   // no longer the user-facing primary decision — they're the
   // internal state that drives the rest of the wizard.
 
+  // Slide 4 of v2.2 (2026-07-27): the wizard is a SLIDE SHOW.
+  // Only the CURRENT step is in the DOM. After tapping a
+  // product-type face, the product-type step is GONE — only
+  // the next branch step is visible. There is no
+  // `collapsed-with-selection` breadcrumb for the past step;
+  // the user advances one slide at a time. The wizard-step-
+  // counter ("1 / 7" then "2 / 7") is the only chrome.
+
   it('tapping Baked sets branch=edible and advances to step 1 (Method)', () => {
     enableWizard()
     render(<WizardScreen />)
+    expect(screen.getByTestId('step-card-product-type-active')).toBeTruthy()
     fireEvent.click(screen.getByTestId('end-product-face-baked'))
-    expect(
-      screen.getByTestId('step-card-product-type-collapsed-with-selection')
-    ).toBeTruthy()
+    // Slide 2: Method step is now the ONLY step in the DOM.
     expect(screen.getByTestId('step-card-method-active')).toBeTruthy()
-    expect(screen.getByTestId('wizard-screen').textContent).toContain(
-      'Baked'
-    )
+    // The product-type step is GONE (no collapsed sibling).
+    expect(
+      screen.queryByTestId('step-card-product-type-collapsed-with-selection')
+    ).toBeNull()
+    expect(
+      screen.queryByTestId('step-card-product-type-active')
+    ).toBeNull()
+    // Step counter advanced to 2 / 7.
+    expect(screen.getByTestId('wizard-step-counter').textContent).toContain('2')
   })
 
   it('tapping Gummies sets branch=edible and advances to Method', () => {
     enableWizard()
     render(<WizardScreen />)
     fireEvent.click(screen.getByTestId('end-product-face-gummies'))
-    expect(
-      screen.getByTestId('step-card-product-type-collapsed-with-selection')
-    ).toBeTruthy()
     expect(screen.getByTestId('step-card-method-active')).toBeTruthy()
+    expect(
+      screen.queryByTestId('step-card-product-type-collapsed-with-selection')
+    ).toBeNull()
   })
 
   it('tapping Capsules sets branch=edible and advances to Method', () => {
     enableWizard()
     render(<WizardScreen />)
     fireEvent.click(screen.getByTestId('end-product-face-capsules'))
-    expect(
-      screen.getByTestId('step-card-product-type-collapsed-with-selection')
-    ).toBeTruthy()
     expect(screen.getByTestId('step-card-method-active')).toBeTruthy()
+    expect(
+      screen.queryByTestId('step-card-product-type-collapsed-with-selection')
+    ).toBeNull()
   })
 
   it('tapping Tincture advances to the AVB branch Color step', () => {
     enableWizard()
     render(<WizardScreen />)
     fireEvent.click(screen.getByTestId('end-product-face-tincture'))
-    expect(
-      screen.getByTestId('step-card-product-type-collapsed-with-selection')
-    ).toBeTruthy()
     expect(screen.getByTestId('step-card-color-active')).toBeTruthy()
+    expect(
+      screen.queryByTestId('step-card-product-type-collapsed-with-selection')
+    ).toBeNull()
   })
 
   it('tapping Salve advances to the Topical branch Carrier step', () => {
     enableWizard()
     render(<WizardScreen />)
     fireEvent.click(screen.getByTestId('end-product-face-salve'))
-    expect(
-      screen.getByTestId('step-card-product-type-collapsed-with-selection')
-    ).toBeTruthy()
     expect(screen.getByTestId('step-card-carrier-active')).toBeTruthy()
+    expect(
+      screen.queryByTestId('step-card-product-type-collapsed-with-selection')
+    ).toBeNull()
   })
 })
 
@@ -257,14 +270,15 @@ describe('WizardScreen — reset', () => {
   it('clicking Reset wizard returns the state to default', () => {
     enableWizard()
     render(<WizardScreen />)
-    // Advance the state: pick Baked.
+    // Advance the state: pick Baked. Slide 4: the product-type
+    // step is gone; only the Method step is in the DOM.
     fireEvent.click(screen.getByTestId('end-product-face-baked'))
-    expect(
-      screen.getByTestId('step-card-product-type-collapsed-with-selection')
-    ).toBeTruthy()
+    expect(screen.getByTestId('step-card-method-active')).toBeTruthy()
     // Reset.
     fireEvent.click(screen.getByTestId('wizard-reset'))
     // The product-type step should be active again (no branch).
     expect(screen.getByTestId('step-card-product-type-active')).toBeTruthy()
+    // The Method step is GONE (reset cleared all state).
+    expect(screen.queryByTestId('step-card-method-active')).toBeNull()
   })
 })

@@ -829,7 +829,9 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
       className={cn('flex w-full flex-col gap-4 p-2 sm:p-4', className)}
       data-testid="wizard-screen"
     >
-      {/* Header — title + reset link. */}
+      {/* Header — title + reset link. The "Make a batch" header
+          stays; only the collapsed future steps below the
+          active step were the problem. Slide 4 of v2.2. */}
       <header className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-col gap-0.5">
           <h2 className="text-xl font-semibold text-foreground">
@@ -851,8 +853,10 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
         </button>
       </header>
 
-      {/* The step stack — collapses to nothing when the flag is off. */}
-      <Wizard onEdit={onEdit} onSelect={onSelect} state={state} />
+      {/* The wizard — slide-by-slide, ONE step in view at a
+          time. No collapsed future steps below the active
+          step. Slide 4 of v2.2. */}
+      <Wizard onSelect={onSelect} state={state} />
 
       {/* Terminal CTA — the "Begin batch" button. Rendered as a
           separate section below the wizard stack so the user has

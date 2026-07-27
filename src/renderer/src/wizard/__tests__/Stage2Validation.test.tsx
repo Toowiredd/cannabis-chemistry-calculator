@@ -307,27 +307,20 @@ describe('WizardScreen — Begin batch happy path', () => {
 })
 
 /* ------------------------------------------------------------------ */
-/* Test 3: making a new selection clears the validation error          */
+/* Test 3: "Reset wizard" clears the validation error                   */
 /* ------------------------------------------------------------------ */
 
-describe('WizardScreen — error-clear on new selection', () => {
-  it('making a new selection on a non-Start step clears a previously-displayed validation error', () => {
+describe('WizardScreen — "Reset wizard" clears the validation error (slide 4 of v2.2)', () => {
+  it('tapping "Reset wizard" after a validation error clears the error and returns the wizard to its default state', () => {
     enableWizard()
 
     // Start at the Start step with PARTIAL selections
-    // — method + container are set (so the Method +
-    // Container step cards render as
-    // "collapsed-with-selection" and are re-editable),
-    // but weight is missing (so the validation fails on
-    // the first Begin batch tap). This is the
-    // canonical "user is on the Start step but the
+    // (method + container set, weight missing). This is
+    // the canonical "user is on the Start step but the
     // selections are incomplete" scenario the brief
-    // describes — Test 1's `selections: {}` works
-    // too, but the prior steps would all render as
-    // non-interactive "collapsed" (no
-    // `onClick` handler — see `StepCard.tsx:65-72`).
-    // PARTIAL selections are required so the user can
-    // re-edit a prior step to make a new selection.
+    // describes — the Begin batch tap fails the §3.4
+    // per-branch validation and the error renders inline
+    // next to the CTA.
     //
     // `currentStep: 7` because the partial selections
     // have `selections.fat === undefined` (not `null`),
@@ -349,44 +342,30 @@ describe('WizardScreen — error-clear on new selection', () => {
     fireEvent.click(screen.getByTestId('wizard-begin-cta'))
     expect(screen.getByTestId('wizard-validation-error')).toBeTruthy()
 
-    // Re-edit the Method step (the `onEdit` callback
-    // rewinds `state.currentStep` to the Method step's
-    // index — index 1 in the Flower canonical
-    // sequence). The Method step's "collapsed-with-
-    // selection" card has an `onClick` handler that
-    // fires `onEdit('method')` (see
-    // `StepCard.tsx:106-109`). After the re-edit, the
-    // user is on the Method step (active) and the
-    // Begin batch CTA section is no longer rendered —
-    // the error section is therefore also un-rendered.
-    // The error STATE is still set (only `onSelect` for
-    // a non-Start step clears it).
-    fireEvent.click(
-      screen.getByTestId('step-card-method-collapsed-with-selection')
-    )
+    // Slide 4 of v2.2 (2026-07-27): the slide-by-slide
+    // view has no per-step re-edit affordance — there is
+    // no `step-card-method-collapsed-with-selection`
+    // breadcrumb the user can tap to rewind. The new
+    // recovery path is "Reset wizard" from the header:
+    // it clears the wizard's local state (including the
+    // `validationError` state) and returns the user to
+    // the product-type picker.
+    fireEvent.click(screen.getByTestId('wizard-reset'))
 
-    // Make a new selection on the Method step. This is
-    // an `onSelect` call with stepId='method' (a
-    // non-Start step) — the brief's contract: "in the
-    // `onSelect` callback for non-Start steps, set
-    // `validationError: null`". The selection
-    // `oven_sealed` is re-confirmed (the user is
-    // re-affirming their choice after the §3.4
-    // re-edit-to-recover-from-validation-error UX);
-    // the wizard advances to the Container step
-    // (currentStep: 2).
-    fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
-
-    // The error is cleared. The
+    // The validation error is gone. The
     // `queryByTestId` returns `null` because the
-    // validationError state is `null` AND the error
-    // section is un-rendered (the user is no longer on
-    // the Start step). Both contribute to the result;
-    // the test verifies the observable contract (the
-    // testid is no longer in the DOM) without making
-    // assumptions about which side of the OR is
-    // responsible.
+    // `validationError` state was cleared by the reset
+    // AND the Start section (which conditionally renders
+    // the error) is un-rendered (the user is back at
+    // the product-type picker). Both contribute to the
+    // result; the test verifies the observable contract
+    // without making assumptions about which side of the
+    // OR is responsible.
     expect(screen.queryByTestId('wizard-validation-error')).toBeNull()
+    // The product-type step is back to active.
+    expect(screen.getByTestId('step-card-product-type-active')).toBeTruthy()
+    // The Start step is GONE (reset cleared all state).
+    expect(screen.queryByTestId('step-card-start-active')).toBeNull()
   })
 })
 
