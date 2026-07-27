@@ -64,17 +64,18 @@ export function OptionCarousel({
   return (
     <Carousel
       ariaLabel={ariaLabel}
-      // Slide 7 (2026-07-27, take 3): the option tiles were
-      // tiny in take 1 (220x180, rendered ~250px) and the
-      // content floated in empty space in take 2 (360x240,
-      // rendered ~460x460 — too tall for icon+title+subtitle).
-      // Bumping the base to 460x320 with a 9:11 aspect (the
-      // Carousel derives the actual height from the width
-      // using this aspect) so the tile lands in the 320-460px
-      // wide range on desktop and the content fills the
-      // face from top to bottom.
-      baseFaceHeight={320}
-      baseFaceWidth={460}
+      // Slide 7 (2026-07-27, take 4): the option tiles were
+      // "still the wrong fucking size" in take 3 (460x320,
+      // 30vw fluid) — the face came out wider than the
+      // content needed and the side faces got clipped at the
+      // panel edges. Take 4 drops the base to 380x300
+      // (slightly more square — 0.79 aspect, was 0.696) so
+      // the content (icon + title + subtitle + badge) fills
+      // the face without empty space below, and the Carousel's
+      // new 26vw fluid + 0.78×/1.32× side offsets keep the
+      // l-2/r-2 faces inside the panel.
+      baseFaceHeight={300}
+      baseFaceWidth={380}
       faceClassName="p-6"
       getItemAriaLabel={option => option.title}
       getItemTestId={option => `option-tile-${option.id}`}

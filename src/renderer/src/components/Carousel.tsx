@@ -175,38 +175,51 @@ export function Carousel<T>({
     }
   }
 
-  // Slide 7 (2026-07-27, take 3): take 1 used a fluid factor
-  // proportional to the base — the tile came out tiny.
-  // Take 2 used a fixed 32vw fluid + a huge max — the tile
-  // came out huge but the content floated in empty space
-  // and the side faces ran off the panel.
+  // Slide 7 (2026-07-27, take 4): the previous take (3) had
+  // the face too tall (~430px on a 720px-tall viewport) and
+  // the side faces clipped at the panel edges. The user
+  // called the tiles "still the wrong fucking size" and
+  // "all tiles are still too squished together on each
+  // carousel".
   //
-  // This take: the face width is fluid (clamp 280-520px on
-  // desktop, scaling with the viewport), and the face HEIGHT
-  // is derived from the width with a fixed aspect ratio so
-  // the content fills the face instead of floating in the
-  // top-left. The offset multipliers are reduced (0.62×
-  // and 1.05× of face-width) so the l-2/r-2 faces stay
-  // mostly within the wizard panel instead of running off
-  // the edge of the screen.
-  const faceWidthMin = Math.max(240, Math.round(baseFaceWidth * 0.7))
-  const faceWidthMax = Math.max(faceWidthMin + 80, Math.round(baseFaceWidth * 1.45))
-  const faceWidthCss = `clamp(${faceWidthMin}px, 30vw, ${faceWidthMax}px)`
-  // Aspect ratio: the coverflow is 4:5 (taller than wide
-  // for the description text); the option carousel is 9:11
-  // (slightly taller than wide for the icon + title +
-  // subtitle). The ratio is derived from the caller's
-  // baseFaceWidth / baseFaceHeight so the caller controls
-  // the shape; we just preserve it across the fluid scale.
+  // This take:
+  //  1. The face width uses 26vw (down from 30vw) so the
+  //     face is a touch narrower on desktop — the content
+  //     fills the face instead of floating with empty space
+  //     below.
+  //  2. The face HEIGHT is capped with `min(60vh, 380px)` so
+  //     the face never dominates the viewport on a 720px-
+  //     tall screen. The cap preserves the caller's aspect
+  //     ratio for faces whose computed height is below 380px;
+  //     taller faces get clamped to 380px (the user sees a
+  //     slightly squished but still readable face).
+  //  3. The side offset multipliers are 0.78× / 1.32× of
+  //     face-width (up from 0.62× / 1.05×). The l-1 face
+  //     is now further out from the center, and the l-2
+  //     face sits at 1.32× face-width which on a 1280px
+  //     screen with a 384px face puts the l-2 face at
+  //     506px from center — well within the panel.
+  //  4. The aspect ratio is preserved from the caller's
+  //     baseFaceWidth / baseFaceHeight so the coverflow
+  //     (4:5) and the option carousel (callable aspect)
+  //     both render with their intended shape.
+  const faceWidthMin = Math.max(220, Math.round(baseFaceWidth * 0.7))
+  const faceWidthMax = Math.max(
+    faceWidthMin + 60,
+    Math.round(baseFaceWidth * 1.3)
+  )
+  const faceWidthCss = `clamp(${faceWidthMin}px, 26vw, ${faceWidthMax}px)`
   const aspectRatio = baseFaceHeight / baseFaceWidth
-  const faceHeightCss = `calc(${faceWidthCss} * ${aspectRatio.toFixed(3)})`
+  const faceHeightCss = `min(calc(${faceWidthCss} * ${aspectRatio.toFixed(3)}), min(60vh, 380px))`
   // Offsets proportional to the (clamped) face width.
-  // Reduced from the take-2 values (0.78× / 1.32×) so the
-  // side faces stay within the panel — the user is on a
-  // 1440px screen and the panel is 1400px wide, so anything
-  // past ~1.2× face-width runs off the edge.
-  const offsetL1Css = `calc(${faceWidthCss} * 0.62)`
-  const offsetL2Css = `calc(${faceWidthCss} * 1.05)`
+  // Increased from take-3 (0.62× / 1.05×) so the side
+  // faces have more breathing room from the center and
+  // from each other. The 0.78× for l-1 still reads as
+  // "next to the center" without overlapping; the 1.32×
+  // for l-2 keeps the l-2 face inside the panel on
+  // viewports down to ~960px.
+  const offsetL1Css = `calc(${faceWidthCss} * 0.78)`
+  const offsetL2Css = `calc(${faceWidthCss} * 1.32)`
 
   const containerVars = {
     '--carousel-face-width': faceWidthCss,
