@@ -17,7 +17,6 @@
 import { useId } from 'react'
 import { cn } from 'renderer/lib/utils'
 import { Check, ChevronDown, ChevronRight, Pencil } from 'lucide-react'
-import { GlassCard } from './GlassCard'
 import { OptionTile } from './OptionTile'
 import { ProductTypeTooltip } from './ProductTypeTooltip'
 import { EndProductCoverflow } from './EndProductCoverflow'
@@ -131,9 +130,22 @@ export function StepCard({
   }
 
   // -- Active (the option carousel + Confirm CTA) -----------------------
+  // Slide 5 of v2.2 (2026-07-27): the outer `GlassCard` wrapper
+  // was the heaviest visual element in the wizard body — the
+  // rounded, blurred, semi-opaque card that wrapped the step
+  // title + description + option carousel. The user called it
+  // out as the "biggest glass panel" and asked for it to be
+  // "removed or at least made 0 opaqueness" for the active
+  // step on every slide. The fix is to drop the `GlassCard`
+  // wrapper for the active state and lay the step content
+  // out on a plain flex column. The individual `OptionTile`
+  // cards keep their own chrome (border + bg + hover) so the
+  // visual rhythm of the carousel is preserved; the step
+  // header sits directly on the page background so the
+  // animated gradient blobs read through.
   return (
     <div data-testid={`step-card-${step.id}-active`}>
-      <GlassCard className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 px-1 py-2 sm:px-2 sm:py-3">
         <header className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <ChevronDown
@@ -233,7 +245,7 @@ export function StepCard({
             </button>
           </div>
         ) : null}
-      </GlassCard>
+      </div>
     </div>
   )
 }
