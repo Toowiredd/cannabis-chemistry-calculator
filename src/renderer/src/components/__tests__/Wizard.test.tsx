@@ -1,17 +1,17 @@
 /**
  * Tests for the Wizard container component.
  *
- * The Wizard IS the canonical UI/UX. Two key behaviors:
- *  - Kill switch: when `wizardEnabled` is explicitly false, the
- *    component returns `null` (the legacy GroupedTabNav takes
- *    over). This is a build-time gate during the migration
- *    window, not a user-facing opt-in.
- *  - Step stack: when the flag is on (the canonical default),
- *    it renders the steps for the current branch sequence.
+ * The Wizard is the vertical step-stack container. Two key
+ * behaviors:
+ *  - Feature flag: when `wizardEnabled` is false, the component
+ *    returns `null` (the existing GroupedTabNav takes over).
+ *  - Step stack: when the flag is on, it renders the steps for
+ *    the current branch sequence.
  *
- * The feature-flag read (see wizardFeatureFlag.ts) is direct
- * from the typed store — the slice is on master, no defensive
- * cast needed. The tests below exercise both branches.
+ * The feature-flag read is defensive (see wizardFeatureFlag.ts):
+ * when the state-routing rein hasn't shipped the `wizardEnabled`
+ * field yet, the read returns `false`. The tests below exercise
+ * both branches.
  */
 import { beforeEach, describe, expect, it } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
@@ -24,18 +24,26 @@ import {
 } from 'renderer/src/wizard/wizardTypes'
 
 beforeEach(() => {
-  // Reset the wizardEnabled field between tests so the flag doesn't
-  // leak state. The default is `true` (the wizard IS the canonical
-  // UI/UX); tests that need the kill-switch branch explicitly
-  // override to `false`.
+  // Reset the wizardEnabled field between tests so the cast in
+  // the wizardFeatureFlag module doesn't leak state.
   useAppStore.setState({
     ...(useAppStore.getState() as unknown as Record<string, unknown>),
-    wizardEnabled: true,
-  } as Partial<ReturnType<typeof useAppStore.getState>>)
+  })
 })
 
-describe('Wizard — kill switch (wizard IS the UI/UX; flag is the migration gate)', () => {
-  it('renders nothing when wizardEnabled is explicitly false (kill switch)', () => {
+describe('Wizard — feature flag', () => {
+  it('renders nothing when wizardEnabled is false (default)', () => {
+    const { container } = render(
+      <Wizard
+        onEdit={() => {}}
+        onSelect={() => {}}
+        state={DEFAULT_WIZARD_STATE}
+      />
+    )
+    expect(container.firstChild).toBeNull()
+  })
+
+  it('renders nothing when wizardEnabled is explicitly false', () => {
     useAppStore.setState({
       ...(useAppStore.getState() as unknown as Record<string, unknown>),
       wizardEnabled: false,

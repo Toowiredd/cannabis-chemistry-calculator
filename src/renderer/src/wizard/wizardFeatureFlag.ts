@@ -1,32 +1,41 @@
 /**
- * Wizard flag reader — `wizardEnabled` reads the store directly.
+ * Wizard feature flag — `wizardEnabled` reads the store defensively.
  *
- * The wizard IS the canonical UI/UX. Default is `true` (the
- * recipe-style wizard is the primary surface: carousel landing →
- * equipment carousel → read-only "you'll need" → inline steps →
- * extraction timer → cooking timer → yield + save).
+ * The `wizardEnabled` flag + the new `wizard` slice are owned by the
+ * state-routing rein. Their slice lands in a parallel commit (per
+ * the wire-up memory, the ui-tabs and state-routing commits must
+ * land independently). The state-routing slice is NOT YET on
+ * master at the time of this writing — `useAppStore.getState()`
+ * has no `wizardEnabled` field.
  *
- * The flag is a kill switch for the migration window, not a
- * user-facing opt-in. Existing users with the legacy persisted
- * `false` value are coerced to `true` on rehydrate (see the
- * migration block in `appStore.ts`).
+ * To stay type-safe + tolerant, this module reads the field with a
+ * type cast. When state-routing lands:
+ *   - If they ship `wizardEnabled: boolean` on the store, this hook
+ *     reads it directly. Same behavior.
+ *   - If they ship a different name, this hook is the only edit
+ *     point — the rest of the wizard imports `useWizardEnabled`
+ *     from here, not the store.
  *
- * This module exists so the wizard imports `useWizardEnabled` /
- * `readWizardEnabled` from one place, not the store directly. If
- * the field is renamed or the gating logic changes, this is the
- * only edit point.
+ * Default is `false` (hidden). The WizardScreen is a no-op until
+ * the flag flips. Existing users see no change.
  */
 import { useAppStore } from 'renderer/src/stores/appStore'
 
 /**
- * Read the `wizardEnabled` flag from the typed store. Returns
- * `true` for new users (default) and for existing users whose
- * persisted `false` was coerced to `true` on rehydrate. Returns
- * `false` only when an existing user has explicitly toggled it
- * off (rare; the kill switch).
+ * Read the `wizardEnabled` flag defensively. Returns `false` when
+ * the field is absent (pre-state-routing-merge).
+ *
+ * The cast `as unknown as { wizardEnabled?: boolean }` keeps
+ * typecheck clean today and auto-resolves once state-routing lands
+ * the real field (TypeScript will accept the field access at
+ * runtime regardless of whether the type has been widened; this
+ * hook is the only place that needs the cast).
  */
 export function useWizardEnabled(): boolean {
-  return useAppStore(s => s.wizardEnabled === true)
+  return useAppStore(s => {
+    const candidate = s as unknown as { wizardEnabled?: boolean }
+    return candidate.wizardEnabled === true
+  })
 }
 
 /**
@@ -34,5 +43,8 @@ export function useWizardEnabled(): boolean {
  * (e.g. test setup, non-component code). Mirrors `useWizardEnabled`.
  */
 export function readWizardEnabled(): boolean {
-  return useAppStore.getState().wizardEnabled === true
+  const state = useAppStore.getState() as unknown as {
+    wizardEnabled?: boolean
+  }
+  return state.wizardEnabled === true
 }

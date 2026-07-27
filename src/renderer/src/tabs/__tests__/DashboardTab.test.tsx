@@ -262,16 +262,12 @@ describe('DashboardTab — Resume last batch (Week 6, §8.3)', () => {
       batchJournalEntryId: null,
     })
     render(<DashboardTab />)
-    // The wizard IS the canonical UI/UX; `wizardEnabled` defaults
-    // to `true`. The Resume CTA doesn't need to flip a flag — it
-    // just sets the branch and restores the recipe's selections.
-    // (Kill-switch test path is covered separately in the
-    // "Resume card absent when wizardEnabled is false" describe
-    // block below.)
-    expect(useAppStore.getState().wizardEnabled).toBe(true)
+    // Pre-condition: wizardEnabled is false (the default for
+    // the wire-up memory's defensive read pattern).
+    expect(useAppStore.getState().wizardEnabled).toBe(false)
     fireEvent.click(screen.getByTestId('dashboard-resume-card-cta'))
-    // The CTA sets the branch and restores the recipe's
-    // selections. The flag stays `true` (it was already on).
+    // The CTA flips wizardEnabled → true, sets the branch, and
+    // restores the recipe's selections. We assert all three.
     const state = useAppStore.getState()
     expect(state.wizardEnabled).toBe(true)
     expect(state.wizard.branch).toBe('flower')

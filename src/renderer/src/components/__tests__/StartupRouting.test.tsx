@@ -108,11 +108,7 @@ describe('startup routing heuristic', () => {
   })
 })
 
-describe('MainScreen startup flow (kill switch path — wizardEnabled: false)', () => {
-  // The wizard IS the canonical UI/UX. The legacy startup-chooser
-  // → quick-batch-tab flow is only reachable via the kill switch
-  // during the migration window. These tests exercise the
-  // kill-switch path.
+describe('MainScreen startup flow', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     localStorage.clear()
@@ -137,7 +133,6 @@ describe('MainScreen startup flow (kill switch path — wizardEnabled: false)', 
       dose: { ...DEFAULT_DOSE },
       startupRouting: { ...DEFAULT_STARTUP_ROUTING },
       firstRunDismissed: true,
-      wizardEnabled: false,
     })
   })
 
