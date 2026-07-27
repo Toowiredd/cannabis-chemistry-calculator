@@ -257,17 +257,18 @@ describe('WizardScreen — "Back to config" from Stage 2 (slide 4 of v2.2)', () 
     useAppStore.setState({ returnToConfig: returnSpy })
 
     render(<WizardScreen />)
-    // Walk the Baked (edible) branch to the Start step.
+    // Walk the Baked (edible) + Flower branch to the Start
+    // step. v2.3: Material step + 2-width carousel.
     fireEvent.click(screen.getByTestId('end-product-face-baked'))
+    fireEvent.click(screen.getByTestId('option-tile-flower'))
     fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
-    // Container (v2.2 custom input form).
-    fireEvent.change(screen.getByTestId('container-width-input').querySelector('input')!, { target: { value: '15' } })
-    fireEvent.change(screen.getByTestId('container-length-input').querySelector('input')!, { target: { value: '20' } })
-    fireEvent.click(screen.getByTestId('container-continue-cta'))
+    fireEvent.click(screen.getByTestId('option-tile-vac-19'))
     fireEvent.click(screen.getByTestId('option-tile-g-7'))
+    fireEvent.click(screen.getByTestId('option-tile-eff-90'))
     fireEvent.click(screen.getByTestId('option-tile-coconut'))
     fireEvent.click(screen.getByTestId('option-tile-mL-100'))
     fireEvent.click(screen.getByTestId('option-tile-s-12'))
+    fireEvent.click(screen.getByTestId('option-tile-named'))
     // Start is the next active step.
     expect(screen.getByTestId('step-card-start-active')).toBeTruthy()
     // Begin batch → Stage 2 mounts.
@@ -320,8 +321,10 @@ describe('WizardScreen — "Reset wizard" (slide 4 of v2.2)', () => {
 
     render(<WizardScreen />)
     // Walk past the product-type picker so the wizard has
-    // some non-default state.
+    // some non-default state. v2.3: Material step comes
+    // after product-type.
     fireEvent.click(screen.getByTestId('end-product-face-baked'))
+    fireEvent.click(screen.getByTestId('option-tile-flower'))
     expect(screen.getByTestId('step-card-method-active')).toBeTruthy()
     // Pre-condition: Stage 2 is NOT active.
     expect(useAppStore.getState().wizard.execution.currentStepId).toBeNull()

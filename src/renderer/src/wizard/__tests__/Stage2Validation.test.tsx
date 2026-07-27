@@ -269,24 +269,22 @@ describe('WizardScreen — Begin batch happy path', () => {
 
     render(<WizardScreen />)
 
-    // Walk the Baked (edible) branch — the end-product
-    // that maps to the edible branch in v2. Seven tile
-    // clicks take the user from product-type picker to
-    // the Start step: Method → Container → Weight → Fat
-    // → Volume → Servings. The Edible branch has no
-    // Efficiency step and no "No infusion" tile (those
-    // were Flower-only), so the test walks the canonical
-    // "with infusion" path.
+    // Walk the Baked (edible) + Flower branch — v2.3: the
+    // Material step comes after the coverflow, and the
+    // Container step is the 2-width carousel.
+    // 9 tile clicks: Method → Container → Weight →
+    // Efficiency (Flower only) → Fat (edible) → Volume →
+    // Servings → Name.
     fireEvent.click(screen.getByTestId('end-product-face-baked'))
+    fireEvent.click(screen.getByTestId('option-tile-flower'))
     fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
-    // Container (v2.2 custom input form).
-    fireEvent.change(screen.getByTestId('container-width-input').querySelector('input')!, { target: { value: '15' } })
-    fireEvent.change(screen.getByTestId('container-length-input').querySelector('input')!, { target: { value: '20' } })
-    fireEvent.click(screen.getByTestId('container-continue-cta'))
+    fireEvent.click(screen.getByTestId('option-tile-vac-19'))
     fireEvent.click(screen.getByTestId('option-tile-g-7'))
+    fireEvent.click(screen.getByTestId('option-tile-eff-90'))
     fireEvent.click(screen.getByTestId('option-tile-coconut'))
     fireEvent.click(screen.getByTestId('option-tile-mL-100'))
     fireEvent.click(screen.getByTestId('option-tile-s-12'))
+    fireEvent.click(screen.getByTestId('option-tile-named'))
     expect(screen.getByTestId('step-card-start-active')).toBeTruthy()
     expect(screen.getByTestId('wizard-begin-cta')).toBeTruthy()
 

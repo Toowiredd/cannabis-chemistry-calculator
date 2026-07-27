@@ -29,7 +29,7 @@
 import { useCallback } from 'react'
 import { useWizardEnabled } from 'renderer/src/wizard/wizardFeatureFlag'
 import { STEP_MAP } from 'renderer/src/wizard/steps'
-import { getNextStep } from 'renderer/src/wizard/wizardFlow'
+import { getNextStep, isFinished } from 'renderer/src/wizard/wizardFlow'
 import type { WizardState } from 'renderer/src/wizard/wizardTypes'
 import { StepCard } from './StepCard'
 
@@ -47,12 +47,20 @@ export function Wizard({ state, onSelect }: WizardProps) {
 
   if (!enabled) return null
 
+  // Finished — the user has tapped "Begin batch" and Stage 2
+  // is mounted. The wizard renders nothing; the parent's
+  // ExecutionStepper takes over. The isFinished helper
+  // distinguishes this from the initial state (where
+  // currentStepId is also null but endProduct/branch aren't
+  // set yet).
+  if (isFinished(state)) return null
+
   // The current step id comes from the parent state
   // (`state.currentStepId`), which is set after every
-  // onSelect via the DAG. If it's `null` (initial state or
-  // post-Begin-batch finished), the DAG's `getNextStep`
-  // computes the first/terminal step from the current
-  // selections.
+  // onSelect via the DAG. If it's `null` (initial state),
+  // the DAG's `getNextStep` computes the first step from
+  // the current selections (the user always lands on
+  // 'product-type' for the initial state).
   const stepId = state.currentStepId ?? getNextStep(state)
   if (stepId === null) return null
   const step = STEP_MAP[stepId]

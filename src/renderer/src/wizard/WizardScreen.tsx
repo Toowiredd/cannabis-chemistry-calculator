@@ -47,7 +47,7 @@ import {
   type WizardSelections,
   type WizardState,
 } from 'renderer/src/wizard/wizardTypes'
-import { getNextStep, isFinished, isOnStartStep as isOnStartStepDag } from 'renderer/src/wizard/wizardFlow'
+import { getNextStep, isFinished, isOnStartStep as isOnStartStepDag, shouldRecommendDoubleBag } from 'renderer/src/wizard/wizardFlow'
 // Week 7 (§3.4 + §7 Polish) — the Stage 1 selection validator.
 // Imported from the stores' `wizardTypes.ts` (where the
 // state-routing rein landed it in commit c0a893e) rather than
@@ -181,14 +181,16 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
         case 'product-type': {
           // The EndProductCoverflow fires onSelect with the
           // end product id (e.g. 'baked', 'tincture'). The
-          // wizard looks up the default branch from
-          // `END_PRODUCT_TO_BRANCH`; the user can override
-          // the branch on the Material step.
+          // wizard stores the end product in `state.endProduct`;
+          // the user's starting material is set on the
+          // NEXT step (Material). The DAG's
+          // `getNextStep` returns 'material' when
+          // `state.branch === null` regardless of what the
+          // coverflow's default branch is — the user
+          // always sees the Material step.
           const endProduct = optionId as EndProductId
-          const branch = END_PRODUCT_TO_BRANCH[endProduct]
           return {
             selections: {},
-            branch,
             endProduct,
           }
         }
@@ -293,6 +295,15 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
           // accepted by the decoder for the engine tests
           // + the BAG_PRESETS lookup paths.
           return { selections: { container: optionId } }
+        }
+        case 'app-area': {
+          // The app-area step's optionId is the application
+          // area id ('face' / 'body' / 'joint' / 'muscle').
+          // The wizard writes it to
+          // `selections.applicationArea` (the canonical
+          // field name — the stepId 'app-area' is the DAG's
+          // literal, not the field name).
+          return { selections: { applicationArea: optionId } }
         }
         case 'name': {
           // The Name step's only option is 'named' (a marker
@@ -418,6 +429,36 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
             weightG,
             widthCm
           )
+        }
+        // The double-bag interjection is a sub-decision
+        // of the Container step. The flow is:
+        //   1. User picks vac-19 / vac-28.
+        //   2. If shouldRecommendDoubleBag(next) is
+        //      true (sous vide + 19cm bag), the wizard
+        //      stays on the Container step and shows
+        //      the interjection below the carousel.
+        //   3. User answers db-yes / db-no; the wizard
+        //      stays on the Container step (the answer
+        //      is shown as the selected tile).
+        //   4. Wizard advances to Weight on the NEXT
+        //      selection (a different step's tile click
+        //      or a re-click of the container tile).
+        // Without these guards the vac-{w} click would
+        // auto-advance to Weight, hiding the interjection
+        // before the user sees it.
+        const isContainerTile =
+          stepId === 'container' && /^vac-\d+$/.test(optionId)
+        const isInterjectionAnswer =
+          stepId === 'container' &&
+          (optionId === 'db-yes' || optionId === 'db-no')
+        if (
+          (isContainerTile && shouldRecommendDoubleBag(next)) ||
+          isInterjectionAnswer
+        ) {
+          return {
+            ...next,
+            currentStepId: 'container',
+          }
         }
         // Compute the next step id via the DAG. The DAG
         // IS the smart-skip — it returns the right step
