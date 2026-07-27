@@ -1423,12 +1423,18 @@ export const useAppStore = create<AppStore>()(
       // untouched for users who haven't opted in.
       // -----------------------------------------------------------------
 
-      // Default the feature flag to `false` so the new UI is opt-in.
-      // The flag is persisted (see partialize below) so a user who
-      // enables it keeps it across reloads. A user who never touches
-      // the flag stays on the legacy GroupedTabNav + FirstTimerGuide
-      // surface indefinitely.
-      wizardEnabled: false,
+      // The wizard IS the canonical UI/UX. Default to `true` so all
+      // new users land on the recipe-style wizard (carousel landing →
+      // equipment carousel → read-only "you'll need" → inline steps).
+      // The flag is a kill switch for the migration period — it stays
+      // persisted so a returning user who has it `true` keeps the
+      // wizard across reloads, and a returning user whose persisted
+      // snapshot has it `false` is coerced to `true` on rehydrate
+      // (see the migration block below). The open-form tabs
+      // (Decarb / Infusion / Dose / Quick Batch) are being migrated
+      // into recipe steps over the build cycles; the wizard IS the
+      // UX, not an opt-in side feature.
+      wizardEnabled: true,
       setWizardEnabled: enabled =>
         set(state => {
           if (state.wizardEnabled === enabled) return {}
@@ -2933,14 +2939,26 @@ export const useAppStore = create<AppStore>()(
             execution: { ...DEFAULT_EXECUTION_STEP_STATE },
           }
         }
-        // `wizardEnabled` feature flag: coerce to a boolean on
-        // rehydrate so a corrupted snapshot can't sneak a non-boolean
-        // value past the type system. Missing → false (opt-in default).
+        // `wizardEnabled`: coerce to a boolean on rehydrate so a
+        // corrupted snapshot can't sneak a non-boolean value past
+        // the type system. Missing OR `false` → `true` (the wizard
+        // IS the canonical UI/UX; existing users with the legacy
+        // `false` value are migrated to the new UX on their next
+        // launch — they don't stay on the old surface because of a
+        // stale persisted value). Users who explicitly toggled
+        // `false` get one migration to the wizard, then can toggle
+        // back if they want the legacy surface during the
+        // migration window.
         if (isRecord(persistedState)) {
           const persistedFlag = (persistedState as { wizardEnabled?: unknown })
             .wizardEnabled
           ;(base as { wizardEnabled: boolean }).wizardEnabled =
-            typeof persistedFlag === 'boolean' ? persistedFlag : false
+            typeof persistedFlag === 'boolean' ? persistedFlag : true
+          // Migration: a persisted `false` (from the prior opt-in
+          // default) is coerced to `true`. The wizard IS the UX.
+          if ((base as { wizardEnabled: boolean }).wizardEnabled === false) {
+            ;(base as { wizardEnabled: boolean }).wizardEnabled = true
+          }
           // Week 5 (per §8.2 + §8.5): the `recipes` slice. A
           // v8 envelope is missing this key (the v8→v9 migration
           // backfills `[]` on the persisted envelope, but a

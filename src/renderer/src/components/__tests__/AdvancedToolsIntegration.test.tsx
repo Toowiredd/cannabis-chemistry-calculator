@@ -85,13 +85,17 @@ function findButton(container: HTMLElement, label: string): HTMLButtonElement {
   return button
 }
 
-describe('Advanced Tools integration', () => {
+describe('Advanced Tools integration (kill switch path — wizardEnabled: false)', () => {
+  // The wizard IS the canonical UI/UX. The open-form tabs (including
+  // Advanced Tools) are only reachable via the kill switch during
+  // the migration window. This test exercises the kill-switch path.
   beforeEach(() => {
     localStorage.clear()
     document.body.innerHTML = ''
     useAppStore.setState({
       activeTab: 'advanced',
       firstRunDismissed: true,
+      wizardEnabled: false,
       advancedTools: {
         subTab: 'fats',
         concentrate: {

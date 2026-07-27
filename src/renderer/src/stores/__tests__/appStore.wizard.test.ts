@@ -56,8 +56,9 @@ async function waitForPersisted(): Promise<void> {
 /**
  * Reset the Stage 1 wizard state to its empty defaults. Keeps the
  * legacy kit-configurator fields (`active`, `dismissed`, `stepIndex`,
- * legacy `selections`) and the `wizardEnabled` feature flag as-is so
- * each test starts from a known clean Stage 1 baseline without
+ * legacy `selections`) and resets the `wizardEnabled` flag to its
+ * canonical default (the wizard IS the UI/UX; default is `true`)
+ * so each test starts from a known clean Stage 1 baseline without
  * disturbing the other slices.
  */
 function resetStage1Wizard(): void {
@@ -67,7 +68,7 @@ function resetStage1Wizard(): void {
       selections: { ...DEFAULT_WIZARD_STATE.selections },
       stage1Selections: { ...DEFAULT_STAGE1_WIZARD_SELECTIONS },
     },
-    wizardEnabled: false,
+    wizardEnabled: true,
   })
 }
 
@@ -87,8 +88,10 @@ describe('appStore Stage 1 Configuration Wizard — defaults', () => {
     expect(wizard.currentStep).toBe(0)
     expect(wizard.stage1Selections).toEqual({})
     expect(wizard.stepHistory).toEqual([])
-    // Feature flag defaults to off (opt-in).
-    expect(wizardEnabled).toBe(false)
+    // The wizard IS the canonical UI/UX. Default is `true`. The flag
+    // is a kill switch for the migration window, not a user-facing
+    // opt-in.
+    expect(wizardEnabled).toBe(true)
   })
 
   it('legacy kit-configurator fields are still present (active=false, dismissed=false, stepIndex=0, selections=arrays)', () => {
@@ -295,12 +298,13 @@ describe('appStore Stage 1 Configuration Wizard — actions', () => {
     expect(s.wizardEnabled).toBe(true)
   })
 
-  it('setWizardEnabled flips the feature flag on and off', () => {
-    expect(useAppStore.getState().wizardEnabled).toBe(false)
-    useAppStore.getState().setWizardEnabled(true)
+  it('setWizardEnabled flips the flag on and off (kill switch — wizard is the canonical UX by default)', () => {
+    // Default is `true` (the wizard IS the canonical UI/UX).
     expect(useAppStore.getState().wizardEnabled).toBe(true)
     useAppStore.getState().setWizardEnabled(false)
     expect(useAppStore.getState().wizardEnabled).toBe(false)
+    useAppStore.getState().setWizardEnabled(true)
+    expect(useAppStore.getState().wizardEnabled).toBe(true)
   })
 
   it('setWizardEnabled is a no-op when the new value === the existing value', () => {
@@ -438,8 +442,11 @@ describe('appStore Stage 1 Configuration Wizard — v7→v8 migration', () => {
     expect(persistedWizard.currentStep).toBe(0)
     expect(persistedWizard.stage1Selections).toEqual({})
     expect(persistedWizard.stepHistory).toEqual([])
-    // The top-level wizardEnabled flag is initialized to false.
-    expect(persisted.wizardEnabled).toBe(false)
+    // The top-level wizardEnabled flag is initialized to `true` (the
+    // wizard IS the canonical UI/UX; missing on rehydrate coerces
+    // to the canonical default — the user lands on the new UX
+    // on their first launch post-migration).
+    expect(persisted.wizardEnabled).toBe(true)
     // Runtime-only legacy fields (`active`, `stepIndex`) are NOT in
     // the persisted envelope — they're session-only by partialize
     // design. Read them from the rehydrated store state instead.
@@ -487,7 +494,9 @@ describe('appStore Stage 1 Configuration Wizard — v7→v8 migration', () => {
     expect(migratedWizard.currentStep).toBe(0)
     expect(migratedWizard.stage1Selections).toEqual({})
     expect(migratedWizard.stepHistory).toEqual([])
-    expect(migratedState.wizardEnabled).toBe(false)
+    // The wizard IS the canonical UI/UX. Missing `wizardEnabled` on
+    // rehydrate → `true` (no opt-in to opt into; it's on by default).
+    expect(migratedState.wizardEnabled).toBe(true)
 
     // Second rehydrate: already-v8 envelope. Migration is a no-op
     // — the Stage 1 fields stay at their v8 defaults, the legacy
@@ -545,7 +554,9 @@ describe('appStore Stage 1 Configuration Wizard — v7→v8 migration', () => {
     expect(w.currentStep).toBe(0)
     expect(w.stage1Selections).toEqual({})
     expect(w.stepHistory).toEqual([])
-    expect(useAppStore.getState().wizardEnabled).toBe(false)
+    // Non-boolean `wizardEnabled` on rehydrate is coerced to `true`
+    // (the wizard IS the canonical UI/UX; default is on).
+    expect(useAppStore.getState().wizardEnabled).toBe(true)
   })
 
   it('v7→v8 migration preserves a valid Stage 1 branch written by a future build', async () => {

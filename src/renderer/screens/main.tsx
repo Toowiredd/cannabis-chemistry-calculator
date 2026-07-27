@@ -110,16 +110,14 @@ export function MainScreen() {
   const firstRunDismissed = useAppStore(s => s.firstRunDismissed)
   const wizardDismissed = useAppStore(s => s.wizard.dismissed)
   const setWizardActive = useAppStore(s => s.setWizardActive)
-  // 2026-07-26 wizard Week 1: read the `wizardEnabled` feature flag
-  // defensively. The state-routing rein is shipping the `wizard`
-  // slice + `wizardEnabled: boolean` field in a parallel commit;
-  // while their commit is still landing, the field is absent and
-  // the cast returns `false` (WizardScreen hidden — the existing
-  // GroupedTabNav takes over). When state-routing lands, the
-  // WizardScreen swaps in automatically.
-  const wizardEnabled = useAppStore(
-    s => (s as unknown as { wizardEnabled?: boolean }).wizardEnabled === true
-  )
+  // The wizard IS the canonical UI/UX. Read `wizardEnabled` directly
+  // from the typed store (no defensive cast — the slice is on
+  // master). Default is `true`; the flag is a kill switch for the
+  // migration window, not a user-facing opt-in. When `false`, the
+  // legacy GroupedTabNav + open-form tabs take over (the open-form
+  // tabs are being migrated into recipe steps over the build
+  // cycles; the wizard IS the canonical UX, full stop).
+  const wizardEnabled = useAppStore(s => s.wizardEnabled === true)
 
   const [isLoading, setIsLoading] = useState(true)
   const [isExitingLoad, setIsExitingLoad] = useState(false)

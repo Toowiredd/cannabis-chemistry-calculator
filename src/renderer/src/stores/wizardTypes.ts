@@ -13,7 +13,11 @@
  * backward compat — the standalone First-Timer Guide is being deprecated
  * per §8.6 in a later week). The new Stage 1 state is added alongside it
  * as additional optional fields on the same `wizard` slice, behind a
- * `wizardEnabled` feature flag (default `false` in this Week 1 commit).
+ * `wizardEnabled` flag — the wizard IS the canonical UI/UX. Default
+ *   is `true` (the recipe-style wizard is the primary surface). The
+ *   flag is a kill switch for the migration window, NOT a user-facing
+ *   opt-in. On rehydrate, a persisted `false` is coerced to `true` so
+ *   existing users with the legacy opt-in value land on the new UX.
  *
  * NOTE on type imports: the spec called for `DecarbMethodId` and
  * `BagPresetId` from `engine/decbMethods` and `engine/bagPresets`. Neither
