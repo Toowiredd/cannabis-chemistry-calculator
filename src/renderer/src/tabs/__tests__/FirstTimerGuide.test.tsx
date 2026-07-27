@@ -71,6 +71,13 @@ function resetWizard(seed: Partial<typeof DEFAULT_WIZARD_STATE> = {}) {
       ...seed,
     },
     firstRunDismissed: false,
+    // Slide 3 (2026-07-27): the wizard IS the UX. The
+    // First-Timer Guide is dead on the happy path and only
+    // renders for the legacy rollback. The tests below
+    // exercise that rollback surface, so the flag stays
+    // `false` here (the FirstTimerGuide's render gate
+    // returns `null` when `wizardEnabled: true`).
+    wizardEnabled: false,
   })
 }
 

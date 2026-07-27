@@ -67,7 +67,13 @@ function resetStage1Wizard(): void {
       selections: { ...DEFAULT_WIZARD_STATE.selections },
       stage1Selections: { ...DEFAULT_STAGE1_WIZARD_SELECTIONS },
     },
-    wizardEnabled: false,
+    // Slide 3 (2026-07-27): the wizard IS the UX. The
+    // default is `true`; tests that need the legacy
+    // rollback path can override this in the test body
+    // (e.g. the AdvancedToolsIntegration test sets
+    // `wizardEnabled: false` to land on the legacy
+    // GroupedTabNav surface).
+    wizardEnabled: true,
   })
 }
 
@@ -87,8 +93,11 @@ describe('appStore Stage 1 Configuration Wizard — defaults', () => {
     expect(wizard.currentStep).toBe(0)
     expect(wizard.stage1Selections).toEqual({})
     expect(wizard.stepHistory).toEqual([])
-    // Feature flag defaults to off (opt-in).
-    expect(wizardEnabled).toBe(false)
+    // Slide 3 (2026-07-27): the wizard IS the UX. The feature
+    // flag now defaults to true; the legacy `false` opt-in is
+    // removed (a user who needs the legacy tabs can flip the
+    // flag to false post-load).
+    expect(wizardEnabled).toBe(true)
   })
 
   it('legacy kit-configurator fields are still present (active=false, dismissed=false, stepIndex=0, selections=arrays)', () => {
@@ -295,12 +304,15 @@ describe('appStore Stage 1 Configuration Wizard — actions', () => {
     expect(s.wizardEnabled).toBe(true)
   })
 
-  it('setWizardEnabled flips the feature flag on and off', () => {
-    expect(useAppStore.getState().wizardEnabled).toBe(false)
-    useAppStore.getState().setWizardEnabled(true)
+  it('setWizardEnabled flips the feature flag on and off (rollback path)', () => {
+    // Slide 3 (2026-07-27): default is `true` (the wizard is
+    // the UX). A user can still flip to `false` for the
+    // legacy GroupedTabNav rollback path.
     expect(useAppStore.getState().wizardEnabled).toBe(true)
     useAppStore.getState().setWizardEnabled(false)
     expect(useAppStore.getState().wizardEnabled).toBe(false)
+    useAppStore.getState().setWizardEnabled(true)
+    expect(useAppStore.getState().wizardEnabled).toBe(true)
   })
 
   it('setWizardEnabled is a no-op when the new value === the existing value', () => {
@@ -344,7 +356,7 @@ describe('appStore Stage 1 Configuration Wizard — persistence', () => {
     expect(persisted?.wizardEnabled).toBe(true)
   })
 
-  it('version=10 is set on the persisted envelope (Week 1 bumped to v8, Week 5 bumped to v9, Week 6 bumped to v10)', async () => {
+  it('version=11 is set on the persisted envelope (Week 1 bumped to v8, Week 5 bumped to v9, Week 6 bumped to v10, slide 3 bumped to v11)', async () => {
     // Week 1 (2026-07-26 wizard build) bumped the persist
     // version to v8 when it added the Stage 1 Configuration
     // Wizard slice + `wizardEnabled` feature flag. Week 5
@@ -358,7 +370,7 @@ describe('appStore Stage 1 Configuration Wizard — persistence', () => {
     // is therefore 10.
     useAppStore.getState().setProductType('avb')
     await waitForPersisted()
-    expect(readPersisted()?.version).toBe(10)
+    expect(readPersisted()?.version).toBe(11)
   })
 
   it('round-trip: Stage 1 selections + branch survive reload', async () => {
@@ -438,8 +450,12 @@ describe('appStore Stage 1 Configuration Wizard — v7→v8 migration', () => {
     expect(persistedWizard.currentStep).toBe(0)
     expect(persistedWizard.stage1Selections).toEqual({})
     expect(persistedWizard.stepHistory).toEqual([])
-    // The top-level wizardEnabled flag is initialized to false.
-    expect(persisted.wizardEnabled).toBe(false)
+    // Slide 3: the v10→v11 migration flips wizardEnabled
+    // to true (the wizard IS the UX) regardless of what
+    // the v7 envelope had. The v7→v8 step would have set
+    // it to false (the old opt-in default), but the chain
+    // runs through to v11 and the final value is true.
+    expect(persisted.wizardEnabled).toBe(true)
     // Runtime-only legacy fields (`active`, `stepIndex`) are NOT in
     // the persisted envelope — they're session-only by partialize
     // design. Read them from the rehydrated store state instead.
@@ -480,14 +496,14 @@ describe('appStore Stage 1 Configuration Wizard — v7→v8 migration', () => {
     // 10. The chain is intentional — see the migration
     // block in appStore.ts.
     const migrated = readPersisted()
-    expect(migrated?.version).toBe(10)
+    expect(migrated?.version).toBe(11)
     const migratedState = migrated?.state as Record<string, unknown>
     const migratedWizard = migratedState.wizard as Record<string, unknown>
     expect(migratedWizard.branch).toBeNull()
     expect(migratedWizard.currentStep).toBe(0)
     expect(migratedWizard.stage1Selections).toEqual({})
     expect(migratedWizard.stepHistory).toEqual([])
-    expect(migratedState.wizardEnabled).toBe(false)
+    expect(migratedState.wizardEnabled).toBe(true)
 
     // Second rehydrate: already-v8 envelope. Migration is a no-op
     // — the Stage 1 fields stay at their v8 defaults, the legacy
@@ -545,7 +561,12 @@ describe('appStore Stage 1 Configuration Wizard — v7→v8 migration', () => {
     expect(w.currentStep).toBe(0)
     expect(w.stage1Selections).toEqual({})
     expect(w.stepHistory).toEqual([])
-    expect(useAppStore.getState().wizardEnabled).toBe(false)
+    // Slide 3: the v10→v11 migration flips wizardEnabled to
+    // true (the wizard IS the UX) regardless of what the
+    // envelope had. The wrong-type value is also a target
+    // for the migration: the spread-and-default coerces it
+    // to a boolean.
+    expect(useAppStore.getState().wizardEnabled).toBe(true)
   })
 
   it('v7→v8 migration preserves a valid Stage 1 branch written by a future build', async () => {
@@ -1689,7 +1710,7 @@ describe('appStore recipes[] slice — persistence (Week 5)', () => {
     })
   })
 
-  it('version=10 is set on the persisted envelope (bumped in the 2026-07-26 wizard Week 5 commit, bumped again in the 2026-07-27 wizard Week 6 commit)', async () => {
+  it('version=11 is set on the persisted envelope (bumped in the 2026-07-26 wizard Week 5 commit, bumped again in the 2026-07-27 wizard Week 6 commit, bumped again on slide 3 to v11 (wizard IS the UX default flip))', async () => {
     // Touch the store so the partialize runs at least once
     // (the persist middleware doesn't write an empty envelope
     // until something has actually changed).
@@ -1702,7 +1723,7 @@ describe('appStore recipes[] slice — persistence (Week 5)', () => {
       batchJournalEntryId: null,
     })
     await waitForPersisted()
-    expect(readPersisted()?.version).toBe(10)
+    expect(readPersisted()?.version).toBe(11)
   })
 })
 
@@ -1756,7 +1777,7 @@ describe('appStore recipes[] slice — v8→v9 migration (Week 5)', () => {
     // level. The v9→v10 migration is a no-op for an empty
     // array (no entries to normalise).
     const persisted = readPersisted()
-    expect(persisted?.version).toBe(10)
+    expect(persisted?.version).toBe(11)
     const persistedState = persisted?.state as Record<string, unknown>
     expect(persistedState.recipes).toEqual([])
   })
@@ -1799,7 +1820,7 @@ describe('appStore recipes[] slice — v8→v9 migration (Week 5)', () => {
     await useAppStore.persist.rehydrate()
 
     const persisted = readPersisted()
-    expect(persisted?.version).toBe(10)
+    expect(persisted?.version).toBe(11)
     const persistedState = persisted?.state as Record<string, unknown>
     expect(persistedState.recipes).toEqual([])
     // Stage 1 fields are preserved across the idempotent
@@ -1945,7 +1966,7 @@ describe('appStore recipes[] slice — v8→v9 migration (Week 5)', () => {
  *  - `rerunRecipe(realId)` resets execution
  *  - v9→v10 migration backfills missing recipe fields
  *  - v9→v10 migration is idempotent
- *  - `version=10` is set on the persisted envelope
+ *  - `version=11` is set on the persisted envelope
  */
 describe('appStore resume + re-run — Week 6', () => {
   beforeEach(() => {
@@ -2475,7 +2496,7 @@ describe('appStore resume + re-run — v9→v10 migration (Week 6)', () => {
     expect(useAppStore.getState().recipes).toEqual([])
   })
 
-  it('version=10 is set on the persisted envelope after addRecipe + flush', async () => {
+  it('version=11 is set on the persisted envelope after addRecipe + flush', async () => {
     // The Week 6 persist bump: after the new actions are
     // wired in, the version on the persisted envelope is
     // 10. This pins the contract for any future code
@@ -2490,7 +2511,7 @@ describe('appStore resume + re-run — v9→v10 migration (Week 6)', () => {
       batchJournalEntryId: null,
     })
     await waitForPersisted()
-    expect(readPersisted()?.version).toBe(10)
+    expect(readPersisted()?.version).toBe(11)
   })
 })
 

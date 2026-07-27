@@ -254,7 +254,7 @@ describe('DashboardTab — Resume last batch (Week 6, §8.3)', () => {
     expect(summary.textContent).not.toMatch(/Older batch/)
   })
 
-  it('tapping the Resume CTA opens the wizard and routes to step 0', () => {
+  it('tapping the Resume CTA sets the branch and restores the recipe\'s selections', () => {
     useAppStore.getState().addRecipe({
       name: 'My saved batch',
       branch: 'flower',
@@ -262,13 +262,15 @@ describe('DashboardTab — Resume last batch (Week 6, §8.3)', () => {
       batchJournalEntryId: null,
     })
     render(<DashboardTab />)
-    // Pre-condition: wizardEnabled is false (the default for
-    // the wire-up memory's defensive read pattern).
-    expect(useAppStore.getState().wizardEnabled).toBe(false)
+    // Pre-condition: wizardEnabled is true (the new default
+    // per slide 3 of v2.2). The Resume CTA no longer needs
+    // to flip the flag — the wizard is already on. It just
+    // sets the branch, restores the selections, and routes
+    // to step 0 for review.
+    expect(useAppStore.getState().wizardEnabled).toBe(true)
     fireEvent.click(screen.getByTestId('dashboard-resume-card-cta'))
-    // The CTA flips wizardEnabled → true, sets the branch, and
-    // restores the recipe's selections. We assert all three.
     const state = useAppStore.getState()
+    // wizardEnabled stays true (no flip needed).
     expect(state.wizardEnabled).toBe(true)
     expect(state.wizard.branch).toBe('flower')
     expect(state.wizard.stage1Selections.method).toBe('oven_sealed')

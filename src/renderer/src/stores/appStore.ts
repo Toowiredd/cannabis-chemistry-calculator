@@ -1415,20 +1415,27 @@ export const useAppStore = create<AppStore>()(
         })),
 
       // -----------------------------------------------------------------
-      // Stage 1 Configuration Wizard implementations (2026-07-26,
-      // wizard Week 1). Feature-flagged behind `wizardEnabled: false`
-      // by default; the flag is read by `main.tsx` to decide which
-      // surface to render. The new fields are isolated from the legacy
-      // kit-configurator fields so the old flow keeps working
-      // untouched for users who haven't opted in.
+      // Stage 1 Configuration Wizard (2026-07-26 wizard Week 1; this
+      // commit flips the default to TRUE — slide 3 of v2.2).
+      //
+      // The wizard IS the canonical UX. It is not an opt-in, not a
+      // preview, not a flag, not an overlay, not "behind a feature
+      // gate for staged rollout" — it is the surface the user lands
+      // on when they open the app. The legacy GroupedTabNav +
+      // FirstTimerGuide surfaces are no longer the default; they
+      // remain in the source for backwards compat with the migration
+      // path (a user with an old envelope that has `wizardEnabled:
+      // false` gets the v8→v9 migration flipped to true on first
+      // load — see the migration block below).
+      //
+      // The flag still exists for one purpose: emergency rollback.
+      // A user who hits a regression can set
+      // `localStorage['ccc-app-state'].state.wizardEnabled = false`
+      // + reload to land back on the legacy tab surface. It is NOT
+      // a way to "preview" or "try" the wizard.
       // -----------------------------------------------------------------
 
-      // Default the feature flag to `false` so the new UI is opt-in.
-      // The flag is persisted (see partialize below) so a user who
-      // enables it keeps it across reloads. A user who never touches
-      // the flag stays on the legacy GroupedTabNav + FirstTimerGuide
-      // surface indefinitely.
-      wizardEnabled: false,
+      wizardEnabled: true,
       setWizardEnabled: enabled =>
         set(state => {
           if (state.wizardEnabled === enabled) return {}
@@ -2241,7 +2248,7 @@ export const useAppStore = create<AppStore>()(
       // migration. They were already shaped correctly in v7 and
       // remain the backing store for FirstTimerGuide until the §8.6
       // deprecation lands in a later week.
-      version: 10,
+      version: 11,
       migrate: (persistedState: unknown, version: number): unknown => {
         if (!isRecord(persistedState)) return persistedState
 
@@ -2835,6 +2842,29 @@ export const useAppStore = create<AppStore>()(
               }),
             }
           }
+        }
+
+        // v10 -> v11: 2026-07-27 slide 3 of v2.2. The wizard IS the
+        // UX. Pre-v11 envelopes had `wizardEnabled: false` (the
+        // old opt-in default) and would land on the legacy
+        // GroupedTabNav surface. This migration forces the
+        // flag to `true` on any persisted envelope, regardless
+        // of what the user had before, so a v11+ build always
+        // opens into the wizard on first load. Users who
+        // explicitly roll back via
+        // `localStorage.state.wizardEnabled = false` after the
+        // migration runs are still respected — they just have
+        // to set the flag post-load (the migration runs once,
+        // then the merge layer reads whatever the user
+        // subsequently writes).
+        //
+        // The migration is idempotent — re-running on a
+        // v11-shaped envelope is a no-op (the `state.wizardEnabled
+        // === true` check passes on the second pass, so the
+        // spread-and-default is a no-op for a user who
+        // explicitly set `wizardEnabled: true`).
+        if (version < 11) {
+          state = { ...state, wizardEnabled: true }
         }
 
         return state

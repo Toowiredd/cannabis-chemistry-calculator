@@ -32,7 +32,13 @@ beforeEach(() => {
 })
 
 describe('Wizard — feature flag', () => {
-  it('renders nothing when wizardEnabled is false (default)', () => {
+  // Slide 3 (2026-07-27): the wizard IS the UX. The default
+  // flipped to `true` (the v10→v11 migration forces this on
+  // persisted envelopes). The "default is false" test is gone;
+  // a user who explicitly rolls back to `wizardEnabled: false`
+  // (via localStorage) lands on the legacy GroupedTabNav surface
+  // — that's the only path to `wizardEnabled: false` now.
+  it('renders the product-type coverflow by default (wizardEnabled: true is the new default)', () => {
     const { container } = render(
       <Wizard
         onEdit={() => {}}
@@ -40,7 +46,8 @@ describe('Wizard — feature flag', () => {
         state={DEFAULT_WIZARD_STATE}
       />
     )
-    expect(container.firstChild).toBeNull()
+    expect(container.firstChild).not.toBeNull()
+    expect(screen.getByTestId('end-product-coverflow')).toBeTruthy()
   })
 
   it('renders nothing when wizardEnabled is explicitly false', () => {

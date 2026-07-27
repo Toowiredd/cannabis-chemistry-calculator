@@ -89,9 +89,19 @@ describe('Advanced Tools integration', () => {
   beforeEach(() => {
     localStorage.clear()
     document.body.innerHTML = ''
+    // Slide 3 (2026-07-27): the wizard IS the UX. The Advanced
+    // Tools tab is no longer the default surface — it lives in
+    // the bottom reference rail alongside Knowledge + Journal.
+    // The test now exercises the legacy rollback path
+    // (`wizardEnabled: false`) so the AdvancedToolsTab still
+    // has a regression suite. A user with `wizardEnabled: false`
+    // lands on the legacy GroupedTabNav + the chosen
+    // activeTab. The Advanced tab is reached by tapping it in
+    // the reference rail.
     useAppStore.setState({
       activeTab: 'advanced',
       firstRunDismissed: true,
+      wizardEnabled: false,
       advancedTools: {
         subTab: 'fats',
         concentrate: {
@@ -127,10 +137,11 @@ describe('Advanced Tools integration', () => {
     document.body.appendChild(container)
     const root = createRoot(container)
 
-    // The MainScreen now uses React.lazy() to code-split the 9 tabs;
-    // `<Suspense>` shows the "Loading tab…" fallback until each tab's
-    // chunk resolves. `await act(async)` flushes the microtask queue so
-    // the lazy modules (mocked above) resolve before we read the DOM.
+    // MainScreen now uses React.lazy() to code-split the 9 tabs.
+    // `<Suspense>` shows the "Loading tab…" fallback until each
+    // tab's chunk resolves. `await act(async)` flushes the
+    // microtask queue so the mocked lazy modules resolve
+    // before we read the DOM.
     await act(async () => {
       root.render(<MainScreen />)
     })

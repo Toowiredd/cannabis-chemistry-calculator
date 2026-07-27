@@ -282,6 +282,23 @@ function _safeRun<T>(fn: () => T): T | null {
 
 export function FirstTimerGuide(): ReactNode {
   /* ---- store wiring ---- */
+  // Slide 3 (2026-07-27): the wizard IS the UX. The
+  // First-Timer Guide is the legacy kit-configurator modal
+  // (the multi-select wizard backed by the old
+  // `wizard.active / stepIndex / selections` slice). With
+  // the wizard as the default surface, the First-Timer
+  // Guide is dead on the happy path — it only renders when
+  // the user has explicitly rolled back to the legacy
+  // GroupedTabNav surface via
+  // `localStorage.state.wizardEnabled = false`. The
+  // defensive `wizardEnabled` read mirrors the same
+  // pattern in `main.tsx` (see comment at the top of that
+  // file) so the cast returns `false` when the field is
+  // absent — the legacy First-Timer Guide still wins
+  // during the state-routing handoff window.
+  const wizardEnabled = useAppStore(
+    s => (s as unknown as { wizardEnabled?: boolean }).wizardEnabled === true
+  )
   const active = useAppStore(s => s.wizard.active)
   const stepIndex = useAppStore(s => s.wizard.stepIndex)
   const selections = useAppStore(s => s.wizard.selections)
@@ -722,6 +739,10 @@ export function FirstTimerGuide(): ReactNode {
 
   /* ---- render gating ---- */
   if (!active) return null
+  // Slide 3: the wizard IS the UX. The First-Timer Guide
+  // is dead on the happy path; only render for the legacy
+  // rollback path (`wizardEnabled: false`).
+  if (wizardEnabled) return null
 
   /* ---------------------------------------------------------------- */
   /* JSX                                                              */

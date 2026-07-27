@@ -57,8 +57,18 @@ vi.mock('renderer/src/tabs/QuickBatchTab', () => ({
 
 vi.mock('renderer/src/tabs/FirstTimerGuide', () => ({
   FirstTimerGuide: () => {
-    const { wizard } = useAppStore.getState()
-    return wizard.active ? <div>First-Timer Guide Modal</div> : null
+    const state = useAppStore.getState() as unknown as {
+      wizard: { active: boolean }
+      wizardEnabled?: boolean
+    }
+    // Slide 3 (2026-07-27): the wizard IS the UX. The
+    // First-Timer Guide is dead on the happy path — it
+    // only renders when the user has rolled back to the
+    // legacy GroupedTabNav surface via
+    // `wizardEnabled: false`. The mock mirrors the real
+    // component's render gate.
+    if (state.wizardEnabled === true) return null
+    return state.wizard.active ? <div>First-Timer Guide Modal</div> : null
   },
 }))
 
@@ -140,7 +150,7 @@ describe('MainScreen startup flow', () => {
     vi.useRealTimers()
   })
 
-  it('puts first-run users on quick batch and opens the guide', async () => {
+  it('opens the wizard on first launch (the wizard IS the UX)', async () => {
     useAppStore.setState({
       firstRunDismissed: false,
     })
@@ -149,22 +159,35 @@ describe('MainScreen startup flow', () => {
     document.body.appendChild(container)
     const root = createRoot(container)
 
-    // MainScreen now uses React.lazy() for the 9 tabs; `<Suspense>` shows
-    // the fallback until each tab's chunk resolves. `await act(async)`
-    // flushes the microtask queue so the mocked lazy modules land before
-    // we read the DOM.
+    // Slide 3 (2026-07-27): the wizard is the canonical boot
+    // surface. The First-Timer Guide is no longer opened on
+    // first launch — the wizard's product-type coverflow is
+    // the entry point. Returning users (`wizard.dismissed ===
+    // true`) also land on the wizard; they can re-open the
+    // coverflow from the "What are you making?" card's
+    // pencil icon.
     await act(async () => {
       root.render(<MainScreen />)
     })
 
     expect(useAppStore.getState().activeTab).toBe('quickbatch')
-    expect(container.textContent).toContain('Quick Batch Tab')
-    expect(container.textContent).toContain('First-Timer Guide Modal')
+    expect(container.textContent).toContain('What are you making?')
+    // The end-product coverflow is mounted — verified via the
+    // data-testid (the testid is on a div and doesn't appear
+    // in `container.textContent`).
+    expect(
+      container.querySelector('[data-testid="end-product-coverflow"]')
+    ).toBeTruthy()
+    // The First-Timer Guide is no longer the boot path; it
+    // remains in the source for the legacy rollback path
+    // (`wizardEnabled: false`) but is not shown when the
+    // wizard is on.
+    expect(container.textContent).not.toContain('First-Timer Guide Modal')
 
     root.unmount()
   })
 
-  it('opens the chooser on ambiguous return and lets the user pick history', async () => {
+  it('opens the wizard on ambiguous return (the chooser is dead code on the happy path)', async () => {
     const container = document.createElement('div')
     document.body.appendChild(container)
     const root = createRoot(container)
@@ -173,21 +196,17 @@ describe('MainScreen startup flow', () => {
       root.render(<MainScreen />)
     })
 
-    expect(container.textContent).toContain('Choose where to start')
-    expect(container.textContent).toContain('Quick Batch Tab')
-
-    // Clicking switches to the Journal reference tab, which is lazy-loaded.
-    // Wrap the click in `await act(async)` so the lazy chunk resolves before
-    // we assert on the rendered JournalTab text.
-    await act(async () => {
-      findButton(container, 'History / learn').click()
-    })
-
-    expect(useAppStore.getState().activeTab).toBe('journal')
-    expect(container.textContent).toContain('Journal Tab')
-    expect(useAppStore.getState().startupRouting.lastChooserIntent).toBe(
-      'history_learn'
-    )
+    // The choose-where-to-start chooser was the legacy entry
+    // surface. With the wizard as the default, the chooser
+    // never opens — the wizard's product-type coverflow is
+    // the entry point regardless of the user's history
+    // (returning users, ambiguous return, first launch all
+    // land on the wizard).
+    expect(container.textContent).toContain('What are you making?')
+    expect(
+      container.querySelector('[data-testid="end-product-coverflow"]')
+    ).toBeTruthy()
+    expect(container.textContent).not.toContain('Choose where to start')
 
     root.unmount()
   })

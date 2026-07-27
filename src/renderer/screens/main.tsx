@@ -156,29 +156,34 @@ export function MainScreen() {
   }, [activeTab])
 
   useEffect(() => {
-    // Startup routing note:
-    // First-time education is now driven by the multi-select wizard slice
-    // (see `stores/appStore.ts` — `wizard: { active, dismissed, stepIndex,
-    // selections }`). The boot path underneath the wizard is still static
-    // for now; the planned rollout per `docs/startup-routing-master.md` is:
-    //   - Phase 1 (this effect): first launch opens the wizard and pins the
-    //     underlying shell to `Quick Batch`. The wizard's `dismissed` flag
-    //     is the user-level dismiss — once true, we never re-prompt.
-    //   - Phase 2: ambiguous return states open a tiny chooser with 2-3
-    //     intents (Make / Resume / History) above the same shell.
-    //   - Phase 3: confident return auto-routes using the persisted
-    //     `startupRouting` heuristic.
-    // Keep this effect focused on first-run education + wizard boot; do
-    // not overload it with tab persistence based only on `activeTab`.
+    // Startup routing note (slide 3, 2026-07-27): the wizard IS the
+    // UX. A user who opens the app lands on the wizard directly.
+    // The First-Timer Guide + the Choose-where-to-start chooser
+    // remain in the source for the rollback path
+    // (`wizardEnabled: false` → legacy GroupedTabNav surface) but
+    // they are NOT on the happy path anymore. The previous gate
+    // (`!firstRunDismissed && wizardDismissed !== true`) opened
+    // the legacy First-Timer Guide on first launch; that was the
+    // old "kit configurator" entry point; the wizard replaces it.
     if (startupHandledRef.current) return
 
-    // Wizard boot gate: open the wizard ONLY when the bootstrap flag
-    // (`firstRunDismissed === false`) says this is a first launch AND the
-    // user has not already dismissed the wizard explicitly
-    // (`wizard.dismissed !== true`). This is the "never re-prompt a user who
-    // already opted out" guarantee. If `wizard.dismissed` is undefined
-    // (returning user on first ever launch), the hydration-time default
-    // is `false`, so the wizard will open — preserving the first-launch UX.
+    if (wizardEnabled) {
+      // Canonical happy path: open the wizard on every launch.
+      // The wizard's own `setWizardActive(true)` is idempotent.
+      // Returning users with `wizard.dismissed === true` land on
+      // the wizard too — they can re-open the coverflow from
+      // the "What are you making?" card's pencil icon.
+      startupHandledRef.current = true
+      setActiveTab('quickbatch')
+      setStartupChooserOpen(false)
+      setWizardActive(true)
+      return
+    }
+
+    // Rollback path: legacy GroupedTabNav + First-Timer Guide +
+    // choose-where-to-start chooser. Unchanged from the previous
+    // boot logic — kept for users who have explicitly disabled
+    // the wizard via `localStorage.state.wizardEnabled = false`.
     if (!firstRunDismissed && wizardDismissed !== true) {
       startupHandledRef.current = true
       setActiveTab('quickbatch')
@@ -223,6 +228,7 @@ export function MainScreen() {
     setWizardActive,
     startupRouting,
     wizardDismissed,
+    wizardEnabled,
   ])
 
   const openStartupChooser = () => {

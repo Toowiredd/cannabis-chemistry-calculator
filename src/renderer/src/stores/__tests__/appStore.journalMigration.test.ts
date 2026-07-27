@@ -341,7 +341,7 @@ describe('appStore persist — v1 → v2 migration (JournalEntry.source backfill
     expect(entries[0].source).toBe('unknown')
   })
 
-  it('persisted envelope is upgraded to version 4 after rehydrate (chained v1 → v2 → v3 → v4)', async () => {
+  it('persisted envelope is upgraded to version 11 after rehydrate (chained v1 → v2 → v3 → v4)', async () => {
     // Sanity: the persist middleware flushes the migrated envelope
     // back to localStorage at the current version. Future runs of
     // the app must see `version: 10`, not `version: 1` or `version: 2`
@@ -368,10 +368,13 @@ describe('appStore persist — v1 → v2 migration (JournalEntry.source backfill
     // Give the debounced persist writer a moment to flush.
     for (let i = 0; i < 50; i++) {
       const persisted = readPersisted()
-      if (persisted?.version === 10) break
+      // Slide 3 (2026-07-27): the v10→v11 migration flips
+      // wizardEnabled to true. The final version after the
+      // chain is 11.
+      if (persisted?.version === 11) break
       await new Promise(resolve => setTimeout(resolve, 10))
     }
-    expect(readPersisted()?.version).toBe(10)
+    expect(readPersisted()?.version).toBe(11)
   })
 })
 
@@ -687,7 +690,7 @@ describe('appStore persist — v2 → v3 migration (InventoryItem.kind backfill)
     expect(useAppStore.getState().decarb.weight).toBe('3.5')
   })
 
-  it('v3 envelope is upgraded to version 4 on rehydrate (v3→v4 backfills materialWeightUnit, other v3 fields survive)', async () => {
+  it('v3 envelope is upgraded to version 11 on rehydrate (v3→v4 backfills materialWeightUnit, other v3 fields survive)', async () => {
     // A v3-shaped snapshot is no longer a no-op for the
     // migration. The v3→v4 migration runs to backfill
     // `materialWeightUnit: 'g'` on the journal entry, and the
@@ -737,13 +740,15 @@ describe('appStore persist — v2 → v3 migration (InventoryItem.kind backfill)
     // the Week 6 v9→v10 migration (a normalisation pass over
     // `recipes[]`) also runs; the legacy v3 envelope has no
     // `recipes[]` key, so the migration backfills it to `[]`
-    // and stamps the new version.
+    // and stamps the new version. The slide 3 v10→v11
+    // migration also runs, flipping wizardEnabled to true
+    // and stamping the final version.
     for (let i = 0; i < 50; i++) {
       const persisted = readPersisted()
-      if (persisted?.version === 10) break
+      if (persisted?.version === 11) break
       await new Promise(resolve => setTimeout(resolve, 10))
     }
-    expect(readPersisted()?.version).toBe(10)
+    expect(readPersisted()?.version).toBe(11)
 
     // materialMode: 'avb' survives rehydrate.
     expect(useAppStore.getState().decarb.materialMode).toBe('avb')
@@ -1035,10 +1040,11 @@ describe('appStore persist — v3 to v4 migration (JournalEntry.materialWeightUn
     //    data is preserved untouched.
     for (let i = 0; i < 50; i++) {
       const persisted = readPersisted()
-      if (persisted?.version === 10) break
+      // Slide 3: the v10→v11 migration runs in this chain too.
+      if (persisted?.version === 11) break
       await new Promise(resolve => setTimeout(resolve, 10))
     }
-    expect(readPersisted()?.version).toBe(10)
+    expect(readPersisted()?.version).toBe(11)
   })
 
   it('chained v2 → v3 → v4 migration: source, kind, AND materialWeightUnit all backfilled on a legacy v2 entry', async () => {
@@ -1122,7 +1128,7 @@ describe('appStore persist — v3 to v4 migration (JournalEntry.materialWeightUn
 
 /**
  * The 2026-07-25 Cluster C refactor (F2.1 + F2.4 + F2.22) bumps
- * the persist version 4 → 7. The chained v4→v7 migration does
+ * the persist version 11 → 7. The chained v4→v7 migration does
  * three things: collapses the `firstTimerOpen` alias into
  * `wizard.active`, merges `dismissFirstRun` + `dismissWizard` into
  * `dismissOnboarding`, and — most importantly for this describe
