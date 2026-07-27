@@ -269,7 +269,7 @@ describe('WizardScreen — Begin batch happy path', () => {
 
     render(<WizardScreen />)
 
-    // Walk the Brownies (edible) branch — the end-product
+    // Walk the Baked (edible) branch — the end-product
     // that maps to the edible branch in v2. Seven tile
     // clicks take the user from product-type picker to
     // the Start step: Method → Container → Weight → Fat
@@ -277,7 +277,7 @@ describe('WizardScreen — Begin batch happy path', () => {
     // Efficiency step and no "No infusion" tile (those
     // were Flower-only), so the test walks the canonical
     // "with infusion" path.
-    fireEvent.click(screen.getByTestId('end-product-face-brownies'))
+    fireEvent.click(screen.getByTestId('end-product-face-baked'))
     fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
     fireEvent.click(screen.getByTestId('option-tile-quart'))
     fireEvent.click(screen.getByTestId('option-tile-g-7'))
@@ -288,7 +288,7 @@ describe('WizardScreen — Begin batch happy path', () => {
     expect(screen.getByTestId('wizard-begin-cta')).toBeTruthy()
 
     // Click "Begin batch". The validation passes (all
-    // required selections are set for the Brownies →
+    // required selections are set for the Baked →
     // edible branch), the validationError state stays
     // null, and `beginExecution` is called with the
     // edible branch's first Stage 2 step.

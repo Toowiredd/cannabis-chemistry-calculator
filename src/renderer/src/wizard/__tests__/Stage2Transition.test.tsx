@@ -152,7 +152,7 @@ describe('WizardScreen — Begin batch transitions to Stage 2', () => {
     // `stage2Steps.ts:175-183`). Slide 1 of the v2.2 model
     // collapsed the coverflow from "starting material"
     // (Flower / Concentrate / AVB / Edible / Topical) to
-    // "end product" (Brownies / Gummies / Capsules / Tincture
+    // "end product" (Baked / Gummies / Capsules / Tincture
     // / Salve), so the Flower branch is no longer reachable
     // from the coverflow in the UI. The Stage 2 tests
     // position the wizard at the Start step with a Flower

@@ -22,6 +22,7 @@
 import {
   Cloud,
   Cookie,
+  Croissant,
   Droplets,
   type LucideIcon,
   Pill,
@@ -42,13 +43,19 @@ import type { WizardOption, WizardState, WizardStep } from './wizardTypes'
 /**
  * End-product IDs at the wizard's landing. The v2.2 mockup reframes
  * the first decision from "what starting material" to "what end
- * product are you making" — brownies / gummies / capsules / tincture
- * / salve. The end product then maps to a starting-material branch
- * for the rest of the wizard (see `END_PRODUCT_TO_BRANCH` in
- * `EndProductCoverflow.tsx`).
+ * product are you making" — Baked / Gummies / Capsules / Tincture
+ * / Salve. These are CATEGORIES, not individual recipes: "Baked"
+ * covers brownies / cookies / cakes / pancakes / muffins (anything
+ * you bake in the oven with infused butter or oil); "Gummies"
+ * covers gummies / jellies / gummy bears; "Capsules" covers
+ * capsules / softgels / pills; "Tincture" covers alcohol- or
+ * oil-based sublingual drops; "Salve" covers topical balms /
+ * lotions / rubs. The end product maps to a starting-material
+ * branch for the rest of the wizard (see `END_PRODUCT_TO_BRANCH`
+ * in `EndProductCoverflow.tsx`).
  *
  * The 5 end products map to 3 distinct branches in the v1 mapping:
- *  - Brownies / Gummies / Capsules → `edible` (shared branch;
+ *  - Baked / Gummies / Capsules → `edible` (shared branch;
  *    future iterations will add a format sub-decision)
  *  - Tincture → `avb`
  *  - Salve → `topical`
@@ -59,7 +66,7 @@ import type { WizardOption, WizardState, WizardStep } from './wizardTypes'
  * component, not here.
  */
 const PRODUCT_TYPE_ICONS: Record<string, LucideIcon> = {
-  brownies: Cookie,
+  baked: Croissant,
   gummies: Cookie,
   capsules: Pill,
   tincture: Droplets,
@@ -67,39 +74,39 @@ const PRODUCT_TYPE_ICONS: Record<string, LucideIcon> = {
 }
 
 export const PRODUCT_TYPE_OPTIONS: ReadonlyArray<{
-  id: 'brownies' | 'gummies' | 'capsules' | 'tincture' | 'salve'
+  id: 'baked' | 'gummies' | 'capsules' | 'tincture' | 'salve'
   title: string
   tooltip: string
 }> = [
   {
-    id: 'brownies',
-    title: 'Brownies',
+    id: 'baked',
+    title: 'Baked',
     tooltip:
-      'Classic chocolate brownies infused with cannabis coconut oil. The workhorse recipe — straightforward, hard to mess up.',
+      'Brownies, cookies, cakes, pancakes, muffins — anything you bake in the oven with infused butter or oil. The workhorse category.',
   },
   {
     id: 'gummies',
     title: 'Gummies',
     tooltip:
-      'Fruit-flavored gummies made with infused oil + gelatin + juice. Set in a silicone mold, 4–6 mg per piece.',
+      'Fruit-flavored chews — gummies, jellies, gummy bears — made with infused oil + gelatin + juice. Set in a silicone mold, 4–6 mg per piece.',
   },
   {
     id: 'capsules',
     title: 'Capsules',
     tooltip:
-      'Size 00 capsules filled with infused coconut oil. Quick to make, easy to dose by the pill.',
+      'Capsules, softgels, pills — pre-dosed, swallowed with water. Quick, discreet, dose by the pill.',
   },
   {
     id: 'tincture',
     title: 'Tincture',
     tooltip:
-      'Alcohol-based drops, sublingual. Best for AVB or quick onset. Long shelf life, dose by the dropper.',
+      'Sublingual drops — alcohol or oil-based, fast onset. Long shelf life, dose by the dropper.',
   },
   {
     id: 'salve',
     title: 'Salve',
     tooltip:
-      'Topical for joints, muscles, skin. Carrier oil + beeswax, melts and sets. No decarb needed.',
+      'Topical balms, lotions, rubs — applied to skin for localized relief on joints, muscles, etc. No decarb needed.',
   },
 ]
 
@@ -139,7 +146,7 @@ export const productTypeStep: WizardStep = {
       case 'flower':
       case 'concentrate':
       case 'edible':
-        return 'brownies'
+        return 'baked'
       case 'avb':
         return 'tincture'
       case 'topical':

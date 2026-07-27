@@ -74,10 +74,11 @@ describe('Wizard — feature flag', () => {
     // StepCard has testid `step-card-product-type-active`.
     expect(screen.getByTestId('step-card-product-type-active')).toBeTruthy()
     // Per the v2.2 mockup: the product-type step renders a 3D
-    // coverflow of 5 end-product faces (Brownies / Gummies /
-    // Capsules / Tincture / Salve).
+    // coverflow of 5 end-product category faces (Baked / Gummies /
+    // Capsules / Tincture / Salve). "Baked" is the category for
+    // brownies / cookies / cakes / pancakes / muffins.
     expect(screen.getByTestId('end-product-coverflow')).toBeTruthy()
-    for (const id of ['brownies', 'gummies', 'capsules', 'tincture', 'salve']) {
+    for (const id of ['baked', 'gummies', 'capsules', 'tincture', 'salve']) {
       expect(screen.getByTestId(`end-product-face-${id}`)).toBeTruthy()
     }
   })
@@ -141,11 +142,11 @@ describe('Wizard — callbacks', () => {
       />
     )
     // Per the v2.2 mockup: the product-type step renders a 3D
-    // coverflow of 5 end-product faces. Each face's onSelect
+    // coverflow of 5 end-product category faces. Each face's onSelect
     // returns the END-PRODUCT branch id (not the end-product id)
     // so the wizard's onSelect handler can set `state.branch`
-    // without further mapping. Brownies → 'edible' branch.
-    fireEvent.click(screen.getByTestId('end-product-face-brownies'))
+    // without further mapping. Baked → 'edible' branch.
+    fireEvent.click(screen.getByTestId('end-product-face-baked'))
     expect(captured).toEqual({ stepId: 'product-type', optionId: 'edible' })
   })
 })

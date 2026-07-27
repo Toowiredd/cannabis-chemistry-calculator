@@ -91,23 +91,23 @@ describe('WizardScreen — feature flag', () => {
 
 describe('WizardScreen — product-type step', () => {
   // Per the v2.2 mockup: the product-type step renders a 3D
-  // coverflow of 5 end-product faces (Brownies / Gummies / Capsules
+  // coverflow of 5 end-product faces (Baked / Gummies / Capsules
   // / Tincture / Salve). The coverflow maps each end product to
   // a starting-material branch: 3 end products → edible, Tincture
   // → avb, Salve → topical. The 5 starting-material branches are
   // no longer the user-facing primary decision — they're the
   // internal state that drives the rest of the wizard.
 
-  it('tapping Brownies sets branch=edible and advances to step 1 (Method)', () => {
+  it('tapping Baked sets branch=edible and advances to step 1 (Method)', () => {
     enableWizard()
     render(<WizardScreen />)
-    fireEvent.click(screen.getByTestId('end-product-face-brownies'))
+    fireEvent.click(screen.getByTestId('end-product-face-baked'))
     expect(
       screen.getByTestId('step-card-product-type-collapsed-with-selection')
     ).toBeTruthy()
     expect(screen.getByTestId('step-card-method-active')).toBeTruthy()
     expect(screen.getByTestId('wizard-screen').textContent).toContain(
-      'Brownies'
+      'Baked'
     )
   })
 
@@ -152,12 +152,12 @@ describe('WizardScreen — product-type step', () => {
   })
 })
 
-describe('WizardScreen — Brownies (edible) branch navigation', () => {
+describe('WizardScreen — Baked (edible) branch navigation', () => {
   it('navigates Method → Container → Weight → Fat', () => {
     enableWizard()
     render(<WizardScreen />)
-    // Step 0 → Brownies (→ edible branch).
-    fireEvent.click(screen.getByTestId('end-product-face-brownies'))
+    // Step 0 → Baked (→ edible branch).
+    fireEvent.click(screen.getByTestId('end-product-face-baked'))
     // Step 1 → Oven, sealed bag
     fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
     // Step 2 → Container
@@ -171,11 +171,11 @@ describe('WizardScreen — Brownies (edible) branch navigation', () => {
     expect(screen.getByTestId('step-card-volume-active')).toBeTruthy()
   })
 
-  it('Brownies (edible) "with infusion" path: Fat → Volume → Servings → Start', () => {
+  it('Baked (edible) "with infusion" path: Fat → Volume → Servings → Start', () => {
     enableWizard()
     render(<WizardScreen />)
-    // Step 0 → Brownies (→ edible branch)
-    fireEvent.click(screen.getByTestId('end-product-face-brownies'))
+    // Step 0 → Baked (→ edible branch)
+    fireEvent.click(screen.getByTestId('end-product-face-baked'))
     // Step 1 → Method
     fireEvent.click(screen.getByTestId('option-tile-oven_sealed'))
     // Step 2 → Container
@@ -257,8 +257,8 @@ describe('WizardScreen — reset', () => {
   it('clicking Reset wizard returns the state to default', () => {
     enableWizard()
     render(<WizardScreen />)
-    // Advance the state: pick Brownies.
-    fireEvent.click(screen.getByTestId('end-product-face-brownies'))
+    // Advance the state: pick Baked.
+    fireEvent.click(screen.getByTestId('end-product-face-baked'))
     expect(
       screen.getByTestId('step-card-product-type-collapsed-with-selection')
     ).toBeTruthy()

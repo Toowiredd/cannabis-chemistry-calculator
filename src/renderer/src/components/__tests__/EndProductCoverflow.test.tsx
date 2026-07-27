@@ -3,10 +3,13 @@
  * (per the v2.2 mockup, screen 1).
  *
  * Per the architecture doc + the v2.2 brief: the wizard lands on 5
- * end-product faces (Brownies / Gummies / Capsules / Tincture /
- * Salve), not 5 starting-material faces. Each face has icon + name
- * + description + chip. Click a face → it becomes the center and
- * `onSelect` fires with the end-product id and its mapped branch id.
+ * end-product category faces (Baked / Gummies / Capsules / Tincture
+ * / Salve), not 5 starting-material faces and not 5 individual
+ * recipes. "Baked" is the category for brownies / cookies / cakes /
+ * pancakes / muffins (anything you bake in the oven with infused
+ * butter or oil). Each face has icon + name + description + chip.
+ * Click a face → it becomes the center and `onSelect` fires with
+ * the end-product id and its mapped branch id.
  */
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
@@ -15,15 +18,15 @@ import { EndProductCoverflow } from '../EndProductCoverflow'
 describe('EndProductCoverflow', () => {
   it('renders all 5 end-product faces', () => {
     render(<EndProductCoverflow onSelect={() => {}} />)
-    for (const id of ['brownies', 'gummies', 'capsules', 'tincture', 'salve']) {
+    for (const id of ['baked', 'gummies', 'capsules', 'tincture', 'salve']) {
       expect(screen.getByTestId(`end-product-face-${id}`)).toBeTruthy()
     }
   })
 
-  it('marks the first face (Brownies) as the initial center', () => {
+  it('marks the first face (Baked) as the initial center', () => {
     render(<EndProductCoverflow onSelect={() => {}} />)
-    const brownies = screen.getByTestId('end-product-face-brownies')
-    expect(brownies.getAttribute('aria-checked')).toBe('true')
+    const baked = screen.getByTestId('end-product-face-baked')
+    expect(baked.getAttribute('aria-checked')).toBe('true')
   })
 
   it('clicking a side face fires onSelect AND moves it to center', () => {
@@ -43,16 +46,16 @@ describe('EndProductCoverflow', () => {
     const onSelect = vi.fn()
     render(<EndProductCoverflow onSelect={onSelect} />)
     fireEvent.click(screen.getByTestId('end-product-coverflow-confirm'))
-    // Default center is Brownies → edible branch.
-    expect(onSelect).toHaveBeenCalledWith('brownies', 'edible')
+    // Default center is Baked → edible branch.
+    expect(onSelect).toHaveBeenCalledWith('baked', 'edible')
   })
 
   it('clicking the center face fires onSelect immediately', () => {
     const onSelect = vi.fn()
     render(<EndProductCoverflow onSelect={onSelect} />)
-    // Brownies is the initial center — clicking it fires onSelect.
-    fireEvent.click(screen.getByTestId('end-product-face-brownies'))
-    expect(onSelect).toHaveBeenCalledWith('brownies', 'edible')
+    // Baked is the initial center — clicking it fires onSelect.
+    fireEvent.click(screen.getByTestId('end-product-face-baked'))
+    expect(onSelect).toHaveBeenCalledWith('baked', 'edible')
   })
 
   it('mapping: Tincture → avb, Salve → topical, Gummies/Capsules → edible', () => {

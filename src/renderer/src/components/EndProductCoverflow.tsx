@@ -2,9 +2,12 @@
  * EndProductCoverflow — the 3D coverflow landing for the wizard.
  *
  * Per the v2.2 mockup (C:\Users\LEWIS\ccc\wizard-uiux-preview.html §1),
- * the wizard lands on a 3D coverflow of 5 END PRODUCT faces (Brownies,
- * Gummies, Capsules, Tincture, Salve) — not starting materials.
- * The end product is the user's first decision; the starting material
+ * the wizard lands on a 3D coverflow of 5 END PRODUCT faces
+ * (Baked, Gummies, Capsules, Tincture, Salve) — not starting
+ * materials and not individual recipes. The faces are CATEGORIES:
+ * "Baked" means brownies / cookies / cakes / pancakes / muffins —
+ * anything you bake in the oven with infused butter or oil. The
+ * end product is the user's first decision; the starting material
  * decision (Flower / Concentrate / AVB / Edible / Topical) is the
  * underlying `branch` that the end product maps to. The mapping
  * between end product and branch lives in this component (see
@@ -25,7 +28,7 @@ import { useEffect, useRef, useState } from 'react'
 import { cn } from 'renderer/lib/utils'
 import {
   Beaker,
-  Cookie,
+  Croissant,
   Droplets,
   Leaf,
   Pill,
@@ -38,7 +41,7 @@ import type { WizardBranchId } from 'renderer/src/wizard/wizardTypes'
 /* ------------------------------------------------------------------ */
 
 export type EndProductId =
-  | 'brownies'
+  | 'baked'
   | 'gummies'
   | 'capsules'
   | 'tincture'
@@ -54,29 +57,29 @@ interface EndProduct {
    * The default starting-material branch this end product maps to.
    * The architecture doc has 5 starting-material branches
    * (Flower / Concentrate / AVB / Edible / Topical — see
-   * branchSequences.ts). Brownies / Gummies / Capsules all share
+   * branchSequences.ts). Baked / Gummies / Capsules all share
    * the `edible` branch in the v1 mapping; future iterations will
    * add a sub-decision (format) inside the edible branch to
-   * differentiate brownies from gummies from capsules.
+   * differentiate baked from gummies from capsules.
    */
   branch: WizardBranchId
 }
 
 const END_PRODUCTS: ReadonlyArray<EndProduct> = [
   {
-    id: 'brownies',
-    name: 'Brownies',
+    id: 'baked',
+    name: 'Baked',
     description:
-      'Classic chocolate brownies infused with cannabis coconut oil. The workhorse recipe — straightforward, hard to mess up.',
-    chip: '~18 squares',
-    icon: Cookie,
+      'Brownies, cookies, cakes, pancakes, muffins — anything you bake in the oven with infused butter or oil. The workhorse category.',
+    chip: '1 batch',
+    icon: Croissant,
     branch: 'edible',
   },
   {
     id: 'gummies',
     name: 'Gummies',
     description:
-      'Fruit-flavored gummies made with infused oil + gelatin + juice. Set in a silicone mold, 4–6 mg per piece.',
+      'Fruit-flavored chews — gummies, jellies, gummy bears — made with infused oil + gelatin + juice. Set in a silicone mold, 4–6 mg per piece.',
     chip: '80 / 160 ct',
     icon: Beaker,
     branch: 'edible',
@@ -85,7 +88,7 @@ const END_PRODUCTS: ReadonlyArray<EndProduct> = [
     id: 'capsules',
     name: 'Capsules',
     description:
-      'Size 00 capsules filled with infused coconut oil. Quick to make, easy to dose by the pill.',
+      'Capsules, softgels, pills — pre-dosed, swallowed with water. Quick, discreet, dose by the pill.',
     chip: '~24 caps',
     icon: Pill,
     branch: 'edible',
@@ -94,7 +97,7 @@ const END_PRODUCTS: ReadonlyArray<EndProduct> = [
     id: 'tincture',
     name: 'Tincture',
     description:
-      'Alcohol-based drops, sublingual. Best for AVB or quick onset. Long shelf life, dose by the dropper.',
+      'Sublingual drops — alcohol or oil-based, fast onset. Long shelf life, dose by the dropper.',
     chip: '~100 mL',
     icon: Droplets,
     branch: 'avb',
@@ -103,7 +106,7 @@ const END_PRODUCTS: ReadonlyArray<EndProduct> = [
     id: 'salve',
     name: 'Salve',
     description:
-      'Topical for joints, muscles, skin. Carrier oil + beeswax, melts and sets. No decarb needed.',
+      'Topical balms, lotions, rubs — applied to skin for localized relief on joints, muscles, etc. No decarb needed.',
     chip: '~240 mL',
     icon: Leaf,
     branch: 'topical',
@@ -127,7 +130,7 @@ export const END_PRODUCT_TO_BRANCH: Record<EndProductId, WizardBranchId> =
 export interface EndProductCoverflowProps {
   /**
    * Optional: pre-select an end product (e.g. when restoring state
-   * on a re-edit). When omitted, the first face (Brownies) is
+   * on a re-edit). When omitted, the first face (Baked) is the
    * initial center.
    */
   initialId?: EndProductId

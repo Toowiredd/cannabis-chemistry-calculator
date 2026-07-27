@@ -158,16 +158,18 @@ export function StepCard({
         </header>
 
         {/* Product-type step: render the 3D coverflow of 5 end-product
-            faces (Brownies / Gummies / Capsules / Tincture / Salve)
-            per the v2.2 mockup. The end product maps to a starting-
-            material branch via `EndProductCoverflow`'s own table;
-            the coverflow's onSelect callback fires with the branch id
-            which the wizard's existing handler interprets correctly. */}
+            category faces (Baked / Gummies / Capsules / Tincture /
+            Salve) per the v2.2 mockup. "Baked" is the category for
+            brownies / cookies / cakes / pancakes / muffins. The end
+            product maps to a starting-material branch via
+            `EndProductCoverflow`'s own table; the coverflow's onSelect
+            callback fires with the branch id which the wizard's
+            existing handler interprets correctly. */}
         {step.id === 'product-type' ? (
           <EndProductCoverflow
             initialId={
               (selectedOptionId as
-                | 'brownies'
+                | 'baked'
                 | 'gummies'
                 | 'capsules'
                 | 'tincture'
