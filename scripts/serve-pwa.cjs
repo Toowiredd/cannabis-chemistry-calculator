@@ -189,9 +189,16 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, HOST, () => {
   const parent = getParentProcessInfo()
   console.log(`[serve-pwa] serving ${DIST} on http://${HOST}:${PORT}`)
-  console.log('[serve-pwa] entry:', `http://${HOST}:${PORT}/`)
+  console.log('[serve-pwa] entry:', `http://${HOST}:${PORT}/ccc/`)
   console.log('[serve-pwa] PWA install URL:')
   console.log('[serve-pwa]   https://laptop.tail646a73.ts.net/ccc/  (via Tailscale Funnel)')
+  console.log(
+    '[serve-pwa] direct local access MUST use the /ccc/ path. Hitting ' +
+      `http://${HOST}:${PORT}/ (no /ccc/) returns the HTML but the app's ` +
+      'BrowserRouter (basename="/ccc") cannot match URL "/" and renders ' +
+      'nothing. This is by design — the Vite `base` config is "/ccc/" and ' +
+      'the Router basename must match.',
+  )
   console.log(
     `[serve-pwa] started — pid=${process.pid} ppid=${parent.ppid ?? '?'} parent=${parent.name ?? '?'}` +
       (parent.name === 'svchost.exe'

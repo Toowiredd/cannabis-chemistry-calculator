@@ -22,19 +22,24 @@ interface RouterProps {
 
 export function Router({ main }: RouterProps): ReactElement {
   // basename tells React Router that the SPA is mounted under
-  // /ccc/ on this host. Without it, `<Route path="/" />` only
-  // matches the root, not `/ccc/`, and the iPad's address bar
-  // would show `/ccc/` while the router would say "no routes
-  // matched" and render nothing. The basename also makes <Link>
-  // and useNavigate() prepend `/ccc` automatically.
+  // the same prefix as Vite's `base` config (/ccc/ for Tailscale
+  // Funnel). Without it, `<Route path="/" />` only matches the
+  // root, not `/ccc/`, and the iPad's address bar would show
+  // `/ccc/` while the router would say "no routes matched" and
+  // render nothing. The basename also makes <Link> and
+  // useNavigate() prepend the prefix automatically.
   //
-  // Why /ccc/ specifically: the web bundle is served at
-  // https://laptop.tail646a73.ts.net/ccc/ via Tailscale Funnel.
-  // The Vite build's `base` is also `/ccc/`, so the dist's
-  // emitted asset URLs all live under that prefix. Keep basename
-  // and `base` in lockstep.
+  // We read the basename from `import.meta.env.BASE_URL` (set by
+  // Vite from the `base` config) instead of hardcoding the path.
+  // This keeps basename and `base` automatically in lockstep —
+  // if someone changes the Funnel route or the Vite base, the
+  // router follows without a code change. Stripping a trailing
+  // slash is required because react-router-dom treats
+  // `basename="/ccc/"` (with trailing slash) and `basename="/ccc"`
+  // differently for route matching.
+  const basename = (import.meta.env.BASE_URL ?? '/').replace(/\/+$/, '') || '/'
   return (
-    <BrowserRouter basename="/ccc/">
+    <BrowserRouter basename={basename}>
       <Routes>{main}</Routes>
     </BrowserRouter>
   )
