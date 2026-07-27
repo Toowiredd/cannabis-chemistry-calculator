@@ -137,6 +137,17 @@ export function EndProductCoverflow({
     <div className="flex w-full flex-col items-center" data-testid="end-product-coverflow">
       <Carousel
         ariaLabel="End product"
+        // Slide 7 (2026-07-27, take 2): the coverflow faces
+        // were 240x300 in v1, which rendered as 168-276px on a
+        // 1440px screen. The user said the carousel tiles
+        // were too small and the empty space was wasted.
+        // Bumping the base to 360x440 so the end-product
+        // faces land in the 360-576px range on desktop and
+        // actually fill the available horizontal space. The
+        // 5:4 aspect (taller than wide) gives the description
+        // text room to breathe.
+        baseFaceHeight={440}
+        baseFaceWidth={360}
         getItemAriaLabel={item => item.name}
         getItemTestId={item => `end-product-face-${item.id}`}
         initialIndex={initialIndex >= 0 ? initialIndex : 0}

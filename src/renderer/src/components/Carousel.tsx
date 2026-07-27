@@ -175,25 +175,38 @@ export function Carousel<T>({
     }
   }
 
-  // Slide 7: face dimensions + side-face offsets are CSS
-  // custom properties so the carousel scales fluidly with the
-  // viewport. `clamp(min, fluid, max)` keeps the carousel
-  // readable on phone-sized screens (down to ~360px wide) and
-  // proportionally larger on desktop (up to ~1400px).
+  // Slide 7 (2026-07-27, take 3): take 1 used a fluid factor
+  // proportional to the base — the tile came out tiny.
+  // Take 2 used a fixed 32vw fluid + a huge max — the tile
+  // came out huge but the content floated in empty space
+  // and the side faces ran off the panel.
   //
-  // The face width is the base for the side-face offsets: the
-  // coverflow uses a 1.0× / 1.7× ratio (the v2.2 mockup
-  // proportion), the option carousel uses 1.05× / 1.7× (slightly
-  // wider l-1 to accommodate the option tile content).
-  const faceWidthCss = `clamp(${Math.round(baseFaceWidth * 0.7)}px, ${Math.round(baseFaceWidth * 0.22)}vw, ${Math.round(baseFaceWidth * 1.15)}px)`
-  const faceHeightCss = `clamp(${Math.round(baseFaceHeight * 0.7)}px, ${Math.round(baseFaceHeight * 0.22)}vw, ${Math.round(baseFaceHeight * 1.15)}px)`
-  // Offsets proportional to the (clamped) face width. The 1.0×
-  // and 1.7× multipliers match the v2.2 mockup's spacing
-  // proportion; the offsets are scaled with the face width so
-  // a smaller face gets tighter spacing and a larger face gets
-  // more breathing room.
-  const offsetL1Css = `calc(${faceWidthCss} * 1.0)`
-  const offsetL2Css = `calc(${faceWidthCss} * 1.7)`
+  // This take: the face width is fluid (clamp 280-520px on
+  // desktop, scaling with the viewport), and the face HEIGHT
+  // is derived from the width with a fixed aspect ratio so
+  // the content fills the face instead of floating in the
+  // top-left. The offset multipliers are reduced (0.62×
+  // and 1.05× of face-width) so the l-2/r-2 faces stay
+  // mostly within the wizard panel instead of running off
+  // the edge of the screen.
+  const faceWidthMin = Math.max(240, Math.round(baseFaceWidth * 0.7))
+  const faceWidthMax = Math.max(faceWidthMin + 80, Math.round(baseFaceWidth * 1.45))
+  const faceWidthCss = `clamp(${faceWidthMin}px, 30vw, ${faceWidthMax}px)`
+  // Aspect ratio: the coverflow is 4:5 (taller than wide
+  // for the description text); the option carousel is 9:11
+  // (slightly taller than wide for the icon + title +
+  // subtitle). The ratio is derived from the caller's
+  // baseFaceWidth / baseFaceHeight so the caller controls
+  // the shape; we just preserve it across the fluid scale.
+  const aspectRatio = baseFaceHeight / baseFaceWidth
+  const faceHeightCss = `calc(${faceWidthCss} * ${aspectRatio.toFixed(3)})`
+  // Offsets proportional to the (clamped) face width.
+  // Reduced from the take-2 values (0.78× / 1.32×) so the
+  // side faces stay within the panel — the user is on a
+  // 1440px screen and the panel is 1400px wide, so anything
+  // past ~1.2× face-width runs off the edge.
+  const offsetL1Css = `calc(${faceWidthCss} * 0.62)`
+  const offsetL2Css = `calc(${faceWidthCss} * 1.05)`
 
   const containerVars = {
     '--carousel-face-width': faceWidthCss,
