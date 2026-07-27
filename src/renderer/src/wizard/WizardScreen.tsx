@@ -38,10 +38,6 @@ import { NameRecipeStep } from 'renderer/src/components/NameRecipeStep'
 import { useAppStore } from 'renderer/src/stores/appStore'
 import { useWizardEnabled } from 'renderer/src/wizard/wizardFeatureFlag'
 import {
-  BRANCH_SEQUENCES,
-  getEffectiveBranchSequence,
-} from 'renderer/src/wizard/branchSequences'
-import {
   buildExecutionSteps,
   STAGE2_STEP_IDS,
 } from 'renderer/src/wizard/stage2Steps'
@@ -51,6 +47,7 @@ import {
   type WizardSelections,
   type WizardState,
 } from 'renderer/src/wizard/wizardTypes'
+import { getNextStep, isFinished, isOnStartStep as isOnStartStepDag } from 'renderer/src/wizard/wizardFlow'
 // Week 7 (§3.4 + §7 Polish) — the Stage 1 selection validator.
 // Imported from the stores' `wizardTypes.ts` (where the
 // state-routing rein landed it in commit c0a893e) rather than
@@ -68,6 +65,7 @@ import { DECARB_METHODS, INFUSION_FATS } from 'renderer/src/engine/models'
 import { calculateInfusedThc } from 'renderer/src/engine/infusion'
 import { calculateMgPerServing } from 'renderer/src/engine/dosing'
 import { calculateBagVolume } from 'renderer/src/engine/bagVolume'
+import { END_PRODUCT_TO_BRANCH, type EndProductId } from 'renderer/src/components/EndProductCoverflow'
 
 export interface WizardScreenProps {
   className?: string
@@ -128,33 +126,32 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
   const execution = useAppStore(s => s.wizard.execution)
 
   /**
-   * Advance the wizard past any steps whose `skipIf(state)`
-   * returns true. Used after every state mutation so the user
-   * never lands on a step that should be hidden for their
-   * current selections (e.g. the Flower "no infusion" path
-   * auto-skips the Volume step).
+   * 2026-07-28 refactor: the `getNextStep` DAG replaces the
+   * old `advancePastSkippedSteps` helper. The DAG is the
+   * single source of truth for "what step is the user on
+   * right now" — every state mutation passes the new state
+   * through `getNextStep` to compute the next step id, so the
+   * user never lands on a hidden step (the smart-skip is
+   * baked into the DAG itself, not a separate projection).
    */
-  const advancePastSkippedSteps = useCallback(
-    (next: WizardState): WizardState => {
-      if (next.branch === null) return next
-      let current = next
-      // Loop is bounded — at most one pass per skipped step
-      // per mutation. The smart-skip predicates are pure
-      // functions of state, so the loop terminates once the
-      // current step's `skipIf` returns false.
-      for (let safety = 0; safety < 16; safety++) {
-        const effective = getEffectiveBranchSequence(current.branch, current)
-        if (!effective) return current
-        if (current.currentStep >= effective.length) return current
-        const step = effective[current.currentStep]
-        if (!step?.skipIf) return current
-        if (!step.skipIf(current)) return current
-        current = { ...current, currentStep: current.currentStep + 1 }
-      }
-      return current
-    },
-    []
-  )
+
+  // Week 5 (§8.5) — recipe name local state. Holds the
+  // user-typed value from `NameRecipeStep`. Initialised to
+  // `''`; the NameRecipeStep falls back to the derived
+  // default when the input is empty. The state lives here
+  // (not in the `wizard.stage1Selections` slice) because the
+  // name is a Stage 2 artifact, not a Stage 1 selection — the
+  // Stage 1 wizard's "branch / method / weight / fat / volume
+  // / servings" contract is the source of truth for the
+  // re-derivable inputs, and the recipe name is the user-facing
+  // label that the completion step writes to the saved
+  // Recipe. The brief is explicit on this: the local state
+  // survives the same render cycle as the Stage 1 selections
+  // (until `resetWizard`), but is not persisted to the slice.
+  // 2026-07-28: moved up so `decodeSelection` can read it
+  // (the Name step's 'named' option copies the typed value
+  // into `selections.name`).
+  const [name, setName] = useState<string>('')
 
   /**
    * Decode a step's `optionId` into the `selections` key/value
@@ -170,115 +167,165 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
    *  - volume:     `${unit}-${value}`   e.g. `mL-240`
    *  - servings:   `s-${count}`          e.g. `s-12`
    *  - potency:    `p-${pct}`            e.g. `p-75`
+   *  - material:   one of the branch ids (flower / avb / concentrate)
+   *                — written to `state.branch`, not selections
+   *  - container:  v2.2 = `custom-{w}-{l}-{d}`, v2.3 = `vac-{w}`
    */
   const decodeSelection = useCallback(
-    (stepId: string, optionId: string): Partial<WizardSelections> => {
+    (
+      stepId: string,
+      optionId: string,
+      state: WizardState
+    ): { selections: Partial<WizardSelections>; branch?: WizardBranchId; endProduct?: EndProductId } => {
       switch (stepId) {
+        case 'product-type': {
+          // The EndProductCoverflow fires onSelect with the
+          // end product id (e.g. 'baked', 'tincture'). The
+          // wizard looks up the default branch from
+          // `END_PRODUCT_TO_BRANCH`; the user can override
+          // the branch on the Material step.
+          const endProduct = optionId as EndProductId
+          const branch = END_PRODUCT_TO_BRANCH[endProduct]
+          return {
+            selections: {},
+            branch,
+            endProduct,
+          }
+        }
+        case 'material': {
+          // The Material step writes the user's choice to
+          // `state.branch` (overriding the coverflow's
+          // default). The wizard's `onSelect` handler applies
+          // the branch override.
+          return {
+            selections: {},
+            branch: optionId as WizardBranchId,
+          }
+        }
         case 'weight': {
           // `g-3.5`, `g-7`, etc.
           const match = /^([a-z]+)-(\d+(?:\.\d+)?)$/.exec(optionId)
-          if (!match) return {}
+          if (!match) return { selections: {} }
           return {
-            weight: {
-              unit: match[1] as 'g' | 'oz',
-              value: Number.parseFloat(match[2]),
+            selections: {
+              weight: {
+                unit: match[1] as 'g' | 'oz',
+                value: Number.parseFloat(match[2]),
+              },
             },
           }
         }
         case 'efficiency': {
           // `eff-80`, `eff-90`, etc.
           const match = /^eff-(\d+)$/.exec(optionId)
-          if (!match) return {}
-          return { efficiency: Number.parseInt(match[1], 10) / 100 }
+          if (!match) return { selections: {} }
+          return {
+            selections: { efficiency: Number.parseInt(match[1], 10) / 100 },
+          }
         }
         case 'volume': {
           // `mL-100`, `mL-240`, etc.
           const match = /^([a-zA-Z]+)-(\d+(?:\.\d+)?)$/.exec(optionId)
-          if (!match) return {}
+          if (!match) return { selections: {} }
           return {
-            volume: {
-              unit: match[1] as 'mL' | 'cup' | 'tsp' | 'tbsp',
-              value: Number.parseFloat(match[2]),
+            selections: {
+              volume: {
+                unit: match[1] as 'mL' | 'cup' | 'tsp' | 'tbsp',
+                value: Number.parseFloat(match[2]),
+              },
             },
           }
         }
         case 'servings': {
           // `s-12`, `s-48`, etc.
           const match = /^s-(\d+)$/.exec(optionId)
-          if (!match) return {}
-          return { servings: Number.parseInt(match[1], 10) }
+          if (!match) return { selections: {} }
+          return {
+            selections: { servings: Number.parseInt(match[1], 10) },
+          }
         }
         case 'potency': {
           // `p-75`, `p-85`, etc.
           const match = /^p-(\d+)$/.exec(optionId)
-          if (!match) return {}
-          return { potency: Number.parseInt(match[1], 10) }
+          if (!match) return { selections: {} }
+          return {
+            selections: { potency: Number.parseInt(match[1], 10) },
+          }
         }
         case 'container': {
-          // v2.2 (2026-07-27): the Container step was
-          // reworked from a preset carousel into a custom
-          // input form. The user types in their own bag
-          // dimensions; the form's onConfirm fires with
-          // the encoded id `custom-{w}-{l}-{d}` where each
-          // value is the engine's cm measurement. The
-          // decoder parses the id back into a
-          // `customContainer` payload so downstream steps
-          // (the Weight smart-skip, the Volume valid-range
-          // check) read the derived volume + dimensions
-          // without re-deriving them.
-          //
-          // Legacy preset ids (e.g. 'gallon', 'quart') are
-          // still accepted — the engine tests + the
-          // `BAG_PRESETS` lookup paths use them. The
-          // `customContainer` field is left undefined for
-          // legacy ids; the engine falls back to the preset
-          // volume when `customContainer` is missing.
+          // v2.2 (kept for commit 2's typecheck): the
+          // Container step is still a custom input form. The
+          // form's onConfirm fires with the encoded id
+          // `custom-{w}-{l}-{d}` where each value is the
+          // engine's cm measurement. Commit 3 replaces this
+          // with the v2.3 2-width carousel (`vac-19` /
+          // `vac-28`).
           const customMatch = /^custom-(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)$/.exec(
             optionId
           )
-          if (!customMatch) {
-            return { container: optionId }
+          if (customMatch) {
+            const widthCm = Number.parseFloat(customMatch[1] ?? '0')
+            const lengthCm = Number.parseFloat(customMatch[2] ?? '0')
+            const depthCm = Number.parseFloat(customMatch[3] ?? '0')
+            const volumeCm3 = calculateBagVolume(
+              widthCm,
+              lengthCm,
+              depthCm
+            )
+            return {
+              selections: {
+                container: optionId,
+                customContainer: {
+                  widthCm,
+                  lengthCm,
+                  depthCm,
+                  volumeCm3,
+                },
+              },
+            }
           }
-          const widthCm = Number.parseFloat(customMatch[1] ?? '0')
-          const lengthCm = Number.parseFloat(customMatch[2] ?? '0')
-          const depthCm = Number.parseFloat(customMatch[3] ?? '0')
-          // Reuse the engine's `calculateBagVolume` for the
-          // derived cm³ so the wizard never re-derives
-          // volume independently — the engine is the single
-          // source of truth.
-          const volumeCm3 = calculateBagVolume(widthCm, lengthCm, depthCm)
-          return {
-            container: optionId,
-            customContainer: { widthCm, lengthCm, depthCm, volumeCm3 },
-          }
+          // Legacy preset ids (gallon / quart / vac-19 / vac-28).
+          return { selections: { container: optionId } }
         }
         case 'fat': {
           // The 'none' tile sets `selections.fat = null` —
-          // the brief-mandated sentinel for the Flower
-          // branch's "no infusion" path.
-          if (optionId === 'none') return { fat: null }
-          return { fat: optionId }
+          // the brief-mandated sentinel for the "no infusion"
+          // path.
+          if (optionId === 'none') return { selections: { fat: null } }
+          return { selections: { fat: optionId } }
+        }
+        case 'name': {
+          // The Name step's only option is 'named' (a marker
+          // for "the user has typed a name + tapped Confirm").
+          // The actual name value lives in the local `name`
+          // state (set by the NameRecipeStep's onSave
+          // callback) and is copied to `selections.name`
+          // here. The DAG then returns 'start' because name
+          // is now set.
+          return { selections: { name: name || 'Untitled recipe' } }
         }
         default: {
           // All other steps use the optionId directly as the
-          // selection value: method, container, carrier,
-          // color, applicationArea.
-          return { [stepId]: optionId } as Partial<WizardSelections>
+          // selection value: method, carrier, color,
+          // applicationArea.
+          return {
+            selections: { [stepId]: optionId } as Partial<WizardSelections>,
+          }
         }
       }
     },
-    []
+    [name]
   )
 
   const onSelect = useCallback(
     (stepId: string, optionId: string) => {
       // The Start step is the terminal "Begin batch" CTA.
-      // Picking it (a) advances `state.currentStep` past the
-      // end of the canonical sequence so the `isFinished`
-      // check in render still returns true and the Stage 1
-      // "Batch ready" badge stays visible alongside the Stage
-      // 2 stepper, and (b) calls `beginExecution('preheat-decarb')`
-      // on the store to transition into Stage 2. The
+      // Picking it (a) sets `state.currentStepId = null`
+      // (past the end — the wizard is finished; the Stage 1
+      // "Batch ready" badge stays visible alongside the
+      // Stage 2 stepper), and (b) calls
+      // `beginExecution('preheat-decarb')` on the store to
+      // transition into Stage 2. The
       // `execution.currentStepId !== null` check below the
       // Stage 1 render block is what triggers the stepper
       // mount; Stage 1 itself stays mounted for the entire
@@ -300,23 +347,7 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
         // Week 7 — Step 2: validation. Run the per-branch
         // required-fields check; if any required field is
         // missing, surface the joined error message and
-        // DON'T call `beginExecution`. The user can then
-        // re-edit a step (the error is cleared on the next
-        // non-Start selection below) and re-tap.
-        // `validateWizardSelections` is the state-routing
-        // rein's helper (commit c0a893e) — see the import
-        // comment at the top of this file for why it's
-        // sourced from `stores/wizardTypes` rather than
-        // `wizard/wizardTypes`. The `selections` cast
-        // bridges the two structurally-compatible
-        // `WizardSelections` types (the wizard's
-        // `WizardSelections` is the canonical local
-        // shape; the store's `WizardSelections` is the
-        // validator's expected shape — TS structural
-        // typing handles the cross-file compatibility,
-        // but the `as` is the explicit contract for the
-        // edge cases like the wizard's extra
-        // `name?: string` field).
+        // DON'T call `beginExecution`.
         const result = validateWizardSelections(
           state.branch as ProductType | null,
           state.selections as Parameters<
@@ -330,15 +361,13 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
         // Validation passed — clear any prior error and
         // transition to Stage 2.
         setValidationError(null)
-        setState(prev => {
-          const canonical = prev.branch
-            ? (BRANCH_SEQUENCES[prev.branch] ?? [])
-            : []
-          return {
-            ...prev,
-            currentStep: canonical.length, // past the end → isFinished
-          }
-        })
+        setState(prev => ({
+          ...prev,
+          // past the end → isFinished; the Stage 2 stepper
+          // mounts via the `execution.currentStepId !== null`
+          // check below.
+          currentStepId: null,
+        }))
         // The first Stage 2 step is `preheat-decarb` for the
         // Flower branch (the only branch with Week 3 Stage 2
         // work). For other branches the stepper's empty list
@@ -355,33 +384,39 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
       // recover from a validation error" UX.
       setValidationError(null)
       setState(prev => {
-        // Step 0 (product type) — the optionId is the branch
-        // id. Reset selections (picking a new branch discards
-        // the previous one's selections) and advance to the
-        // first branch step.
-        if (stepId === 'product-type') {
-          const next: WizardState = {
-            ...prev,
-            branch: optionId as WizardBranchId,
-            currentStep: 1,
-            selections: {},
-          }
-          return advancePastSkippedSteps(next)
-        }
-        // All other steps: write the decoded selection and
-        // advance to the next step. Smart-skip is then
-        // applied so the user never lands on a hidden step.
-        const decoded = decodeSelection(stepId, optionId)
+        const decoded = decodeSelection(stepId, optionId, prev)
+        // Build the next state by merging the decoded
+        // selections + the branch / endProduct overrides.
         const next: WizardState = {
           ...prev,
-          currentStep: prev.currentStep + 1,
-          selections: { ...prev.selections, ...decoded },
+          ...(decoded.endProduct !== undefined && {
+            endProduct: decoded.endProduct,
+          }),
+          ...(decoded.branch !== undefined && { branch: decoded.branch }),
+          selections: { ...prev.selections, ...decoded.selections },
         }
-        return advancePastSkippedSteps(next)
+        // Pick → material: reset downstream selections so
+        // the user re-walks the right path for their
+        // material choice. (The product-type step is the
+        // other branch-changing step; we reset there too
+        // so re-picking an end product discards the prior
+        // material's downstream selections.)
+        if (stepId === 'product-type' || stepId === 'material') {
+          next.selections = { ...decoded.selections }
+        }
+        // Compute the next step id via the DAG. The DAG
+        // IS the smart-skip — it returns the right step
+        // id given the new state, and skips any step that
+        // doesn't apply (e.g. Volume is skipped when
+        // selections.fat === null).
+        const nextStepId = getNextStep(next)
+        return {
+          ...next,
+          currentStepId: nextStepId,
+        }
       })
     },
     [
-      advancePastSkippedSteps,
       decodeSelection,
       beginExecution,
       // Week 7: the Start-step branch reads the current
@@ -390,9 +425,6 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
       // state mutation, which is fine — the Wizard's re-render
       // is cheap and the per-step state is already re-derived
       // from the parent's `state` prop on every change.
-      // `validateWizardSelections` is a stable named
-      // import (the helper is pure — no React, no DOM, no
-      // store reads — see `stores/wizardTypes.ts:336-339`).
       state.branch,
       state.selections,
     ]
@@ -428,14 +460,11 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
       //      but preserves the Stage 1 selections so the user
       //      can re-edit a single step + re-tap "Begin batch"
       //      to resume.
-      //   3. Rewind `currentStep` to the re-edited step's
-      //      index in the EFFECTIVE sequence. Existing logic.
-      //
-      // The `execution.currentStepId !== null` check is the
-      // canonical "Stage 2 is in flight" sentinel — when the
-      // user is still on Stage 1 (no execution entered yet),
-      // the existing rewind logic is enough; no recompute is
-      // needed because no Stage 2 rows exist to re-derive.
+      //   3. Rewind `currentStepId` to the re-edited step.
+      //      The DAG's `getNextStep` would otherwise return
+      //      the right next step from the current state, so
+      //      we just override `currentStepId` directly to the
+      //      re-edited step's id (no index arithmetic).
       if (execution.currentStepId !== null) {
         recomputeFromEdit([
           STAGE2_STEP_IDS.preheatDecarb,
@@ -446,22 +475,15 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
         returnToConfig()
       }
       setState(prev => {
-        // Re-editing a step sets `currentStep` to that step's
-        // index in the EFFECTIVE sequence (smart-skip filtered).
-        // We resolve the index dynamically so the user's
-        // re-edit lands on the right step even after the
-        // Flower "no infusion" path trimmed the Volume step.
-        if (prev.branch === null) {
-          if (stepId === 'product-type') {
-            return { ...prev, currentStep: 0 }
-          }
-          return prev
+        // Re-editing a step sets `currentStepId` to the
+        // re-edited step's id directly. The Wizard looks up
+        // the step via `STEP_MAP[currentStepId]` and renders
+        // it. After the user re-taps an option, the DAG
+        // computes the next id from the new state.
+        if (stepId === 'product-type' && prev.endProduct == null) {
+          return { ...prev, currentStepId: 'product-type' }
         }
-        const effective = getEffectiveBranchSequence(prev.branch, prev)
-        if (!effective) return prev
-        const idx = effective.findIndex(s => s.id === stepId)
-        if (idx < 0) return prev
-        return { ...prev, currentStep: idx }
+        return { ...prev, currentStepId: stepId as WizardState['currentStepId'] }
       })
     },
     [execution.currentStepId, recomputeFromEdit, returnToConfig]
@@ -517,46 +539,30 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
    * preserves the Stage 1 selections (which live on a different
    * code path in this Week 2+ build — local React state). To
    * give the user a usable Stage 1 view on return, we also
-   * reset the local `currentStep` index to the Start step of
-   * the canonical sequence so the "Begin batch" CTA is visible
-   * again. The selections (branch, method, container, etc.)
-   * are intentionally preserved so the user can re-edit a
-   * single step via the existing `onEdit` path or re-tap
-   * "Begin batch" to resume the same Stage 2 run.
+   * reset the local `currentStepId` to the Start step so the
+   * "Begin batch" CTA is visible again. The selections
+   * (branch, method, container, etc.) are intentionally
+   * preserved so the user can re-edit a single step via the
+   * existing `onEdit` path or re-tap "Begin batch" to resume
+   * the same Stage 2 run.
    */
   const onBackToConfig = useCallback(() => {
     returnToConfig()
-    setState(prev => {
-      if (prev.branch === null) return prev
-      const canonical = BRANCH_SEQUENCES[prev.branch] ?? []
-      // The Start step sits at `canonical.length - 1`. Drop
-      // `currentStep` to that index so the user lands on the
-      // Start step (with its "Begin batch" CTA) instead of the
-      // post-confirm "Batch ready" badge.
-      return { ...prev, currentStep: Math.max(0, canonical.length - 1) }
-    })
+    setState(prev => ({
+      ...prev,
+      // The DAG returns 'start' when all required
+      // selections are filled, so the user lands on the
+      // Start step (with its "Begin batch" CTA) instead
+      // of the post-confirm "Batch ready" badge.
+      currentStepId: getNextStep(prev),
+    }))
   }, [returnToConfig])
 
-  // Week 5 (§8.5) — recipe name local state. Holds the
-  // user-typed value from `NameRecipeStep`. Initialised to
-  // `''`; the NameRecipeStep falls back to the derived
-  // default when the input is empty. The state lives here
-  // (not in the `wizard.stage1Selections` slice) because the
-  // name is a Stage 2 artifact, not a Stage 1 selection — the
-  // Stage 1 wizard's "branch / method / weight / fat / volume
-  // / servings" contract is the source of truth for the
-  // re-derivable inputs, and the recipe name is the user-facing
-  // label that the completion step writes to the saved
-  // Recipe. The brief is explicit on this: the local state
-  // survives the same render cycle as the Stage 1 selections
-  // (until `resetWizard`), but is not persisted to the slice
-  // (no `selections.name` round-trip through the store).
-  // Re-edits in Stage 1 (the §8.1 path) clear this local
-  // state implicitly because the user has not yet re-typed a
-  // name — the new Stage 2 run starts with the default name
-  // again, which is the desired behaviour per §8.5
-  // ("user can change later from the Dashboard").
-  const [name, setName] = useState<string>('')
+  // Week 5 (§8.5) — recipe name local state. Moved up so
+  // `decodeSelection` (which copies the typed name into
+  // `selections.name` when the user taps the Name step's
+  // "named" tile) can read it. The previous location was
+  // after `decodeSelection`, which is a TDZ violation.
 
   // Week 5 (§8.2) — selectors for the completion save flow.
   // `addJournalEntry` is the existing Stage 0 / Quick Batch
@@ -842,26 +848,29 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
     return null
   }
 
-  // Resolve the effective sequence for the current state.
-  // Used to compute `isOnStartStep` and the test-friendly
-  // "start step active" check below.
-  const effectiveSteps = state.branch
-    ? (getEffectiveBranchSequence(state.branch, state) ?? [])
-    : []
-  const isOnStartStep =
-    effectiveSteps.length > 0 &&
-    state.currentStep === effectiveSteps.length - 1 &&
-    effectiveSteps[effectiveSteps.length - 1]?.id === 'start'
-  // Pre-compute the canonical sequence length for the
-  // "completed" badge on the Finish section. The user has
-  // finished the wizard when they are on the start step
-  // (terminal CTA) OR when `currentStep` is past the end of
-  // the canonical sequence (post-confirm state).
-  const canonicalSteps = state.branch
-    ? (BRANCH_SEQUENCES[state.branch] ?? [])
-    : []
-  const isFinished =
-    state.currentStep >= canonicalSteps.length && canonicalSteps.length > 0
+  // Resolve the effective step id for the current state via
+  // the DAG. `currentStepId` is whatever the user last set
+  // (on `onSelect` / `onEdit`); if it's null (initial or
+  // post-Begin-batch), the DAG's `getNextStep` returns the
+  // first step or 'start' respectively. The render uses
+  // `currentStepId` to look up the step via the Wizard
+  // component, which in turn uses `STEP_MAP`.
+  const dagStepId = getNextStep(state)
+  const renderedStepId = state.currentStepId ?? dagStepId
+  // The user is on the Start step when the DAG says so —
+  // this is the "all required fields filled" sentinel. The
+  // wizard's `currentStepId` may be 'start' already (the
+  // last `onSelect` set it), or null (post-Begin-batch), or
+  // a prior step that the user is re-editing.
+  const isOnStartStep = renderedStepId === 'start'
+  // The user has finished the wizard when they tapped
+  // "Begin batch" (which sets `currentStepId = null` and
+  // transitions to Stage 2). The isFinished helper in
+  // `wizardFlow.ts` is the canonical check; the local
+  // `state.endProduct` + `state.branch` guards are
+  // defensive (the DAG wouldn't return 'start' without
+  // both set, so this is a belt-and-suspenders check).
+  const finished = isFinished(state)
 
   return (
     <div
@@ -983,7 +992,7 @@ export function WizardScreen({ className, initialState }: WizardScreenProps) {
           for the duration of the batch so the user can re-edit
           a single step and re-run Stage 2 without re-filling
           the wizard. */}
-      {isFinished ? (
+      {finished ? (
         <section
           aria-label="Batch ready"
           className="flex flex-col gap-1 rounded-xl border border-success/30 bg-success/10 p-4"

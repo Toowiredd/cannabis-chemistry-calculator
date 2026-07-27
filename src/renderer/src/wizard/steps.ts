@@ -780,7 +780,7 @@ const APPLICATION_AREA_PRESETS: ReadonlyArray<{
 ]
 
 export const applicationAreaStep: WizardStep = {
-  id: 'applicationArea',
+  id: 'app-area',
   title: 'Application area',
   description:
     'Where will you apply the topical? Different areas have different skin sensitivity, which affects the right concentration.',
@@ -893,10 +893,6 @@ export const STEP_MAP: Record<WizardStepId, WizardStep> = {
   carrier: carrierStep,
   volume: volumeStep,
   servings: servingsStep,
-  // The application-area step is registered under its
-  // existing id `applicationArea` (matches the existing
-  // branchSequences test). Commit 2 renames it to `app-area`
-  // to match the DAG's stepId union.
   'app-area': applicationAreaStep,
   name: nameStep,
   start: startStep,

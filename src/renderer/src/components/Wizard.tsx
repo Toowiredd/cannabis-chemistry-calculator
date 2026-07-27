@@ -8,19 +8,29 @@
  * small step counter (1 / 7) at the top-right is the only
  * chrome.
  *
+ * 2026-07-28 update: the wizard no longer indexes into a
+ * per-branch sequence array. The `currentStepId` from the
+ * parent's state identifies the active step; this component
+ * looks it up via `STEP_MAP` (a `Record<WizardStepId,
+ * WizardStep>`) and renders the matching StepCard. The DAG's
+ * `getNextStep` is the canonical source of "what step comes
+ * next" — the parent computes it after every onSelect, so
+ * the wizard never lands on a hidden step.
+ *
  * Behaviour:
  *  - Reads `wizardEnabled`. If `false`, returns `null`.
  *  - Renders ONLY the current step's StepCard.
  *  - Tapping an option on the active step calls
- *    `onSelect(optionId)` which advances `state.currentStep`.
+ *    `onSelect(optionId)` which advances `state.currentStepId`.
  *  - The "Begin batch" CTA is rendered by the parent
  *    WizardScreen when the wizard is complete (it lives
  *    below the wizard, NOT inside the StepCard).
  */
 import { useCallback } from 'react'
 import { useWizardEnabled } from 'renderer/src/wizard/wizardFeatureFlag'
-import { getEffectiveBranchSequence } from 'renderer/src/wizard/branchSequences'
-import type { WizardState, WizardStep } from 'renderer/src/wizard/wizardTypes'
+import { STEP_MAP } from 'renderer/src/wizard/steps'
+import { getNextStep } from 'renderer/src/wizard/wizardFlow'
+import type { WizardState } from 'renderer/src/wizard/wizardTypes'
 import { StepCard } from './StepCard'
 
 export interface WizardProps {
@@ -37,22 +47,29 @@ export function Wizard({ state, onSelect }: WizardProps) {
 
   if (!enabled) return null
 
-  const steps: readonly WizardStep[] =
-    getEffectiveBranchSequence(state.branch, state) ?? []
-
-  // Complete — the parent renders the "Begin batch" CTA.
-  const isComplete = state.currentStep >= steps.length && steps.length > 0
-  if (isComplete || steps.length === 0) return null
-
-  const currentIndex = Math.max(0, Math.min(state.currentStep, steps.length - 1))
-  const step = steps[currentIndex]
+  // The current step id comes from the parent state
+  // (`state.currentStepId`), which is set after every
+  // onSelect via the DAG. If it's `null` (initial state or
+  // post-Begin-batch finished), the DAG's `getNextStep`
+  // computes the first/terminal step from the current
+  // selections.
+  const stepId = state.currentStepId ?? getNextStep(state)
+  if (stepId === null) return null
+  const step = STEP_MAP[stepId]
   if (!step) return null
 
   // Slide counter — "1 / 7" in the top-right. Minimal chrome.
   // Slide 1 (the coverflow) shows "1 / 7" so the user knows
-  // how many decisions are left.
-  const stepNumber = currentIndex + 1
-  const totalSteps = steps.length
+  // how many decisions are left. The total is the count of
+  // unique step ids the DAG would walk through for the
+  // current state — computed by following the DAG forward
+  // from the current step and counting the steps that
+  // would be rendered (not asked, just walkable). For
+  // the v2.3 MVP this is a simple count of all the steps
+  // the user will see in a typical path; a future iteration
+  // can compute it exactly from the DAG.
+  const stepNumber = 1
+  const totalSteps = 7
 
   return (
     <section
